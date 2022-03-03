@@ -385,3 +385,5 @@ pip-selfcheck.json
 private*
 # exclude log files
 *.log
+# Exclude tempCodeRunnerFile.py
+tempCodeRunnerFile.py
