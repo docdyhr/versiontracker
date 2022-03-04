@@ -5,7 +5,7 @@
 * Name: Versiontracker
 * Version: 0.1.0
 * Programming language: Python 3
-* Author: Thomas J. Dyhr
+* Author: docdyhr
 * Purpose: CLI versiontracker and update tool for macOS
 * Release date: 21. Feb 2022
 
