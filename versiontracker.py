@@ -120,8 +120,8 @@ def get_applications(data: 'json') -> tuple:
 def filter_out_brews(applications: tuple, brews: list) -> tuple:
     """Returns a tuple (app_name, version)
 
-   Finds installable application candidates with brew."""
-   print("getting installable casks from HOMEBREW...")
+    Finds installable application candidates with brew."""
+    print("getting installable casks from HOMEBREW...")
     candidates = []
     search_list = []
 
@@ -167,7 +167,7 @@ def check_brew_optional_install(data: tuple) -> list:
     return installers
 
 
-def distill_recommended_apps(options):
+def recommended_apps(options):
     """Returns a list of recommended apps to install with brew
     Args:
         options (dict): cli option
@@ -177,7 +177,6 @@ def distill_recommended_apps(options):
     apps_homebrew = os.popen(BREW_CMD).read().splitlines()
     search_brutto = filter_out_brews(apps_folder, apps_homebrew)
     brew_options = check_brew_optional_install(search_brutto)
-    # cli_printer(brew_options)
     for re_brew in brew_options:
         if options.debug:
             logging.debug("\t recommended install: %s", re_brew)
@@ -209,7 +208,7 @@ def main():
             print(brew)
 
     if options.recom:
-        distill_recommended_apps(options)
+        recommended_apps(options)
 
 
 if __name__ == '__main__':
