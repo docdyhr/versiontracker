@@ -52,6 +52,8 @@ pip install -r requirements.txt
 
 On macOS not all apps are installed through App Store. And if you have many apps dowloaded outside of Apples App Store it's often a hassle to keep them all updated at all times - espcially those you do not use every day.  Download sites like macupdate.com og macdownload.com seems not to care about user privacy. With package managers like HOMEBREW and MacPort it's possible to install and maintain a lot of popular apps.
 
+Still some work to do..
+
 ## todo
 
 ## license
