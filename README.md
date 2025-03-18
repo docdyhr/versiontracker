@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/logo.png" alt="Project Logo"/>
+  <img src="images/logo.png" alt="Project Logo" width="75%"/>
 </p>
 
 # Versiontracker Update tool for macOS
