@@ -38,7 +38,7 @@ from versiontracker.utils import run_command, normalise_name
 
 # Import the partial_ratio compatibility function
 try:
-    from versiontracker.version import partial_ratio
+    from versiontracker.version import partial_ratio, USE_RAPIDFUZZ
 except ImportError:
     # Fallback implementation if needed
     def partial_ratio(s1, s2, **kwargs):
@@ -557,11 +557,18 @@ def _cached_brew_search(search_term: str) -> List[str]:
     Returns:
         List[str]: List of search results
     """
-    brew_search = f"{BREW_SEARCH} '{search_term}'"
+    # Use double quotes and escape any internal quotes to avoid shell syntax errors
+    search_term_escaped = search_term.replace('"', '\\"')
+    brew_search = f'{BREW_SEARCH} "{search_term_escaped}"'
     try:
-        response = run_command(brew_search)
-        # Filter out header lines
-        response = [item for item in response if item and "==>" not in item]
+        stdout, return_code = run_command(brew_search)
+        
+        # Check if command was successful
+        if return_code != 0:
+            return []
+            
+        # Split the output into lines and filter out empty lines and headers
+        response = [item for item in stdout.splitlines() if item and "==>" not in item]
         return response
     except Exception as e:
         logging.error(f"Error searching for {search_term}: {e}")
@@ -579,18 +586,29 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Any) -> Optional[st
         Optional[str]: The application name if it can be installed with Homebrew, None otherwise
     """
     try:
-        # Wait if necessary to comply with the rate limit
-        rate_limiter.wait()
-
-        # Use the cached search function instead of running directly
-        brew_search = f"{BREW_SEARCH} '{app[0]}'"
-        logging.debug(f"Searching for {app[0]}...")
+        # Wait for rate limit if needed
+        if hasattr(rate_limiter, "wait"):
+            rate_limiter.wait()
+            
+        # Normalize the app name for search
+        search_term = normalise_name(app[0])
         
-        # For direct testing compatibility
+        # Skip empty search terms
+        if not search_term:
+            return None
+        
+        # Use double quotes and escape any internal quotes to avoid shell syntax errors
+        search_term_escaped = search_term.replace('"', '\\"')
+        brew_search = f'{BREW_SEARCH} "{search_term_escaped}"'
+        
         try:
-            response = run_command(brew_search)
-            # Filter out header lines
-            response = [item for item in response if item and "==>" not in item]
+            stdout, return_code = run_command(brew_search)
+            # Only process if command was successful
+            if return_code == 0:
+                # Filter out header lines
+                response = [item for item in stdout.splitlines() if item and "==>" not in item]
+            else:
+                response = []
         except Exception:
             # Fall back to cached function if direct call fails
             response = _cached_brew_search(app[0])
@@ -662,11 +680,7 @@ def _batch_process_brew_search(apps_batch: List[Tuple[str, str]], rate_limiter: 
                         break
                         
                     # Use fuzzy matching for less strict matches
-                    if USE_RAPIDFUZZ:
-                        similarity = partial_ratio(app_name_normalized, result)
-                    else:
-                        similarity = partial_ratio(app_name_normalized, result)
-                        
+                    similarity = partial_ratio(app_name_normalized, result)
                     if similarity >= 80:
                         return_value = search_results[i]
                         results.append(return_value)

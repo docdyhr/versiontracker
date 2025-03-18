@@ -6,7 +6,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/versiontracker) ![GitHub](https://img.shields.io/github/license/docdyhr/versiontracker)
 
 * Name: Versiontracker
-* Version: 0.4.0
+* Version: 0.5.1
 * Programming language: Python 3
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
