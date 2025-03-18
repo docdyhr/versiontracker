@@ -27,16 +27,19 @@ This document outlines planned enhancements, known bugs, and potential optimizat
   - [ ] Add option to automatically update supported applications
   - [ ] Implement dry-run mode to preview updates
   - [ ] Add confirmation prompts for potentially risky updates
+  - [ ] Include safety checks and rollback capabilities
 
 - [ ] **Additional Package Manager Support**
   - [ ] Add support for MacPorts
   - [ ] Integrate with mas-cli for App Store applications
   - [ ] Unify version checking across package managers
+  - [ ] Create adapter interfaces for future package managers
 
 - [ ] **Application Profiles**
   - [ ] Create snapshots of installed applications
   - [ ] Allow comparison between profiles to track changes
   - [ ] Implement profile import/export
+  - [ ] Enable cloud backup and sync of profiles
 
 ### Future Enhancements
 
@@ -44,16 +47,25 @@ This document outlines planned enhancements, known bugs, and potential optimizat
   - [ ] Develop a web-based interface using Flask
   - [ ] Add dark/light mode support
   - [ ] Implement interactive filtering and sorting
+  - [ ] Create data visualization for update statistics
 
 - [ ] **Security Analysis**
   - [ ] Integrate with vulnerability databases (NVD, CVE)
   - [ ] Alert on applications with known security issues
   - [ ] Provide update recommendations for security-critical apps
+  - [ ] Add severity ratings for vulnerabilities
 
 - [ ] **System Integration**
   - [ ] Add launchd service for scheduled checking
   - [ ] Implement macOS notifications for update alerts
   - [ ] Create a menubar application for quick access
+  - [ ] Add Shortcuts app integration
+
+- [ ] **Plugin System**
+  - [ ] Design an extensible plugin architecture
+  - [ ] Support user-contributed package manager plugins
+  - [ ] Create plugin repository and discovery mechanism
+  - [ ] Add plugin security verification
 
 ## Bugs to Fix
 
@@ -72,6 +84,7 @@ This document outlines planned enhancements, known bugs, and potential optimizat
   - [ ] Test and fix compatibility with homebrew paths on Apple Silicon vs Intel
   - [ ] Verify compatibility with Python 3.11+ (currently tested on 3.7+)
   - [ ] Ensure compatibility with various macOS versions (Monterey, Ventura, Sonoma)
+  - [ ] Handle application bundles with non-standard structures
 
 - [x] **Error Handling**
   - [x] Improve error messages for common failures
@@ -118,6 +131,12 @@ This document outlines planned enhancements, known bugs, and potential optimizat
   - [x] Create comprehensive API documentation
   - [x] Add more usage examples with screenshots
   - [x] Improve inline code documentation
+
+- [ ] **User Experience Improvements**
+  - [ ] Implement color-coded console output for better readability
+  - [ ] Add smart progress indicators for long-running operations
+  - [ ] Create adaptive rate limiting based on system resources
+  - [ ] Support for saving and loading common query filters
 
 ## Project Management
 
