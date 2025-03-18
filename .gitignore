@@ -211,6 +211,15 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Profiling and coverage data
+*.profraw
+*.prof
+*.pstat
+.coverage.*
+.coverage
+coverage.xml
+htmlcov/
+
 # Translations
 *.mo
 *.pot
@@ -377,7 +386,10 @@ pip-selfcheck.json
 
 # Support for Project snippet scope
 
-# End of https://www.toptal.com/developers/gitignore/api/macos,git,venv,direnv,python,visualstudiocode,pycharm,sublimetext
+# Backup files
+*.bak
+*.orig
+*~
 
 ### Private ###
 
@@ -387,3 +399,5 @@ private*
 *.log
 # Exclude tempCodeRunnerFile.py
 tempCodeRunnerFile.py
+
+# End of https://www.toptal.com/developers/gitignore/api/macos,git,venv,direnv,python,visualstudiocode,pycharm,sublimetext

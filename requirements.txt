@@ -1,0 +1,6 @@
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.12.2  # Accelerates fuzzywuzzy
+rapidfuzz>=3.0.0  # Faster alternative to fuzzywuzzy
+pytest>=7.4.0  # For unit testing
+pytest-cov>=4.1.0  # For test coverage
+tqdm>=4.66.0  # For progress bars
