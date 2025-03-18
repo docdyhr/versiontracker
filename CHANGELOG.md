@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2025-03-18
+
+### Fixed (0.5.1)
+
+- Fixed the 'USE_RAPIDFUZZ is not defined' error by properly importing the variable in apps.py
+- Fixed 'argument of type 'int' is not iterable' errors in the Homebrew search functionality
+- Fixed command execution in _cached_brew_search to properly handle tuples returned by run_command
+- Improved shell command escaping to handle application names with special characters
+- Enhanced the Homebrew search functionality to properly handle failed searches
+
 ## [0.5.0] - 2025-03-18
 
 ### Added (0.5.0)

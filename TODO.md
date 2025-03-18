@@ -77,6 +77,8 @@ This document outlines planned enhancements, known bugs, and potential optimizat
   - [x] Improve error messages for common failures
   - [x] Add graceful handling of network timeouts
   - [x] Better handling of permission errors
+  - [x] Fix Homebrew search command execution and error handling
+  - [x] Fix rapidfuzz import and usage issues
 
 ## Optimizations
 
