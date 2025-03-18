@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-03-18
+
+### Added (0.4.0)
+
+- Version comparison functionality to check for outdated applications
+- New command-line option (`--outdated`) to identify applications that need updating
+- Intelligent version parsing and comparison for various version formats
+- Configuration options for version comparison behavior and preferences
+- Status indicators for applications (up-to-date, outdated, newer, unknown)
+- Sorting of results by outdated status
+- Unit tests for version comparison functionality
+- Enhanced configuration with version comparison settings
+
+### Changed (0.4.0)
+
+- Improved application version detection
+- Updated documentation with version comparison examples
+- Enhanced compatibility with different version number formats
+
 ## [0.3.1] - 2025-03-19
 
 ### Added (0.3.1)

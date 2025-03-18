@@ -122,6 +122,13 @@ def get_arguments():
         dest="strict_recom",
         help="return recommendations for brew, excluding apps that can already be installed with brew",
     )
+    group.add_argument(
+        "-o",
+        "--outdated",
+        action="store_true",
+        dest="check_outdated",
+        help="check for outdated applications compared to Homebrew versions",
+    )
     group.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
 
     # If no arguments were provided, show help

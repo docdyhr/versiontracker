@@ -40,6 +40,28 @@ class Config:
             "blacklist": [],
             # Whether to show progress bars
             "show_progress": True,
+            # Version comparison options
+            "version_comparison": {
+                # Rate limit for Homebrew version checks (seconds)
+                "rate_limit": 2,
+                # Maximum age of cached version data (hours)
+                "cache_ttl": 24,
+                # Minimum similarity threshold for version matching (%)
+                "similarity_threshold": 75,
+                # Whether to include beta/development versions
+                "include_beta_versions": False,
+                # Sort results by outdated status
+                "sort_by_outdated": True,
+            },
+            # Outdated detection options
+            "outdated_detection": {
+                # Whether to detect outdated applications
+                "enabled": True,
+                # Minimum version difference to consider an application outdated
+                "min_version_diff": 1,
+                # Whether to include pre-release versions in outdated detection
+                "include_pre_releases": False,
+            },
         }
 
         # Load configuration values
@@ -140,6 +162,66 @@ class Config:
         if os.environ.get("VERSIONTRACKER_PROGRESS_BARS", "").lower() in ("0", "false", "no"):
             self._config["show_progress"] = False
 
+        # Version comparison rate limit
+        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"):
+            try:
+                self._config["version_comparison"]["rate_limit"] = int(
+                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"]
+                )
+            except ValueError:
+                logging.warning(
+                    f"Invalid version comparison rate limit: {os.environ['VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT']}"
+                )
+
+        # Version comparison cache TTL
+        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL"):
+            try:
+                self._config["version_comparison"]["cache_ttl"] = int(
+                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL"]
+                )
+            except ValueError:
+                logging.warning(
+                    f"Invalid version comparison cache TTL: {os.environ['VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL']}"
+                )
+
+        # Version comparison similarity threshold
+        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD"):
+            try:
+                self._config["version_comparison"]["similarity_threshold"] = int(
+                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD"]
+                )
+            except ValueError:
+                logging.warning(
+                    f"Invalid version comparison similarity threshold: {os.environ['VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD']}"
+                )
+
+        # Version comparison include beta versions
+        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_INCLUDE_BETA_VERSIONS", "").lower() in ("1", "true", "yes"):
+            self._config["version_comparison"]["include_beta_versions"] = True
+
+        # Version comparison sort by outdated status
+        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_SORT_BY_OUTDATED", "").lower() in ("1", "true", "yes"):
+            self._config["version_comparison"]["sort_by_outdated"] = True
+
+        # Outdated detection enabled
+        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_ENABLED", "").lower() in ("1", "true", "yes"):
+            self._config["outdated_detection"]["enabled"] = True
+
+        # Outdated detection minimum version difference
+        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF"):
+            try:
+                self._config["outdated_detection"]["min_version_diff"] = int(
+                    os.environ["VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF"]
+                )
+            except ValueError:
+                logging.warning(
+                    f"Invalid outdated detection minimum version difference: {os.environ['VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF']}"
+                )
+
+        # Outdated detection include pre-releases
+        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_INCLUDE_PRE_RELEASES", "").lower() in ("1", "true", "yes"):
+            self._config["outdated_detection"]["include_pre_releases"] = True
+
     def get(self, key: str, default: Optional[Any] = None) -> Any:
         """Get a configuration value.
 
@@ -203,7 +285,19 @@ class Config:
             "similarity-threshold": self._config["similarity_threshold"],
             "additional-app-dirs": self._config["additional_app_dirs"],
             "blacklist": self._config["blacklist"],
-            "show-progress": self._config["show_progress"]
+            "show-progress": self._config["show_progress"],
+            "version-comparison": {
+                "rate-limit": self._config["version_comparison"]["rate_limit"],
+                "cache-ttl": self._config["version_comparison"]["cache_ttl"],
+                "similarity-threshold": self._config["version_comparison"]["similarity_threshold"],
+                "include-beta-versions": self._config["version_comparison"]["include_beta_versions"],
+                "sort-by-outdated": self._config["version_comparison"]["sort_by_outdated"],
+            },
+            "outdated-detection": {
+                "enabled": self._config["outdated_detection"]["enabled"],
+                "min-version-diff": self._config["outdated_detection"]["min_version_diff"],
+                "include-pre-releases": self._config["outdated_detection"]["include_pre_releases"],
+            },
         }
         
         # Write the configuration to a file

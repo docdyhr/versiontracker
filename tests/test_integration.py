@@ -61,8 +61,8 @@ class TestIntegration(unittest.TestCase):
         mock_filter_brews.assert_called_once()
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            rate_limit=mock_config.get.return_value,
-            strict=False,
+            mock_config.get.return_value,
+            False,
         )
 
     @patch("versiontracker.__main__.check_dependencies", return_value=True)
@@ -118,8 +118,8 @@ class TestIntegration(unittest.TestCase):
         # Ensure strict param is True
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            rate_limit=mock_config.get.return_value,
-            strict=True,
+            mock_config.get.return_value,
+            True,
         )
 
     @patch("versiontracker.__main__.check_dependencies", return_value=True)
@@ -153,9 +153,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.__main__.check_dependencies", return_value=True)
     @patch("versiontracker.__main__.get_homebrew_casks")
     @patch("versiontracker.__main__.setup_logging")
-    def test_main_brews_workflow(
-        self, mock_setup_logging, mock_get_casks, mock_check_deps
-    ):
+    def test_main_brews_workflow(self, mock_setup_logging, mock_get_casks, mock_check_deps):
         """Test the main brews workflow."""
         # Mock the brew casks
         mock_get_casks.return_value = ["firefox", "google-chrome"]

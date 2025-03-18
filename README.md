@@ -1,8 +1,11 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/docdyhr/versiontracker/main/assets/social-preview.png" alt="VersionTracker Preview" width="20%">
+</p>
 # Versiontracker Update tool for macOS
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/httpcheck)](https://github.com/docdyhr/httpcheck/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/httpcheck) ![GitHub](https://img.shields.io/github/license/docdyhr/httpcheck)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/versiontracker) ![GitHub](https://img.shields.io/github/license/docdyhr/versiontracker)
 
 * Name: Versiontracker
-* Version: 0.3.1
+* Version: 0.4.0
 * Programming language: Python 3
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
@@ -17,6 +20,8 @@ Versiontracker is a command-line tool for macOS that helps you manage applicatio
 * List applications in `/Applications/` not updated by the App Store
 * List all currently installed Homebrew casks
 * Recommend which applications could be managed through Homebrew
+* **Check for outdated applications** by comparing with latest Homebrew versions
+* Identify applications that need updating and show version differences
 * Export results in machine-readable formats (JSON and CSV)
 * YAML configuration file support for persistent settings
 * Fuzzy matching to identify applications across different naming conventions
@@ -74,7 +79,7 @@ usage: versiontracker [-h] [-D DEBUG] [--rate-limit RATE_LIMIT]
                      [--max-workers MAX_WORKERS] [--no-progress]
                      [--blacklist BLACKLIST] [--additional-dirs ADDITIONAL_DIRS]
                      [--similarity SIMILARITY] [--export {json,csv}]
-                     [--output-file OUTPUT_FILE] [-a | -b | -r | -V]
+                     [--output-file OUTPUT_FILE] [-a | -b | -r | -o | -V]
                      [--generate-config] [--config-path CONFIG_PATH]
 
 optional arguments:
@@ -112,6 +117,7 @@ Configuration options:
   -a, --apps            return Apps in Applications/ that is not updated by App Store
   -b, --brews           return installable brews
   -r, --recommend       return recommendations for brew
+  -o, --outdated        check for outdated applications compared to Homebrew versions
   -V, --version         show program's version number and exit
 ```
 
@@ -139,6 +145,18 @@ python3 versiontracker-cli.py --brews
 
 ```shell
 python3 versiontracker-cli.py --recommend
+```
+
+### Check for outdated applications
+
+```shell
+python3 versiontracker-cli.py --outdated
+```
+
+Or if installed:
+
+```shell
+versiontracker --outdated
 ```
 
 ### Export results to JSON format
