@@ -1,0 +1,11 @@
+additional-app-dirs:
+  - /Applications/Utilities
+  - /Applications/Adobe
+api-rate-limit: 5
+blacklist:
+  - Safari
+  - Numbers
+  - Pages
+max-workers: 4
+show-progress: false
+similarity-threshold: 85

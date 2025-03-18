@@ -1,0 +1,9 @@
+additional-app-dirs:
+  - /Applications/Utilities
+api-rate-limit: 5
+blacklist:
+  - Safari
+  - Pages
+max-workers: 4
+show-progress: false
+similarity-threshold: 85

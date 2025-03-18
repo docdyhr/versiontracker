@@ -1,0 +1,6 @@
+additional-app-dirs: []
+api-rate-limit: 3
+blacklist: []
+max-workers: 10
+show-progress: true
+similarity-threshold: 75
