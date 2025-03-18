@@ -94,14 +94,14 @@ class TestApps(unittest.TestCase):
         mock_rate_limiter = MagicMock()
 
         # Set up the mock run_command to return brew search results
-        mock_run_command.return_value = ["firefox", "firefox-developer-edition"]
+        mock_run_command.return_value = ("firefox\nfirefox-developer-edition", 0)
 
         # Test with a matching app
         result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
         self.assertEqual(result, "Firefox")
 
         # Test with a non-matching app
-        mock_run_command.return_value = ["some-other-app"]
+        mock_run_command.return_value = ("some-other-app", 0)
         result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
         self.assertIsNone(result)
 
