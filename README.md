@@ -1,5 +1,8 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/docdyhr/versiontracker/main/assets/social-preview.png" alt="VersionTracker Preview" width="20%">
+</p>
+
 # Versiontracker Update tool for macOS
-![VersionTracker Preview](https://raw.githubusercontent.com/docdyhr/versiontracker/main/assets/social-preview.png)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/httpcheck)](https://github.com/docdyhr/httpcheck/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/httpcheck) ![GitHub](https://img.shields.io/github/license/docdyhr/httpcheck)
 
 * Name: Versiontracker
