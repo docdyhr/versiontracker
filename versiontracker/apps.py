@@ -4,12 +4,27 @@ import concurrent.futures
 import logging
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple, cast, Callable
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 import functools
 
-from fuzzywuzzy.fuzz import partial_ratio  # type: ignore
-from tqdm import tqdm  # type: ignore
+try:
+    from tqdm import tqdm
+    HAS_TQDM = True
+except ImportError:
+    # Simple fallback if tqdm is not available
+    def tqdm(iterable, **kwargs):
+        return iterable
+    HAS_TQDM = False
 
+# Import fuzzy matching
+try:
+    from rapidfuzz.fuzz import partial_ratio
+    USE_RAPIDFUZZ = True
+except ImportError:
+    from fuzzywuzzy.fuzz import partial_ratio
+    USE_RAPIDFUZZ = False
+
+from versiontracker.config import config
 from versiontracker.utils import (
     normalise_name,
     run_command,
@@ -21,7 +36,7 @@ BREW_CMD = "brew list --cask"
 BREW_SEARCH = "brew search --casks"
 
 # Global cache for Homebrew search results
-_brew_search_cache = {}
+_brew_search_cache: Dict[str, List[str]] = {}
 
 
 def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
@@ -191,47 +206,67 @@ def _batch_process_brew_search(apps_batch: List[Tuple[str, str]], rate_limiter: 
     """
     results = []
     
-    # First, check if we can do a broader search to cover multiple apps
-    # Get top-level domain names to use as search terms
-    search_terms = set()
-    app_map = {}
-    
     for app in apps_batch:
-        # Extract first word or first part of camelCase/kebab-case/snake_case name
-        clean_name = app[0].strip().lower()
-        first_part = clean_name.split()[0].split('-')[0].split('_')[0].split('.')[0]
+        app_name, _ = app
         
-        # If the first part is too short, use more of the name
-        if len(first_part) <= 3 and len(clean_name) > 5:
-            first_part = clean_name
+        # Wait for rate limit if needed
+        if hasattr(rate_limiter, "wait"):
+            rate_limiter.wait()
+        
+        try:
+            # Normalize the app name
+            search_term = normalise_name(app_name)
             
-        search_terms.add(first_part)
-        
-        # Map the search term back to the original apps
-        if first_part not in app_map:
-            app_map[first_part] = []
-        app_map[first_part].append(app)
-    
-    # Do the batch searches
-    for term in search_terms:
-        # Wait if necessary to comply with the rate limit
-        rate_limiter.wait()
-        
-        response = _cached_brew_search(term)
-        
-        # Check all applications that might match this search term
-        for app in app_map.get(term, []):
-            for brew in response:
-                if partial_ratio(app[0], brew) > 75:
-                    results.append(app[0])
-                    break
-    
+            # Skip empty search terms
+            if not search_term:
+                continue
+                
+            # Search for the app with cached function
+            search_results = _cached_brew_search(search_term)
+            
+            # Process results if found
+            if search_results:
+                # Normalize names for better matching
+                search_results_normalized = [normalise_name(r) for r in search_results]
+                app_name_normalized = normalise_name(app_name)
+                
+                for i, result in enumerate(search_results_normalized):
+                    if not result:
+                        continue
+                        
+                    # Check for exact match
+                    if result == app_name_normalized:
+                        # Found exact match
+                        return_value = search_results[i]
+                        results.append(return_value)
+                        break
+                        
+                    # Check for substring match (app name in result)
+                    if app_name_normalized in result or result in app_name_normalized:
+                        return_value = search_results[i]
+                        results.append(return_value)
+                        break
+                        
+                    # Use fuzzy matching for less strict matches
+                    if USE_RAPIDFUZZ:
+                        similarity = partial_ratio(app_name_normalized, result)
+                    else:
+                        similarity = partial_ratio(app_name_normalized, result)
+                        
+                    if similarity >= 80:
+                        return_value = search_results[i]
+                        results.append(return_value)
+                        break
+                
+        except Exception as e:
+            logging.error(f"Error searching for {app_name}: {e}")
+            
     return results
 
 
 def check_brew_install_candidates(
     data: List[Tuple[str, str]],
-    rate_limit: int = 1,
+    rate_limit: Union[int, Any] = 1,
     strict: bool = False,
     batch_size: int = 5,
 ) -> List[str]:
@@ -239,7 +274,7 @@ def check_brew_install_candidates(
 
     Args:
         data (List[Tuple[str, str]]): List of (app_name, version) tuples to check
-        rate_limit (int, optional): Seconds to wait between API calls. Defaults to 1.
+        rate_limit (Union[int, Any], optional): Seconds to wait between API calls or config object. Defaults to 1.
         strict (bool, optional): If True, only include apps that are not already
             installable via Homebrew
         batch_size (int, optional): Number of apps to process in each batch. Defaults to 5.
@@ -247,46 +282,67 @@ def check_brew_install_candidates(
     Returns:
         List[str]: List of app names that can be installed with Homebrew
     """
-    if strict:
-        logging.info("Finding strictly new applications that can be installed with Homebrew...")
-        print("Finding strictly new applications that can be installed with Homebrew...")
-    else:
-        logging.info("Filtering out installed brews from Homebrew casks...")
-        print("Filtering out installed brews from Homebrew casks...")
-
     if not data:
         return []
 
-    # Create a rate limiter with 1 call per rate_limit seconds
-    rate_limiter = RateLimiter(calls_per_period=1, period=rate_limit)
-
-    installers: Set[str] = set()
-    total = len(data)
-
-    # Get existing Homebrew cask names (lowercase for comparison)
-    existing_brews = set()
+    # Get installed casks for checking against strict filtering
+    existing_brews = []
     if strict:
-        brew_casks_cmd = "brew search --casks"
         try:
-            all_casks = run_command(brew_casks_cmd)
-            existing_brews = {cask.lower() for cask in all_casks if cask.strip()}
-            logging.debug(f"Found {len(existing_brews)} existing Homebrew casks")
+            brew_list_output = run_command(f"{config.brew_path} list --cask")
+            existing_brews = [
+                brew.strip().lower() for brew in brew_list_output.strip().split("\n") if brew.strip()
+            ]
         except Exception as e:
-            logging.error(f"Error getting existing Homebrew casks: {e}")
+            logging.error(f"Error getting installed casks: {e}")
 
-    # Determine the optimal number of workers based on data size
-    max_workers = min(4, (total + batch_size - 1) // batch_size)
-    
-    # For very small datasets, processing in sequence might be more efficient
-    if total <= 5:
-        max_workers = 1
-        batch_size = total
-    
-    print(f"Processing {total} applications with {max_workers} workers...")
+    # Set up rate limiter
+    rate_limit_seconds = 1  # Default
+    if isinstance(rate_limit, int):
+        rate_limit_seconds = rate_limit
+    else:
+        # Try to get from config object
+        try:
+            if hasattr(rate_limit, "rate_limit"):
+                rate_limit_seconds = cast(int, rate_limit.rate_limit)
+            elif hasattr(rate_limit, "get"):
+                rate_limit_seconds = int(rate_limit.get("rate_limit", 1))
+        except (ValueError, TypeError, AttributeError):
+            # If conversion fails, use default
+            rate_limit_seconds = 1
 
-    # Organize data into batches for processing
-    batches = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
+    # Initialize rate limiter with the converted rate limit
+    class RateLimiter:
+        def __init__(self, rate_limit_sec: int):
+            self.rate_limit_sec = rate_limit_sec
+            self.last_called = 0
+
+        def wait(self):
+            """Wait if necessary to respect rate limit."""
+            now = time.time()
+            if self.last_called > 0:
+                elapsed = now - self.last_called
+                if elapsed < self.rate_limit_sec:
+                    time.sleep(self.rate_limit_sec - elapsed)
+            self.last_called = time.time()
+
+    rate_limiter = RateLimiter(rate_limit_seconds)
+
+    # Clear cache if needed (optimization)
+    _cached_brew_search.cache_clear()
+
+    # Create batches for parallel processing
+    batches = [data[i : i + batch_size] for i in range(0, len(data), batch_size)]
+    max_workers = min(4, len(batches))  # Don't create too many workers
+
+    # Set to track installable apps (avoid duplicates)
+    installers = set()
     
+    # Check if progress bars should be shown
+    show_progress = getattr(config, "show_progress", True)
+    if hasattr(config, "no_progress") and config.no_progress:
+        show_progress = False
+
     # Use ThreadPoolExecutor for parallel processing
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit batch processing tasks
@@ -295,21 +351,35 @@ def check_brew_install_candidates(
         }
 
         # Process results as they complete
-        for future in tqdm(
-            concurrent.futures.as_completed(future_to_batch),
-            total=len(future_to_batch),
-            desc="Searching for Homebrew casks",
-            unit="batch",
-            ncols=80,
-        ):
-            batch = future_to_batch[future]
-            try:
-                batch_results = future.result()
-                for result in batch_results:
-                    if result and (not strict or result.lower() not in existing_brews):
-                        installers.add(result)
-            except Exception as e:
-                logging.error(f"Error processing batch: {e}")
+        if HAS_TQDM and show_progress:
+            # Use progress bar
+            for future in tqdm(
+                concurrent.futures.as_completed(future_to_batch),
+                total=len(future_to_batch),
+                desc="Searching for Homebrew casks",
+                unit="batch",
+                ncols=80,
+                bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
+            ):
+                batch = future_to_batch[future]
+                try:
+                    batch_results = future.result()
+                    for result in batch_results:
+                        if result and (not strict or result.lower() not in existing_brews):
+                            installers.add(result)
+                except Exception as e:
+                    logging.error(f"Error processing batch: {e}")
+        else:
+            # Process without progress bar
+            for future in concurrent.futures.as_completed(future_to_batch):
+                batch = future_to_batch[future]
+                try:
+                    batch_results = future.result()
+                    for result in batch_results:
+                        if result and (not strict or result.lower() not in existing_brews):
+                            installers.add(result)
+                except Exception as e:
+                    logging.error(f"Error processing batch: {e}")
 
     # Convert set to sorted list
     installers_list = list(installers)
