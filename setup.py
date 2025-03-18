@@ -11,7 +11,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="versiontracker",
-    version="0.2.0",
+    version="0.3.0",
     author="docdyhr",
     author_email="thomas@dyhr.com",
     description="CLI versiontracker and update tool for macOS",

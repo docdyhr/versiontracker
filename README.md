@@ -2,7 +2,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/httpcheck)](https://github.com/docdyhr/httpcheck/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/httpcheck) ![GitHub](https://img.shields.io/github/license/docdyhr/httpcheck)
 
 * Name: Versiontracker
-* Version: 0.1.1
+* Version: 0.3.0
 * Programming language: Python 3
 * Author: docdyhr
 * Purpose: CLI versiontracker and update tool for macOS
@@ -14,14 +14,15 @@ Versiontracker is a command-line tool for macOS that helps you manage applicatio
 
 ## Features
 
-- List applications in `/Applications/` not updated by the App Store
-- List all currently installed Homebrew casks
-- Recommend which applications could be managed through Homebrew
-- Fuzzy matching to identify applications across different naming conventions
-- Parallel processing for faster operation
-- Configurable blacklist to exclude specific applications
-- Support for scanning additional application directories
-- Secure command execution
+* List applications in `/Applications/` not updated by the App Store
+* List all currently installed Homebrew casks
+* Recommend which applications could be managed through Homebrew
+* Export results in machine-readable formats (JSON and CSV)
+* Fuzzy matching to identify applications across different naming conventions
+* Parallel processing for faster operation
+* Configurable blacklist to exclude specific applications
+* Support for scanning additional application directories
+* Secure command execution
 
 ## Requirements
 
@@ -71,7 +72,8 @@ Versiontracker provides a simple command-line interface with several options:
 usage: versiontracker [-h] [-D DEBUG] [--rate-limit RATE_LIMIT]
                      [--max-workers MAX_WORKERS] [--no-progress]
                      [--blacklist BLACKLIST] [--additional-dirs ADDITIONAL_DIRS]
-                     [--similarity SIMILARITY] [-a | -b | -r | -V]
+                     [--similarity SIMILARITY] [--export {json,csv}]
+                     [--output-file OUTPUT_FILE] [-a | -b | -r | -V]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -92,6 +94,11 @@ Filtering options:
                         Colon-separated list of additional directories to scan for applications
   --similarity SIMILARITY
                         Similarity threshold for matching (0-100, default: 75)
+
+Export options:
+  --export {json,csv}   Export results in specified format (json or csv)
+  --output-file OUTPUT_FILE
+                        Specify the output file for export (default: print to stdout)
 
   -a, --apps            return Apps in Applications/ that is not updated by App Store
   -b, --brews           return installable brews
@@ -123,6 +130,18 @@ python3 versiontracker-cli.py --brews
 
 ```shell
 python3 versiontracker-cli.py --recommend
+```
+
+### Export results to JSON format
+
+```shell
+python3 versiontracker-cli.py --apps --export json
+```
+
+### Save export results to a file
+
+```shell
+python3 versiontracker-cli.py --apps --export csv --output-file applications.csv
 ```
 
 ### Run with debugging enabled
@@ -193,13 +212,13 @@ Package managers like Homebrew and MacPort make it possible to install and maint
 
 ## Planned Improvements
 
-- Add more package managers support (MacPorts, etc.)
-- Add automatic update capabilities for Homebrew-manageable applications
-- Improve performance with parallel API requests
-- Add GUI interface
-- Add support for application blacklisting
-- Generate reports of outdated applications
-- Add support for scanning custom application directories
+* Add more package managers support (MacPorts, etc.)
+* Add automatic update capabilities for Homebrew-manageable applications
+* Improve performance with parallel API requests
+* Add GUI interface
+* Add support for application blacklisting
+* Generate reports of outdated applications
+* Support for more export formats
 
 ## License
 
