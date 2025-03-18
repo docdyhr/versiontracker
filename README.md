@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/docdyhr/versiontracker/main/assets/social-preview.png" alt="VersionTracker Preview" width="20%">
+  <img src="https://raw.githubusercontent.com/docdyhr/versiontracker/assets/social-preview.png" alt="VersionTracker Preview">
 </p>
 
 # Versiontracker Update tool for macOS
