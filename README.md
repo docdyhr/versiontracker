@@ -21,7 +21,7 @@ Versiontracker is a command-line tool for macOS that helps you manage applicatio
 * List applications in `/Applications/` not updated by the App Store
 * List all currently installed Homebrew casks
 * Recommend which applications could be managed through Homebrew
-* **Check for outdated applications** by comparing with latest Homebrew versions
+* Check for outdated applications by comparing with latest Homebrew versions
 * Identify applications that need updating and show version differences
 * Export results in machine-readable formats (JSON and CSV)
 * YAML configuration file support for persistent settings
