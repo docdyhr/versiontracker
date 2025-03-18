@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """Setup script for VersionTracker."""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-with open("requirements.txt", "r", encoding="utf-8") as fh:
-    requirements = fh.read().splitlines()
+try:
+    with open("requirements.txt", "r", encoding="utf-8") as fh:
+        requirements = fh.read().splitlines()
+except FileNotFoundError:
+    requirements = ["PyYAML"]
 
 setup(
     name="versiontracker",
-    version="0.3.0",
+    version="0.3.1",
     author="docdyhr",
     author_email="thomas@dyhr.com",
     description="CLI versiontracker and update tool for macOS",

@@ -5,9 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-03-19
+
+### Added (0.3.1)
+
+- Support for specifying custom configuration file paths with `--config-path`
+- Ability to use custom configuration file locations when running the application
+- New tests for custom configuration file handling
+
+### Changed (0.3.1)
+
+- Improved configuration handling with global config instance management
+- Enhanced documentation for configuration file usage
+- Updated CLI help text to better describe configuration options
+
 ## [0.3.0] - 2025-03-18
 
-### Added
+### Added (0.3.0)
+
 - Export functionality for JSON and CSV formats
 - Command-line arguments for specifying export format (--export)
 - Output file option for saving export data (--output-file)
@@ -18,7 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Layered configuration with environment variables overriding config file
 - Updated documentation with export and configuration usage examples
 
-### Changed
+### Changed (0.3.0)
+
 - Refactored main application code to handle export options
 - Updated CLI interface to include export option group
 - Improved error handling for export operations
@@ -26,7 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2025-03-15
 
-### Added
+### Added (0.2.0)
+
 - Continuous Integration/Continuous Deployment setup using GitHub Actions
   - test.yml for running tests on multiple Python versions
   - lint.yml for code quality checking with flake8, black, and isort
@@ -34,14 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved test coverage with focus on integration tests
 - PyPI trusted publishing configuration
 
-### Changed
+### Changed (0.2.0)
+
 - Fixed integration tests to properly mock functions in the __main__ module
 - Streamlined code structure for better maintainability
 - Updated documentation to reflect CI/CD capabilities
 
 ## [0.1.1] - 2022-02-21
 
-### Added
+### Added (0.1.1)
+
 - Initial public release
 - Basic application tracking functionality
 - Homebrew cask recommendation system
