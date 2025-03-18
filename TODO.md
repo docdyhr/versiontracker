@@ -57,10 +57,10 @@ This document outlines planned enhancements, known bugs, and potential optimizat
 
 ## Bugs to Fix
 
-- [ ] **Performance Issues**
-  - [ ] Optimize Homebrew cask search to reduce API calls
-  - [ ] Fix potential race conditions in concurrent execution
-  - [ ] Address memory usage with large application sets
+- [x] **Performance Issues**
+  - [x] Optimize Homebrew cask search to reduce API calls
+  - [x] Fix potential race conditions in concurrent execution
+  - [x] Address memory usage with large application sets
 
 - [ ] **Compatibility**
   - [ ] Test and fix compatibility with homebrew paths on Apple Silicon vs Intel

@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, cast
@@ -163,7 +164,7 @@ def run_command(command: str) -> List[str]:
 
 
 class RateLimiter:
-    """Rate limiter for API calls."""
+    """Rate limiter for API calls that is thread-safe."""
 
     def __init__(self, calls_per_period: int = 1, period: float = 1.0):
         """Initialize the rate limiter.
@@ -175,21 +176,29 @@ class RateLimiter:
         self.calls_per_period = calls_per_period
         self.period = period
         self.timestamps: List[float] = []
+        self._lock = threading.Lock()
 
     def wait(self) -> None:
         """Wait if necessary to comply with the rate limit."""
-        current_time = time.time()
+        with self._lock:  # Use a lock to make the method thread-safe
+            current_time = time.time()
 
-        # Remove timestamps older than the period
-        self.timestamps = [t for t in self.timestamps if current_time - t < self.period]
+            # Remove timestamps older than the period
+            self.timestamps = [t for t in self.timestamps if current_time - t < self.period]
 
-        # If we've reached the limit, wait until we can make another call
-        if len(self.timestamps) >= self.calls_per_period:
-            sleep_time = self.period - (current_time - self.timestamps[0])
-            if sleep_time > 0:
-                logging.debug(f"Rate limiting: waiting for {sleep_time:.2f} seconds")
-                time.sleep(sleep_time)
-                current_time = time.time()  # Update current time after sleeping
+            # If we've reached the limit, wait until we can make another call
+            if len(self.timestamps) >= self.calls_per_period:
+                sleep_time = self.period - (current_time - self.timestamps[0])
+                if sleep_time > 0:
+                    logging.debug(f"Rate limiting: waiting for {sleep_time:.2f} seconds")
+                    # Release the lock while sleeping to avoid blocking other threads
+                    self._lock.release()
+                    try:
+                        time.sleep(sleep_time)
+                    finally:
+                        # Reacquire the lock after sleeping
+                        self._lock.acquire()
+                    current_time = time.time()  # Update current time after sleeping
 
-        # Record the timestamp for this call
-        self.timestamps.append(current_time)
+            # Record the timestamp for this call
+            self.timestamps.append(current_time)

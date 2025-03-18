@@ -2,6 +2,8 @@
 
 import logging
 import sys
+import gc
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -201,90 +203,101 @@ def handle_outdated_check(options: Any) -> int:
         int: Exit code (0 for success, non-zero for failure)
     """
     try:
-        # Get applications not updated by App Store
-        raw_data = get_json_data(config.get("system_profiler_cmd"))
-        apps_folder = get_applications(raw_data)
+        # Check for required dependencies
+        if not check_dependencies():
+            return 1
 
-        # Apply blacklist filtering
-        filtered_apps: List[Tuple[str, str]] = [
-            (item[0], item[1]) for item in apps_folder if not config.is_blacklisted(item[0])
-        ]
+        # Get system profiler data with application information
+        profiler_data = get_json_data(config.get("system_profiler_cmd"))
 
-        # Check for outdated applications
-        print("Checking for outdated applications...")
-        version_info_list = check_outdated_apps(filtered_apps)
+        # Get all installed applications
+        all_apps = get_applications(profiler_data)
+        
+        # Use a smaller memory footprint for the check
+        gc.collect()
+        
+        # Get list of installed brews
+        brews = get_homebrew_casks()
 
-        # Count by status
-        status_counts = {
+        # Memory cleanup again
+        gc.collect()
+
+        # Check outdated apps using memory-optimized batching
+        outdated_batch_size = 20  # Process in smaller batches to reduce memory usage
+        outdated_info = check_outdated_apps(all_apps, batch_size=outdated_batch_size)
+
+        # Sort by status (outdated first, then up to date, then newer, then unknown)
+        status_priority = {
             VersionStatus.OUTDATED: 0,
-            VersionStatus.UP_TO_DATE: 0,
-            VersionStatus.NEWER: 0,
-            VersionStatus.UNKNOWN: 0,
+            VersionStatus.UP_TO_DATE: 1,
+            VersionStatus.NEWER: 2,
+            VersionStatus.UNKNOWN: 3,
         }
 
-        # Display results
-        if not options.export_format:
-            # Print outdated apps first
-            print("\nOutdated Applications:")
-            print("---------------------")
-            outdated_found = False
+        outdated_info.sort(key=lambda x: (status_priority[x[2]], x[0].casefold()))
 
-            for info in version_info_list:
-                status_counts[info.status] += 1
+        # Prepare table output
+        table = []
+        total_outdated = 0
 
-                if info.status == VersionStatus.OUTDATED:
-                    outdated_found = True
-                    latest = f" → {info.latest_version}" if info.latest_version else ""
-                    print(
-                        f"{info.name} (version: {info.version_string}{latest}) - "
-                        f"UPDATE AVAILABLE"
-                    )
+        for app_name, version_info, status in outdated_info:
+            icon = get_status_icon(status)
+            color = get_status_color(status)
+            
+            # Count outdated applications
+            if status == VersionStatus.OUTDATED:
+                total_outdated += 1
 
-            if not outdated_found:
-                print("No outdated applications found.")
+            # Format the versions
+            current_ver = version_info["current"] if version_info["current"] else "Unknown"
+            latest_ver = version_info["latest"] if version_info["latest"] else "Unknown"
 
-            # Print summary
-            print("\nApplication Version Summary:")
-            print("--------------------------")
-            print(f"Outdated: {status_counts[VersionStatus.OUTDATED]}")
-            print(f"Up to date: {status_counts[VersionStatus.UP_TO_DATE]}")
-            print(f"Newer than Homebrew: {status_counts[VersionStatus.NEWER]}")
-            print(f"Unknown status: {status_counts[VersionStatus.UNKNOWN]}")
-            print(f"Total applications checked: {len(version_info_list)}")
-
-        # Handle export if requested
-        if options.export_format:
-            # Convert to serializable format
-            export_data_dict = {
-                "applications": [
-                    {
-                        "name": info.name,
-                        "current_version": info.version_string,
-                        "latest_version": info.latest_version or "unknown",
-                        "status": info.status.value,
-                    }
-                    for info in version_info_list
-                ],
-                "summary": {
-                    "outdated": status_counts[VersionStatus.OUTDATED],
-                    "up_to_date": status_counts[VersionStatus.UP_TO_DATE],
-                    "newer": status_counts[VersionStatus.NEWER],
-                    "unknown": status_counts[VersionStatus.UNKNOWN],
-                    "total": len(version_info_list),
-                },
-            }
-
-            export_result = handle_export(
-                export_data_dict,
-                options.export_format,
-                options.output_file,
+            # Add row to table with colored output
+            table.append(
+                [
+                    icon,
+                    color(app_name),
+                    color(current_ver),
+                    color(latest_ver),
+                ]
             )
 
-            if not options.output_file:
-                print(export_result)
+        # Print the results
+        if table:
+            # Print summary header with count of outdated apps
+            outdated_text = f"({total_outdated} outdated)" if total_outdated > 0 else ""
+            print(f"\nFound {len(table)} applications {outdated_text}:\n")
+
+            headers = ["", "Application", "Current Version", "Latest Version"]
+            print(tabulate(table, headers=headers, tablefmt="simple"))
+            
+            # Memory cleanup after generating report
+            del table
+            gc.collect()
+
+            # Print summary of outdated applications
+            if total_outdated > 0:
+                print(f"\n{colored('!', 'red')} {total_outdated} applications can be updated.")
+                if options.export:
+                    print(
+                        colored(
+                            "Outdated applications are marked with '!' in the exported file.",
+                            "yellow",
+                        )
+                    )
+            else:
+                print(colored("\nAll applications are up to date!", "green"))
+        else:
+            print("No applications found.")
+
+        # Export if requested
+        if options.export:
+            return export_data(outdated_info, options.export)
+
         return 0
     except Exception as e:
-        logging.error(f"Error checking outdated apps: {e}")
+        logging.error(f"Error checking outdated applications: {e}")
+        traceback.print_exc()
         return 1
 
 

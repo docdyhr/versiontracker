@@ -4,7 +4,7 @@ import logging
 import re
 import subprocess
 from enum import Enum
-from typing import List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, NamedTuple
 
 from fuzzywuzzy import fuzz  # type: ignore
 
@@ -367,16 +367,23 @@ def enrich_app_with_version_info(app: Tuple[str, str]) -> VersionInfo:
     return version_info
 
 
-def check_outdated_apps(apps: List[Tuple[str, str]]) -> List[VersionInfo]:
+def check_outdated_apps(
+    apps: List[Tuple[str, str]], 
+    batch_size: int = 50
+) -> List[Tuple[str, Dict[str, str], VersionStatus]]:
     """Check which applications are outdated compared to their Homebrew versions.
 
     Args:
         apps (List[Tuple[str, str]]): List of (app_name, version_string) tuples
+        batch_size (int, optional): Number of apps to process in each batch. Defaults to 50.
 
     Returns:
-        List[VersionInfo]: List of applications with version status information
+        List[Tuple[str, Dict[str, str], VersionStatus]]: List of applications with version status
+            Each tuple contains (app_name, version_info, status)
+            where version_info is a dict with keys 'current' and 'latest'
     """
     import concurrent.futures
+    import gc
 
     result = []
     total = len(apps)
@@ -386,28 +393,53 @@ def check_outdated_apps(apps: List[Tuple[str, str]]) -> List[VersionInfo]:
         return []
 
     logging.info(f"Checking {total} applications against Homebrew versions...")
+    print(f"Checking {total} applications for updates...")
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = []
-        for app in apps:
-            if not app[0] or not app[1]:
-                continue
+    # Process apps in batches to reduce memory usage
+    processed = 0
+    for i in range(0, total, batch_size):
+        batch = apps[i:i + batch_size]
+        batch_results = []
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for app in batch:
+                if not app[0] or not app[1]:
+                    continue
 
-            futures.append(executor.submit(enrich_app_with_version_info, app))
+                futures.append(executor.submit(enrich_app_with_version_info, app))
 
-        for i, future in enumerate(concurrent.futures.as_completed(futures)):
-            try:
-                version_info = future.result()
-                result.append(version_info)
-                # Log progress every 10 apps
-                if (i + 1) % 10 == 0:
-                    logging.info(f"Processed {i + 1}/{total} applications...")
-            except Exception as e:
-                logging.error(f"Error processing app: {e}")
-
-    # Sort by status (OUTDATED first) and then by name
-    result.sort(key=lambda x: (x.status != VersionStatus.OUTDATED, x.name.lower()))
-
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    version_info = future.result()
+                    if version_info:
+                        # Convert to a more memory-efficient format
+                        app_name = version_info.name
+                        version_data = {
+                            "current": version_info.version_string,
+                            "latest": version_info.latest_version
+                        }
+                        status = version_info.status
+                        batch_results.append((app_name, version_data, status))
+                except Exception as e:
+                    logging.error(f"Error processing app: {e}")
+        
+        # Append batch results to the main result list
+        result.extend(batch_results)
+        
+        # Update progress
+        processed += len(batch)
+        logging.info(f"Processed {processed}/{total} applications...")
+        print(f"Processed {processed}/{total} applications...", end="\r")
+        
+        # Explicitly clean up batch data to reduce memory usage
+        del batch
+        del batch_results
+        del futures
+        gc.collect()
+    
+    print()  # Add a newline after progress reporting
+    
     return result
 
 
