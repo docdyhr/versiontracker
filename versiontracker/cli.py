@@ -65,6 +65,20 @@ def get_arguments():
         help="Similarity threshold for matching (0-100, default: 75)",
     )
 
+    # Export options
+    export_group = parser.add_argument_group("Export options")
+    export_group.add_argument(
+        "--export",
+        dest="export_format",
+        choices=["json", "csv"],
+        help="Export results in specified format (json or csv)",
+    )
+    export_group.add_argument(
+        "--output-file",
+        dest="output_file",
+        help="Specify the output file for export (default: print to stdout)",
+    )
+
     # Main command group (mutually exclusive)
     group = parser.add_mutually_exclusive_group()
     group.add_argument(

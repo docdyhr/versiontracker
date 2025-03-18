@@ -13,6 +13,7 @@ from versiontracker.apps import (
 )
 from versiontracker.cli import get_arguments
 from versiontracker.config import config
+from versiontracker.export import export_data
 from versiontracker.utils import check_dependencies, get_json_data, setup_logging
 
 
@@ -50,22 +51,46 @@ def main() -> int:
                 app, ver = item
                 if not config.is_blacklisted(app):
                     filtered_apps.append(item)
-                    print(f"{app} - ({ver})")
+                    if not options.export_format:
+                        print(f"{app} - ({ver})")
                 else:
                     logging.debug(f"Skipping blacklisted app: {app}")
 
-            print(
-                f"\nFound {len(filtered_apps)} applications (excluding blacklisted apps)"
-            )
+            if not options.export_format:
+                print(
+                    f"\nFound {len(filtered_apps)} applications (excluding blacklisted apps)"
+                )
+            
+            # Handle export if requested
+            if options.export_format:
+                export_result = handle_export(
+                    {"applications": filtered_apps}, 
+                    options.export_format, 
+                    options.output_file
+                )
+                if not options.output_file:
+                    print(export_result)
 
         elif options.brews:
             # Get installed Homebrew casks
             apps_homebrew = get_homebrew_casks()
-            for brew in apps_homebrew:
-                logging.debug("\tbrew cask: %s", brew)
-                print(brew)
+            
+            if not options.export_format:
+                for brew in apps_homebrew:
+                    logging.debug("\tbrew cask: %s", brew)
+                    print(brew)
 
-            print(f"\nFound {len(apps_homebrew)} installed Homebrew casks")
+                print(f"\nFound {len(apps_homebrew)} installed Homebrew casks")
+            
+            # Handle export if requested
+            if options.export_format:
+                export_result = handle_export(
+                    {"homebrew_casks": apps_homebrew}, 
+                    options.export_format, 
+                    options.output_file
+                )
+                if not options.output_file:
+                    print(export_result)
 
         elif options.recom or options.strict_recom:
             # Get application data
@@ -93,8 +118,8 @@ def main() -> int:
                 strict=strict_mode,
             )
 
-            # Display results
-            if brew_options:
+            # Display results if not exporting
+            if brew_options and not options.export_format:
                 if strict_mode:
                     print(
                         "\nRecommended NEW apps to install with Homebrew (not already in Homebrew):"
@@ -111,26 +136,63 @@ def main() -> int:
                     print("\nInstall command:")
                     brew_cmd = f"brew install --cask {' '.join(brew_options)}"
                     print(f"{brew_cmd}")
-            else:
+            elif not brew_options and not options.export_format:
                 if strict_mode:
                     print(
                         "No new applications found that can be installed with Homebrew."
                     )
                 else:
                     print("No recommendations found for Homebrew installations.")
+            
+            # Handle export if requested
+            if options.export_format:
+                # Create a more detailed export with more information
+                export_data = {
+                    "recommendations": brew_options,
+                    "applications": apps_folder,
+                    "homebrew_casks": apps_homebrew,
+                    "search_candidates": search_candidates,
+                    "strict_mode": strict_mode,
+                    "install_command": f"brew install --cask {' '.join(brew_options)}" if brew_options else ""
+                }
+                
+                export_result = handle_export(
+                    export_data, 
+                    options.export_format, 
+                    options.output_file
+                )
+                if not options.output_file:
+                    print(export_result)
 
-        logging.info("VersionTracker completed successfully")
         return 0
 
-    except KeyboardInterrupt:
-        print("\nOperation cancelled by user")
-        logging.info("Operation cancelled by user")
-        return 130  # Standard exit code for SIGINT
-
     except Exception as e:
-        logging.exception(f"Error in VersionTracker: {e}")
-        print(f"Error: {e}. See log for details.")
+        logging.exception("An error occurred")
+        print(f"Error: {str(e)}")
         return 1
+
+
+def handle_export(data: Dict[str, Any], format_type: str, filename: str = None) -> str:
+    """Handle data export in the specified format.
+    
+    Args:
+        data: The data to export
+        format_type: The format to export to (json or csv)
+        filename: Optional filename to write to
+        
+    Returns:
+        str: The exported data as a string or the path to the exported file
+    """
+    try:
+        logging.info(f"Exporting data in {format_type} format")
+        result = export_data(data, format_type, filename)
+        if filename:
+            print(f"Data exported to {result}")
+        return result
+    except Exception as e:
+        logging.exception(f"Error exporting data to {format_type}")
+        print(f"Error exporting data: {str(e)}")
+        return ""
 
 
 if __name__ == "__main__":
