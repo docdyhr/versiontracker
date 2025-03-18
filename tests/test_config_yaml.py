@@ -24,7 +24,9 @@ class TestConfigFile(TestCase):
     def test_load_from_yaml_file(self):
         """Test loading configuration from YAML file."""
         # Create a temporary configuration file
-        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
+        ) as f:
             yaml_config = {
                 "api-rate-limit": 5,
                 "max-workers": 20,
@@ -82,7 +84,9 @@ class TestConfigFile(TestCase):
     def test_env_vars_override_file(self):
         """Test that environment variables override file configuration."""
         # Create a temporary configuration file
-        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
+        ) as f:
             yaml_config = {
                 "api-rate-limit": 5,
                 "max-workers": 20,
@@ -114,23 +118,25 @@ class TestConfigFile(TestCase):
         """Test loading a non-existent configuration file."""
         # Use a path that definitely doesn't exist
         non_existent_path = "/tmp/definitely_not_a_real_config_file_12345.yaml"
-        
+
         # Create a test Config instance
         test_config = Config()
         test_config._config["config_file"] = non_existent_path
-        
+
         # This should not raise an exception and should use default values
         test_config._load_from_file()
-        
+
         # Verify default values are used
         self.assertEqual(test_config.get("api_rate_limit"), 3)  # Default value
-        self.assertEqual(test_config.get("max_workers"), 10)    # Default value
-        self.assertEqual(test_config.get_blacklist(), [])       # Default value
-        
+        self.assertEqual(test_config.get("max_workers"), 10)  # Default value
+        self.assertEqual(test_config.get_blacklist(), [])  # Default value
+
     def test_custom_config_path(self):
         """Test using a custom configuration path."""
         # Create a temporary configuration file with custom settings
-        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
+        ) as f:
             yaml_config = {
                 "api-rate-limit": 8,
                 "max-workers": 6,
@@ -144,12 +150,14 @@ class TestConfigFile(TestCase):
             # Create a test Config instance with the custom path
             with patch.object(Config, "_load_from_env"):  # Prevent loading from environment
                 test_config = Config(config_file=custom_config_path)
-            
+
             # Verify the configuration values were loaded from the custom path
             self.assertEqual(test_config.get("api_rate_limit"), 8)
             self.assertEqual(test_config.get("max_workers"), 6)
             self.assertEqual(test_config.get_blacklist(), ["CustomApp1", "CustomApp2"])
-            self.assertEqual(test_config.get("additional_app_dirs"), ["/custom/path1", "/custom/path2"])
+            self.assertEqual(
+                test_config.get("additional_app_dirs"), ["/custom/path1", "/custom/path2"]
+            )
         finally:
             # Clean up the temporary file
             os.unlink(custom_config_path)

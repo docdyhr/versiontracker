@@ -1,25 +1,26 @@
+#!/usr/bin/env python3
 """Utility functions for VersionTracker."""
 
 import json
 import logging
 import os
+import platform
 import re
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
-from fuzzywuzzy.fuzz import partial_ratio
+logger = logging.getLogger(__name__)
 
 # Default paths and commands
 SYSTEM_PROFILER_CMD = "/usr/sbin/system_profiler -json SPApplicationsDataType"
 DESIRED_PATHS = ("/Applications/",)  # desired paths for app filtering tuple
 
 # Set up Homebrew path based on architecture (Apple Silicon or Intel)
-BREW_PATH = (
-    "/opt/homebrew/bin/brew" if Path("/opt/homebrew/bin/brew").exists() else "/usr/local/bin/brew"
-)
+BREW_PATH = "/opt/homebrew/bin/brew"
 BREW_CMD = f"{BREW_PATH} list --casks"
 BREW_SEARCH = f"{BREW_PATH} search"
 
@@ -42,37 +43,40 @@ def setup_logging(debug: bool = False) -> None:
 
     log_file = log_dir / "versiontracker.log"
 
-    logging.basicConfig(
-        filename=log_file,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-        encoding="utf-8",
-        filemode="w",
-        level=log_level,
-    )
+    # Python 3.9+ supports encoding parameter
+    if sys.version_info >= (3, 9):
+        logging.basicConfig(
+            filename=log_file,
+            format="%(asctime)s %(levelname)s %(name)s %(message)s",
+            encoding="utf-8",
+            filemode="w",
+            level=log_level,
+        )
+    else:
+        logging.basicConfig(
+            filename=log_file,
+            format="%(asctime)s %(levelname)s %(name)s %(message)s",
+            filemode="w",
+            level=log_level,
+        )
 
 
 def check_dependencies() -> bool:
-    """Check if all required system dependencies are available.
+    """Check if all required dependencies are installed.
 
     Returns:
-        bool: True if all dependencies are available, False otherwise
+        bool: True if all dependencies are installed, False otherwise
     """
-    # Check system_profiler
-    if not shutil.which("/usr/sbin/system_profiler"):
-        logging.error("system_profiler not found. This tool requires macOS.")
-        return False
+    logging.info("Checking dependencies...")
 
-    # Check brew
+    # Check for brew command
     if not os.path.exists(BREW_PATH):
-        logging.error(f"Homebrew not found at {BREW_PATH}. Please install Homebrew.")
+        logging.error(f"Homebrew not found at {BREW_PATH}")
         return False
 
-    # Check for required Python packages
-    try:
-        import fuzzywuzzy
-        import Levenshtein
-    except ImportError as e:
-        logging.error(f"Required Python package not found: {e}")
+    # Check for system_profiler command
+    if not shutil.which("system_profiler"):
+        logging.error("system_profiler command not found")
         return False
 
     return True
@@ -116,7 +120,7 @@ def get_json_data(command: str) -> Dict[str, Any]:
         if not result.stdout:
             raise RuntimeError(f"Command '{command}' produced no output")
 
-        return json.loads(result.stdout)
+        return cast(Dict[str, Any], json.loads(result.stdout))
     except subprocess.CalledProcessError as e:
         logging.error(f"Command '{command}' failed with error code {e.returncode}: {e.stderr}")
         raise RuntimeError(f"Command '{command}' failed: {e.stderr}")

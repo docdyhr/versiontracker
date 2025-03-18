@@ -1,6 +1,56 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "build>=0.7.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+# This section is defined by PEP 621
+name = "versiontracker"
+version = "0.4.0"
+description = "CLI versiontracker and update tool for macOS"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "docdyhr", email = "thomas@dyhr.com"}
+]
+keywords = ["versiontracker", "macos", "update", "homebrew"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "fuzzywuzzy>=0.18.0",
+    "python-Levenshtein>=0.12.2",
+    "rapidfuzz>=3.0.0",
+    "tqdm>=4.66.0",
+    "PyYAML>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/docdyhr/versiontracker"
+"Bug Tracker" = "https://github.com/docdyhr/versiontracker/issues"
+Documentation = "https://github.com/docdyhr/versiontracker"
+"Source Code" = "https://github.com/docdyhr/versiontracker"
+Changelog = "https://github.com/docdyhr/versiontracker/blob/main/CHANGELOG.md"
+
+[project.scripts]
+versiontracker = "versiontracker.__main__:main"
+
 [tool.black]
 line-length = 100
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 exclude = '''
 /(

@@ -5,7 +5,6 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
 
 from versiontracker.export import export_data, export_to_csv, export_to_json
 

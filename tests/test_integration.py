@@ -1,7 +1,7 @@
 """Integration tests for VersionTracker."""
 
 import unittest
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import patch
 
 from versiontracker.__main__ import main
 

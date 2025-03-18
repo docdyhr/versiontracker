@@ -3,9 +3,9 @@
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
-import yaml
+import yaml  # type: ignore
 
 
 class Config:
@@ -13,7 +13,7 @@ class Config:
 
     def __init__(self, config_file: Optional[str] = None):
         """Initialize the configuration.
-        
+
         Args:
             config_file: Optional path to a configuration file to use instead of the default
         """
@@ -25,7 +25,11 @@ class Config:
             # Default paths
             "log_dir": Path.home() / "Library" / "Logs" / "Versiontracker",
             # Config file path
-            "config_file": config_file if config_file else Path.home() / ".config" / "versiontracker" / "config.yaml",
+            "config_file": (
+                config_file
+                if config_file
+                else Path.home() / ".config" / "versiontracker" / "config.yaml"
+            ),
             # Default commands
             "system_profiler_cmd": "/usr/sbin/system_profiler -json SPApplicationsDataType",
             # Set up Homebrew path based on architecture (Apple Silicon or Intel)
@@ -84,26 +88,26 @@ class Config:
     def _load_from_file(self) -> None:
         """Load configuration from YAML configuration file."""
         config_path = Path(self._config["config_file"])
-        
+
         if not config_path.exists():
             logging.debug(f"Configuration file not found: {config_path}")
             return
-            
+
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 yaml_config = yaml.safe_load(f)
-                
+
             if not yaml_config:
                 logging.debug("Configuration file is empty")
                 return
-                
+
             logging.debug(f"Loaded configuration from {config_path}")
-            
+
             # Update configuration with values from file
             for key, value in yaml_config.items():
                 # Convert config keys to lowercase and from kebab-case to snake_case
                 config_key = key.lower().replace("-", "_")
-                
+
                 # Special handling for lists
                 if config_key in ["additional_app_dirs", "blacklist"]:
                     if isinstance(value, list):
@@ -112,7 +116,7 @@ class Config:
                         logging.warning(f"Invalid value for {key} in config file: expected list")
                 else:
                     self._config[config_key] = value
-                
+
         except Exception as e:
             logging.warning(f"Error loading configuration from {config_path}: {e}")
 
@@ -146,7 +150,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid similarity threshold: {os.environ['VERSIONTRACKER_SIMILARITY_THRESHOLD']}"
+                    f"Invalid similarity threshold: "
+                    f"{os.environ['VERSIONTRACKER_SIMILARITY_THRESHOLD']}"
                 )
 
         # Additional app directories
@@ -170,7 +175,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid version comparison rate limit: {os.environ['VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT']}"
+                    f"Invalid version comparison rate limit: "
+                    f"{os.environ['VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT']}"
                 )
 
         # Version comparison cache TTL
@@ -181,7 +187,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid version comparison cache TTL: {os.environ['VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL']}"
+                    f"Invalid version comparison cache TTL: "
+                    f"{os.environ['VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL']}"
                 )
 
         # Version comparison similarity threshold
@@ -192,19 +199,30 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid version comparison similarity threshold: {os.environ['VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD']}"
+                    f"Invalid version comparison similarity threshold: "
+                    f"{os.environ['VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD']}"
                 )
 
         # Version comparison include beta versions
-        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_INCLUDE_BETA_VERSIONS", "").lower() in ("1", "true", "yes"):
+        if os.environ.get(
+            "VERSIONTRACKER_VERSION_COMPARISON_INCLUDE_BETA_VERSIONS", ""
+        ).lower() in ("1", "true", "yes"):
             self._config["version_comparison"]["include_beta_versions"] = True
 
         # Version comparison sort by outdated status
-        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_SORT_BY_OUTDATED", "").lower() in ("1", "true", "yes"):
+        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_SORT_BY_OUTDATED", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
             self._config["version_comparison"]["sort_by_outdated"] = True
 
         # Outdated detection enabled
-        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_ENABLED", "").lower() in ("1", "true", "yes"):
+        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_ENABLED", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
             self._config["outdated_detection"]["enabled"] = True
 
         # Outdated detection minimum version difference
@@ -215,11 +233,16 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid outdated detection minimum version difference: {os.environ['VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF']}"
+                    f"Invalid outdated detection minimum version difference: "
+                    f"{os.environ['VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF']}"
                 )
 
         # Outdated detection include pre-releases
-        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_INCLUDE_PRE_RELEASES", "").lower() in ("1", "true", "yes"):
+        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_INCLUDE_PRE_RELEASES", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
             self._config["outdated_detection"]["include_pre_releases"] = True
 
     def get(self, key: str, default: Optional[Any] = None) -> Any:
@@ -249,7 +272,8 @@ class Config:
         Returns:
             List[str]: List of blacklisted application names
         """
-        return self._config.get("blacklist", [])
+        blacklist = cast(List[str], self._config.get("blacklist", []))
+        return blacklist
 
     def is_blacklisted(self, app_name: str) -> bool:
         """Check if an application is blacklisted.
@@ -262,22 +286,22 @@ class Config:
         """
         blacklist = self.get_blacklist()
         return any(app_name.lower() == item.lower() for item in blacklist)
-        
+
     def generate_default_config(self, path: Optional[Path] = None) -> str:
         """Generate a default configuration file.
-        
+
         Args:
             path (Path, optional): The path to write the configuration file.
                                   If not provided, will use the default path.
-        
+
         Returns:
             str: The path to the generated configuration file
         """
         config_path = path or Path(self._config["config_file"])
-        
+
         # Ensure parent directory exists
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Create a dictionary with the current configuration
         config_dict = {
             "api-rate-limit": self._config["api_rate_limit"],
@@ -290,7 +314,9 @@ class Config:
                 "rate-limit": self._config["version_comparison"]["rate_limit"],
                 "cache-ttl": self._config["version_comparison"]["cache_ttl"],
                 "similarity-threshold": self._config["version_comparison"]["similarity_threshold"],
-                "include-beta-versions": self._config["version_comparison"]["include_beta_versions"],
+                "include-beta-versions": self._config["version_comparison"][
+                    "include_beta_versions"
+                ],
                 "sort-by-outdated": self._config["version_comparison"]["sort_by_outdated"],
             },
             "outdated-detection": {
@@ -299,23 +325,24 @@ class Config:
                 "include-pre-releases": self._config["outdated_detection"]["include_pre_releases"],
             },
         }
-        
+
         # Write the configuration to a file
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(config_dict, f, default_flow_style=False)
-            
+
         logging.info(f"Generated configuration file: {config_path}")
         return str(config_path)
 
 
-# Global configuration instance - we create a default instance that can be 
+# Global configuration instance - we create a default instance that can be
 # replaced by any module that needs a custom configuration
 config = Config()
+
 
 # Function to update the global config instance with a custom one
 def set_global_config(new_config: Config) -> None:
     """Replace the global config instance with a custom one.
-    
+
     Args:
         new_config: The new config instance to use globally
     """

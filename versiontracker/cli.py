@@ -90,7 +90,11 @@ def get_arguments():
     config_group.add_argument(
         "--config-path",
         dest="config_path",
-        help="Specify an alternative path for the configuration file (can be used both for generating a config file with --generate-config and for using a custom config file location when running the application)",
+        help=(
+            "Specify an alternative path for the configuration file (can be used both for "
+            "generating a config file with --generate-config and for using a custom config "
+            "file location when running the application)"
+        ),
     )
 
     # Main command group (mutually exclusive)
@@ -120,7 +124,10 @@ def get_arguments():
         "--strict-recommend",
         action="store_true",
         dest="strict_recom",
-        help="return recommendations for brew, excluding apps that can already be installed with brew",
+        help=(
+            "return recommendations for brew, excluding apps that can already be "
+            "installed with brew"
+        ),
     )
     group.add_argument(
         "-o",

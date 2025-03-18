@@ -48,16 +48,10 @@ class TestApps(unittest.TestCase):
         }
 
         # Call the function with our mock data
-        with patch("versiontracker.apps.get_json_data", return_value=mock_data):
-            with patch("versiontracker.apps.DESIRED_PATHS", ("/Applications/",)):
-                result = get_applications(mock_data)
-
-        # Test with 1 app now, since we're seeing only one app being returned
-        # There might be extra filtering in the actual implementation
-        self.assertGreaterEqual(len(result), 1)  # At least one app should be included
+        result = get_applications(mock_data)
 
         # TestApp1 should be in the results, normalized to TestApp
-        self.assertIn(["TestApp", "1.0.0"], result)
+        self.assertIn(("TestApp", "1.0.0"), result)
 
     @patch("versiontracker.apps.partial_ratio")
     def test_filter_out_brews(self, mock_partial_ratio):
@@ -65,7 +59,8 @@ class TestApps(unittest.TestCase):
 
         # Set up the mock partial_ratio to match our expectations
         def side_effect(app, brew):
-            # Return high similarity for Firefox/firefox, Chrome/google-chrome, VSCode/visual-studio-code
+            # Return high similarity for Firefox/firefox, Chrome/google-chrome,
+            # VSCode/visual-studio-code
             if app == "firefox" and brew == "firefox":
                 return 100
             elif app == "chrome" and brew == "google-chrome":

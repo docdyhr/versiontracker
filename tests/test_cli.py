@@ -1,7 +1,7 @@
 """Tests for the CLI module."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from versiontracker.cli import get_arguments
 

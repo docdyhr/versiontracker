@@ -1,67 +1,72 @@
-"""Export utilities for VersionTracker."""
+"""Export functionality for VersionTracker."""
 
 import csv
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional
+
+# Type for path-like objects
+from os import PathLike
+from typing import Any, Dict, List, Optional, Set, Union
 
 
-def export_to_json(data: Dict[str, Any], filename: Optional[str] = None) -> str:
+def export_to_json(data: Dict[str, Any], filename: Optional[str] = None) -> Union[str, PathLike]:
     """Export data to JSON format.
 
     Args:
         data: The data to export
-        filename: Optional filename to write to (if None, returns string)
+        filename: Optional filename to write to
 
     Returns:
-        str: JSON string if no filename provided, otherwise path to the file
+        str: JSON string or path to output file
     """
-    json_data = json.dumps(data, indent=2)
+    json_str = json.dumps(data, indent=2)
 
     if filename:
         output_path = os.path.abspath(filename)
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(json_data)
+            f.write(json_str)
         logging.info(f"Exported data to JSON file: {output_path}")
         return output_path
+    else:
+        return json_str
 
-    return json_data
 
-
-def export_to_csv(data: Dict[str, List[Any]], filename: Optional[str] = None) -> str:
+def export_to_csv(data: Dict[str, Any], filename: Optional[str] = None) -> Union[str, PathLike]:
     """Export data to CSV format.
 
     Args:
-        data: The data to export, must contain lists under keys
-        filename: Optional filename to write to (if None, returns string)
+        data: The data to export
+        filename: Optional filename to write to
 
     Returns:
-        str: CSV string if no filename provided, otherwise path to the file
+        str: CSV string or path to output file
     """
-    # Determine all headers from the data
-    headers = []
+    # Determine headers from all data items
+    headers: List[str] = ["name"]  # Always include name
+
+    # Extract all potential headers from dictionaries
     for key, items in data.items():
-        if isinstance(items, list) and len(items) > 0:
-            if isinstance(items[0], dict):
-                # For list of dictionaries, use keys as headers
-                headers.extend(items[0].keys())
-            elif isinstance(items[0], (list, tuple)) and len(items[0]) > 1:
-                # For list of lists/tuples, use first row as keys
-                if hasattr(items[0], "__dict__"):
-                    headers.extend(items[0].__dict__.keys())
-                else:
-                    # For tuples in apps data structure
-                    headers.extend(["name", "version"])
+        if not isinstance(items, list) or not items:
+            continue
+
+        # Look at the first item to determine structure
+        if isinstance(items[0], dict):
+            headers.extend(items[0].keys())
+        elif hasattr(items[0], "__dict__"):
+            headers.extend(items[0].__dict__.keys())
+        else:
+            # For tuples in apps data structure
+            headers.extend(["name", "version"])
 
     # Remove duplicates while preserving order
-    unique_headers = []
+    unique_headers: List[str] = []
     for header in headers:
         if header not in unique_headers:
             unique_headers.append(header)
 
     # Prepare data for CSV
-    csv_data = []
+    csv_data: List[Dict[str, str]] = []
     for key, items in data.items():
         if not isinstance(items, list):
             continue
@@ -73,48 +78,39 @@ def export_to_csv(data: Dict[str, List[Any]], filename: Optional[str] = None) ->
                 csv_data.append(row)
             elif isinstance(item, (list, tuple)) and len(item) > 1:
                 # For list of lists/tuples (app names and versions), create rows
-                if isinstance(item, (list, tuple)) and len(item) >= 2:
-                    row = {"name": item[0], "version": item[1]}
-                    csv_data.append(row)
+                row = {"name": item[0], "version": item[1]}
+                csv_data.append(row)
             elif isinstance(item, str):
                 # For simple string lists (brew names)
                 row = {"name": item}
                 csv_data.append(row)
 
-    # Create CSV output
     if not csv_data:
-        return "No data to export"
+        return ""
 
-    # Determine the actual headers available in the data
-    available_headers = set()
-    for row in csv_data:
-        available_headers.update(row.keys())
-
-    # Filter headers to those actually in the data
-    final_headers = [h for h in unique_headers if h in available_headers]
-    if not final_headers and csv_data:
-        final_headers = list(csv_data[0].keys())
-
+    # Write to file or return as string
+    output = ""
     if filename:
         output_path = os.path.abspath(filename)
         with open(output_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=final_headers)
+            writer = csv.DictWriter(f, fieldnames=unique_headers)
             writer.writeheader()
             writer.writerows(csv_data)
         logging.info(f"Exported data to CSV file: {output_path}")
         return output_path
+    else:
+        # Create CSV string
+        lines = []
+        lines.append(",".join(unique_headers))
+        for row in csv_data:
+            lines.append(",".join(f'"{str(row.get(header, ""))}"' for header in unique_headers))
+        output = "\n".join(lines)
+        return output
 
-    # Return as string if no filename provided
-    result = []
-    result.append(",".join(final_headers))
-    for row in csv_data:
-        csv_row = [str(row.get(header, "")) for header in final_headers]
-        result.append(",".join(csv_row))
 
-    return "\n".join(result)
-
-
-def export_data(data: Dict[str, Any], format_type: str, filename: Optional[str] = None) -> str:
+def export_data(
+    data: Dict[str, Any], format_type: str, filename: Optional[str] = None
+) -> Union[str, PathLike]:
     """Export data in the specified format.
 
     Args:

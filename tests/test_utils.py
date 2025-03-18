@@ -1,7 +1,7 @@
 """Tests for the utils module."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from versiontracker.utils import RateLimiter, normalise_name
 

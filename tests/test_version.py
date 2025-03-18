@@ -1,7 +1,6 @@
 """Tests for the version comparison functionality."""
 
 import unittest
-from typing import Optional, Tuple
 
 from versiontracker.version import (
     VersionInfo,
@@ -44,18 +43,18 @@ class TestVersionComparison(unittest.TestCase):
             # Version 1, Version 2, Expected Result (-1, 0, 1)
             ("1.2.3", "1.2.3", 0),  # Equal versions
             ("1.2.3", "1.2.4", -1),  # Lower version
-            ("1.2.3", "1.2.2", 1),   # Higher version
+            ("1.2.3", "1.2.2", 1),  # Higher version
             ("1.2.3", "1.3.0", -1),  # Lower minor version
-            ("2.0.0", "1.9.9", 1),   # Higher major version
+            ("2.0.0", "1.9.9", 1),  # Higher major version
             ((1, 2, 3), (1, 2, 3), 0),  # Equal tuples
             ((1, 2, 3), (1, 2, 4), -1),  # Lower tuple
-            ((1, 2, 3), (1, 2, 2), 1),   # Higher tuple
+            ((1, 2, 3), (1, 2, 2), 1),  # Higher tuple
             ("1.2.3", (1, 2, 3), 0),  # String vs tuple (equal)
             ("1.2.3", (1, 2, 4), -1),  # String vs tuple (lower)
-            ((1, 2, 3), "1.2.2", 1),   # Tuple vs string (higher)
+            ((1, 2, 3), "1.2.2", 1),  # Tuple vs string (higher)
             (None, "1.2.3", -1),  # None vs version
-            ("1.2.3", None, 1),   # Version vs None
-            (None, None, 0),      # None vs None
+            ("1.2.3", None, 1),  # Version vs None
+            (None, None, 0),  # None vs None
         ]
 
         for version1, version2, expected in test_cases:
@@ -72,10 +71,10 @@ class TestVersionComparison(unittest.TestCase):
             ((1, 2, 3), (1, 3, 3), (0, 1, 0)),  # Minor difference
             ((1, 2, 3), (2, 2, 3), (1, 0, 0)),  # Major difference
             ((1, 2, 3), (2, 3, 4), (1, 1, 1)),  # All differences
-            ((1, 2), (1, 2, 3), (0, 0, 3)),     # Different lengths
-            (None, (1, 2, 3), None),            # None case 1
-            ((1, 2, 3), None, None),            # None case 2
-            (None, None, None),                 # Both None
+            ((1, 2), (1, 2, 3), (0, 0, 3)),  # Different lengths
+            (None, (1, 2, 3), None),  # None case 1
+            ((1, 2, 3), None, None),  # None case 2
+            (None, None, None),  # Both None
         ]
 
         for v1, v2, expected in test_cases:
@@ -98,12 +97,12 @@ class TestVersionComparison(unittest.TestCase):
 
         # Test with latest_version
         info = VersionInfo(
-            name="TestApp", 
+            name="TestApp",
             version_string="1.2.3",
-            latest_version="1.2.4", 
+            latest_version="1.2.4",
             latest_parsed=(1, 2, 4),
             status=VersionStatus.OUTDATED,
-            outdated_by=(0, 0, 1)
+            outdated_by=(0, 0, 1),
         )
         self.assertEqual(info.status, VersionStatus.OUTDATED)
         self.assertEqual(info.outdated_by, (0, 0, 1))

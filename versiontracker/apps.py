@@ -2,41 +2,39 @@
 
 import concurrent.futures
 import logging
+import subprocess
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
-from fuzzywuzzy.fuzz import partial_ratio
-from tqdm import tqdm
+from fuzzywuzzy.fuzz import partial_ratio  # type: ignore
+from tqdm import tqdm  # type: ignore
 
 from versiontracker.utils import (
-    BREW_CMD,
-    BREW_SEARCH,
-    DEFAULT_API_RATE_LIMIT,
-    DESIRED_PATHS,
-    SYSTEM_PROFILER_CMD,
-    RateLimiter,
-    get_json_data,
     normalise_name,
     run_command,
 )
 
+# Command constants
+BREW_CMD = "brew list --cask"
+BREW_SEARCH = "brew search --casks"
 
-def get_applications(data: Dict[str, Any]) -> List[List[str]]:
+
+def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
     """Return a list of applications with versions not updated by App Store.
 
     Args:
-        data (Dict[str, Any]): system_profiler output
+        data: system_profiler output
 
     Returns:
-        List[List[str]]: List of [app_name, version] pairs
+        List[Tuple[str, str]]: List of (app_name, version) pairs
     """
     logging.info("Getting Apps from Applications/...")
     print("Getting Apps from Applications/...")
 
-    apps = []
+    apps: List[Tuple[str, str]] = []
     for app in data["SPApplicationsDataType"]:
         # Skip Apple and Mac App Store applications
-        if not app["path"].startswith(DESIRED_PATHS):
+        if not app["path"].startswith("/Applications/"):
             continue
 
         if "apple" in app.get("obtained_from", "").lower():
@@ -51,19 +49,12 @@ def get_applications(data: Dict[str, Any]) -> List[List[str]]:
 
             # Check if we already have this app (avoid duplicates)
             if not any(existing[0] == app_name for existing in apps):
-                apps.append([app_name, app_version])
+                apps.append((app_name, app_version))
 
             logging.debug("\t%s %s", app_name, app_version)
-        except KeyError as e:
-            logging.warning(f"KeyError processing app: {app.get('_name', 'Unknown')}: {e}")
-            # Try to add with empty version if possible
-            if "_name" in app:
-                app_name = normalise_name(app["_name"])
-                apps.append([app_name, ""])
-                logging.info("\t%s, KeyError: no version found", app_name)
+        except KeyError:
+            continue
 
-    # Sort apps alphabetically (case-insensitive)
-    apps.sort(key=lambda app_item: app_item[0].casefold())
     return apps
 
 
@@ -82,7 +73,9 @@ def get_homebrew_casks() -> List[str]:
         return []
 
 
-def filter_out_brews(applications: List[Tuple[str, str]], brews: List[str], strict_mode: bool = False) -> List[Tuple[str, str]]:
+def filter_out_brews(
+    applications: List[Tuple[str, str]], brews: List[str], strict_mode: bool = False
+) -> List[Tuple[str, str]]:
     """Filter out applications that are already managed by Homebrew.
 
     Args:
@@ -117,12 +110,12 @@ def filter_out_brews(applications: List[Tuple[str, str]], brews: List[str], stri
     return search_list
 
 
-def _process_brew_search(app: Tuple[str, str], rate_limiter: RateLimiter) -> Optional[str]:
+def _process_brew_search(app: Tuple[str, str], rate_limiter: Any) -> Optional[str]:
     """Process a single brew search for an application.
 
     Args:
         app (Tuple[str, str]): The application (name, version) to search for
-        rate_limiter (RateLimiter): Rate limiter for API calls
+        rate_limiter (Any): Rate limiter for API calls
 
     Returns:
         Optional[str]: The application name if it can be installed with Homebrew, None otherwise
@@ -154,15 +147,16 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: RateLimiter) -> Opt
 
 def check_brew_install_candidates(
     data: List[Tuple[str, str]],
-    rate_limit: int = DEFAULT_API_RATE_LIMIT,
+    rate_limit: int = 1,
     strict: bool = False,
 ) -> List[str]:
     """Return list of apps that can be installed with Homebrew.
 
     Args:
         data (List[Tuple[str, str]]): List of (app_name, version) tuples to check
-        rate_limit (int, optional): Seconds to wait between API calls. Defaults to DEFAULT_API_RATE_LIMIT.
-        strict (bool, optional): If True, only include apps that are not already installable via Homebrew
+        rate_limit (int, optional): Seconds to wait between API calls. Defaults to 1.
+        strict (bool, optional): If True, only include apps that are not already
+            installable via Homebrew
 
     Returns:
         List[str]: List of app names that can be installed with Homebrew
@@ -178,6 +172,18 @@ def check_brew_install_candidates(
         return []
 
     # Create a rate limiter with 1 call per rate_limit seconds
+    class RateLimiter:
+        def __init__(self, calls_per_period, period):
+            self.calls_per_period = calls_per_period
+            self.period = period
+            self.last_call_time = time.time()
+
+        def wait(self):
+            elapsed_time = time.time() - self.last_call_time
+            if elapsed_time < self.period:
+                time.sleep(self.period - elapsed_time)
+            self.last_call_time = time.time()
+
     rate_limiter = RateLimiter(calls_per_period=1, period=rate_limit)
 
     installers: Set[str] = set()
