@@ -79,6 +79,20 @@ def get_arguments():
         help="Specify the output file for export (default: print to stdout)",
     )
 
+    # Configuration options
+    config_group = parser.add_argument_group("Configuration options")
+    config_group.add_argument(
+        "--generate-config",
+        dest="generate_config",
+        action="store_true",
+        help="Generate a default configuration file at ~/.config/versiontracker/config.yaml",
+    )
+    config_group.add_argument(
+        "--config-path",
+        dest="config_path",
+        help="Specify an alternative path for the configuration file (can be used both for generating a config file with --generate-config and for using a custom config file location when running the application)",
+    )
+
     # Main command group (mutually exclusive)
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -108,9 +122,7 @@ def get_arguments():
         dest="strict_recom",
         help="return recommendations for brew, excluding apps that can already be installed with brew",
     )
-    group.add_argument(
-        "-V", "--version", action="version", version=f"%(prog)s {__version__}"
-    )
+    group.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
 
     # If no arguments were provided, show help
     if len(sys.argv) == 1:

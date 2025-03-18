@@ -13,12 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Output file option for saving export data (--output-file)
 - Comprehensive test suite for export functionality
 - New `export.py` module with specialized data formatting functions
-- Updated documentation with export usage examples
+- YAML Configuration File Support (~/.config/versiontracker/config.yaml)
+- Command-line option to generate default configuration file (--generate-config)
+- Layered configuration with environment variables overriding config file
+- Updated documentation with export and configuration usage examples
 
 ### Changed
 - Refactored main application code to handle export options
 - Updated CLI interface to include export option group
 - Improved error handling for export operations
+- Enhanced configuration management with YAML file support
 
 ## [0.2.0] - 2025-03-15
 

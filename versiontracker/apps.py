@@ -55,9 +55,7 @@ def get_applications(data: Dict[str, Any]) -> List[List[str]]:
 
             logging.debug("\t%s %s", app_name, app_version)
         except KeyError as e:
-            logging.warning(
-                f"KeyError processing app: {app.get('_name', 'Unknown')}: {e}"
-            )
+            logging.warning(f"KeyError processing app: {app.get('_name', 'Unknown')}: {e}")
             # Try to add with empty version if possible
             if "_name" in app:
                 app_name = normalise_name(app["_name"])
@@ -84,17 +82,17 @@ def get_homebrew_casks() -> List[str]:
         return []
 
 
-def filter_out_brews(
-    applications: List[List[str]], brews: List[str]
-) -> List[List[str]]:
-    """Filter out applications that can be installed via Homebrew.
+def filter_out_brews(applications: List[Tuple[str, str]], brews: List[str], strict_mode: bool = False) -> List[Tuple[str, str]]:
+    """Filter out applications that are already managed by Homebrew.
 
     Args:
-        applications (List[List[str]]): List of [app_name, version] pairs
+        applications (List[Tuple[str, str]]): List of (app_name, version) tuples
         brews (List[str]): List of installed Homebrew casks
+        strict_mode (bool, optional): If True, be more strict in filtering.
+                                     Defaults to False.
 
     Returns:
-        List[List[str]]: Filtered list of applications
+        List[Tuple[str, str]]: Filtered list of applications
     """
     logging.info("Getting installable casks from Homebrew...")
     print("Getting installable casks from Homebrew...")
@@ -119,11 +117,11 @@ def filter_out_brews(
     return search_list
 
 
-def _process_brew_search(app: List[str], rate_limiter: RateLimiter) -> Optional[str]:
+def _process_brew_search(app: Tuple[str, str], rate_limiter: RateLimiter) -> Optional[str]:
     """Process a single brew search for an application.
 
     Args:
-        app (List[str]): The application [name, version] to search for
+        app (Tuple[str, str]): The application (name, version) to search for
         rate_limiter (RateLimiter): Rate limiter for API calls
 
     Returns:
@@ -155,14 +153,14 @@ def _process_brew_search(app: List[str], rate_limiter: RateLimiter) -> Optional[
 
 
 def check_brew_install_candidates(
-    data: List[List[str]],
+    data: List[Tuple[str, str]],
     rate_limit: int = DEFAULT_API_RATE_LIMIT,
     strict: bool = False,
 ) -> List[str]:
     """Return list of apps that can be installed with Homebrew.
 
     Args:
-        data (List[List[str]]): List of [app_name, version] pairs to check
+        data (List[Tuple[str, str]]): List of (app_name, version) tuples to check
         rate_limit (int, optional): Seconds to wait between API calls. Defaults to DEFAULT_API_RATE_LIMIT.
         strict (bool, optional): If True, only include apps that are not already installable via Homebrew
 
@@ -170,12 +168,8 @@ def check_brew_install_candidates(
         List[str]: List of app names that can be installed with Homebrew
     """
     if strict:
-        logging.info(
-            "Finding strictly new applications that can be installed with Homebrew..."
-        )
-        print(
-            "Finding strictly new applications that can be installed with Homebrew..."
-        )
+        logging.info("Finding strictly new applications that can be installed with Homebrew...")
+        print("Finding strictly new applications that can be installed with Homebrew...")
     else:
         logging.info("Filtering out installed brews from Homebrew casks...")
         print("Filtering out installed brews from Homebrew casks...")
@@ -210,8 +204,7 @@ def check_brew_install_candidates(
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks
         future_to_app = {
-            executor.submit(_process_brew_search, app, rate_limiter): app
-            for app in data
+            executor.submit(_process_brew_search, app, rate_limiter): app for app in data
         }
 
         # Process results as they complete

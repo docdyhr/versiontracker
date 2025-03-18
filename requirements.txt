@@ -4,3 +4,4 @@ rapidfuzz>=3.0.0  # Faster alternative to fuzzywuzzy
 pytest>=7.4.0  # For unit testing
 pytest-cov>=4.1.0  # For test coverage
 tqdm>=4.66.0  # For progress bars
+PyYAML>=6.0  # For configuration file support

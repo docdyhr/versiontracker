@@ -18,6 +18,7 @@ Versiontracker is a command-line tool for macOS that helps you manage applicatio
 * List all currently installed Homebrew casks
 * Recommend which applications could be managed through Homebrew
 * Export results in machine-readable formats (JSON and CSV)
+* YAML configuration file support for persistent settings
 * Fuzzy matching to identify applications across different naming conventions
 * Parallel processing for faster operation
 * Configurable blacklist to exclude specific applications
@@ -74,6 +75,7 @@ usage: versiontracker [-h] [-D DEBUG] [--rate-limit RATE_LIMIT]
                      [--blacklist BLACKLIST] [--additional-dirs ADDITIONAL_DIRS]
                      [--similarity SIMILARITY] [--export {json,csv}]
                      [--output-file OUTPUT_FILE] [-a | -b | -r | -V]
+                     [--generate-config] [--config-path CONFIG_PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -99,6 +101,13 @@ Export options:
   --export {json,csv}   Export results in specified format (json or csv)
   --output-file OUTPUT_FILE
                         Specify the output file for export (default: print to stdout)
+
+Configuration options:
+  --generate-config     Generate a default configuration file at ~/.config/versiontracker/config.yaml
+  --config-path CONFIG_PATH
+                        Specify an alternative path for the configuration file (can be used both for 
+                        generating a config file with --generate-config and for using a custom config 
+                        file location when running the application)
 
   -a, --apps            return Apps in Applications/ that is not updated by App Store
   -b, --brews           return installable brews
@@ -144,15 +153,70 @@ python3 versiontracker-cli.py --apps --export json
 python3 versiontracker-cli.py --apps --export csv --output-file applications.csv
 ```
 
+### Generate a default configuration file
+
+```shell
+python3 versiontracker-cli.py --generate-config
+```
+
+### Generate a configuration file in a custom location
+
+```shell
+python3 versiontracker-cli.py --generate-config --config-path ~/custom_config.yaml
+```
+
 ### Run with debugging enabled
 
 ```shell
 python3 versiontracker-cli.py --debug --recommend
 ```
 
-## Configuration via Environment Variables
+## Configuration
 
-You can configure VersionTracker using environment variables:
+### Configuration File
+
+VersionTracker supports a YAML configuration file located at `~/.config/versiontracker/config.yaml` by default. You can generate this file using the `--generate-config` command line option.
+
+You can also specify a custom configuration file location using the `--config-path` option:
+
+```shell
+# Generate a configuration file at a custom location
+python3 versiontracker-cli.py --generate-config --config-path ~/custom_config.yaml
+
+# Run the application using a custom configuration file
+python3 versiontracker-cli.py --config-path ~/custom_config.yaml --apps
+```
+
+Example configuration file:
+
+```yaml
+# API rate limit in seconds
+api-rate-limit: 3
+
+# Maximum worker threads for parallel processing
+max-workers: 10
+
+# Similarity threshold for matching (0-100)
+similarity-threshold: 75
+
+# List of applications to exclude from results
+blacklist:
+  - Firefox
+  - Chrome
+  - Safari
+
+# Additional application directories to scan
+additional-app-dirs:
+  - /Users/username/Applications
+  - /opt/Applications
+
+# Whether to show progress bars
+show-progress: true
+```
+
+### Environment Variables
+
+You can also configure VersionTracker using environment variables, which will override any settings in the configuration file:
 
 ```shell
 # Set the API rate limit (seconds)
