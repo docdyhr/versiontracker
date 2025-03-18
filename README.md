@@ -2,9 +2,9 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/httpcheck)](https://github.com/docdyhr/httpcheck/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/httpcheck) ![GitHub](https://img.shields.io/github/license/docdyhr/httpcheck)
 
 * Name: Versiontracker
-* Version: 0.3.0
+* Version: 0.3.1
 * Programming language: Python 3
-* Author: docdyhr
+* Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
 * Release date: 21. Feb 2022 (Updated: March 2025)
 
