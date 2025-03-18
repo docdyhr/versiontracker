@@ -11,10 +11,10 @@ This document outlines planned enhancements, known bugs, and potential optimizat
   - [x] Add CSV export option for spreadsheet integration
   - [x] Include detailed version information in exports
 
-- [ ] **Version Comparison and Outdated Detection**
-  - [ ] Compare installed versions with latest available from Homebrew
-  - [ ] Add visual indicators for outdated applications
-  - [ ] Sort results by "most outdated" first
+- [x] **Version Comparison and Outdated Detection**
+  - [x] Compare installed versions with latest available from Homebrew
+  - [x] Add visual indicators for outdated applications
+  - [x] Sort results by "most outdated" first
 
 - [x] **Configuration File Support**
   - [x] Implement YAML configuration file (~/.config/versiontracker/config.yaml)
