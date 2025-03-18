@@ -14,6 +14,14 @@ import time
 from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
+from versiontracker.config import config
+from versiontracker.utils import normalise_name, run_command
+from versiontracker.exceptions import (
+    NetworkError, 
+    TimeoutError, 
+    VersionError, 
+    DataParsingError
+)
 
 try:
     from rapidfuzz import fuzz as rapidfuzz
@@ -22,6 +30,27 @@ try:
 except ImportError:
     from fuzzywuzzy import fuzz  # type: ignore
     USE_RAPIDFUZZ = False
+
+# Create a compatibility function for partial_ratio
+def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
+    """Get the partial ratio between two strings.
+    Provides compatibility between rapidfuzz and fuzzywuzzy.
+    
+    Args:
+        s1: First string
+        s2: Second string
+        score_cutoff: Optional score cutoff (only used with rapidfuzz)
+        
+    Returns:
+        int: Similarity score (0-100)
+    """
+    if USE_RAPIDFUZZ:
+        kwargs = {}
+        if score_cutoff is not None:
+            kwargs['score_cutoff'] = score_cutoff
+        return rapidfuzz.partial_ratio(s1, s2, **kwargs)
+    else:
+        return fuzz.partial_ratio(s1, s2)
 
 # Import tqdm for progress bars
 try:
@@ -32,9 +61,6 @@ except ImportError:
     def tqdm(iterable, **kwargs):
         return iterable
     HAS_TQDM = False
-
-from versiontracker.config import config
-from versiontracker.utils import normalise_name, run_command
 
 # Regular expression patterns for version extraction
 VERSION_PATTERNS = [
@@ -52,10 +78,12 @@ VERSION_PATTERNS = [
 class VersionStatus(Enum):
     """Status of a version comparison."""
 
-    UNKNOWN = "unknown"
-    UP_TO_DATE = "up_to_date"
-    OUTDATED = "outdated"
-    NEWER = "newer"
+    UNKNOWN = 0
+    UPTODATE = 1
+    OUTDATED = 2
+    NEWER = 3
+    NOT_FOUND = 4
+    ERROR = 5
 
 
 class VersionInfo:
@@ -582,13 +610,8 @@ def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:
     name1 = name1.lower()
     name2 = name2.lower()
 
-    # Use rapidfuzz for better performance if available
-    if USE_RAPIDFUZZ:
-        ratio = float(rapidfuzz.partial_ratio(name1, name2))
-    else:
-        # Fall back to fuzzywuzzy if rapidfuzz is not available
-        from fuzzywuzzy import fuzz
-        ratio = float(fuzz.partial_ratio(name1, name2))
+    # Use our compatibility wrapper function
+    ratio = float(partial_ratio(name1, name2))
 
     # Only return the ratio if it meets the threshold
     if ratio >= threshold:
@@ -606,6 +629,11 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
 
     Returns:
         List of tuples with application name, version info and status
+        
+    Raises:
+        NetworkError: If there's a persistent network-related issue
+        TimeoutError: If operations consistently time out
+        RuntimeError: For other critical errors
     """
     if not apps:
         return []
@@ -622,6 +650,8 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
     batches = [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]
     
     results = []
+    error_count = 0
+    max_errors = 3  # Maximum number of consecutive errors to tolerate
     
     # Use ThreadPoolExecutor for parallel processing
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -631,7 +661,7 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
         # Process results as they complete with progress bar
         if HAS_TQDM and show_progress:
             # Use tqdm to show progress with time estimation
-            for batch_results in tqdm(
+            for future in tqdm(
                 as_completed(futures),
                 total=len(futures),
                 desc="Checking for updates",
@@ -640,15 +670,29 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
             ):
                 try:
-                    for app_info in batch_results.result():
+                    for app_info in future.result():
                         app_name = app_info.name
                         version_info = {
                             "installed": app_info.version_string,
                             "latest": app_info.latest_version or "Unknown",
                         }
                         results.append((app_name, version_info, app_info.status))
+                    # Reset error counter on success
+                    error_count = 0
+                except (NetworkError, TimeoutError) as e:
+                    error_count += 1
+                    logging.error(f"Network error processing batch: {e}")
+                    # If we've had too many consecutive errors, propagate the error
+                    if error_count >= max_errors:
+                        logging.critical(f"Too many consecutive network errors, aborting: {e}")
+                        raise
                 except Exception as e:
                     logging.error(f"Error processing batch: {e}")
+                    error_count += 1
+                    # If we've had too many consecutive errors, propagate the error
+                    if error_count >= max_errors:
+                        logging.critical(f"Too many consecutive errors, aborting: {e}")
+                        raise RuntimeError(f"Multiple errors occurred while checking applications: {e}")
         else:
             # Process without progress bar
             for future in as_completed(futures):
@@ -660,11 +704,24 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
                             "latest": app_info.latest_version or "Unknown",
                         }
                         results.append((app_name, version_info, app_info.status))
+                    # Reset error counter on success
+                    error_count = 0
+                except (NetworkError, TimeoutError) as e:
+                    error_count += 1
+                    logging.error(f"Network error processing batch: {e}")
+                    # If we've had too many consecutive errors, propagate the error
+                    if error_count >= max_errors:
+                        logging.critical(f"Too many consecutive network errors, aborting: {e}")
+                        raise
                 except Exception as e:
                     logging.error(f"Error processing batch: {e}")
-                    
-    # Sort results by application name
-    return sorted(results, key=lambda x: x[0].lower())
+                    error_count += 1
+                    # If we've had too many consecutive errors, propagate the error
+                    if error_count >= max_errors:
+                        logging.critical(f"Too many consecutive errors, aborting: {e}")
+                        raise RuntimeError(f"Multiple errors occurred while checking applications: {e}")
+
+    return results
 
 
 @dataclass
@@ -677,66 +734,130 @@ class AppVersionInfo:
 
 
 def _process_app_batch(batch: List[Tuple[str, str]]) -> List[AppVersionInfo]:
-    """Process a batch of applications to check for updates.
+    """Process a batch of applications to check their outdated status.
     
     Args:
-        batch: List of applications with name and version
+        batch: Batch of applications to check
         
     Returns:
-        List of AppVersionInfo objects
+        List of AppVersionInfo objects with update status
+        
+    Raises:
+        NetworkError: If there's a network-related error while checking versions
+        TimeoutError: If the operation times out
+        DataParsingError: If there's an error parsing version data
     """
     results = []
-    for app_name, app_version in batch:
+    
+    for app_name, installed_version in batch:
         try:
-            brew_version, status = _check_app_version(app_name, app_version)
+            # Skip empty app names
+            if not app_name:
+                continue
+                
+            # Get latest version and status using existing function
+            brew_version, status = _check_app_version(app_name, installed_version)
             results.append(
                 AppVersionInfo(
                     name=app_name,
-                    version_string=app_version,
+                    version_string=installed_version,
                     latest_version=brew_version or "Unknown",
                     status=status
                 )
             )
+            
         except Exception as e:
-            logging.error(f"Error checking version for {app_name}: {e}")
-            results.append(
-                AppVersionInfo(
-                    name=app_name,
-                    version_string=app_version,
-                    latest_version=None,
-                    status=VersionStatus.UNKNOWN
-                )
-            )
+            logging.error(f"Unexpected error processing {app_name}: {e}")
+            # Still add the app to the results with UNKNOWN status
+            results.append(AppVersionInfo(app_name, installed_version, None, VersionStatus.UNKNOWN))
+            
     return results
 
-
-def _check_app_version(app_name: str, app_version: str) -> Tuple[str, VersionStatus]:
-    """Check the version of a single application.
-
+def _check_app_version(app_name: str, installed_version: str) -> Tuple[Optional[str], VersionStatus]:
+    """Check the version status of an application.
+    
     Args:
         app_name: Name of the application
-        app_version: Version of the application
-
+        installed_version: Installed version of the application
+        
     Returns:
-        Tuple[str, VersionStatus]: Latest version and status
+        Tuple of (latest version, status)
     """
-    # Find matching cask
-    matching_cask = find_matching_cask(app_name)
-    if matching_cask:
-        # Get latest version from Homebrew
-        latest_version = get_homebrew_version_info(matching_cask)
-        if latest_version:
-            # Determine version status
-            if app_version and latest_version:
-                comparison = compare_versions(app_version, latest_version)
-                if comparison < 0:
-                    return latest_version, VersionStatus.OUTDATED
-                elif comparison > 0:
-                    return latest_version, VersionStatus.NEWER
-                else:
-                    return latest_version, VersionStatus.UP_TO_DATE
+    try:
+        # Try to get a corresponding cask first
+        normalized_name = normalise_name(app_name)
+        cask = find_corresponding_cask(normalized_name)
+        
+        if not cask:
+            # No matching cask found
+            return None, VersionStatus.NOT_FOUND
+            
+        # Get latest version
+        latest_version = check_latest_version(app_name, installed_version)
+        
+        # If we couldn't get the latest version, mark as unknown
+        if not latest_version:
+            return None, VersionStatus.UNKNOWN
+            
+        # If there's no installed version, we can't compare
+        if not installed_version:
+            return latest_version, VersionStatus.UNKNOWN
+            
+        # Compare versions
+        result = compare_versions(installed_version, latest_version)
+        
+        if result < 0:
+            return latest_version, VersionStatus.OUTDATED
+        elif result == 0:
+            return latest_version, VersionStatus.UPTODATE
+        else:
+            return latest_version, VersionStatus.NEWER
+    except Exception as e:
+        logging.error(f"Error checking version for {app_name}: {e}")
+        return None, VersionStatus.ERROR
 
-    return "", VersionStatus.UNKNOWN
+
+def check_latest_version(app_name: str, installed_version: str) -> Optional[str]:
+    """Check the latest version of an application available via Homebrew.
+    
+    Args:
+        app_name: Name of the application
+        installed_version: Currently installed version
+        
+    Returns:
+        Optional[str]: Latest version string if found, None otherwise
+        
+    Raises:
+        NetworkError: If there's a network issue connecting to Homebrew
+        TimeoutError: If the operation times out
+    """
+    from versiontracker.apps import get_cask_version
+
+    try:
+        # First normalize the app name for better matching
+        normalized_name = normalise_name(app_name)
+        
+        # Find corresponding Homebrew cask
+        cask = find_corresponding_cask(normalized_name)
+        
+        if not cask:
+            logging.debug(f"No cask found for {app_name}")
+            return None
+            
+        # Get the latest version from Homebrew
+        latest_version = get_cask_version(cask)
+        
+        if not latest_version:
+            logging.debug(f"No version information found for {cask}")
+            return None
+            
+        return latest_version
+    except (NetworkError, TimeoutError):
+        # Re-raise these specific exceptions for proper handling upstream
+        raise
+    except Exception as e:
+        logging.error(f"Error checking latest version for {app_name}: {e}")
+        return None
 
 
 def find_matching_cask(app_name: str) -> Optional[str]:
@@ -796,31 +917,68 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
     
     # If we have potential matches, use fuzzy matching to find the best one
     if target_casks:
-        # Use rapidfuzz's process.extractOne for faster matching if available
+        # If rapidfuzz is available, use it for faster matching
         if USE_RAPIDFUZZ:
-            match = process.extractOne(
-                lower_app_name, 
-                target_casks, 
-                scorer=rapidfuzz.partial_ratio,
-                score_cutoff=75  # Require at least 75% similarity
-            )
-            
-            if match:
-                return match[0]
-        else:
-            # Fallback to fuzzywuzzy
-            best_match = None
-            best_score = 0
-            
-            for cask in target_casks:
-                score = fuzz.partial_ratio(lower_app_name, cask.lower())
-                if score > best_score and score >= 75:
-                    best_score = score
-                    best_match = cask
-                    
-            return best_match
+            try:
+                match = process.extractOne(
+                    lower_app_name, 
+                    target_casks, 
+                    scorer=partial_ratio,
+                    score_cutoff=75  # Require at least 75% similarity
+                )
+                
+                if match:
+                    return match[0]
+            except Exception as e:
+                logging.warning(f"Error using rapidfuzz: {e}, falling back to manual matching")
+                # Fall through to manual matching
+        
+        # Manual matching as a fallback
+        best_match = None
+        best_score = 0
+        
+        for cask in target_casks:
+            score = partial_ratio(lower_app_name, cask.lower())
+            if score > best_score and score >= 75:
+                best_score = score
+                best_match = cask
+                
+        return best_match
             
     return None
+
+
+def find_corresponding_cask(app_name: str) -> Optional[str]:
+    """Find a corresponding Homebrew cask for the given app name.
+    This is a wrapper around find_matching_cask with better error handling.
+    
+    Args:
+        app_name: The name of the application
+        
+    Returns:
+        Optional[str]: The name of the matching cask, or None if not found
+        
+    Raises:
+        NetworkError: If there's a network issue
+        TimeoutError: If the operation times out
+    """
+    try:
+        from versiontracker.apps import get_homebrew_casks
+        
+        # Get cached list of casks if possible
+        casks = get_homebrew_casks()
+        
+        # Use the existing matching function
+        return _find_matching_cask(app_name, casks)
+    except NetworkError:
+        logging.error(f"Network error finding cask for {app_name}")
+        raise
+    except TimeoutError:
+        logging.error(f"Timeout finding cask for {app_name}")
+        raise
+    except Exception as e:
+        logging.error(f"Error finding corresponding cask for {app_name}: {e}")
+        return None
 
 
 def get_homebrew_version_info(cask_name: str) -> str:
@@ -888,7 +1046,7 @@ def enrich_app_with_version_info(app: Tuple[str, str]) -> VersionInfo:
                 elif comparison > 0:
                     version_info.status = VersionStatus.NEWER
                 else:
-                    version_info.status = VersionStatus.UP_TO_DATE
+                    version_info.status = VersionStatus.UPTODATE
 
     return version_info
 
@@ -902,7 +1060,7 @@ def format_outdated_indicator(version_info: VersionInfo) -> str:
     Returns:
         str: A formatted indicator string, e.g. "⚠️ (1.2.3 → 2.0.0)"
     """
-    if version_info.status == VersionStatus.UP_TO_DATE:
+    if version_info.status == VersionStatus.UPTODATE:
         return "✓ Up to date"
     elif version_info.status == VersionStatus.NEWER:
         return "⚠️ Newer than latest"
@@ -911,5 +1069,9 @@ def format_outdated_indicator(version_info: VersionInfo) -> str:
             f"⚠️ Update available ({version_info.version_string} → "
             f"{version_info.latest_version})"
         )
+    elif version_info.status == VersionStatus.NOT_FOUND:
+        return "🔍 Not found"
+    elif version_info.status == VersionStatus.ERROR:
+        return "⚠️ Error checking version"
     else:
         return "? Unknown status"

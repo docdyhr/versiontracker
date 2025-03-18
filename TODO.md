@@ -73,10 +73,10 @@ This document outlines planned enhancements, known bugs, and potential optimizat
   - [ ] Verify compatibility with Python 3.11+ (currently tested on 3.7+)
   - [ ] Ensure compatibility with various macOS versions (Monterey, Ventura, Sonoma)
 
-- [ ] **Error Handling**
-  - [ ] Improve error messages for common failures
-  - [ ] Add graceful handling of network timeouts
-  - [ ] Better handling of permission errors
+- [x] **Error Handling**
+  - [x] Improve error messages for common failures
+  - [x] Add graceful handling of network timeouts
+  - [x] Better handling of permission errors
 
 ## Optimizations
 
@@ -94,18 +94,28 @@ This document outlines planned enhancements, known bugs, and potential optimizat
 - [x] **Testing**
   - [x] Fix failing tests in test_version.py
   - [x] Fix integration tests in test_integration.py
+  - [x] Fix failing tests in test_apps.py
+  - [x] Fix failing tests in test_export.py
   - [x] Ensure all tests pass with type checking enabled
 
 - [x] **User Experience**
   - [x] Enhance progress visualization with ETA and detailed status
   - [x] Improve formatting of console output
+  - [x] Add proper error handling with clear error messages
   - [x] Add color coding for status indications
   - [x] Add CLI option to toggle progress visualization (--no-progress)
+
+- [x] **Error Handling**
+  - [x] Implement custom exception classes for better error classification
+  - [x] Add robust error handling for network issues and timeouts
+  - [x] Improve error reporting for Homebrew operations
+  - [x] Add graceful handling for missing applications and commands
+  - [x] Provide clear status indicators for applications with errors
 
 - [x] **Documentation**
   - [x] Create comprehensive API documentation
   - [x] Add more usage examples with screenshots
-  - [ ] Improve inline code documentation
+  - [x] Improve inline code documentation
 
 ## Project Management
 

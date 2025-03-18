@@ -18,7 +18,7 @@ class TestCLI(unittest.TestCase):
             self.assertTrue(args.apps)
             self.assertFalse(args.brews)
             self.assertFalse(args.recom)
-            self.assertEqual(args.debug, None)
+            self.assertFalse(args.debug)
             self.assertEqual(args.rate_limit, None)
             self.assertEqual(args.max_workers, None)
             self.assertFalse(args.no_progress)
@@ -62,9 +62,9 @@ class TestCLI(unittest.TestCase):
 
     def test_debug_option(self):
         """Test --debug option."""
-        with patch("sys.argv", ["versiontracker", "--apps", "--debug", "true"]):
+        with patch("sys.argv", ["versiontracker", "--apps", "--debug"]):
             args = get_arguments()
-            self.assertEqual(args.debug, "true")
+            self.assertTrue(args.debug)
 
     def test_rate_limit_option(self):
         """Test --rate-limit option."""

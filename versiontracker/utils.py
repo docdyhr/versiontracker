@@ -4,15 +4,22 @@
 import json
 import logging
 import os
-import platform
 import re
-import shutil
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
+import functools
+
+from versiontracker.exceptions import (
+    NetworkError,
+    TimeoutError,
+    PermissionError,
+    DataParsingError,
+    FileNotFoundError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +34,10 @@ BREW_SEARCH = f"{BREW_PATH} search"
 
 # Default rate limiting
 DEFAULT_API_RATE_LIMIT = 3  # seconds
+
+# Application data cache settings
+APP_CACHE_FILE = os.path.expanduser("~/.cache/versiontracker/app_cache.json")
+APP_CACHE_TTL = 3600  # Cache validity in seconds (1 hour)
 
 
 # Setup logging
@@ -62,27 +73,6 @@ def setup_logging(debug: bool = False) -> None:
         )
 
 
-def check_dependencies() -> bool:
-    """Check if all required dependencies are installed.
-
-    Returns:
-        bool: True if all dependencies are installed, False otherwise
-    """
-    logging.info("Checking dependencies...")
-
-    # Check for brew command
-    if not os.path.exists(BREW_PATH):
-        logging.error(f"Homebrew not found at {BREW_PATH}")
-        return False
-
-    # Check for system_profiler command
-    if not shutil.which("system_profiler"):
-        logging.error("system_profiler command not found")
-        return False
-
-    return True
-
-
 def normalise_name(name: str) -> str:
     """Return a normalised string.
 
@@ -99,8 +89,60 @@ def normalise_name(name: str) -> str:
     return name
 
 
+def _ensure_cache_dir() -> None:
+    """Ensure the cache directory exists."""
+    cache_dir = os.path.dirname(APP_CACHE_FILE)
+    os.makedirs(cache_dir, exist_ok=True)
+
+
+def _read_cache_file() -> Dict[str, Any]:
+    """Read the application data cache file.
+
+    Returns:
+        Dict[str, Any]: The cached data or an empty dict if no cache exists
+    """
+    try:
+        if os.path.exists(APP_CACHE_FILE):
+            with open(APP_CACHE_FILE, "r") as f:
+                cache_data = json.load(f)
+                
+            # Check if cache is still valid
+            if time.time() - cache_data.get("timestamp", 0) <= APP_CACHE_TTL:
+                return cache_data  # Removed cast
+            
+            logging.info("Cache expired, will refresh application data")
+    except Exception as e:
+        logging.warning(f"Failed to read application cache: {e}")
+    
+    return {}
+
+
+def _write_cache_file(data: Dict[str, Any]) -> None:
+    """Write data to the application cache file.
+
+    Args:
+        data (Dict[str, Any]): The data to cache
+    """
+    try:
+        _ensure_cache_dir()
+        
+        # Add timestamp to the data
+        cache_data = {
+            "timestamp": time.time(),
+            "data": data
+        }
+        
+        with open(APP_CACHE_FILE, "w") as f:
+            json.dump(cache_data, f)
+            
+        logging.info(f"Application data cached to {APP_CACHE_FILE}")
+    except Exception as e:
+        logging.warning(f"Failed to write application cache: {e}")
+
+
+@functools.lru_cache(maxsize=4)
 def get_json_data(command: str) -> Dict[str, Any]:
-    """Execute a command and return the JSON output.
+    """Execute a command and return the JSON output, with caching.
 
     Args:
         command (str): The command to execute
@@ -111,6 +153,13 @@ def get_json_data(command: str) -> Dict[str, Any]:
     Raises:
         RuntimeError: If the command fails
     """
+    # For system_profiler, check the cache first
+    if SYSTEM_PROFILER_CMD in command:
+        cache = _read_cache_file()
+        if cache and "data" in cache:
+            logging.info("Using cached application data")
+            return cache["data"]  # Removed cast
+    
     try:
         # Split the command into arguments for security
         command_parts = command.split()
@@ -121,7 +170,13 @@ def get_json_data(command: str) -> Dict[str, Any]:
         if not result.stdout:
             raise RuntimeError(f"Command '{command}' produced no output")
 
-        return cast(Dict[str, Any], json.loads(result.stdout))
+        parsed_data = json.loads(result.stdout)
+        
+        # Cache system_profiler results
+        if SYSTEM_PROFILER_CMD in command:
+            _write_cache_file(parsed_data)
+            
+        return parsed_data
     except subprocess.CalledProcessError as e:
         logging.error(f"Command '{command}' failed with error code {e.returncode}: {e.stderr}")
         raise RuntimeError(f"Command '{command}' failed: {e.stderr}")
@@ -133,17 +188,117 @@ def get_json_data(command: str) -> Dict[str, Any]:
         raise RuntimeError(f"Failed to execute command '{command}': {e}")
 
 
-def run_command(command: str) -> List[str]:
+def get_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
+    """Run a command and parse the output as JSON.
+    
+    Args:
+        cmd: Command to run
+        timeout: Timeout in seconds
+        
+    Returns:
+        Dict[str, Any]: Parsed JSON data
+        
+    Raises:
+        TimeoutError: If the command times out
+        PermissionError: If there's a permission error
+        DataParsingError: If the data cannot be parsed as JSON
+    """
+    try:
+        output, returncode = run_command(cmd, timeout=timeout)
+        
+        if returncode != 0:
+            logging.error(f"Command failed with return code {returncode}: {output}")
+            raise DataParsingError(f"Command failed with return code {returncode}: {output}")
+            
+        # Parse JSON data
+        try:
+            data = json.loads(output)
+            return data
+        except json.JSONDecodeError as e:
+            logging.error(f"Invalid JSON data: {e}")
+            raise DataParsingError(f"Invalid JSON data: {e}")
+    except TimeoutError:
+        logging.error(f"Command timed out: {cmd}")
+        raise
+    except PermissionError:
+        logging.error(f"Permission denied: {cmd}")
+        raise
+    except Exception as e:
+        logging.error(f"Error getting JSON data: {e}")
+        raise Exception(f"Failed to get JSON data: {e}")
+
+
+def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
+    """Run a command and return the output.
+    
+    Args:
+        cmd: Command to run
+        timeout: Optional timeout in seconds
+        
+    Returns:
+        Tuple[str, int]: Command output and return code
+        
+    Raises:
+        TimeoutError: If the command times out
+        PermissionError: If there's a permission error running the command
+        Exception: If there's a network-related error
+    """
+    try:
+        # Run the command
+        logging.debug(f"Running command: {cmd}")
+        process = subprocess.Popen(
+            cmd, 
+            shell=True, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True
+        )
+        
+        # Wait for the command to complete with timeout
+        stdout, stderr = process.communicate(timeout=timeout)
+        
+        # Check return code
+        if process.returncode != 0:
+            logging.warning(f"Command failed with return code {process.returncode}: {stderr}")
+            
+            # Check for common errors
+            if "command not found" in stderr:
+                raise FileNotFoundError(f"Command not found: {cmd}")
+            elif "permission denied" in stderr.lower():
+                raise PermissionError(f"Permission denied: {cmd}")
+            elif "network is unreachable" in stderr.lower() or "no route to host" in stderr.lower():
+                raise NetworkError(f"Network error: {stderr}")
+            
+        return stdout, process.returncode
+    except subprocess.TimeoutExpired as e:
+        # Kill the process if it timed out
+        process.kill()
+        logging.error(f"Command timed out after {timeout} seconds: {cmd}")
+        raise TimeoutError(f"Command timed out after {timeout} seconds: {cmd}") from e
+    except PermissionError as e:
+        logging.error(f"Permission error running command: {e}")
+        raise
+    except Exception as e:
+        logging.error(f"Error running command: {e}")
+        if "network" in str(e).lower():
+            raise NetworkError(f"Network error running command: {e}")
+        raise
+
+
+def run_command_original(command: str, timeout: int = 30) -> List[str]:
     """Execute a command and return the output as a list of lines.
 
     Args:
         command (str): The command to execute
+        timeout (int, optional): Timeout in seconds for the command. Defaults to 30.
 
     Returns:
         List[str]: The output as a list of lines
 
     Raises:
-        RuntimeError: If the command fails
+        PermissionError: If the command fails due to permission issues
+        TimeoutError: If the command times out
+        RuntimeError: For other command execution failures
     """
     try:
         # Execute the command using a shell for complex commands with pipes
@@ -153,14 +308,34 @@ def run_command(command: str) -> List[str]:
             capture_output=True,
             text=True,
             check=True,
+            timeout=timeout,
         )
         return [line for line in result.stdout.splitlines() if line]
+    except subprocess.TimeoutExpired as e:
+        error_msg = f"Command '{command}' timed out after {timeout} seconds"
+        logging.error(error_msg)
+        raise TimeoutError(error_msg) from e
     except subprocess.CalledProcessError as e:
-        logging.error(f"Command '{command}' failed with error code {e.returncode}: {e.stderr}")
-        raise RuntimeError(f"Command '{command}' failed: {e.stderr}")
+        error_msg = f"Command '{command}' failed with error code {e.returncode}"
+        
+        # Check for common error patterns to provide better messages
+        if e.returncode == 13 or "Permission denied" in e.stderr:
+            logging.error(f"{error_msg}: Permission denied. Try running with sudo or check file permissions.")
+            raise PermissionError(f"Permission denied while executing '{command}'") from e
+        elif "command not found" in e.stderr:
+            logging.error(f"{error_msg}: Command not found. Check if the required program is installed.")
+            raise Exception(f"Command not found: '{command}'") from e
+        elif "No such file or directory" in e.stderr:
+            logging.error(f"{error_msg}: File or directory not found. Check if the path exists.")
+            raise Exception(f"File or directory not found in command: '{command}'") from e
+        else:
+            # Generic error message with stderr output
+            detailed_error = e.stderr.strip() if e.stderr else "Unknown error"
+            logging.error(f"{error_msg}: {detailed_error}")
+            raise RuntimeError(f"Command '{command}' failed: {detailed_error}") from e
     except Exception as e:
         logging.error(f"Failed to execute command '{command}': {e}")
-        raise RuntimeError(f"Failed to execute command '{command}': {e}")
+        raise RuntimeError(f"Failed to execute command '{command}': {e}") from e
 
 
 class RateLimiter:

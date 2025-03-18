@@ -2,10 +2,14 @@
 
 import logging
 import os
+import platform
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-import yaml  # type: ignore
+import yaml
+
+from versiontracker.exceptions import ConfigError
 
 
 class Config:
@@ -287,6 +291,33 @@ class Config:
         blacklist = self.get_blacklist()
         return any(app_name.lower() == item.lower() for item in blacklist)
 
+    @property
+    def log_dir(self) -> Path:
+        """Get the log directory path.
+        
+        Returns:
+            Path: Path to the log directory
+        """
+        return Path(self._config["log_dir"])
+
+    @property
+    def debug(self) -> bool:
+        """Get the debug flag.
+        
+        Returns:
+            bool: Whether debug mode is enabled
+        """
+        return self._config.get("debug", False)
+    
+    @debug.setter
+    def debug(self, value: bool) -> None:
+        """Set the debug flag.
+        
+        Args:
+            value: Whether to enable debug mode
+        """
+        self._config["debug"] = value
+
     def generate_default_config(self, path: Optional[Path] = None) -> str:
         """Generate a default configuration file.
 
@@ -332,6 +363,31 @@ class Config:
 
         logging.info(f"Generated configuration file: {config_path}")
         return str(config_path)
+
+
+def check_dependencies() -> bool:
+    """Check if all required dependencies are available.
+
+    Returns:
+        bool: True if all dependencies are present, False otherwise
+
+    Raises:
+        ConfigError: If critical dependencies are missing
+    """
+    missing_deps = []
+
+    # Check for system_profiler on macOS
+    if platform.system() == "Darwin":
+        if not shutil.which("system_profiler"):
+            missing_deps.append("system_profiler")
+
+    # Check if any critical dependencies are missing
+    if missing_deps:
+        error_msg = f"Missing required dependencies: {', '.join(missing_deps)}"
+        logging.error(error_msg)
+        raise ConfigError(error_msg)
+
+    return True
 
 
 # Global configuration instance - we create a default instance that can be

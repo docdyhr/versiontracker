@@ -14,7 +14,7 @@ except FileNotFoundError:
 
 setup(
     name="versiontracker",
-    version="0.4.0",
+    version="0.5.0",
     author="docdyhr",
     author_email="thomas@dyhr.com",
     description="CLI versiontracker and update tool for macOS",

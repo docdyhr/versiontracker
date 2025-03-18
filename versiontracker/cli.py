@@ -23,7 +23,12 @@ def get_arguments():
     )
 
     # Debug mode
-    parser.add_argument("-D", "--debug", dest="debug", help="turn on DEBUG mode")
+    parser.add_argument(
+        "-D", "--debug",
+        dest="debug",
+        action="store_true",
+        help="turn on DEBUG mode"
+    )
 
     # Performance options
     performance_group = parser.add_argument_group("Performance options")

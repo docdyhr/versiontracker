@@ -32,6 +32,7 @@ class TestIntegration(unittest.TestCase):
         # Mock config methods
         mock_config.is_blacklisted.return_value = False
         mock_config.get.return_value = 10
+        mock_config.rate_limit = 10  # Mock the rate_limit attribute
 
         # Mock the applications
         mock_get_apps.return_value = [
@@ -61,7 +62,7 @@ class TestIntegration(unittest.TestCase):
         mock_filter_brews.assert_called_once()
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            mock_config.get.return_value,
+            10,  # Use an exact value instead of mock_config.get.return_value
             False,
         )
 
@@ -88,6 +89,7 @@ class TestIntegration(unittest.TestCase):
         # Mock config methods
         mock_config.is_blacklisted.return_value = False
         mock_config.get.return_value = 10
+        mock_config.rate_limit = 10  # Mock the rate_limit attribute
 
         # Mock the applications
         mock_get_apps.return_value = [
@@ -118,7 +120,7 @@ class TestIntegration(unittest.TestCase):
         # Ensure strict param is True
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            mock_config.get.return_value,
+            10,  # Use an exact value instead of mock_config.get.return_value
             True,
         )
 

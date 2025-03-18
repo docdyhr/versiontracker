@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-03-18
+
+### Added (0.5.0)
+
+- Comprehensive error handling system with custom exception classes
+- Custom exception hierarchy with domain-specific error types
+- Improved error reporting for network operations, Homebrew commands, and file operations
+- Graceful handling for network timeouts and connection issues
+- Better error messages for common failures with suggested solutions
+- User-friendly error feedback with color-coded messages
+- Enhanced error classification for better troubleshooting
+- Exception chaining to preserve error context
+
+### Changed (0.5.0)
+
+- Refactored command execution to provide more detailed error information
+- Improved error handling in export functions
+- Enhanced error recovery mechanisms with conditional retries
+- Updated documentation with error handling information
+- Completed all error handling tasks from the project roadmap
+
 ## [0.4.0] - 2025-03-18
 
 ### Added (0.4.0)
