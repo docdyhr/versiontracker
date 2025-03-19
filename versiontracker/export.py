@@ -2,13 +2,13 @@ import csv
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from versiontracker.version import VersionStatus
 from versiontracker.exceptions import ExportError
 
 def export_data(
-    data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]]],
+    data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]], List[Tuple[str, Dict[str, str], str]], List[Dict[str, str]]],
     format_type: str,
     filename: Optional[str] = None,
 ) -> str:
@@ -45,7 +45,7 @@ def export_data(
         try:
             with open(filename, "w") as f:
                 f.write(content)
-            return filename
+            return cast(str, filename)
         except PermissionError as e:
             logging.error(f"Permission error writing to {filename}: {e}")
             raise PermissionError(f"Permission denied writing to {filename}") from e
@@ -53,10 +53,12 @@ def export_data(
             logging.error(f"Error writing to {filename}: {e}")
             raise ExportError(f"Failed to write to {filename}: {e}") from e
     else:
-        return content
+        return cast(str, content)
 
 
-def _export_to_json(data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]]]) -> str:
+def _export_to_json(
+    data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]], List[Tuple[str, Dict[str, str], str]], List[Dict[str, str]]]
+) -> str:
     """Export data to JSON format.
     
     Args:
@@ -80,9 +82,10 @@ def _export_to_json(data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], 
                 ]
             }
         else:
-            output_data = data
+            # Use cast to ensure type compatibility
+            output_data = cast(Dict[str, Any], data)
             
-        return json.dumps(output_data, indent=2)
+        return cast(str, json.dumps(output_data, indent=2))
     except Exception as e:
         logging.error(f"Error exporting to JSON: {e}")
         raise ExportError(f"Failed to export to JSON: {e}") from e
@@ -108,25 +111,37 @@ def _export_to_csv(data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], V
         # For app version info list
         if isinstance(data, list) and data and isinstance(data[0], tuple):
             for app in data:
-                writer.writerow([
-                    app[0],
-                    app[1].get("installed", ""),
-                    app[1].get("latest", "Unknown"),
-                    app[2].name if hasattr(app[2], "name") else str(app[2]),
-                ])
+                if len(app) >= 3 and isinstance(app[1], dict):
+                    writer.writerow([
+                        str(app[0]),
+                        app[1].get("installed", ""),
+                        app[1].get("latest", "Unknown"),
+                        app[2].name if hasattr(app[2], "name") else str(app[2]),
+                    ])
         # For dictionary format
         elif isinstance(data, dict) and "applications" in data:
             applications = data["applications"]
             for app in applications:
-                if isinstance(app, tuple):
-                    writer.writerow([app[0], app[1], "", ""])
-                elif isinstance(app, dict):
-                    writer.writerow([
-                        app.get("name", ""),
-                        app.get("installed_version", ""),
-                        app.get("latest_version", "Unknown"),
-                        app.get("status", ""),
-                    ])
+                try:
+                    if isinstance(app, tuple):
+                        # Handle tuple format
+                        row = [str(app[0])]
+                        if len(app) > 1:
+                            row.append(str(app[1]))
+                        else:
+                            row.append("")
+                        row.extend(["", ""])
+                        writer.writerow(row)
+                    elif isinstance(app, dict):
+                        # Handle dictionary format
+                        writer.writerow([
+                            app.get("name", ""),
+                            app.get("installed_version", ""),
+                            app.get("latest_version", "Unknown"),
+                            app.get("status", ""),
+                        ])
+                except Exception as e:
+                    logging.warning(f"Error formatting row: {e}, skipping")
                     
         return output.getvalue()
     except Exception as e:

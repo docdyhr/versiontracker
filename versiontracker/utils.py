@@ -10,7 +10,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast, Callable
 import functools
 
 from versiontracker.exceptions import (
@@ -108,7 +108,7 @@ def _read_cache_file() -> Dict[str, Any]:
                 
             # Check if cache is still valid
             if time.time() - cache_data.get("timestamp", 0) <= APP_CACHE_TTL:
-                return cache_data  # Removed cast
+                return cast(Dict[str, Any], cache_data)
             
             logging.info("Cache expired, will refresh application data")
     except Exception as e:
@@ -158,7 +158,7 @@ def get_json_data(command: str) -> Dict[str, Any]:
         cache = _read_cache_file()
         if cache and "data" in cache:
             logging.info("Using cached application data")
-            return cache["data"]  # Removed cast
+            return cast(Dict[str, Any], cache["data"])
     
     try:
         # Split the command into arguments for security
@@ -176,7 +176,7 @@ def get_json_data(command: str) -> Dict[str, Any]:
         if SYSTEM_PROFILER_CMD in command:
             _write_cache_file(parsed_data)
             
-        return parsed_data
+        return cast(Dict[str, Any], parsed_data)
     except subprocess.CalledProcessError as e:
         logging.error(f"Command '{command}' failed with error code {e.returncode}: {e.stderr}")
         raise RuntimeError(f"Command '{command}' failed: {e.stderr}")
@@ -188,8 +188,8 @@ def get_json_data(command: str) -> Dict[str, Any]:
         raise RuntimeError(f"Failed to execute command '{command}': {e}")
 
 
-def get_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
-    """Run a command and parse the output as JSON.
+def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
+    """Run a shell command and parse the output as JSON.
     
     Args:
         cmd: Command to run
@@ -213,7 +213,7 @@ def get_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
         # Parse JSON data
         try:
             data = json.loads(output)
-            return data
+            return cast(Dict[str, Any], data)
         except json.JSONDecodeError as e:
             logging.error(f"Invalid JSON data: {e}")
             raise DataParsingError(f"Invalid JSON data: {e}")

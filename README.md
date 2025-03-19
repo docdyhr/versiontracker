@@ -1,12 +1,11 @@
-<p align="center">
-  <img src="images/logo.png" alt="Project Logo" width="25%"/>
-</p>
+![Project Logo](images/logo.png){width=25% style="display: block; margin: 0 auto;"}
 
 # Versiontracker Update tool for macOS
+
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/versiontracker) ![GitHub](https://img.shields.io/github/license/docdyhr/versiontracker)
 
 * Name: Versiontracker
-* Version: 0.5.1
+* Version: 0.6.2
 * Programming language: Python 3
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
@@ -30,6 +29,10 @@ Versiontracker is a command-line tool for macOS that helps you manage applicatio
 * Configurable blacklist to exclude specific applications
 * Support for scanning additional application directories
 * Secure command execution
+* Color-coded console output for better readability
+* Smart progress indicators with system resource monitoring
+* Adaptive rate limiting based on CPU and memory usage
+* Support for saving and loading query filters
 
 ## Requirements
 
@@ -188,6 +191,62 @@ python3 versiontracker-cli.py --generate-config --config-path ~/custom_config.ya
 
 ```shell
 python3 versiontracker-cli.py --debug --recommend
+```
+
+## List applications based on your preferences
+
+```shell
+python -m versiontracker -a --blacklist="Xcode,Safari" --similarity 85
+```
+
+## Enhanced User Interface
+
+VersionTracker includes several UI enhancements to improve usability:
+
+### Color-Coded Output
+
+All console output is color-coded for better readability:
+ 
+1. Green: Success messages and up-to-date applications
+2. Blue: Informational messages and progress updates
+3. Yellow: Warning messages and unknown statuses
+4. Red: Error messages and outdated applications
+
+### Smart Progress Indicators
+
+Long-running operations show progress bars with:
+
+1. Estimated time remaining
+2. CPU usage monitoring
+3. Memory usage tracking
+4. Adaptive refresh rates
+
+### Adaptive Rate Limiting
+
+When making network requests, VersionTracker intelligently adjusts rate limits based on:
+
+1. Current CPU usage
+2. Available memory
+3. Network conditions
+
+This ensures optimal performance regardless of system load.
+
+### Query Filter Management
+
+Save and reuse your favorite query settings:
+
+```shell
+# Save current settings
+python -m versiontracker -a --blacklist="Xcode,Safari" --save-filter my-filter
+
+# List all saved filters
+python -m versiontracker --list-filters
+
+# Load a saved filter
+python -m versiontracker --load-filter my-filter
+
+# Delete a filter
+python -m versiontracker --delete-filter my-filter
 ```
 
 ## Configuration

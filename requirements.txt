@@ -3,3 +3,6 @@ python-Levenshtein>=0.12.2  # Accelerates fuzzywuzzy
 rapidfuzz>=3.0.0  # Faster alternative to fuzzywuzzy
 tqdm>=4.66.0  # For progress bars
 PyYAML>=6.0  # For configuration file support
+termcolor>=2.3.0  # For colored terminal output
+tabulate>=0.9.0  # For table formatting
+psutil>=5.9.5  # For system resource monitoring

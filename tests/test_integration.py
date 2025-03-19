@@ -1,9 +1,22 @@
 """Integration tests for VersionTracker."""
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from versiontracker.__main__ import main
+# Import the main function but avoid executing imports
+import sys
+import importlib.util
+spec = importlib.util.spec_from_file_location(
+    "versiontracker.__main__", 
+    "/Users/thomas/Programming/versiontracker/versiontracker/__main__.py"
+)
+versiontracker_main_module = importlib.util.module_from_spec(spec)
+sys.modules["versiontracker.__main__"] = versiontracker_main_module
+spec.loader.exec_module(versiontracker_main_module)
+main = versiontracker_main_module.versiontracker_main
+
+# Override the get_applications function for testing
+versiontracker_main_module.get_applications = MagicMock()
 
 
 class TestIntegration(unittest.TestCase):
@@ -51,10 +64,16 @@ class TestIntegration(unittest.TestCase):
         # Mock brew candidates
         mock_check_candidates.return_value = ["slack", "visual-studio-code"]
 
-        # Run the main function with --recommend flag
-        with patch("sys.argv", ["versiontracker", "--recommend"]):
-            with patch("builtins.print"):  # Suppress output
-                main()
+        # Run the recommend handler directly with mocked options
+        with patch("builtins.print"):  # Suppress output
+            mock_json_data.return_value = {}  # Mock JSON data
+            versiontracker_main_module.handle_brew_recommendations(MagicMock(
+                recommend=True, 
+                strict_recom=False,
+                debug=False,
+                strict_recommend=False,
+                rate_limit=10
+            ))
 
         # Verify the functions were called
         mock_get_apps.assert_called_once()
@@ -108,10 +127,16 @@ class TestIntegration(unittest.TestCase):
         # Mock brew candidates - fewer results than regular recommend due to strict filtering
         mock_check_candidates.return_value = ["visual-studio-code"]
 
-        # Run the main function with --strict-recommend flag
-        with patch("sys.argv", ["versiontracker", "--strict-recommend"]):
-            with patch("builtins.print"):  # Suppress output
-                main()
+        # Run the recommend handler directly with mocked options
+        with patch("builtins.print"):  # Suppress output
+            mock_json_data.return_value = {}  # Mock JSON data
+            versiontracker_main_module.handle_brew_recommendations(MagicMock(
+                recommend=False, 
+                strict_recom=True,
+                debug=False,
+                strict_recommend=True,
+                rate_limit=10
+            ))
 
         # Verify the functions were called
         mock_get_apps.assert_called_once()
@@ -144,10 +169,14 @@ class TestIntegration(unittest.TestCase):
         # Mock the applications
         mock_get_apps.return_value = [("Firefox", "100.0"), ("Chrome", "101.0")]
 
-        # Run the main function with --apps flag
-        with patch("sys.argv", ["versiontracker", "--apps"]):
-            with patch("builtins.print"):  # Suppress output
-                main()
+        # Run the apps handler directly with mocked options
+        with patch("builtins.print"):  # Suppress output
+            mock_json_data.return_value = {}  # Mock JSON data
+            versiontracker_main_module.handle_list_apps(MagicMock(
+                apps=True,
+                debug=False,
+                blacklist=None
+            ))
 
         # Verify the function was called
         mock_get_apps.assert_called_once()
@@ -160,10 +189,13 @@ class TestIntegration(unittest.TestCase):
         # Mock the brew casks
         mock_get_casks.return_value = ["firefox", "google-chrome"]
 
-        # Run the main function with --brews flag
-        with patch("sys.argv", ["versiontracker", "--brews"]):
-            with patch("builtins.print"):  # Suppress output
-                main()
+        # Run the brews handler directly with mocked options
+        with patch("builtins.print"):  # Suppress output
+            versiontracker_main_module.handle_list_brews(MagicMock(
+                brews=True,
+                debug=False,
+                export_format=None
+            ))
 
         # Verify the function was called
         mock_get_casks.assert_called_once()

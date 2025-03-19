@@ -48,6 +48,17 @@ class Config:
             "blacklist": [],
             # Whether to show progress bars
             "show_progress": True,
+            # UI options
+            "ui": {
+                # Whether to use color in output
+                "use_color": True,
+                # Whether to monitor system resources
+                "monitor_resources": True,
+                # Whether to use adaptive rate limiting
+                "adaptive_rate_limiting": True,
+                # Whether to use enhanced progress bars
+                "enhanced_progress": True,
+            },
             # Version comparison options
             "version_comparison": {
                 # Rate limit for Homebrew version checks (seconds)
@@ -170,6 +181,16 @@ class Config:
         # Progress bars
         if os.environ.get("VERSIONTRACKER_PROGRESS_BARS", "").lower() in ("0", "false", "no"):
             self._config["show_progress"] = False
+
+        # UI options
+        if os.environ.get("VERSIONTRACKER_UI_USE_COLOR", "").lower() in ("0", "false", "no"):
+            self._config["ui"]["use_color"] = False
+        if os.environ.get("VERSIONTRACKER_UI_MONITOR_RESOURCES", "").lower() in ("0", "false", "no"):
+            self._config["ui"]["monitor_resources"] = False
+        if os.environ.get("VERSIONTRACKER_UI_ADAPTIVE_RATE_LIMITING", "").lower() in ("0", "false", "no"):
+            self._config["ui"]["adaptive_rate_limiting"] = False
+        if os.environ.get("VERSIONTRACKER_UI_ENHANCED_PROGRESS", "").lower() in ("0", "false", "no"):
+            self._config["ui"]["enhanced_progress"] = False
 
         # Version comparison rate limit
         if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"):
@@ -307,7 +328,7 @@ class Config:
         Returns:
             bool: Whether debug mode is enabled
         """
-        return self._config.get("debug", False)
+        return bool(self._config.get("debug", False))
     
     @debug.setter
     def debug(self, value: bool) -> None:
@@ -317,6 +338,24 @@ class Config:
             value: Whether to enable debug mode
         """
         self._config["debug"] = value
+        
+    @property
+    def no_progress(self) -> bool:
+        """Get the no_progress flag.
+        
+        Returns:
+            bool: Whether progress bars are disabled
+        """
+        return bool(self._config.get("no_progress", False))
+        
+    @property
+    def show_progress(self) -> bool:
+        """Get the show_progress flag.
+        
+        Returns:
+            bool: Whether progress bars are enabled
+        """
+        return not self.no_progress
 
     def generate_default_config(self, path: Optional[Path] = None) -> str:
         """Generate a default configuration file.
@@ -341,6 +380,12 @@ class Config:
             "additional-app-dirs": self._config["additional_app_dirs"],
             "blacklist": self._config["blacklist"],
             "show-progress": self._config["show_progress"],
+            "ui": {
+                "use-color": self._config["ui"]["use_color"],
+                "monitor-resources": self._config["ui"]["monitor_resources"],
+                "adaptive-rate-limiting": self._config["ui"]["adaptive_rate_limiting"],
+                "enhanced-progress": self._config["ui"]["enhanced_progress"],
+            },
             "version-comparison": {
                 "rate-limit": self._config["version_comparison"]["rate_limit"],
                 "cache-ttl": self._config["version_comparison"]["cache_ttl"],

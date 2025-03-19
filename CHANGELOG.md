@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2025-03-19
+
+### Fixed (0.6.2)
+
+- Fixed Homebrew integration to properly detect brew paths on both Intel and M1/M2 Macs
+- Improved handling of brew commands to support newer Homebrew versions
+- Added fallback mechanism for brew command execution
+- Enhanced error handling for Homebrew operations
+- Fixed tests to properly mock Homebrew interactions
+- Updated is_homebrew_available to check multiple potential Homebrew locations
+- Improved error messages for common Homebrew failures
+
+## [0.6.1] - 2025-03-19
+
+### Fixed (0.6.1)
+
+- Fixed dependency issue by adding PyYAML to requirements
+- Fixed run_command usage in brew search functions to properly handle returned tuples
+- Fixed missing HAS_VERSION_PROGRESS variable in version.py
+- Fixed type errors with VersionStatus in check_outdated_apps function
+- Fixed tuple handling throughout codebase to match the correct return values
+- Improved type hints for better compatibility with mypy validation
+- Various small fixes to ensure tests pass correctly
+
+## [0.6.0] - 2025-03-18
+
+### Added (0.6.0)
+
+- Added color-coded console output for better readability
+- Added smart progress indicators that monitor system resources
+- Implemented adaptive rate limiting based on CPU and memory usage
+- Added support for saving and loading common query filters
+- Created a dedicated UI module for all user interface components
+- Added new CLI options to control UI features
+
 ## [0.5.1] - 2025-03-18
 
 ### Fixed (0.5.1)

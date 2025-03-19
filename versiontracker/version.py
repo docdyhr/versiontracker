@@ -1,19 +1,22 @@
-"""Version checking utility functions."""
+"""Version management functionality for VersionTracker."""
 
+import concurrent.futures
+import functools
+import json
 import logging
 import multiprocessing
-import os
 import re
-import json
 import subprocess
-import functools
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union, NamedTuple, Set, cast
-import warnings
+import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from enum import Enum
 from functools import lru_cache
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union, cast, NamedTuple, Set
+
+from versiontracker.ui import smart_progress, print_warning, print_error
 from versiontracker.config import config
 from versiontracker.utils import normalise_name, run_command
 from versiontracker.exceptions import (
@@ -23,13 +26,38 @@ from versiontracker.exceptions import (
     DataParsingError
 )
 
+import os
+import re
+import sys
+import time
+import json
+import logging
+import platform
+import threading
+import itertools
+from datetime import datetime
+from enum import Enum, auto
+from typing import Dict, List, Tuple, Union, Optional, Any, Callable, Set, cast
+
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process as fuzz_process
+
+# Attempt to import rapidfuzz for better performance if available
+USE_RAPIDFUZZ = False
 try:
-    from rapidfuzz import fuzz as rapidfuzz
-    from rapidfuzz import process
+    import rapidfuzz.fuzz
+    import rapidfuzz.process
     USE_RAPIDFUZZ = True
 except ImportError:
-    from fuzzywuzzy import fuzz  # type: ignore
-    USE_RAPIDFUZZ = False
+    pass
+
+# Set up progress bar support
+HAS_VERSION_PROGRESS = False
+try:
+    from tqdm import tqdm
+    HAS_VERSION_PROGRESS = True
+except ImportError:
+    pass
 
 # Create a compatibility function for partial_ratio
 def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
@@ -47,20 +75,33 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
     if USE_RAPIDFUZZ:
         kwargs = {}
         if score_cutoff is not None:
-            kwargs['score_cutoff'] = score_cutoff
-        return rapidfuzz.partial_ratio(s1, s2, **kwargs)
+            kwargs['score_cutoff'] = float(score_cutoff)
+        try:
+            score = float(rapidfuzz.fuzz.partial_ratio(s1, s2, **kwargs))
+            return int(score)
+        except Exception:
+            # Fallback to fuzzywuzzy if rapidfuzz fails
+            score = float(fuzz.partial_ratio(s1, s2))
+            return int(score)
     else:
-        return fuzz.partial_ratio(s1, s2)
+        score = float(fuzz.partial_ratio(s1, s2))
+        return int(score)
 
-# Import tqdm for progress bars
+# Import progress bar functionality
+HAS_VERSION_PROGRESS = False
 try:
-    from tqdm import tqdm
-    HAS_TQDM = True
+    from tqdm.auto import tqdm
+    
+    def version_progress_bar(iterable, **kwargs):
+        """Wrapper for tqdm to use in version module."""
+        return tqdm(iterable, **kwargs)
+    
+    HAS_VERSION_PROGRESS = True
 except ImportError:
     # Simple fallback if tqdm is not available
-    def tqdm(iterable, **kwargs):
+    def version_progress_bar(iterable, **kwargs):
+        """Simple progress bar fallback."""
         return iterable
-    HAS_TQDM = False
 
 # Regular expression patterns for version extraction
 VERSION_PATTERNS = [
@@ -595,6 +636,45 @@ def compose_version_tuple(version_dict: Dict[str, int]) -> Optional[Dict[str, Un
     }
 
 
+def similarity_score(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
+    """Calculate similarity score between two strings.
+    
+    Args:
+        s1: First string
+        s2: Second string
+        score_cutoff: Minimum score cutoff (0-100)
+        
+    Returns:
+        int: Similarity score between 0 and 100
+    """
+    # Handle None inputs gracefully
+    if (s1 is None) or (s2 is None):
+        return 0
+    
+    # Special case for exact match
+    if s1 == s2:
+        return 100
+    
+    # Use rapidfuzz or fall back to fuzzywuzzy
+    try:
+        if 'rapidfuzz' in sys.modules:
+            kwargs: Dict[str, float] = {}
+            if score_cutoff is not None:
+                kwargs['score_cutoff'] = float(score_cutoff)
+            # Call fuzz.partial_ratio properly
+            score = float(rapidfuzz.fuzz.partial_ratio(s1, s2, processor=None, **kwargs))
+            return int(score)
+        else:
+            # Default fuzzywuzzy implementation
+            score = float(fuzz.partial_ratio(s1, s2))
+            return int(score)
+    except Exception as e:
+        # Fallback to fuzzywuzzy if rapidfuzz fails
+        logging.debug(f"Error computing similarity: {e}, falling back to simple comparison")
+        score = float(fuzz.partial_ratio(s1, s2))
+        return int(score)
+
+
 def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:
     """Compare two names using fuzzy matching.
 
@@ -611,7 +691,7 @@ def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:
     name2 = name2.lower()
 
     # Use our compatibility wrapper function
-    ratio = float(partial_ratio(name1, name2))
+    ratio = float(similarity_score(name1, name2))
 
     # Only return the ratio if it meets the threshold
     if ratio >= threshold:
@@ -622,11 +702,11 @@ def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:
 
 def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> List[Tuple[str, Dict[str, str], VersionStatus]]:
     """Check which applications are outdated compared to their Homebrew versions.
-
+    
     Args:
         apps: List of applications with name and version
         batch_size: How many applications to check in one batch (for parallelism)
-
+    
     Returns:
         List of tuples with application name, version info and status
         
@@ -659,13 +739,14 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
         futures = [executor.submit(_process_app_batch, batch) for batch in batches]
         
         # Process results as they complete with progress bar
-        if HAS_TQDM and show_progress:
-            # Use tqdm to show progress with time estimation
-            for future in tqdm(
-                as_completed(futures),
+        if HAS_VERSION_PROGRESS and show_progress:
+            # Use smart progress to show progress with time estimation and system resources
+            for future in smart_progress(
+                concurrent.futures.as_completed(futures),
                 total=len(futures),
                 desc="Checking for updates",
                 unit="batch",
+                monitor_resources=True,
                 ncols=80,
                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
             ):
@@ -695,7 +776,7 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
                         raise RuntimeError(f"Multiple errors occurred while checking applications: {e}")
         else:
             # Process without progress bar
-            for future in as_completed(futures):
+            for future in concurrent.futures.as_completed(futures):
                 try:
                     for app_info in future.result():
                         app_name = app_info.name
@@ -726,11 +807,12 @@ def check_outdated_apps(apps: List[Tuple[str, str]], batch_size: int = 50) -> Li
 
 @dataclass
 class AppVersionInfo:
-    """Class to hold application version information."""
+    """Simple dataclass for application version information."""
+    
     name: str
     version_string: str
     latest_version: Optional[str] = None
-    status: str = VersionStatus.UNKNOWN
+    status: VersionStatus = VersionStatus.UNKNOWN
 
 
 def _process_app_batch(batch: List[Tuple[str, str]]) -> List[AppVersionInfo]:
@@ -920,7 +1002,7 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
         # If rapidfuzz is available, use it for faster matching
         if USE_RAPIDFUZZ:
             try:
-                match = process.extractOne(
+                match = rapidfuzz.process.extractOne(
                     lower_app_name, 
                     target_casks, 
                     scorer=partial_ratio,
@@ -928,10 +1010,24 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
                 )
                 
                 if match:
-                    return match[0]
+                    return cast(Optional[str], match[0])
             except Exception as e:
                 logging.warning(f"Error using rapidfuzz: {e}, falling back to manual matching")
                 # Fall through to manual matching
+        else:
+            # Use fuzzywuzzy as fallback
+            try:
+                match = fuzz_process.extractOne(
+                    lower_app_name,
+                    target_casks,
+                    scorer=fuzz.partial_ratio,
+                    score_cutoff=75
+                )
+                
+                if match:
+                    return cast(Optional[str], match[0])
+            except Exception as e:
+                logging.warning(f"Error using fuzzywuzzy: {e}, falling back to manual matching")
         
         # Manual matching as a fallback
         best_match = None
