@@ -5,6 +5,8 @@ import sys
 import textwrap
 
 from versiontracker import __version__
+from versiontracker.ui import QueryFilterManager
+from pathlib import Path
 
 
 def get_arguments():
@@ -51,6 +53,27 @@ def get_arguments():
         help="Disable progress bars",
     )
 
+    # UI options
+    ui_group = parser.add_argument_group("UI options")
+    ui_group.add_argument(
+        "--no-color",
+        dest="no_color",
+        action="store_true",
+        help="Disable colored output",
+    )
+    ui_group.add_argument(
+        "--no-resource-monitor",
+        dest="no_resource_monitor",
+        action="store_true",
+        help="Disable system resource monitoring",
+    )
+    ui_group.add_argument(
+        "--no-adaptive-rate",
+        dest="no_adaptive_rate",
+        action="store_true",
+        help="Disable adaptive rate limiting",
+    )
+
     # Filtering options
     filter_group = parser.add_argument_group("Filtering options")
     filter_group.add_argument(
@@ -68,6 +91,33 @@ def get_arguments():
         dest="similarity",
         type=int,
         help="Similarity threshold for matching (0-100, default: 75)",
+    )
+
+    # Filter management
+    filter_management_group = parser.add_argument_group("Filter management")
+    filter_management_group.add_argument(
+        "--save-filter",
+        dest="save_filter",
+        metavar="NAME",
+        help="Save current filter settings with the given name",
+    )
+    filter_management_group.add_argument(
+        "--load-filter",
+        dest="load_filter",
+        metavar="NAME",
+        help="Load saved filter settings with the given name",
+    )
+    filter_management_group.add_argument(
+        "--list-filters",
+        dest="list_filters",
+        action="store_true",
+        help="List all saved filters",
+    )
+    filter_management_group.add_argument(
+        "--delete-filter",
+        dest="delete_filter",
+        metavar="NAME",
+        help="Delete a saved filter",
     )
 
     # Export options

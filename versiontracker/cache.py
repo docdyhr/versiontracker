@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from versiontracker.exceptions import CacheError
 
@@ -52,7 +52,7 @@ def read_cache(cache_name: str, max_age_seconds: int = 86400) -> Optional[Dict[s
         with open(cache_file, "r") as f:
             data = json.load(f)
             
-        return data
+        return cast(Dict[str, Any], data)
     except json.JSONDecodeError as e:
         logging.warning(f"Invalid JSON in cache {cache_name}: {e}")
         return None
