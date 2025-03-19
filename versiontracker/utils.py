@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Utility functions for VersionTracker."""
 
+import functools
 import json
 import logging
 import os
@@ -10,15 +11,14 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast, Callable
-import functools
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 from versiontracker.exceptions import (
-    NetworkError,
-    TimeoutError,
-    PermissionError,
     DataParsingError,
-    FileNotFoundError
+    FileNotFoundError,
+    NetworkError,
+    PermissionError,
+    TimeoutError,
 )
 
 logger = logging.getLogger(__name__)
@@ -105,15 +105,15 @@ def _read_cache_file() -> Dict[str, Any]:
         if os.path.exists(APP_CACHE_FILE):
             with open(APP_CACHE_FILE, "r") as f:
                 cache_data = json.load(f)
-                
+
             # Check if cache is still valid
             if time.time() - cache_data.get("timestamp", 0) <= APP_CACHE_TTL:
                 return cast(Dict[str, Any], cache_data)
-            
+
             logging.info("Cache expired, will refresh application data")
     except Exception as e:
         logging.warning(f"Failed to read application cache: {e}")
-    
+
     return {}
 
 
@@ -125,16 +125,13 @@ def _write_cache_file(data: Dict[str, Any]) -> None:
     """
     try:
         _ensure_cache_dir()
-        
+
         # Add timestamp to the data
-        cache_data = {
-            "timestamp": time.time(),
-            "data": data
-        }
-        
+        cache_data = {"timestamp": time.time(), "data": data}
+
         with open(APP_CACHE_FILE, "w") as f:
             json.dump(cache_data, f)
-            
+
         logging.info(f"Application data cached to {APP_CACHE_FILE}")
     except Exception as e:
         logging.warning(f"Failed to write application cache: {e}")
@@ -159,7 +156,7 @@ def get_json_data(command: str) -> Dict[str, Any]:
         if cache and "data" in cache:
             logging.info("Using cached application data")
             return cast(Dict[str, Any], cache["data"])
-    
+
     try:
         # Split the command into arguments for security
         command_parts = command.split()
@@ -171,11 +168,11 @@ def get_json_data(command: str) -> Dict[str, Any]:
             raise RuntimeError(f"Command '{command}' produced no output")
 
         parsed_data = json.loads(result.stdout)
-        
+
         # Cache system_profiler results
         if SYSTEM_PROFILER_CMD in command:
             _write_cache_file(parsed_data)
-            
+
         return cast(Dict[str, Any], parsed_data)
     except subprocess.CalledProcessError as e:
         logging.error(f"Command '{command}' failed with error code {e.returncode}: {e.stderr}")
@@ -190,14 +187,14 @@ def get_json_data(command: str) -> Dict[str, Any]:
 
 def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
     """Run a shell command and parse the output as JSON.
-    
+
     Args:
         cmd: Command to run
         timeout: Timeout in seconds
-        
+
     Returns:
         Dict[str, Any]: Parsed JSON data
-        
+
     Raises:
         TimeoutError: If the command times out
         PermissionError: If there's a permission error
@@ -205,11 +202,11 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
     """
     try:
         output, returncode = run_command(cmd, timeout=timeout)
-        
+
         if returncode != 0:
             logging.error(f"Command failed with return code {returncode}: {output}")
             raise DataParsingError(f"Command failed with return code {returncode}: {output}")
-            
+
         # Parse JSON data
         try:
             data = json.loads(output)
@@ -230,14 +227,14 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
 
 def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
     """Run a command and return the output.
-    
+
     Args:
         cmd: Command to run
         timeout: Optional timeout in seconds
-        
+
     Returns:
         Tuple[str, int]: Command output and return code
-        
+
     Raises:
         TimeoutError: If the command times out
         PermissionError: If there's a permission error running the command
@@ -247,20 +244,23 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
         # Run the command
         logging.debug(f"Running command: {cmd}")
         process = subprocess.Popen(
-            cmd, 
-            shell=True, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE, 
-            text=True
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
-        
+
         # Wait for the command to complete with timeout
         stdout, stderr = process.communicate(timeout=timeout)
-        
+
         # Check return code
         if process.returncode != 0:
-            logging.warning(f"Command failed with return code {process.returncode}: {stderr}")
-            
+            # Check for expected "failures" that shouldn't be logged as warnings
+            # This is especially important for Homebrew searches that don't find anything
+            if "Error: No formulae or casks found" in stderr:
+                # This is an expected case for non-existent brews, don't log it as a warning
+                pass
+            else:
+                # Log other failures as warnings
+                logging.warning(f"Command failed with return code {process.returncode}: {stderr}")
+
             # Check for common errors
             if "command not found" in stderr:
                 raise FileNotFoundError(f"Command not found: {cmd}")
@@ -268,7 +268,7 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
                 raise PermissionError(f"Permission denied: {cmd}")
             elif "network is unreachable" in stderr.lower() or "no route to host" in stderr.lower():
                 raise NetworkError(f"Network error: {stderr}")
-            
+
         return stdout, process.returncode
     except subprocess.TimeoutExpired as e:
         # Kill the process if it timed out
@@ -317,13 +317,17 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
         raise TimeoutError(error_msg) from e
     except subprocess.CalledProcessError as e:
         error_msg = f"Command '{command}' failed with error code {e.returncode}"
-        
+
         # Check for common error patterns to provide better messages
         if e.returncode == 13 or "Permission denied" in e.stderr:
-            logging.error(f"{error_msg}: Permission denied. Try running with sudo or check file permissions.")
+            logging.error(
+                f"{error_msg}: Permission denied. Try running with sudo or check file permissions."
+            )
             raise PermissionError(f"Permission denied while executing '{command}'") from e
         elif "command not found" in e.stderr:
-            logging.error(f"{error_msg}: Command not found. Check if the required program is installed.")
+            logging.error(
+                f"{error_msg}: Command not found. Check if the required program is installed."
+            )
             raise Exception(f"Command not found: '{command}'") from e
         elif "No such file or directory" in e.stderr:
             logging.error(f"{error_msg}: File or directory not found. Check if the path exists.")
