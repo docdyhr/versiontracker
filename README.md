@@ -1,4 +1,6 @@
-![Project Logo](images/logo.png){width=25% style="display: block; margin: 0 auto;"}
+<p align="center">
+  <img src="images/logo.png" width="200" alt="Project Logo">
+</p>
 
 # Versiontracker Update tool for macOS
 
@@ -114,8 +116,8 @@ Export options:
 Configuration options:
   --generate-config     Generate a default configuration file at ~/.config/versiontracker/config.yaml
   --config-path CONFIG_PATH
-                        Specify an alternative path for the configuration file (can be used both for 
-                        generating a config file with --generate-config and for using a custom config 
+                        Specify an alternative path for the configuration file (can be used both for
+                        generating a config file with --generate-config and for using a custom config
                         file location when running the application)
 
   -a, --apps            return Apps in Applications/ that is not updated by App Store
@@ -206,7 +208,7 @@ VersionTracker includes several UI enhancements to improve usability:
 ### Color-Coded Output
 
 All console output is color-coded for better readability:
- 
+
 1. Green: Success messages and up-to-date applications
 2. Blue: Informational messages and progress updates
 3. Yellow: Warning messages and unknown statuses
