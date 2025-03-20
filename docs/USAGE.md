@@ -28,6 +28,27 @@ versiontracker --recommend --additional-dirs "/Users/username/Applications:/opt/
 versiontracker --recommend --no-progress
 ```
 
+### Configuration File
+
+You can create a YAML configuration file for persistent settings:
+
+```bash
+# Default location
+~/.config/versiontracker/config.yaml
+```
+
+A sample configuration file is provided in the repository as `sample_config.yaml`.
+
+To generate a default configuration:
+
+```bash
+# Create default configuration in the default location
+mkdir -p ~/.config/versiontracker
+cp sample_config.yaml ~/.config/versiontracker/config.yaml
+```
+
+The configuration file supports all settings available through command-line arguments and environment variables.
+
 ### Environment Variables
 
 Environment variables provide a convenient way to set default configuration:
@@ -54,6 +75,8 @@ export VERSIONTRACKER_ADDITIONAL_APP_DIRS=/Users/username/Applications:/opt/Appl
 # Disable progress bars
 export VERSIONTRACKER_PROGRESS_BARS=false
 ```
+
+Note: Environment variables override configuration file settings, and command-line arguments override both.
 
 ## Feature Details
 

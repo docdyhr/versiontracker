@@ -1,0 +1,73 @@
+# VersionTracker Configuration File
+# Place this file in: ~/.config/versiontracker/config.yaml
+
+# API rate limiting in seconds
+api-rate-limit: 3
+
+# Maximum number of parallel workers for processing
+max-workers: 10
+
+# Similarity threshold for matching applications (%)
+similarity-threshold: 75
+
+# Additional directories to scan for applications (beyond default locations)
+additional-app-dirs: [
+  # Example: "/Applications/Custom Apps"
+]
+
+# Applications to exclude from version checks
+blacklist: [
+  "Microsoft Defender", 
+  "Microsoft OneNote", 
+  "Microsoft PowerPoint",
+  "Microsoft Excel", 
+  "Microsoft Word", 
+  "Microsoft Outlook",
+  "Little Snitch", 
+  "VMware Fusion"
+]
+
+# Show progress bars during operations
+show-progress: true
+
+# UI settings
+ui:
+  # Use colored output in terminal
+  use-color: true
+  
+  # Monitor system resources for optimized performance
+  monitor-resources: true
+  
+  # Dynamically adjust rate limiting based on system load
+  adaptive-rate-limiting: true
+  
+  # Use enhanced progress bars with ETA and rate information
+  enhanced-progress: true
+
+# Version comparison settings
+version-comparison:
+  # Rate limit for Homebrew version checks (seconds)
+  rate-limit: 2
+  
+  # Cache timeout for version data (hours)
+  cache-ttl: 24
+  
+  # Similarity threshold for version matching (%)
+  similarity-threshold: 75
+  
+  # Whether to include beta/development versions in comparisons
+  include-beta-versions: false
+  
+  # Sort results by outdated status first
+  sort-by-outdated: true
+
+# Outdated detection settings
+outdated-detection:
+  # Enable outdated version detection
+  enabled: true
+  
+  # Minimum version difference to consider an app outdated
+  min-version-diff: 1
+  
+  # Whether to include pre-release versions in outdated detection
+  include-pre-releases: false
