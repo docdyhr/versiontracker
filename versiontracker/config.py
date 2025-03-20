@@ -45,7 +45,11 @@ class Config:
             # Additional directories to scan for applications
             "additional_app_dirs": [],
             # List of applications to blacklist (never include)
-            "blacklist": [],
+            "blacklist": [
+                "Microsoft Defender", "Microsoft OneNote", "Microsoft PowerPoint",
+                "Microsoft Excel", "Microsoft Word", "Microsoft Outlook",
+                "Little Snitch", "VMware Fusion"
+            ],
             # Whether to show progress bars
             "show_progress": True,
             # UI options
@@ -185,11 +189,23 @@ class Config:
         # UI options
         if os.environ.get("VERSIONTRACKER_UI_USE_COLOR", "").lower() in ("0", "false", "no"):
             self._config["ui"]["use_color"] = False
-        if os.environ.get("VERSIONTRACKER_UI_MONITOR_RESOURCES", "").lower() in ("0", "false", "no"):
+        if os.environ.get("VERSIONTRACKER_UI_MONITOR_RESOURCES", "").lower() in (
+            "0",
+            "false",
+            "no",
+        ):
             self._config["ui"]["monitor_resources"] = False
-        if os.environ.get("VERSIONTRACKER_UI_ADAPTIVE_RATE_LIMITING", "").lower() in ("0", "false", "no"):
+        if os.environ.get("VERSIONTRACKER_UI_ADAPTIVE_RATE_LIMITING", "").lower() in (
+            "0",
+            "false",
+            "no",
+        ):
             self._config["ui"]["adaptive_rate_limiting"] = False
-        if os.environ.get("VERSIONTRACKER_UI_ENHANCED_PROGRESS", "").lower() in ("0", "false", "no"):
+        if os.environ.get("VERSIONTRACKER_UI_ENHANCED_PROGRESS", "").lower() in (
+            "0",
+            "false",
+            "no",
+        ):
             self._config["ui"]["enhanced_progress"] = False
 
         # Version comparison rate limit
@@ -315,7 +331,7 @@ class Config:
     @property
     def log_dir(self) -> Path:
         """Get the log directory path.
-        
+
         Returns:
             Path: Path to the log directory
         """
@@ -324,34 +340,34 @@ class Config:
     @property
     def debug(self) -> bool:
         """Get the debug flag.
-        
+
         Returns:
             bool: Whether debug mode is enabled
         """
         return bool(self._config.get("debug", False))
-    
+
     @debug.setter
     def debug(self, value: bool) -> None:
         """Set the debug flag.
-        
+
         Args:
             value: Whether to enable debug mode
         """
         self._config["debug"] = value
-        
+
     @property
     def no_progress(self) -> bool:
         """Get the no_progress flag.
-        
+
         Returns:
             bool: Whether progress bars are disabled
         """
         return bool(self._config.get("no_progress", False))
-        
+
     @property
     def show_progress(self) -> bool:
         """Get the show_progress flag.
-        
+
         Returns:
             bool: Whether progress bars are enabled
         """

@@ -73,13 +73,13 @@ def get_status_icon(status: VersionStatus) -> str:
     """
     try:
         if status == VersionStatus.UPTODATE:
-            return colored("✅", "green")
+            return str(colored("✅", "green"))
         elif status == VersionStatus.OUTDATED:
-            return colored("🔄", "yellow")
+            return str(colored("🔄", "yellow"))
         elif status == VersionStatus.NOT_FOUND:
-            return colored("❓", "blue")
+            return str(colored("❓", "blue"))
         elif status == VersionStatus.ERROR:
-            return colored("❌", "red")
+            return str(colored("❌", "red"))
         return ""
     except Exception:
         # Fall back to text-based icons if colored package is not available
@@ -696,13 +696,13 @@ def setup_logging(debug: bool = False) -> None:
 
 def suppress_console_warnings():
     """Suppress specific warnings from being shown in the console.
-    
+
     This approach makes the root logger a no-op for specific warning patterns,
     but still allows file handlers to log these warnings.
     """
     # Define a warning filter to use with warnings module
     import warnings
-    
+
     # Filter out specific warnings from terminal output but keep them in logs
     def warning_filter(message, category, filename, lineno, file=None, line=None):
         msg_str = str(message)
@@ -711,10 +711,10 @@ def suppress_console_warnings():
             return None
         # Return true to indicate the warning should be shown
         return True
-    
+
     # Set the filter
     warnings.showwarning = warning_filter
-    
+
     # Also update root logger to filter these patterns
     class WarningFilter(logging.Filter):
         def filter(self, record):
@@ -724,49 +724,54 @@ def suppress_console_warnings():
                     # Don't show in console but still add to log files
                     return False
             return True
-    
+
     # Add filter to all StreamHandler instances
     for handler in logging.getLogger().handlers:
         if isinstance(handler, logging.StreamHandler):
             handler.addFilter(WarningFilter())
 
+
 def versiontracker_main():
     """Main entry point for VersionTracker."""
     # Parse arguments
     options = get_arguments()
-    
+
     # Handle debug mode
     if options.debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-    
+
     # Create a file handler for full logging
     log_dir = Path.home() / "Library" / "Logs" / "Versiontracker"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / "versiontracker.log"
-    
+
     # Special handling for warnings - create a separate warnings log file
     warnings_log_file = log_dir / "versiontracker_warnings.log"
-    
+
     # Handler for all logs
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.DEBUG if options.debug else logging.INFO)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+
     # Handler specifically for warnings
     warnings_handler = logging.FileHandler(warnings_log_file)
     warnings_handler.setLevel(logging.WARNING)
-    warnings_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    
+    warnings_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+
     # Add both handlers to the root logger
     root_logger = logging.getLogger()
     root_logger.addHandler(file_handler)
     root_logger.addHandler(warnings_handler)
-    
+
     # Suppress specific warnings from console output only
     suppress_console_warnings()
-    
+
     # Log debug info about setup being complete
     logging.debug("Logging setup complete")
 

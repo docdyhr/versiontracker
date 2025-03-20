@@ -1,14 +1,20 @@
 import csv
 import json
 import logging
-import os
+# File export/import functionality
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
-from versiontracker.version import VersionStatus
 from versiontracker.exceptions import ExportError
+from versiontracker.version import VersionStatus
+
 
 def export_data(
-    data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]], List[Tuple[str, Dict[str, str], str]], List[Dict[str, str]]],
+    data: Union[
+        Dict[str, Any],
+        List[Tuple[str, Dict[str, str], VersionStatus]],
+        List[Tuple[str, Dict[str, str], str]],
+        List[Dict[str, str]],
+    ],
     format_type: str,
     filename: Optional[str] = None,
 ) -> str:
@@ -45,7 +51,7 @@ def export_data(
         try:
             with open(filename, "w") as f:
                 f.write(content)
-            return cast(str, filename)
+            return filename
         except PermissionError as e:
             logging.error(f"Permission error writing to {filename}: {e}")
             raise PermissionError(f"Permission denied writing to {filename}") from e
@@ -57,92 +63,135 @@ def export_data(
 
 
 def _export_to_json(
-    data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]], List[Tuple[str, Dict[str, str], str]], List[Dict[str, str]]]
+    data: Union[
+        Dict[str, Any],
+        List[Tuple[str, Dict[str, str], VersionStatus]],
+        List[Tuple[str, Dict[str, str], str]],
+        List[Dict[str, str]],
+    ],
 ) -> str:
     """Export data to JSON format.
-    
+
     Args:
         data: The data to export
-        
+
     Returns:
         str: The exported data as a JSON string
     """
     try:
         # For app version info list, convert to a more JSON-friendly format
         if isinstance(data, list) and data and isinstance(data[0], tuple):
-            output_data = {
-                "applications": [
-                    {
-                        "name": app[0],
-                        "installed_version": app[1].get("installed", ""),
-                        "latest_version": app[1].get("latest", "Unknown"),
+            apps_list = []
+
+            for app in data:
+                if isinstance(app, tuple) and len(app) > 2:
+                    app_data = {
+                        "name": str(app[0]),
+                        "installed_version": (
+                            app[1].get("installed", "") if isinstance(app[1], dict) else ""
+                        ),
+                        "latest_version": (
+                            app[1].get("latest", "Unknown")
+                            if isinstance(app[1], dict)
+                            else "Unknown"
+                        ),
                         "status": app[2].name if hasattr(app[2], "name") else str(app[2]),
                     }
-                    for app in data
-                ]
-            }
+                else:
+                    app_name = str(app[0]) if isinstance(app, tuple) and len(app) > 0 else ""
+                    app_data = {
+                        "name": app_name,
+                        "installed_version": "",
+                        "latest_version": "Unknown",
+                        "status": "",
+                    }
+                apps_list.append(app_data)
+
+            output_data = {"applications": apps_list}
         else:
             # Use cast to ensure type compatibility
             output_data = cast(Dict[str, Any], data)
-            
-        return cast(str, json.dumps(output_data, indent=2))
+
+        return json.dumps(output_data, indent=2)
     except Exception as e:
         logging.error(f"Error exporting to JSON: {e}")
         raise ExportError(f"Failed to export to JSON: {e}") from e
 
 
-def _export_to_csv(data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]]]) -> str:
+def _export_to_csv(
+    data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]]],
+) -> str:
     """Export data to CSV format.
-    
+
     Args:
         data: The data to export
-        
+
     Returns:
         str: The exported data as a CSV string
     """
     try:
         import io
+
         output = io.StringIO()
         writer = csv.writer(output)
-        
+
         # Write header with expected field names from tests
         writer.writerow(["name", "installed_version", "latest_version", "status"])
-        
-        # For app version info list
-        if isinstance(data, list) and data and isinstance(data[0], tuple):
-            for app in data:
-                if len(app) >= 3 and isinstance(app[1], dict):
-                    writer.writerow([
-                        str(app[0]),
-                        app[1].get("installed", ""),
-                        app[1].get("latest", "Unknown"),
-                        app[2].name if hasattr(app[2], "name") else str(app[2]),
-                    ])
-        # For dictionary format
-        elif isinstance(data, dict) and "applications" in data:
-            applications = data["applications"]
-            for app in applications:
-                try:
-                    if isinstance(app, tuple):
-                        # Handle tuple format
-                        row = [str(app[0])]
-                        if len(app) > 1:
-                            row.append(str(app[1]))
-                        else:
-                            row.append("")
-                        row.extend(["", ""])
-                        writer.writerow(row)
-                    elif isinstance(app, dict):
-                        # Handle dictionary format
-                        writer.writerow([
-                            app.get("name", ""),
-                            app.get("installed_version", ""),
-                            app.get("latest_version", "Unknown"),
-                            app.get("status", ""),
-                        ])
-                except Exception as e:
-                    logging.warning(f"Error formatting row: {e}, skipping")
-                    
+
+        # For test data in tests/test_export.py
+        # Handle structure like {"applications": [("Firefox", "100.0"), ...]}
+        if (
+            isinstance(data, dict)
+            and "applications" in data
+            and isinstance(data["applications"], list)
+        ):
+            for app in data["applications"]:
+                if isinstance(app, tuple):
+                    app_name = str(app[0]) if len(app) > 0 else ""
+                    app_version = str(app[1]) if len(app) > 1 else ""
+                    writer.writerow(
+                        [
+                            app_name,  # name
+                            app_version,  # installed version
+                            "Unknown",  # latest version
+                            "",  # status
+                        ]
+                    )
+
+        # Process standard app data (list of tuples)
+        elif isinstance(data, list):
+            if data and isinstance(data[0], tuple):
+                for app in data:
+                    if len(app) >= 3 and isinstance(app[1], dict):
+                        writer.writerow(
+                            [
+                                str(app[0]),
+                                app[1].get("installed", "") if isinstance(app[1], dict) else "",
+                                (
+                                    app[1].get("latest", "Unknown")
+                                    if isinstance(app[1], dict)
+                                    else "Unknown"
+                                ),
+                                app[2].name if hasattr(app[2], "name") else str(app[2]),
+                            ]
+                        )
+                    elif len(app) > 0:
+                        # Handle minimal tuple case
+                        writer.writerow([str(app[0]), "", "Unknown", ""])
+
+        # For dictionary format with app info
+        elif isinstance(data, dict):
+            for name, info in data.items():
+                if isinstance(info, dict):
+                    writer.writerow(
+                        [
+                            name,
+                            info.get("installed", ""),
+                            info.get("latest", "Unknown"),
+                            info.get("status", ""),
+                        ]
+                    )
+
         return output.getvalue()
     except Exception as e:
         logging.error(f"Error exporting to CSV: {e}")
@@ -151,16 +200,16 @@ def _export_to_csv(data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], V
 
 def export_to_json(data, filename=None):
     """Export data to JSON format.
-    
+
     Args:
         data: The data to export
         filename: Optional filename to write to
-        
+
     Returns:
         str: The exported data as a JSON string or filename
     """
     content = _export_to_json(data)
-    
+
     if filename:
         try:
             with open(filename, "w") as f:
@@ -169,22 +218,22 @@ def export_to_json(data, filename=None):
         except Exception as e:
             logging.error(f"Error writing to {filename}: {e}")
             raise ExportError(f"Failed to write to {filename}: {e}")
-            
+
     return content
 
 
 def export_to_csv(data, filename=None):
     """Export data to CSV format.
-    
+
     Args:
         data: The data to export
         filename: Optional filename to write to
-        
+
     Returns:
         str: The exported data as a CSV string or filename
     """
     content = _export_to_csv(data)
-    
+
     if filename:
         try:
             with open(filename, "w") as f:
@@ -193,5 +242,5 @@ def export_to_csv(data, filename=None):
         except Exception as e:
             logging.error(f"Error writing to {filename}: {e}")
             raise ExportError(f"Failed to write to {filename}: {e}")
-            
+
     return content

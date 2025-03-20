@@ -383,10 +383,10 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
         # Check if cask is installable
         brew_command = getattr(config, "brew_path", "brew")
         # Use quotes around the cask name to handle special characters and spaces
-        cmd = f"{brew_command} search --cask \"{cask_name}\""
+        cmd = f'{brew_command} search --cask "{cask_name}"'
         try:
             output, returncode = run_command(cmd, timeout=30)
-            
+
             # Brew search returns exit code 1 for "No formulae or casks found"
             # This isn't actually an error, it just means the cask isn't installable
             if returncode != 0:
@@ -573,7 +573,7 @@ def _process_brew_batch(
     # Skip empty batch
     if not batch:
         return batch_results
-    
+
     # This statement is reachable
     try:
         # Check if Homebrew is available
@@ -598,21 +598,22 @@ def _process_brew_batch(
 
         # Import needed modules upfront
         from versiontracker.ui import AdaptiveRateLimiter
+        from typing import Union
 
         # Create rate limiter
         RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
-        create_rate_limiter: Callable[[float], RateLimiterType] = lambda delay: SimpleRateLimiter(
-            float(delay)
-        )
+        def create_rate_limiter(delay: float) -> RateLimiterType:
+            return SimpleRateLimiter(float(delay))
 
         # Use adaptive rate limiting if enabled in config
         use_adaptive = getattr(config, "ui", {}).get("adaptive_rate_limiting", False)
         if use_adaptive:
-            create_rate_limiter = lambda delay: AdaptiveRateLimiter(
-                base_rate_limit_sec=float(delay),
-                min_rate_limit_sec=max(0.1, float(delay) * 0.5),
-                max_rate_limit_sec=float(delay) * 2.0,
-            )
+            def create_rate_limiter(delay: float) -> RateLimiterType:
+                return AdaptiveRateLimiter(
+                    base_rate_limit_sec=float(delay),
+                    min_rate_limit_sec=max(0.1, float(delay) * 0.5),
+                    max_rate_limit_sec=float(delay) * 2.0,
+                )
 
         # Create the rate limiter
         api_rate_limiter: RateLimiterType = create_rate_limiter(rate_limit_seconds)
@@ -932,21 +933,22 @@ def check_brew_update_candidates(
 
     # Import needed modules upfront
     from versiontracker.ui import AdaptiveRateLimiter
+    from typing import Union
 
     # Create rate limiter
     RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
-    create_rate_limiter: Callable[[float], RateLimiterType] = lambda delay: SimpleRateLimiter(
-        float(delay)
-    )
+    def create_rate_limiter(delay: float) -> RateLimiterType:
+        return SimpleRateLimiter(float(delay))
 
     # Use adaptive rate limiting if enabled in config
     use_adaptive = getattr(config, "ui", {}).get("adaptive_rate_limiting", False)
     if use_adaptive:
-        create_rate_limiter = lambda delay: AdaptiveRateLimiter(
-            base_rate_limit_sec=float(delay),
-            min_rate_limit_sec=max(0.1, float(delay) * 0.5),
-            max_rate_limit_sec=float(delay) * 2.0,
-        )
+        def create_rate_limiter(delay: float) -> RateLimiterType:
+            return AdaptiveRateLimiter(
+                base_rate_limit_sec=float(delay),
+                min_rate_limit_sec=max(0.1, float(delay) * 0.5),
+                max_rate_limit_sec=float(delay) * 2.0,
+            )
 
     # Create the rate limiter
     api_rate_limiter: RateLimiterType = create_rate_limiter(rate_limit_seconds)

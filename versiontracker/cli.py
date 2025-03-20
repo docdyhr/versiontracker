@@ -3,10 +3,10 @@
 import argparse
 import sys
 import textwrap
+from pathlib import Path
 
 from versiontracker import __version__
 from versiontracker.ui import QueryFilterManager
-from pathlib import Path
 
 
 def get_arguments():
@@ -26,10 +26,7 @@ def get_arguments():
 
     # Debug mode
     parser.add_argument(
-        "-D", "--debug",
-        dest="debug",
-        action="store_true",
-        help="turn on DEBUG mode"
+        "-D", "--debug", dest="debug", action="store_true", help="turn on DEBUG mode"
     )
 
     # Performance options
