@@ -395,8 +395,10 @@ pip-selfcheck.json
 
 # exclude private files
 private*
-# exclude log files
+# exclude log files and output files
 *.log
+output.txt
+stderr.txt
 # Exclude tempCodeRunnerFile.py
 tempCodeRunnerFile.py
 
