@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
 """Setup script for VersionTracker."""
 
+import re
+from pathlib import Path
+
 from setuptools import find_packages, setup
+
+# Read the version from the versiontracker/__init__.py file
+def get_version():
+    """Parse version number from __init__.py."""
+    init_file = Path(__file__).parent / "versiontracker" / "__init__.py"
+    with open(init_file, encoding="utf-8") as f:
+        for line in f:
+            match = re.match(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', line)
+            if match:
+                return match.group(1)
+    raise RuntimeError("Version not found in __init__.py")
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -14,7 +28,7 @@ except FileNotFoundError:
 
 setup(
     name="versiontracker",
-    version="0.5.1",
+    version=get_version(),
     author="docdyhr",
     author_email="thomas@dyhr.com",
     description="CLI versiontracker and update tool for macOS",

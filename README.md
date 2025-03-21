@@ -4,7 +4,14 @@
 
 # Versiontracker Update tool for macOS
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/requests) [![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/issues)  ![GitHub repo size](https://img.shields.io/github/repo-size/docdyhr/versiontracker) ![GitHub](https://img.shields.io/github/license/docdyhr/versiontracker)
+[![PyPI - Version](https://img.shields.io/pypi/v/versiontracker)](https://pypi.org/project/versiontracker/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/versiontracker)](https://pypi.org/project/versiontracker/)
+[![Tests](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml)
+[![Lint](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
+[![codecov](https://codecov.io/gh/docdyhr/versiontracker/branch/master/graph/badge.svg)](https://codecov.io/gh/docdyhr/versiontracker)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat)](https://pycqa.github.io/isort/)
 
 * Name: Versiontracker
 * Version: 0.6.2

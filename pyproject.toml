@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 # This section is defined by PEP 621
 name = "versiontracker"
-version = "0.4.0"
+dynamic = ["version"]
 description = "CLI versiontracker and update tool for macOS"
 readme = "README.md"
 requires-python = ">=3.8"
