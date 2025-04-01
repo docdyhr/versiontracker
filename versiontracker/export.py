@@ -1,12 +1,16 @@
 import csv
 import json
 import logging
+
 # File export/import functionality
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from versiontracker.exceptions import ExportError
 from versiontracker.version import VersionStatus
 
+# Default export format
+DEFAULT_FORMAT = "json"
+FORMAT_OPTIONS = ("json", "csv")
 
 def export_data(
     data: Union[

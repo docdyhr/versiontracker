@@ -23,20 +23,12 @@ jobs:
         pip install -r requirements-dev.txt
         pip install -e .
     
-    - name: Lint with flake8
+    - name: Lint and check formatting with Ruff
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Use configuration from .flake8 file
-        flake8 . --count --statistics
-    
-    - name: Check formatting with black
-      run: |
-        black --check --diff .
-    
-    - name: Check import order with isort
-      run: |
-        isort --check-only --profile black .
+        # Check for lint errors, including import sorting
+        ruff check .
+        # Check for formatting issues
+        ruff format --check .
         
     - name: Type checking with mypy
       run: |

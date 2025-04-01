@@ -4,17 +4,24 @@ import io
 import json
 import os
 import sys
-import time
 import tempfile
+import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from versiontracker.ui import (
-    print_success, print_info, print_warning, print_error, print_debug,
-    smart_progress, SmartProgress, AdaptiveRateLimiter, QueryFilterManager
+    AdaptiveRateLimiter,
+    QueryFilterManager,
+    SmartProgress,
+    print_debug,
+    print_error,
+    print_info,
+    print_success,
+    print_warning,
+    smart_progress,
 )
 
 

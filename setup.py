@@ -6,6 +6,7 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
+
 # Read the version from the versiontracker/__init__.py file
 def get_version():
     """Parse version number from __init__.py."""

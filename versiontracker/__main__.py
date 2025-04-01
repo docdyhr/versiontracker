@@ -1,68 +1,46 @@
 """Main entry point for the VersionTracker application."""
 
+import argparse
 import logging
+import os
 import sys
 import time
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-# Remove the old imports since we're using our new UI module
-from versiontracker.ui import colored  # Still import this for backward compatibility
-from versiontracker.ui import (
-    QueryFilterManager,
-    print_error,
-    print_info,
-    print_success,
-    print_warning,
-    smart_progress,
-)
+from tqdm import tqdm
 
-try:
-    from tabulate import tabulate
-except ImportError:
-    # Simple fallback if tabulate is not available
-    def tabulate(
-        tabular_data: Union[Dict[str, List[Any]], List[List[Any]]],
-        headers: Union[str, Dict[str, str], List[str]] = "keys",
-        tablefmt: Optional[str] = None,
-    ) -> str:
-        result = []
-        if headers == "keys" and isinstance(tabular_data, dict):
-            headers = list(tabular_data.keys())
-        if isinstance(tabular_data, dict):
-            tabular_data = [list(tabular_data[key]) for key in headers]
-        if headers and headers != "keys":
-            result.append("\t".join([str(h) for h in headers]))
-        for row in tabular_data:
-            result.append("\t".join([str(cell) for cell in row]))
-        return "\n".join(result)
-
-
-from versiontracker import __version__
 from versiontracker.apps import (
-    check_brew_install_candidates,
-    filter_out_brews,
-    get_applications,
-    get_homebrew_casks,
+    check_brew_install_candidates,  # Function to check brew install candidates
+    filter_out_brews,  # Function to filter out apps managed by brew
+    get_applications,  # Function to get list of applications
+    get_homebrew_casks,  # Function to get list of installed brew casks
+    is_homebrew_available,  # Function to check if Homebrew is available
 )
-from versiontracker.cli import get_arguments
-from versiontracker.config import Config, check_dependencies, config
-from versiontracker.exceptions import (
-    ConfigError,
-    ExportError,
-    HomebrewError,
-    NetworkError,
-    PermissionError,
-    TimeoutError,
-    VersionTrackerError,
+from versiontracker.config import (
+    Config,
+    get_config,
+    setup_logging,
 )
-from versiontracker.export import export_data
-from versiontracker.utils import get_json_data
-from versiontracker.version import VersionStatus, check_outdated_apps
+from versiontracker.export import (
+    DEFAULT_FORMAT,
+    FORMAT_OPTIONS,
+    export_data,
+)
+from versiontracker.ui import create_progress_bar
+from versiontracker.utils import (
+    get_json_data,
+    normalise_name,  # Corrected spelling
+)
+from versiontracker.version import (
+    check_outdated_apps,  # Function to check for outdated apps
+    compare_versions,  # Renamed from compare_app_versions
+    get_homebrew_version_info,  # Renamed from get_latest_cask_version
+)
 
 
-def get_status_icon(status: VersionStatus) -> str:
+def get_status_icon(status: str) -> str:
     """Get a status icon for a version status.
 
     Args:
@@ -72,29 +50,29 @@ def get_status_icon(status: VersionStatus) -> str:
         str: An icon representing the status
     """
     try:
-        if status == VersionStatus.UPTODATE:
-            return str(colored("✅", "green"))
-        elif status == VersionStatus.OUTDATED:
-            return str(colored("🔄", "yellow"))
-        elif status == VersionStatus.NOT_FOUND:
-            return str(colored("❓", "blue"))
-        elif status == VersionStatus.ERROR:
-            return str(colored("❌", "red"))
+        if status == "uptodate":
+            return str(create_progress_bar().color("green")("✅"))
+        elif status == "outdated":
+            return str(create_progress_bar().color("yellow")("🔄"))
+        elif status == "not_found":
+            return str(create_progress_bar().color("blue")("❓"))
+        elif status == "error":
+            return str(create_progress_bar().color("red")("❌"))
         return ""
     except Exception:
         # Fall back to text-based icons if colored package is not available
-        if status == VersionStatus.UPTODATE:
+        if status == "uptodate":
             return "[OK]"
-        elif status == VersionStatus.OUTDATED:
+        elif status == "outdated":
             return "[OUTDATED]"
-        elif status == VersionStatus.NOT_FOUND:
+        elif status == "not_found":
             return "[NOT FOUND]"
-        elif status == VersionStatus.ERROR:
+        elif status == "error":
             return "[ERROR]"
         return ""
 
 
-def get_status_color(status: VersionStatus) -> Any:
+def get_status_color(status: str) -> Any:
     """Get a color function for the given version status.
 
     Args:
@@ -103,14 +81,14 @@ def get_status_color(status: VersionStatus) -> Any:
     Returns:
         function: Color function that takes a string and returns a colored string
     """
-    if status == VersionStatus.UPTODATE:
-        return lambda text: colored(text, "green")
-    elif status == VersionStatus.OUTDATED:
-        return lambda text: colored(text, "red")
-    elif status == VersionStatus.NEWER:
-        return lambda text: colored(text, "cyan")
+    if status == "uptodate":
+        return lambda text: create_progress_bar().color("green")(text)
+    elif status == "outdated":
+        return lambda text: create_progress_bar().color("red")(text)
+    elif status == "newer":
+        return lambda text: create_progress_bar().color("cyan")(text)
     else:
-        return lambda text: colored(text, "yellow")
+        return lambda text: create_progress_bar().color("yellow")(text)
 
 
 def handle_config_generation(options: Any) -> int:
@@ -127,7 +105,7 @@ def handle_config_generation(options: Any) -> int:
         if options.config_path:
             config_path = Path(options.config_path)
 
-        path = config.generate_default_config(config_path)
+        path = get_config().generate_default_config(config_path)
         print(f"Configuration file generated: {path}")
         print("You can now edit this file to customize VersionTracker's behavior.")
         return 0
@@ -149,11 +127,15 @@ def handle_list_apps(options: Any) -> int:
         logging.info("Starting VersionTracker list command")
 
         # Get app data
-        print_info("Getting application data...")
+        print(create_progress_bar().color("green")("Getting application data..."))
 
         # Get data from system_profiler
         apps_data = get_json_data(
-            getattr(config, "system_profiler_cmd", "system_profiler -json SPApplicationsDataType")
+            getattr(
+                get_config(),
+                "system_profiler_cmd",
+                "system_profiler -json SPApplicationsDataType",
+            )
         )
 
         # Get applications
@@ -169,37 +151,65 @@ def handle_list_apps(options: Any) -> int:
             # Create a temporary config with the specified blacklist
             temp_config = Config()
             temp_config.set("blacklist", options.blacklist.split(","))
-            filtered_apps = [(app, ver) for app, ver in apps if not temp_config.is_blacklisted(app)]
+            filtered_apps = [
+                (app, ver) for app, ver in apps if not temp_config.is_blacklisted(app)
+            ]
         else:
             # Use global config for blacklisting
-            filtered_apps = [(app, ver) for app, ver in apps if not config.is_blacklisted(app)]
+            filtered_apps = [
+                (app, ver) for app, ver in apps if not get_config().is_blacklisted(app)
+            ]
 
         # Get Homebrew casks if needed for filtering
         if hasattr(options, "brew_filter") and options.brew_filter:
-            print_info("Getting Homebrew casks for filtering...")
+            print(
+                create_progress_bar().color("green")(
+                    "Getting Homebrew casks for filtering..."
+                )
+            )
             brews = get_homebrew_casks()
             include_brews = getattr(options, "include_brews", False)
             if not include_brews:
                 filtered_apps = filter_out_brews(filtered_apps, brews)
             else:
-                print_warning("Showing all applications (including those managed by Homebrew)")
+                print(
+                    create_progress_bar().color("yellow")(
+                        "Showing all applications (including those managed by Homebrew)"
+                    )
+                )
 
         # Prepare table data
         table = []
         for app, version in sorted(filtered_apps, key=lambda x: x[0].lower()):
-            table.append([colored(app, "green"), colored(version, "blue")])
+            table.append(
+                [
+                    create_progress_bar().color("green")(app),
+                    create_progress_bar().color("blue")(version),
+                ]
+            )
 
         # Display results
         if table:
-            print_info(f"\nFound {len(table)} applications:\n")
-            print(tabulate(table, headers=["Application", "Version"], tablefmt="pretty"))
+            print(
+                create_progress_bar().color("green")(
+                    "\nFound {} applications:\n".format(len(table))
+                )
+            )
+            print(
+                tabulate(table, headers=["Application", "Version"], tablefmt="pretty")
+            )
         else:
-            print_warning("\nNo applications found matching the criteria.")
+            print(
+                create_progress_bar().color("yellow")(
+                    "\nNo applications found matching the criteria."
+                )
+            )
 
         # Export if requested
         if hasattr(options, "export") and options.export:
             return handle_export(
-                [{"name": app, "version": ver} for app, ver in filtered_apps], options.export
+                [{"name": app, "version": ver} for app, ver in filtered_apps],
+                options.export,
             )
 
         return 0
@@ -219,14 +229,20 @@ def handle_list_brews(options: Any) -> int:
         int: Exit code (0 for success, non-zero for failure)
     """
     try:
-        print_info("Getting installed Homebrew casks...")
+        print(
+            create_progress_bar().color("green")("Getting installed Homebrew casks...")
+        )
         try:
             brews = get_homebrew_casks()
         except HomebrewError as e:
-            print_error(f"Error getting Homebrew casks: {e}")
+            print(
+                create_progress_bar().color("red")(f"Error getting Homebrew casks: {e}")
+            )
             return 1
         except Exception as e:
-            print_error(f"Error getting Homebrew casks: {e}")
+            print(
+                create_progress_bar().color("red")(f"Error getting Homebrew casks: {e}")
+            )
             if options.debug:
                 traceback.print_exc()
             return 1
@@ -234,14 +250,22 @@ def handle_list_brews(options: Any) -> int:
         # Prepare table data
         table = []
         for i, brew in enumerate(sorted(brews), 1):
-            table.append([i, colored(brew, "cyan")])
+            table.append([i, create_progress_bar().color("cyan")(brew)])
 
         # Print the results
         if table:
-            print_info(f"\nFound {len(table)} installed Homebrew casks:\n")
+            print(
+                create_progress_bar().color("green")(
+                    "\nFound {} installed Homebrew casks:\n".format(len(table))
+                )
+            )
             print(tabulate(table, headers=["#", "Cask Name"], tablefmt="pretty"))
         else:
-            print_warning("\nNo Homebrew casks found. You may need to install some casks first.")
+            print(
+                create_progress_bar().color("yellow")(
+                    "\nNo Homebrew casks found. You may need to install some casks first."
+                )
+            )
 
         # Export if requested
         if hasattr(options, "export_format") and options.export_format:
@@ -254,7 +278,7 @@ def handle_list_brews(options: Any) -> int:
                     options.output_file if hasattr(options, "output_file") else None,
                 )
             except Exception as e:
-                print_error(f"Error exporting data: {e}")
+                print(create_progress_bar().color("red")(f"Error exporting data: {e}"))
                 return 1
 
         return 0
@@ -263,7 +287,11 @@ def handle_list_brews(options: Any) -> int:
         if options.debug:
             traceback.print_exc()
         else:
-            print_warning("Run with --debug for more information.")
+            print(
+                create_progress_bar().color("yellow")(
+                    "Run with --debug for more information."
+                )
+            )
         return 1
 
 
@@ -302,27 +330,49 @@ def handle_brew_recommendations(options: Any) -> int:
         elif hasattr(options, "strict_recommend") and options.strict_recommend:
             strict_mode = True
 
-        print_info("Getting application data...")
+        print(create_progress_bar().color("green")("Getting application data..."))
         raw_data = get_json_data(
-            getattr(config, "system_profiler_cmd", "system_profiler -json SPApplicationsDataType")
+            getattr(
+                get_config(),
+                "system_profiler_cmd",
+                "system_profiler -json SPApplicationsDataType",
+            )
         )
         apps_folder = get_applications(raw_data)
 
-        print_info("Getting installed Homebrew casks...")
+        print(
+            create_progress_bar().color("green")("Getting installed Homebrew casks...")
+        )
         try:
             apps_homebrew = get_homebrew_casks()
         except HomebrewError as e:
-            print_error(f"Error getting Homebrew casks: {e}")
-            print_warning("Proceeding without Homebrew cask filtering.")
+            print(
+                create_progress_bar().color("red")(f"Error getting Homebrew casks: {e}")
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Proceeding without Homebrew cask filtering."
+                )
+            )
             apps_homebrew = []
         except Exception as e:
-            print_error(f"Unexpected error getting Homebrew casks: {e}")
-            print_warning("Proceeding without Homebrew cask filtering.")
+            print(
+                create_progress_bar().color("red")(
+                    f"Unexpected error getting Homebrew casks: {e}"
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Proceeding without Homebrew cask filtering."
+                )
+            )
             apps_homebrew = []
 
         # Apply blacklist filtering
         filtered_apps: List[Tuple[str, str]] = [
-            (item[0], item[1]) for item in apps_folder if not config.is_blacklisted(item[0])
+            (item[0], item[1])
+            for item in apps_folder
+            if not get_config().is_blacklisted(item[0])
         ]
 
         # Debug output if requested
@@ -348,13 +398,13 @@ def handle_brew_recommendations(options: Any) -> int:
         rate_limit_int = 10  # Default value
         if hasattr(options, "rate_limit") and options.rate_limit is not None:
             rate_limit_int = int(options.rate_limit)
-        elif hasattr(config, "rate_limit"):
+        elif hasattr(get_config(), "rate_limit"):
             try:
                 # Try to get as integer or from config.get
-                if isinstance(config.rate_limit, int):
-                    rate_limit_int = config.rate_limit
-                elif hasattr(config, "get"):
-                    rate_limit_int = int(config.get("rate_limit", 10))
+                if isinstance(get_config().rate_limit, int):
+                    rate_limit_int = get_config().rate_limit
+                elif hasattr(get_config(), "get"):
+                    rate_limit_int = int(get_config().get("rate_limit", 10))
             except (ValueError, TypeError, AttributeError):
                 # If any conversion fails, use default
                 rate_limit_int = 10
@@ -363,9 +413,21 @@ def handle_brew_recommendations(options: Any) -> int:
         start_time = time.time()
 
         # Get Homebrew installation recommendations - always use integer
-        print_info(f"\nSearching for {len(search_list)} applications in Homebrew repository...")
-        print_info(f"Using rate limit of {rate_limit_int} seconds between API calls")
-        print_info("This process may take some time, please be patient...")
+        print(
+            create_progress_bar().color("green")(
+                f"\nSearching for {len(search_list)} applications in Homebrew repository..."
+            )
+        )
+        print(
+            create_progress_bar().color("green")(
+                f"Using rate limit of {rate_limit_int} seconds between API calls"
+            )
+        )
+        print(
+            create_progress_bar().color("green")(
+                "This process may take some time, please be patient..."
+            )
+        )
 
         try:
             # Special case for testing - detect if we're in a test environment
@@ -378,17 +440,31 @@ def handle_brew_recommendations(options: Any) -> int:
                 pass
 
             # If in a test, the check_brew_install_candidates function should already be mocked
-            installables = check_brew_install_candidates(search_list, rate_limit_int, strict_mode)
+            installables = check_brew_install_candidates(
+                search_list, rate_limit_int, strict_mode
+            )
         except HomebrewError as e:
-            print_error(f"Error checking brew install candidates: {e}")
+            print(
+                create_progress_bar().color("red")(
+                    f"Error checking brew install candidates: {e}"
+                )
+            )
             return 1
         except NetworkError as e:
-            print_error(f"Network error: {e}")
-            print_warning("Check your internet connection and try again.")
+            print(create_progress_bar().color("red")(f"Network error: {e}"))
+            print(
+                create_progress_bar().color("yellow")(
+                    "Check your internet connection and try again."
+                )
+            )
             return 1
         except TimeoutError as e:
-            print_error(f"Timeout error: {e}")
-            print_warning("Operation timed out. Try again later or increase the timeout.")
+            print(create_progress_bar().color("red")(f"Timeout error: {e}"))
+            print(
+                create_progress_bar().color("yellow")(
+                    "Operation timed out. Try again later or increase the timeout."
+                )
+            )
             return 1
 
         # End time and calculation
@@ -398,17 +474,35 @@ def handle_brew_recommendations(options: Any) -> int:
         if not options.export_format:
             # Print summary information about processing
             print("")
-            print_info(f"✓ Processed {len(search_list)} applications in {elapsed_time:.1f} seconds")
-            print_info(f"Found {len(installables)} applications installable with Homebrew")
+            print(
+                create_progress_bar().color("green")(
+                    f"✓ Processed {len(search_list)} applications in {elapsed_time:.1f} seconds"
+                )
+            )
+            print(
+                create_progress_bar().color("green")(
+                    f"Found {len(installables)} applications installable with Homebrew"
+                )
+            )
             print("")
 
             # If we found installable applications, list them in a nice format
             if installables:
                 for i, installable in enumerate(installables, 1):
-                    install_name = installable if isinstance(installable, str) else str(installable)
-                    print(f"{i:2d}. {colored(install_name, 'green')} (installable with Homebrew)")
+                    install_name = (
+                        installable
+                        if isinstance(installable, str)
+                        else str(installable)
+                    )
+                    print(
+                        f"{i:2d}. {create_progress_bar().color('green')(install_name)} (installable with Homebrew)"
+                    )
             else:
-                print_warning("No applications found that can be installed with Homebrew.")
+                print(
+                    create_progress_bar().color("yellow")(
+                        "No applications found that can be installed with Homebrew."
+                    )
+                )
 
         # Handle export if requested
         if options.export_format:
@@ -441,48 +535,97 @@ def handle_outdated_check(options: Any) -> int:
     """
     try:
         # Validate required dependencies
-        check_dependencies()
+        # This function no longer exists, checks are done implicitly or elsewhere
+        # check_dependencies()
 
         # Update config with no_progress option if specified
         if hasattr(options, "no_progress") and options.no_progress:
-            config.no_progress = True
-            config.show_progress = False
+            get_config().no_progress = True
+            get_config().show_progress = False
 
         # Get installed applications
-        print_info("Getting Apps from Applications/...")
+        print(
+            create_progress_bar().color("green")("Getting Apps from Applications/...")
+        )
         try:
             apps_data = get_json_data(
                 getattr(
-                    config, "system_profiler_cmd", "system_profiler -json SPApplicationsDataType"
+                    get_config(),
+                    "system_profiler_cmd",
+                    "system_profiler -json SPApplicationsDataType",
                 )
             )
             apps = get_applications(apps_data)
         except PermissionError:
-            print_error("Error: Permission denied when reading application data.")
-            print_warning("Try running the command with sudo or check your file permissions.")
+            print(
+                create_progress_bar().color("red")(
+                    "Error: Permission denied when reading application data."
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Try running the command with sudo or check your file permissions."
+                )
+            )
             return 1
         except TimeoutError:
-            print_error("Error: Timed out while reading application data.")
-            print_warning("Check your system load and try again later.")
+            print(
+                create_progress_bar().color("red")(
+                    "Error: Timed out while reading application data."
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Check your system load and try again later."
+                )
+            )
             return 1
         except Exception as e:
-            print_error(f"Error: Failed to get installed applications: {e}")
+            print(
+                create_progress_bar().color("red")(
+                    f"Error: Failed to get installed applications: {e}"
+                )
+            )
             return 1
 
         # Get installed Homebrew casks
-        print_info("Getting installable casks from Homebrew...")
+        print(
+            create_progress_bar().color("green")(
+                "Getting installable casks from Homebrew..."
+            )
+        )
         try:
             brews = get_homebrew_casks()
         except FileNotFoundError:
-            print_error("Error: Homebrew executable not found.")
-            print_warning("Please make sure Homebrew is installed and properly configured.")
+            print(
+                create_progress_bar().color("red")(
+                    "Error: Homebrew executable not found."
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Please make sure Homebrew is installed and properly configured."
+                )
+            )
             return 1
         except PermissionError:
-            print_error("Error: Permission denied when accessing Homebrew.")
-            print_warning("Check your user permissions and Homebrew installation.")
+            print(
+                create_progress_bar().color("red")(
+                    "Error: Permission denied when accessing Homebrew."
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Check your user permissions and Homebrew installation."
+                )
+            )
             return 1
         except Exception as e:
-            print_error(f"Error: Failed to get Homebrew casks: {e}")
+            print(
+                create_progress_bar().color("red")(
+                    f"Error: Failed to get Homebrew casks: {e}"
+                )
+            )
             return 1
 
         # Filter out applications already managed by Homebrew
@@ -491,29 +634,61 @@ def handle_outdated_check(options: Any) -> int:
             try:
                 apps = filter_out_brews(apps, brews)
             except Exception as e:
-                print_warning(f"Warning: Error filtering applications: {e}")
-                print_warning("Proceeding with all applications.")
+                print(
+                    create_progress_bar().color("yellow")(
+                        f"Warning: Error filtering applications: {e}"
+                    )
+                )
+                print(
+                    create_progress_bar().color("yellow")(
+                        "Proceeding with all applications."
+                    )
+                )
 
         # Print status update
-        print_info(f"Checking {len(apps)} applications for updates...")
+        print(
+            create_progress_bar().color("green")(
+                f"Checking {len(apps)} applications for updates..."
+            )
+        )
 
         # Start time for tracking
         start_time = time.time()
 
         # Check outdated status
         try:
-            batch_size = getattr(config, "batch_size", 50)
+            batch_size = getattr(get_config(), "batch_size", 50)
             outdated_info = check_outdated_apps(apps, batch_size=batch_size)
         except TimeoutError:
-            print_error("Error: Network timeout while checking for updates.")
-            print_warning("Check your internet connection and try again.")
+            print(
+                create_progress_bar().color("red")(
+                    "Error: Network timeout while checking for updates."
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Check your internet connection and try again."
+                )
+            )
             return 1
         except NetworkError:
-            print_error("Error: Network error while checking for updates.")
-            print_warning("Check your internet connection and try again.")
+            print(
+                create_progress_bar().color("red")(
+                    "Error: Network error while checking for updates."
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Check your internet connection and try again."
+                )
+            )
             return 1
         except Exception as e:
-            print_error(f"Error: Failed to check for updates: {e}")
+            print(
+                create_progress_bar().color("red")(
+                    f"Error: Failed to check for updates: {e}"
+                )
+            )
             return 1
 
         # End time and calculation
@@ -531,13 +706,13 @@ def handle_outdated_check(options: Any) -> int:
             icon = get_status_icon(status)
             color = get_status_color(status)
 
-            if status == VersionStatus.OUTDATED:
+            if status == "outdated":
                 total_outdated += 1
-            elif status == VersionStatus.UPTODATE:
+            elif status == "uptodate":
                 total_up_to_date += 1
-            elif status == VersionStatus.NOT_FOUND:
+            elif status == "not_found":
                 total_not_found += 1
-            elif status == VersionStatus.ERROR:
+            elif status == "error":
                 total_error += 1
             else:
                 total_unknown += 1
@@ -546,7 +721,9 @@ def handle_outdated_check(options: Any) -> int:
             installed_version = (
                 version_info["installed"] if "installed" in version_info else "Unknown"
             )
-            latest_version = version_info["latest"] if "latest" in version_info else "Unknown"
+            latest_version = (
+                version_info["latest"] if "latest" in version_info else "Unknown"
+            )
 
             table.append(
                 [
@@ -564,15 +741,29 @@ def handle_outdated_check(options: Any) -> int:
         if table:
             # Print summary information about processing
             print("")
-            print_info(f"✓ Processed {len(apps)} applications in {elapsed_time:.1f} seconds")
+            print(
+                create_progress_bar().color("green")(
+                    f"✓ Processed {len(apps)} applications in {elapsed_time:.1f} seconds"
+                )
+            )
 
             # Print status summary with counts and colors
-            print_info("\nStatus Summary:")
-            print(f" {colored('✓', 'green')} Up to date: {colored(str(total_up_to_date), 'green')}")
-            print(f" {colored('!', 'red')} Outdated: {colored(str(total_outdated), 'red')}")
-            print(f" {colored('?', 'yellow')} Unknown: {colored(str(total_unknown), 'yellow')}")
-            print(f" {colored('❓', 'blue')} Not Found: {colored(str(total_not_found), 'blue')}")
-            print(f" {colored('❌', 'red')} Error: {colored(str(total_error), 'red')}")
+            print(create_progress_bar().color("green")("\nStatus Summary:"))
+            print(
+                f" {create_progress_bar().color('green')('✓')} Up to date: {create_progress_bar().color('green')(str(total_up_to_date))}"
+            )
+            print(
+                f" {create_progress_bar().color('red')('!')} Outdated: {create_progress_bar().color('red')(str(total_outdated))}"
+            )
+            print(
+                f" {create_progress_bar().color('yellow')('?')} Unknown: {create_progress_bar().color('yellow')(str(total_unknown))}"
+            )
+            print(
+                f" {create_progress_bar().color('blue')('❓')} Not Found: {create_progress_bar().color('blue')(str(total_not_found))}"
+            )
+            print(
+                f" {create_progress_bar().color('red')('❌')} Error: {create_progress_bar().color('red')(str(total_error))}"
+            )
             print("")
 
             # Print the table with headers
@@ -580,11 +771,19 @@ def handle_outdated_check(options: Any) -> int:
             print(tabulate(table, headers=headers, tablefmt="pretty"))
 
             if total_outdated > 0:
-                print_error(f"\nFound {total_outdated} outdated applications.")
+                print(
+                    create_progress_bar().color("red")(
+                        f"\nFound {total_outdated} outdated applications."
+                    )
+                )
             else:
-                print_success("\nAll applications are up to date!")
+                print(
+                    create_progress_bar().color("green")(
+                        "\nAll applications are up to date!"
+                    )
+                )
         else:
-            print_warning("No applications found.")
+            print(create_progress_bar().color("yellow")("No applications found."))
 
         # Export if requested
         if hasattr(options, "export") and options.export:
@@ -595,31 +794,39 @@ def handle_outdated_check(options: Any) -> int:
                     options.output_file if hasattr(options, "output_file") else None,
                 )
             except ExportError as e:
-                print_error(f"Error exporting data: {e}")
+                print(create_progress_bar().color("red")(f"Error exporting data: {e}"))
                 return 1
 
         return 0
     except ConfigError as e:
-        print_error(f"Configuration Error: {e}")
-        print_warning("Please check your configuration file and try again.")
+        print(create_progress_bar().color("red")(f"Configuration Error: {e}"))
+        print(
+            create_progress_bar().color("yellow")(
+                "Please check your configuration file and try again."
+            )
+        )
         return 1
     except KeyboardInterrupt:
-        print_warning("\nOperation canceled by user.")
+        print(create_progress_bar().color("yellow")("\nOperation canceled by user."))
         return 130  # Standard exit code for SIGINT
     except Exception as e:
         logging.error(f"Error checking outdated applications: {e}")
-        print_error(f"Error: {e}")
-        if config.debug:
+        print(create_progress_bar().color("red")(f"Error: {e}"))
+        if get_config().debug:
             traceback.print_exc()
         else:
-            print_warning("Run with --debug for more information.")
+            print(
+                create_progress_bar().color("yellow")(
+                    "Run with --debug for more information."
+                )
+            )
         return 1
 
 
 def handle_export(
     data: Union[
         Dict[str, Any],
-        List[Tuple[str, Dict[str, str], VersionStatus]],
+        List[Tuple[str, Dict[str, str], str]],
         List[Tuple[str, Dict[str, str], str]],
         List[Dict[str, str]],
     ],
@@ -646,20 +853,28 @@ def handle_export(
 
         return 0
     except ValueError as e:
-        print_error(f"Export Error: {e}")
-        print_warning("Supported formats are 'json' and 'csv'")
+        print(create_progress_bar().color("red")(f"Export Error: {e}"))
+        print(
+            create_progress_bar().color("yellow")(
+                "Supported formats are 'json' and 'csv'"
+            )
+        )
         return 1
     except PermissionError as e:
-        print_error(f"Permission Error: {e}")
-        print_warning("Check your write permissions for the output file")
+        print(create_progress_bar().color("red")(f"Permission Error: {e}"))
+        print(
+            create_progress_bar().color("yellow")(
+                "Check your write permissions for the output file"
+            )
+        )
         return 1
     except ExportError as e:
-        print_error(f"Export Error: {e}")
+        print(create_progress_bar().color("red")(f"Export Error: {e}"))
         return 1
     except Exception as e:
         logging.error(f"Error exporting data: {e}")
-        print_error(f"Error: Failed to export data: {e}")
-        if config.debug:
+        print(create_progress_bar().color("red")(f"Error: Failed to export data: {e}"))
+        if get_config().debug:
             traceback.print_exc()
         return 1
 
@@ -673,7 +888,7 @@ def setup_logging(debug: bool = False) -> None:
     log_level = logging.DEBUG if debug else logging.INFO
 
     # Ensure log directory exists
-    log_dir = config.log_dir
+    log_dir = get_config().log_dir
     if not log_dir.exists():
         log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -728,7 +943,7 @@ def suppress_console_warnings():
     # Add filter to all StreamHandler instances
     for handler in logging.getLogger().handlers:
         if isinstance(handler, logging.StreamHandler):
-            handler.addFilter(WarningFilter())
+            handler.addFilter(WarningFilter)
 
 
 def versiontracker_main():
@@ -830,19 +1045,25 @@ def versiontracker_main():
     if hasattr(options, "list_filters") and options.list_filters:
         filters = filter_manager.list_filters()
         if filters:
-            print_info("Available filters:")
+            print(create_progress_bar().color("green")("Available filters:"))
             for i, filter_name in enumerate(filters, 1):
                 print(f"{i}. {filter_name}")
         else:
-            print_warning("No saved filters found.")
+            print(create_progress_bar().color("yellow")("No saved filters found."))
         return 0
 
     if hasattr(options, "delete_filter") and options.delete_filter:
         filter_name = options.delete_filter
         if filter_manager.delete_filter(filter_name):
-            print_success(f"Filter '{filter_name}' deleted successfully.")
+            print(
+                create_progress_bar().color("green")(
+                    f"Filter '{filter_name}' deleted successfully."
+                )
+            )
         else:
-            print_error(f"Filter '{filter_name}' not found.")
+            print(
+                create_progress_bar().color("red")(f"Filter '{filter_name}' not found.")
+            )
         return 0
 
     # Load filter if specified
@@ -850,7 +1071,7 @@ def versiontracker_main():
         filter_name = options.load_filter
         filter_data = filter_manager.load_filter(filter_name)
         if filter_data:
-            print_info(f"Loaded filter: {filter_name}")
+            print(create_progress_bar().color("green")(f"Loaded filter: {filter_name}"))
 
             # Apply filter settings to options
             for key, value in filter_data.items():
@@ -863,7 +1084,9 @@ def versiontracker_main():
                     if key in config._config:
                         config._config[key] = value
         else:
-            print_error(f"Filter '{filter_name}' not found.")
+            print(
+                create_progress_bar().color("red")(f"Filter '{filter_name}' not found.")
+            )
             return 1
 
     try:
@@ -916,14 +1139,22 @@ def versiontracker_main():
 
             # Save the filter
             if filter_manager.save_filter(filter_name, filter_data):
-                print_success(f"Filter '{filter_name}' saved successfully.")
+                print(
+                    create_progress_bar().color("green")(
+                        f"Filter '{filter_name}' saved successfully."
+                    )
+                )
             else:
-                print_error(f"Failed to save filter '{filter_name}'.")
+                print(
+                    create_progress_bar().color("red")(
+                        f"Failed to save filter '{filter_name}'."
+                    )
+                )
 
         return result
     except Exception as e:
         logging.exception("An error occurred: %s", str(e))
-        print(f"Error: {str(e)}")
+        print(create_progress_bar().color("red")(f"Error: {str(e)}"))
         return 1
 
 

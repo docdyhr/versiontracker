@@ -1,11 +1,12 @@
 """Integration tests for VersionTracker."""
 
-import unittest
-from unittest.mock import patch, MagicMock
+import importlib.util
 
 # Import the main function but avoid executing imports
 import sys
-import importlib.util
+import unittest
+from unittest.mock import MagicMock, patch
+
 spec = importlib.util.spec_from_file_location(
     "versiontracker.__main__", 
     "/Users/thomas/Programming/versiontracker/versiontracker/__main__.py"
@@ -22,17 +23,18 @@ versiontracker_main_module.get_applications = MagicMock()
 class TestIntegration(unittest.TestCase):
     """Integration test cases for VersionTracker."""
 
-    @patch("versiontracker.__main__.check_dependencies", return_value=True)
+    # Patch check_dependencies at its source
+    @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.__main__.get_applications")
     @patch("versiontracker.__main__.get_homebrew_casks")
     @patch("versiontracker.__main__.filter_out_brews")
     @patch("versiontracker.__main__.check_brew_install_candidates")
     @patch("versiontracker.__main__.get_json_data")
     @patch("versiontracker.__main__.setup_logging")
-    @patch("versiontracker.__main__.config")
+    @patch("versiontracker.config.Config")
     def test_main_recommend_workflow(
         self,
-        mock_config,
+        MockConfig,
         mock_setup_logging,
         mock_json_data,
         mock_check_candidates,
@@ -42,10 +44,12 @@ class TestIntegration(unittest.TestCase):
         mock_check_deps,
     ):
         """Test the main recommend workflow."""
-        # Mock config methods
-        mock_config.is_blacklisted.return_value = False
-        mock_config.get.return_value = 10
-        mock_config.rate_limit = 10  # Mock the rate_limit attribute
+        # Mock the instance returned by Config()
+        mock_config_instance = MockConfig.return_value
+        mock_config_instance.is_blacklisted.return_value = False
+        mock_config_instance.get.return_value = 10
+        mock_config_instance.rate_limit = 10
+        mock_config_instance.debug = False
 
         # Mock the applications
         mock_get_apps.return_value = [
@@ -81,21 +85,22 @@ class TestIntegration(unittest.TestCase):
         mock_filter_brews.assert_called_once()
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            10,  # Use an exact value instead of mock_config.get.return_value
+            10,  
             False,
         )
 
-    @patch("versiontracker.__main__.check_dependencies", return_value=True)
+    # Patch check_dependencies at its source
+    @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.__main__.get_applications")
     @patch("versiontracker.__main__.get_homebrew_casks")
     @patch("versiontracker.__main__.filter_out_brews")
     @patch("versiontracker.__main__.check_brew_install_candidates")
     @patch("versiontracker.__main__.get_json_data")
     @patch("versiontracker.__main__.setup_logging")
-    @patch("versiontracker.__main__.config")
+    @patch("versiontracker.__main__.get_config") 
     def test_main_strict_recommend_workflow(
         self,
-        mock_config,
+        mock_get_config, 
         mock_setup_logging,
         mock_json_data,
         mock_check_candidates,
@@ -105,10 +110,20 @@ class TestIntegration(unittest.TestCase):
         mock_check_deps,
     ):
         """Test the main strict recommend workflow."""
-        # Mock config methods
-        mock_config.is_blacklisted.return_value = False
-        mock_config.get.return_value = 10
-        mock_config.rate_limit = 10  # Mock the rate_limit attribute
+        # Configure the mock instance returned by the patched get_config
+        mock_config_instance = mock_get_config.return_value
+        # Use configure_mock for clarity
+        mock_config_instance.configure_mock(
+            **{
+                "is_blacklisted.return_value": False,
+                "rate_limit": 5,  # Ensure this is an integer
+                "debug": False,
+            }
+        )
+        # Optional: Add assertions here to verify the mock state before calling main
+        assert hasattr(mock_config_instance, 'rate_limit')
+        assert isinstance(mock_config_instance.rate_limit, int)
+        assert mock_config_instance.rate_limit == 5
 
         # Mock the applications
         mock_get_apps.return_value = [
@@ -127,16 +142,23 @@ class TestIntegration(unittest.TestCase):
         # Mock brew candidates - fewer results than regular recommend due to strict filtering
         mock_check_candidates.return_value = ["visual-studio-code"]
 
+        # Mock the arguments that would normally come from argparse
+        mock_args = MagicMock()
+        mock_args.brews = False
+        mock_args.recommend = False
+        mock_args.strict_recommend = True
+        mock_args.debug = False
+        mock_args.additional_dirs = None
+        mock_args.max_workers = 4
+        mock_args.rate_limit = None  # Keep this None to ensure config is checked
+        mock_args.no_progress = False
+        mock_args.output_format = None
+        mock_args.output_file = None
+
         # Run the recommend handler directly with mocked options
         with patch("builtins.print"):  # Suppress output
             mock_json_data.return_value = {}  # Mock JSON data
-            versiontracker_main_module.handle_brew_recommendations(MagicMock(
-                recommend=False, 
-                strict_recom=True,
-                debug=False,
-                strict_recommend=True,
-                rate_limit=10
-            ))
+            versiontracker_main_module.handle_brew_recommendations(mock_args)
 
         # Verify the functions were called
         mock_get_apps.assert_called_once()
@@ -145,26 +167,31 @@ class TestIntegration(unittest.TestCase):
         # Ensure strict param is True
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            10,  # Use an exact value instead of mock_config.get.return_value
+            5,  
             True,
         )
 
-    @patch("versiontracker.__main__.check_dependencies", return_value=True)
+    # Patch check_dependencies at its source
+    @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.__main__.get_applications")
     @patch("versiontracker.__main__.get_json_data")
     @patch("versiontracker.__main__.setup_logging")
-    @patch("versiontracker.__main__.config")
+    @patch("versiontracker.config.Config")
     def test_main_apps_workflow(
         self,
-        mock_config,
+        MockConfig,
         mock_setup_logging,
         mock_json_data,
         mock_get_apps,
         mock_check_deps,
     ):
         """Test the main apps workflow."""
-        # Mock config method
-        mock_config.is_blacklisted.return_value = False
+        # Mock the instance returned by Config()
+        mock_config_instance = MockConfig.return_value
+        mock_config_instance.is_blacklisted.return_value = False
+        mock_config_instance.get.return_value = 10
+        mock_config_instance.rate_limit = 10
+        mock_config_instance.debug = False
 
         # Mock the applications
         mock_get_apps.return_value = [("Firefox", "100.0"), ("Chrome", "101.0")]
@@ -181,11 +208,26 @@ class TestIntegration(unittest.TestCase):
         # Verify the function was called
         mock_get_apps.assert_called_once()
 
-    @patch("versiontracker.__main__.check_dependencies", return_value=True)
+    # Patch check_dependencies at its source
+    @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.__main__.get_homebrew_casks")
     @patch("versiontracker.__main__.setup_logging")
-    def test_main_brews_workflow(self, mock_setup_logging, mock_get_casks, mock_check_deps):
+    @patch("versiontracker.config.Config")
+    def test_main_brews_workflow(
+        self,
+        MockConfig,
+        mock_setup_logging,
+        mock_get_casks,
+        mock_check_deps,
+    ):
         """Test the main brews workflow."""
+        # Mock the instance returned by Config()
+        mock_config_instance = MockConfig.return_value
+        mock_config_instance.is_blacklisted.return_value = False
+        mock_config_instance.get.return_value = 10
+        mock_config_instance.rate_limit = 10
+        mock_config_instance.debug = False
+
         # Mock the brew casks
         mock_get_casks.return_value = ["firefox", "google-chrome"]
 

@@ -164,6 +164,17 @@ class SmartProgress(Generic[T]):
 
         # Check if we're in a terminal that supports progress bars
         self.use_tqdm = HAS_TQDM and sys.stdout.isatty()
+    
+    def color(self, color_name: str):
+        """Return a function that applies the specified color to a string.
+        
+        Args:
+            color_name: Name of the color to use
+            
+        Returns:
+            Function that applies the color to a string
+        """
+        return lambda text: colored(text, color_name)
 
     def __iter__(self) -> Iterator[T]:
         """Iterate over the iterable with a progress bar."""
@@ -212,6 +223,19 @@ class SmartProgress(Generic[T]):
         except Exception:
             # If we can't get resource information, just continue without it
             pass
+
+
+# Create a progress bar function (adapter for smart_progress)
+def create_progress_bar():
+    """Create a simple progress bar object that supports basic operations.
+    
+    This is a simplified adapter that provides compatibility with code expecting
+    a progress bar object with basic operations.
+    
+    Returns:
+        SmartProgress: A progress indicator object with color method
+    """
+    return SmartProgress()
 
 
 # Enhanced version of tqdm with smart capabilities

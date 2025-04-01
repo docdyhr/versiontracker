@@ -456,10 +456,42 @@ def check_dependencies() -> bool:
 config = Config()
 
 
-# Function to update the global config instance with a custom one
-def set_global_config(new_config: Config) -> None:
-    """Replace the global config instance with a custom one.
+def get_config() -> Config:
+    """Get the global configuration instance.
+    
+    Returns:
+        Config: The global configuration instance
+    """
+    return config
 
+
+def setup_logging(debug: bool = False):
+    """Set up logging for the application.
+    
+    Args:
+        debug: Whether to enable debug logging
+    """
+    log_level = logging.DEBUG if debug else logging.INFO
+    
+    # Ensure log directory exists
+    log_dir = config.log_dir
+    if not log_dir.exists():
+        log_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Configure logging
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_dir / "versiontracker.log"),
+            logging.StreamHandler(),
+        ],
+    )
+
+
+def set_global_config(new_config: Config):
+    """Replace the global config instance with a custom one.
+    
     Args:
         new_config: The new config instance to use globally
     """

@@ -19,13 +19,29 @@ from datetime import datetime
 from enum import Enum, auto
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process as fuzz_process
 
 from versiontracker.config import config
-from versiontracker.exceptions import DataParsingError, NetworkError, TimeoutError, VersionError
+from versiontracker.exceptions import (
+    DataParsingError,
+    NetworkError,
+    TimeoutError,
+    VersionError,
+)
 from versiontracker.ui import print_error, print_warning, smart_progress
 from versiontracker.utils import normalise_name, run_command
 

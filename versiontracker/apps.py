@@ -2,23 +2,54 @@
 
 import concurrent.futures
 import functools
+import json
 import logging
+import multiprocessing
 import os
 import platform
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache, wraps
-from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from packaging.version import parse as parse_pkg_version
 
+# Local application imports
+from versiontracker.cache import read_cache, write_cache
+from versiontracker.config import Config, config
+from versiontracker.exceptions import (
+    DataParsingError,
+    HomebrewError,
+    NetworkError,
+    PermissionError,
+    TimeoutError,
+)
+
 # Import our UI utilities
-from versiontracker.ui import AdaptiveRateLimiter, colored, smart_progress
+from versiontracker.ui import (
+    AdaptiveRateLimiter,
+    colored,
+    create_progress_bar,
+    smart_progress,
+)
+from versiontracker.utils import normalise_name, run_command
 
 # Import progress bar functionality
 HAS_PROGRESS = False
@@ -36,17 +67,6 @@ except ImportError:
         """Simple progress bar fallback."""
         return iterable
 
-
-from versiontracker.cache import read_cache, write_cache
-from versiontracker.config import Config, config
-from versiontracker.exceptions import (
-    DataParsingError,
-    HomebrewError,
-    NetworkError,
-    PermissionError,
-    TimeoutError,
-)
-from versiontracker.utils import normalise_name, run_command
 
 # Import the partial_ratio compatibility function
 try:
@@ -597,8 +617,9 @@ def _process_brew_batch(
             rate_limit_seconds = 1
 
         # Import needed modules upfront
-        from versiontracker.ui import AdaptiveRateLimiter
         from typing import Union
+
+        from versiontracker.ui import AdaptiveRateLimiter
 
         # Create rate limiter
         RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
@@ -932,8 +953,9 @@ def check_brew_update_candidates(
         rate_limit_seconds = 1
 
     # Import needed modules upfront
-    from versiontracker.ui import AdaptiveRateLimiter
     from typing import Union
+
+    from versiontracker.ui import AdaptiveRateLimiter
 
     # Create rate limiter
     RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
