@@ -11,6 +11,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from tqdm import tqdm
 
+# Import tabulate for table formatting
+from tabulate import tabulate
+
 from versiontracker.apps import (
     check_brew_install_candidates,  # Function to check brew install candidates
     filter_out_brews,  # Function to filter out apps managed by brew
@@ -18,6 +21,7 @@ from versiontracker.apps import (
     get_homebrew_casks,  # Function to get list of installed brew casks
     is_homebrew_available,  # Function to check if Homebrew is available
 )
+from versiontracker.cli import get_arguments
 from versiontracker.config import (
     Config,
     get_config,
@@ -28,7 +32,7 @@ from versiontracker.export import (
     FORMAT_OPTIONS,
     export_data,
 )
-from versiontracker.ui import create_progress_bar
+from versiontracker.ui import QueryFilterManager, create_progress_bar
 from versiontracker.utils import (
     get_json_data,
     normalise_name,  # Corrected spelling
@@ -943,7 +947,7 @@ def suppress_console_warnings():
     # Add filter to all StreamHandler instances
     for handler in logging.getLogger().handlers:
         if isinstance(handler, logging.StreamHandler):
-            handler.addFilter(WarningFilter)
+            handler.addFilter(WarningFilter()) # Instantiate the filter
 
 
 def versiontracker_main():
@@ -1016,27 +1020,32 @@ def versiontracker_main():
 
     # Initialize config with provided config file if any
     config_file = options.config if hasattr(options, "config") else None
-    # Don't reassign config if it's already mocked for tests
-    global config  # Use the global config
+
+    # Check if config needs initialization (avoid if mocked in tests)
     try:
         import inspect
         from unittest.mock import Mock
 
-        if not isinstance(config, Mock) or not any(
+        current_config = get_config()
+        if not isinstance(current_config, Mock) or not any(
             "unittest" in f.filename for f in inspect.stack()
         ):
-            config = Config(config_file)
-        # Otherwise leave the mocked config as is
+            # Initialize or re-initialize the config singleton
+            Config(config_file)
+        # Otherwise, leave the mocked config from get_config() as is
     except ImportError:
-        config = Config(config_file)
+        # Fallback if inspect or Mock is not available (shouldn't happen in normal use)
+        Config(config_file)
 
     # Configure UI options from command-line arguments
+    # Retrieve the potentially updated config instance
+    current_config = get_config()
     if hasattr(options, "no_color") and options.no_color:
-        config._config["ui"]["use_color"] = False
+        current_config._config["ui"]["use_color"] = False
     if hasattr(options, "no_resource_monitor") and options.no_resource_monitor:
-        config._config["ui"]["monitor_resources"] = False
+        current_config._config["ui"]["monitor_resources"] = False
     if hasattr(options, "no_adaptive_rate") and options.no_adaptive_rate:
-        config._config["ui"]["adaptive_rate_limiting"] = False
+        current_config._config["ui"]["adaptive_rate_limiting"] = False
 
     # Create filter manager
     filter_manager = QueryFilterManager(str(Path.home() / ".config" / "versiontracker"))
@@ -1081,8 +1090,8 @@ def versiontracker_main():
             # Apply filter settings to config
             if "config" in filter_data:
                 for key, value in filter_data["config"].items():
-                    if key in config._config:
-                        config._config[key] = value
+                    if key in current_config._config:
+                        current_config._config[key] = value
         else:
             print(
                 create_progress_bar().color("red")(f"Filter '{filter_name}' not found.")
@@ -1132,9 +1141,9 @@ def versiontracker_main():
 
             # Add relevant config settings
             filter_data["config"] = {
-                "ui": config._config.get("ui", {}),
-                "rate_limit": config._config.get("rate_limit", 3),
-                "max_workers": config._config.get("max_workers", 10),
+                "ui": current_config._config.get("ui", {}),
+                "rate_limit": current_config._config.get("rate_limit", 3),
+                "max_workers": current_config._config.get("max_workers", 10),
             }
 
             # Save the filter
