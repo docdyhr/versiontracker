@@ -1,6 +1,12 @@
 # VersionTracker TODO List
 
-This document outlines planned enhancements, known bugs, and potential optimizations for the VersionTracker project.
+This document outlines planned review, enhancements, known bugs, and potential optimizations for the VersionTracker project.
+
+## Review
+
+- [ ] Verify that the automatic versioning implementation is consistent with the project's semantic versioning strategy
+- [ ] Check that the GitHub badges are correctly configured and pointing to the right repository metrics
+- [ ] Confirm that the workflow changes do not introduce any unintended side effects in the build or release process
 
 ## Features to Implement
 
