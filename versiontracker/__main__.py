@@ -947,7 +947,7 @@ def suppress_console_warnings():
     # Add filter to all StreamHandler instances
     for handler in logging.getLogger().handlers:
         if isinstance(handler, logging.StreamHandler):
-            handler.addFilter(WarningFilter()) # Instantiate the filter
+            handler.addFilter(WarningFilter())  # Instantiate the filter
 
 
 def versiontracker_main():
