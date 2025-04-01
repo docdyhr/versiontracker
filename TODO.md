@@ -186,6 +186,7 @@ As of March 2025, the VersionTracker project has achieved several key milestones
 ## How to Contribute
 
 If you'd like to work on any of these items, please:
+
 1. Create an issue referencing the specific task
 2. Fork the repository
 3. Create a branch with a descriptive name
