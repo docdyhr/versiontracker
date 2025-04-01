@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2025-04-01
+
+### Fixed (0.6.3)
+
+- Fixed GitHub badges in README.md to correctly display master branch status
+- Completed review of semantic versioning implementation
+- Verified GitHub Actions workflows for unintended side effects
+- Updated TODO.md to reflect completed review tasks
+
 ## [0.6.2] - 2025-03-19
 
 ### Fixed (0.6.2)
