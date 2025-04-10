@@ -436,6 +436,7 @@ def handle_brew_recommendations(options: Any) -> int:
                 pass
 
             # If in a test, the check_brew_install_candidates function should already be mocked
+            # Use rate_limit_int for the API rate limit
             installables = check_brew_install_candidates(
                 search_list, rate_limit_int, strict_mode
             )
