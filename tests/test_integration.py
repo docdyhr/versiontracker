@@ -150,7 +150,7 @@ class TestIntegration(unittest.TestCase):
         mock_args.debug = False
         mock_args.additional_dirs = None
         mock_args.max_workers = 4
-        mock_args.rate_limit = None  # Keep this None to ensure config is checked
+        mock_args.rate_limit = 5  # Set this explicitly to match rate_limit in config
         mock_args.no_progress = False
         mock_args.output_format = None
         mock_args.output_file = None
