@@ -1,50 +1,45 @@
 """Main entry point for the VersionTracker application."""
 
-import argparse
+# import argparse
 import logging
-import os
+# import os
 import sys
 import time
 import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from tqdm import tqdm
-
 # Import tabulate for table formatting
 from tabulate import tabulate
+# from tqdm import tqdm
 
-from versiontracker.apps import (
-    check_brew_install_candidates,  # Function to check brew install candidates
-    filter_out_brews,  # Function to filter out apps managed by brew
-    get_applications,  # Function to get list of applications
-    get_homebrew_casks,  # Function to get list of installed brew casks
-    is_homebrew_available,  # Function to check if Homebrew is available
-)
+from versiontracker.apps import \
+    check_brew_install_candidates  # Function to check brew install candidates
+from versiontracker.apps import \
+    filter_out_brews  # Function to filter out apps managed by brew
+from versiontracker.apps import \
+    get_applications  # Function to get list of applications
+from versiontracker.apps import \
+    get_homebrew_casks  # Function to get list of installed brew casks
+# from versiontracker.apps import \
+#    is_homebrew_available  # Function to check if Homebrew is available
 from versiontracker.cli import get_arguments
-from versiontracker.config import (
-    Config,
-    get_config,
-    setup_logging,
-)
-from versiontracker.export import (
-    DEFAULT_FORMAT,
-    FORMAT_OPTIONS,
-    export_data,
-)
+from versiontracker.config import Config, get_config
+from versiontracker.exceptions import HomebrewError, NetworkError, ExportError, ConfigError
+# from versiontracker.export import DEFAULT_FORMAT, FORMAT_OPTIONS, export_data
+from versiontracker.export import export_data
 from versiontracker.ui import QueryFilterManager, create_progress_bar
-from versiontracker.utils import (
-    get_json_data,
-    normalise_name,  # Corrected spelling
-)
-from versiontracker.version import (
-    check_outdated_apps,  # Function to check for outdated apps
-    compare_versions,  # Renamed from compare_app_versions
-    get_homebrew_version_info,  # Renamed from get_latest_cask_version
-)
+# from versiontracker.utils import normalise_name  # Corrected spelling
+from versiontracker.utils import get_json_data
+from versiontracker.version import \
+    check_outdated_apps  # Function to check for outdated apps
+# from versiontracker.version import \
+#    compare_versions  # Renamed from compare_app_versions
+# from versiontracker.version import \
+#    get_homebrew_version_info  # Renamed from get_latest_cask_version
 
 
-def get_status_icon(status: str) -> str:
+def get_status_icon(status) -> str:
     """Get a status icon for a version status.
 
     Args:
@@ -76,7 +71,7 @@ def get_status_icon(status: str) -> str:
         return ""
 
 
-def get_status_color(status: str) -> Any:
+def get_status_color(status) -> Any:
     """Get a color function for the given version status.
 
     Args:
@@ -402,13 +397,10 @@ def handle_brew_recommendations(options: Any) -> int:
         rate_limit_int = 10  # Default value
         if hasattr(options, "rate_limit") and options.rate_limit is not None:
             rate_limit_int = int(options.rate_limit)
-        elif hasattr(get_config(), "rate_limit"):
+        elif hasattr(get_config(), "get"):
             try:
-                # Try to get as integer or from config.get
-                if isinstance(get_config().rate_limit, int):
-                    rate_limit_int = get_config().rate_limit
-                elif hasattr(get_config(), "get"):
-                    rate_limit_int = int(get_config().get("rate_limit", 10))
+                # Try to get from config.get
+                rate_limit_int = int(get_config().get("rate_limit", 10))
             except (ValueError, TypeError, AttributeError):
                 # If any conversion fails, use default
                 rate_limit_int = 10
@@ -828,12 +820,7 @@ def handle_outdated_check(options: Any) -> int:
 
 
 def handle_export(
-    data: Union[
-        Dict[str, Any],
-        List[Tuple[str, Dict[str, str], str]],
-        List[Tuple[str, Dict[str, str], str]],
-        List[Dict[str, str]],
-    ],
+    data,  # Allow any data type to be passed in
     format_type: str,
     filename: Optional[str] = None,
 ) -> int:
