@@ -1,7 +1,4 @@
-<p align="center">
-  <img src="images/logo.png" alt="Project Logo" width="70%">
-</p>
-
+![Logo](images/logo.png)
 # Versiontracker Update tool for macOS
 
 [![PyPI - Version](https://img.shields.io/pypi/v/versiontracker)](https://pypi.org/project/versiontracker/)
