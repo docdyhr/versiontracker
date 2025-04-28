@@ -8,8 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Added ROADMAP.md with detailed development plans for short-term, medium-term, and long-term goals
 - Structured improvement tasks with clear prioritization and timeline
+
+### Fixed
+
+- Completed missing VersionError class in exceptions.py
+- Fixed config import error by replacing direct references to config with get_config()
+- Improved error handling in logging statements
+- Updated global config instance name for better encapsulation
+- Fixed f-string usage in logging statements to use proper string formatting
 
 ## [0.6.3] - 2025-04-01
 

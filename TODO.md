@@ -7,6 +7,8 @@ This document outlines planned review, enhancements, known bugs, and potential o
 - [x] Verify that the automatic versioning implementation is consistent with the project's semantic versioning strategy
 - [x] Check that the GitHub badges are correctly configured and pointing to the right repository metrics
 - [x] Confirm that the workflow changes do not introduce any unintended side effects in the build or release process
+- [x] Fix missing VersionError class in exceptions.py
+- [x] Fix config import errors in apps.py and version.py
 
 ## Features to Implement
 
