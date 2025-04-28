@@ -10,7 +10,7 @@ from functools import lru_cache
 from typing import Any, Dict, List, Optional, Protocol, Tuple, TypeVar, Union, cast
 
 from versiontracker.cache import read_cache, write_cache
-from versiontracker.config import Config, config
+from versiontracker.config import get_config, Config
 from versiontracker.exceptions import (
     DataParsingError,
     HomebrewError,
@@ -90,7 +90,7 @@ def get_homebrew_casks() -> List[str]:
 
     try:
         # Get the brew path from config or use default
-        brew_path = getattr(config, "brew_path", BREW_PATH)
+        brew_path = getattr(get_config(), "brew_path", BREW_PATH)
 
         # Run brew list to get installed casks
         cmd = f"{brew_path} list --cask"
@@ -190,12 +190,12 @@ def get_applications_from_system_profiler(apps_data: Dict[str, Any]) -> List[Tup
             version = app.get("version", "")
 
             # Skip system applications if configured
-            if getattr(config, "skip_system_apps", True):
+            if getattr(get_config(), "skip_system_apps", True):
                 if app.get("obtained_from", "").lower() == "apple":
                     continue
 
             # Skip applications in system paths if configured
-            if getattr(config, "skip_system_paths", True):
+            if getattr(get_config(), "skip_system_paths", True):
                 app_path = app.get("path", "")
                 if app_path.startswith("/System/"):
                     continue
@@ -240,7 +240,7 @@ def get_homebrew_casks_list() -> List[str]:
         logging.info("Getting installed Homebrew casks")
 
         # Get brew path from config or use the discovered path
-        brew_command = getattr(config, "brew_path", BREW_PATH)
+        brew_command = getattr(get_config(), "brew_path", BREW_PATH)
         logging.debug("Using brew command: %s", brew_command)
 
         # Get list of casks
@@ -339,7 +339,7 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
                 return True
 
         # Check if cask is installable
-        brew_command = getattr(config, "brew_path", "brew")
+        brew_command = getattr(get_config(), "brew_path", "brew")
         # Use quotes around the cask name to handle special characters and spaces
         cmd = '%s search --cask "%s"' % (brew_command, cask_name)
         try:
@@ -392,9 +392,9 @@ def is_homebrew_available() -> bool:
             return False
 
         # First check if we have a cached brew path that works
-        if hasattr(config, "brew_path") and config.brew_path:
+        if hasattr(get_config(), "brew_path") and get_config().brew_path:
             try:
-                cmd = f"{config.brew_path} --version"
+                cmd = f"{get_config().brew_path} --version"
                 output, returncode = run_command(cmd, timeout=2)
                 if returncode == 0:
                     return True
@@ -418,8 +418,8 @@ def is_homebrew_available() -> bool:
                 output, returncode = run_command(cmd, timeout=2)
                 if returncode == 0:
                     # Store the working path in config
-                    if hasattr(config, "set"):
-                        config.set("brew_path", path)
+                    if hasattr(get_config(), "set"):
+                        get_config().set("brew_path", path)
                     # Update module constant
                     global BREW_PATH
                     BREW_PATH = path
@@ -554,7 +554,7 @@ def _process_brew_batch(
             logging.debug("Using default rate limit: %d second(s)", rate_limit_seconds)
 
         # Create rate limiter
-        if getattr(config, "ui", {}).get("adaptive_rate_limiting", False):
+        if getattr(get_config(), "ui", {}).get("adaptive_rate_limiting", False):
             rate_limiter = AdaptiveRateLimiter(
                 base_rate_limit_sec=float(rate_limit_seconds),
                 min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
@@ -665,7 +665,7 @@ def search_brew_cask(search_term: str) -> List[str]:
             return []
 
         # Get brew path from config or use default
-        brew_path = getattr(config, "brew_path", BREW_PATH)
+        brew_path = getattr(get_config(), "brew_path", BREW_PATH)
 
         # Escape search term for shell safety
         search_term_escaped = search_term.replace('"', '\\"').replace("'", "\\'")
@@ -714,7 +714,7 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Any) -> Optional[st
             return None
 
         # Get brew path and run search
-        brew_path = getattr(config, "brew_path", BREW_PATH)
+        brew_path = getattr(get_config(), "brew_path", BREW_PATH)
         search_term_escaped = search_term.replace('"', '\\"')
         brew_search = '%s search --casks "%s"' % (brew_path, search_term_escaped)
 
@@ -855,7 +855,7 @@ def check_brew_update_candidates(
 
     # Create rate limiter
     rate_limiter: RateLimiterType
-    if getattr(config, "ui", {}).get("adaptive_rate_limiting", False):
+    if getattr(get_config(), "ui", {}).get("adaptive_rate_limiting", False):
         rate_limiter = AdaptiveRateLimiter(
             base_rate_limit_sec=float(rate_limit_seconds),
             min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
@@ -872,8 +872,8 @@ def check_brew_update_candidates(
     installers: Dict[str, Dict[str, Union[str, float]]] = {}
 
     # Check if progress bars should be shown
-    show_progress = getattr(config, "show_progress", True)
-    if hasattr(config, "no_progress") and config.no_progress:
+    show_progress = getattr(get_config(), "show_progress", True)
+    if hasattr(get_config(), "no_progress") and get_config().no_progress:
         show_progress = False
 
     # Process batches

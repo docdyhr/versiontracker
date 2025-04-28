@@ -1,48 +1,53 @@
-"""Version management functionality for VersionTracker."""
+"""Version comparison and checking functionality for VersionTracker."""
 
-import concurrent.futures
+import ast
+import collections
+import datetime
 import functools
 import itertools
 import json
 import logging
-import multiprocessing
 import os
 import platform
 import re
-import subprocess
+import string
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
 from functools import lru_cache
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+try:
+    from packaging import version as packaging_version
+except ImportError:
+    packaging_version = None
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process as fuzz_process
+try:
+    from fuzzywuzzy import fuzz, process
+    from fuzzywuzzy.fuzz import partial_ratio as _partial_ratio
+    USE_RAPIDFUZZ = False
+except ImportError:
+    from rapidfuzz import fuzz, process
+    from rapidfuzz.fuzz import partial_ratio as _partial_ratio
+    USE_RAPIDFUZZ = True
 
-from versiontracker.config import config
+from versiontracker.config import get_config
 from versiontracker.exceptions import (
     DataParsingError,
+    HomebrewError,
     NetworkError,
     TimeoutError,
     VersionError,
 )
-from versiontracker.ui import print_error, print_warning, smart_progress
+from versiontracker.cache import read_cache, write_cache
+from versiontracker.ui import (
+    create_progress_bar,
+    print_error,
+    print_warning,
+)
 from versiontracker.utils import normalise_name, run_command
 
 # Attempt to import rapidfuzz for better performance if available
@@ -726,12 +731,12 @@ def check_outdated_apps(
         return []
 
     # Skip progress bar if explicitly disabled in config
-    show_progress = getattr(config, "show_progress", True)
-    if hasattr(config, "no_progress") and config.no_progress:
+    show_progress = getattr(get_config(), "show_progress", True)
+    if hasattr(get_config(), "no_progress") and get_config().no_progress:
         show_progress = False
 
     # Determine max workers - default to either CPU count or 4, whichever is lower
-    max_workers = min(multiprocessing.cpu_count(), getattr(config, "max_workers", 4))
+    max_workers = min(multiprocessing.cpu_count(), getattr(get_config(), "max_workers", 4))
 
     # Create batches for parallel processing
     batches = [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]

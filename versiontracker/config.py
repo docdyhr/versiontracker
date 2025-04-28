@@ -5,7 +5,7 @@ import os
 import platform
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, cast
 
 import yaml
 
@@ -120,8 +120,8 @@ class Config:
                 if returncode == 0:
                     logging.debug("Found working Homebrew at: %s", path)
                     return path
-            except Exception:
-                logging.debug("Failed to check Homebrew at %s", path)
+            except (FileNotFoundError, PermissionError, TimeoutError) as e:
+                logging.debug("Failed to check Homebrew at %s: %s", path, e)
                 continue
                 
         # Fallback to Intel path if nothing else works
@@ -133,7 +133,7 @@ class Config:
         config_path = Path(self._config["config_file"])
 
         if not config_path.exists():
-            logging.debug(f"Configuration file not found: {config_path}")
+            logging.debug("Configuration file not found: %s", config_path)
             return
 
         try:
@@ -144,7 +144,7 @@ class Config:
                 logging.debug("Configuration file is empty")
                 return
 
-            logging.debug(f"Loaded configuration from {config_path}")
+            logging.debug("Loaded configuration from %s", config_path)
 
             # Update configuration with values from file
             for key, value in yaml_config.items():
@@ -156,12 +156,12 @@ class Config:
                     if isinstance(value, list):
                         self._config[config_key] = value
                     else:
-                        logging.warning(f"Invalid value for {key} in config file: expected list")
+                        logging.warning("Invalid value for %s in config file: expected list", key)
                 else:
                     self._config[config_key] = value
 
-        except Exception as e:
-            logging.warning(f"Error loading configuration from {config_path}: {e}")
+        except (yaml.YAMLError, IOError) as e:
+            logging.warning("Error loading configuration from %s: %s", config_path, e)
 
     def _load_from_env(self) -> None:
         """Load configuration from environment variables."""
@@ -170,9 +170,7 @@ class Config:
             try:
                 self._config["api_rate_limit"] = int(os.environ["VERSIONTRACKER_API_RATE_LIMIT"])
             except ValueError:
-                logging.warning(
-                    f"Invalid API rate limit: {os.environ['VERSIONTRACKER_API_RATE_LIMIT']}"
-                )
+                logging.warning("Invalid API rate limit: %s", os.environ["VERSIONTRACKER_API_RATE_LIMIT"])
 
         # Debug mode
         if os.environ.get("VERSIONTRACKER_DEBUG", "").lower() in ("1", "true", "yes"):
@@ -183,7 +181,7 @@ class Config:
             try:
                 self._config["max_workers"] = int(os.environ["VERSIONTRACKER_MAX_WORKERS"])
             except ValueError:
-                logging.warning(f"Invalid max workers: {os.environ['VERSIONTRACKER_MAX_WORKERS']}")
+                logging.warning("Invalid max workers: %s", os.environ["VERSIONTRACKER_MAX_WORKERS"])
 
         # Similarity threshold
         if os.environ.get("VERSIONTRACKER_SIMILARITY_THRESHOLD"):
@@ -193,8 +191,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid similarity threshold: "
-                    f"{os.environ['VERSIONTRACKER_SIMILARITY_THRESHOLD']}"
+                    "Invalid similarity threshold: %s",
+                    os.environ["VERSIONTRACKER_SIMILARITY_THRESHOLD"]
                 )
 
         # Additional app directories
@@ -240,8 +238,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid version comparison rate limit: "
-                    f"{os.environ['VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT']}"
+                    "Invalid version comparison rate limit: %s",
+                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"]
                 )
 
         # Version comparison cache TTL
@@ -252,8 +250,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid version comparison cache TTL: "
-                    f"{os.environ['VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL']}"
+                    "Invalid version comparison cache TTL: %s",
+                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL"]
                 )
 
         # Version comparison similarity threshold
@@ -264,8 +262,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid version comparison similarity threshold: "
-                    f"{os.environ['VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD']}"
+                    "Invalid version comparison similarity threshold: %s",
+                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD"]
                 )
 
         # Version comparison include beta versions
@@ -298,8 +296,8 @@ class Config:
                 )
             except ValueError:
                 logging.warning(
-                    f"Invalid outdated detection minimum version difference: "
-                    f"{os.environ['VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF']}"
+                    "Invalid outdated detection minimum version difference: %s",
+                    os.environ["VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF"]
                 )
 
         # Outdated detection include pre-releases
@@ -446,7 +444,7 @@ class Config:
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(config_dict, f, default_flow_style=False)
 
-        logging.info(f"Generated configuration file: {config_path}")
+        logging.info("Generated configuration file: %s", config_path)
         return str(config_path)
 
 
@@ -477,7 +475,7 @@ def check_dependencies() -> bool:
 
 # Global configuration instance - we create a default instance that can be
 # replaced by any module that needs a custom configuration
-config = Config()
+_config_instance = Config()
 
 
 def get_config() -> Config:
@@ -486,7 +484,7 @@ def get_config() -> Config:
     Returns:
         Config: The global configuration instance
     """
-    return config
+    return _config_instance
 
 
 def setup_logging(debug: bool = False):
@@ -498,7 +496,7 @@ def setup_logging(debug: bool = False):
     log_level = logging.DEBUG if debug else logging.INFO
     
     # Ensure log directory exists
-    log_dir = config.log_dir
+    log_dir = get_config().log_dir
     if not log_dir.exists():
         log_dir.mkdir(parents=True, exist_ok=True)
     
@@ -519,5 +517,5 @@ def set_global_config(new_config: Config):
     Args:
         new_config: The new config instance to use globally
     """
-    global config
-    config = new_config
+    global _config_instance
+    _config_instance = new_config
