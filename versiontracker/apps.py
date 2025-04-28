@@ -1,127 +1,76 @@
 """Application management functionality for VersionTracker."""
 
 import concurrent.futures
-import functools
-import json
 import logging
-import multiprocessing
-import os
 import platform
-import re
-import shutil
-import subprocess
-import sys
-import tempfile
+import threading
 import time
-import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from functools import lru_cache, wraps
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from functools import lru_cache
+from typing import Any, Dict, List, Optional, Protocol, Tuple, TypeVar, Union, cast
 
-from packaging.version import parse as parse_pkg_version
-
-# Local application imports
 from versiontracker.cache import read_cache, write_cache
 from versiontracker.config import Config, config
 from versiontracker.exceptions import (
     DataParsingError,
     HomebrewError,
     NetworkError,
-    PermissionError,
-    TimeoutError,
+    BrewPermissionError,
+    BrewTimeoutError,
 )
-
-# Import our UI utilities
-from versiontracker.ui import (
-    AdaptiveRateLimiter,
-    colored,
-    create_progress_bar,
-    smart_progress,
-)
+from versiontracker.ui import AdaptiveRateLimiter
 from versiontracker.utils import normalise_name, run_command
+from versiontracker.version import partial_ratio
 
-# Import progress bar functionality
-HAS_PROGRESS = False
-try:
-    from tqdm.auto import tqdm
+# Type definitions
+T = TypeVar('T')
 
-    def apps_progress_bar(iterable, **kwargs):
-        """Wrapper for tqdm in apps module."""
-        return tqdm(iterable, **kwargs)
+# Rate limiter protocol
+class RateLimiter(Protocol):
+    """Protocol defining the interface for rate limiters."""
+    def wait(self) -> None: ...
 
-    HAS_PROGRESS = True
-except ImportError:
-    # Simple fallback if tqdm is not available
-    def apps_progress_bar(iterable, **kwargs):
-        """Simple progress bar fallback."""
-        return iterable
-
-
-# Import the partial_ratio compatibility function
-try:
-    from versiontracker.version import USE_RAPIDFUZZ, partial_ratio
-except ImportError:
-    # Fallback implementation if needed
-    def partial_ratio(s1, s2, **kwargs):
-        """Fallback implementation of partial_ratio.
-
-        Args:
-            s1: First string
-            s2: Second string
-
-        Returns:
-            int: Similarity score (0-100)
-        """
-        from fuzzywuzzy import fuzz
-
-        return fuzz.partial_ratio(s1, s2)
-
-
-# Define a simple rate limiter class
 class SimpleRateLimiter:
     """A simple rate limiter for API calls."""
-
     def __init__(self, delay: float):
-        """Initialize rate limiter with delay between operations.
+        self._delay = max(0.1, float(delay))
+        self._last_time = 0.0
+        self._lock = threading.Lock()
 
-        Args:
-            delay: Seconds to wait between operations
-        """
-        self.delay = delay
-        self.last_time = 0.0
+    def wait(self) -> None:
+        """Wait according to rate limiting rules."""
+        with self._lock:
+            now = time.time()
+            if self._last_time > 0:
+                elapsed = now - self._last_time
+                if elapsed < self._delay:
+                    time.sleep(self._delay - elapsed)
+            self._last_time = time.time()
 
-    def wait(self):
-        """Wait appropriately based on when wait() was last called."""
-        now = time.time()
-        if self.last_time > 0:
-            elapsed = now - self.last_time
-            if elapsed < self.delay:
-                time.sleep(self.delay - elapsed)
-        self.last_time = time.time()
+# Rate limiter type alias
+RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
 
+# Progress bar availability
+HAS_PROGRESS = True
+try:
+    from versiontracker.ui import smart_progress
+except ImportError:
+    HAS_PROGRESS = False
+    def smart_progress(iterable: Any, **kwargs) -> Any:
+        """Simple fallback for environments without smart_progress."""
+        return iterable
 
 # Command constants
 BREW_CMD = "brew list --cask"
 BREW_SEARCH = "brew search --casks"
-BREW_PATH = "brew"
+BREW_PATH = "brew"  # Will be updated based on architecture detection
 
-# Global cache for Homebrew search results
+# Global cache
 _brew_search_cache: Dict[str, List[str]] = {}
 _brew_casks_cache: Optional[List[str]] = None
 
 
-@functools.lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
 def get_homebrew_casks() -> List[str]:
     """Get a list of all installed Homebrew casks.
 
@@ -130,7 +79,7 @@ def get_homebrew_casks() -> List[str]:
 
     Raises:
         NetworkError: If there's a network issue connecting to Homebrew
-        TimeoutError: If the operation times out
+        BrewTimeoutError: If the operation times out
         HomebrewError: If there's an error with Homebrew
     """
     global _brew_casks_cache
@@ -148,8 +97,8 @@ def get_homebrew_casks() -> List[str]:
         output, returncode = run_command(cmd, timeout=30)
 
         if returncode != 0:
-            logging.warning(f"Error getting Homebrew casks: {output}")
-            raise HomebrewError(f"Failed to get Homebrew casks: {output}")
+            logging.warning("Error getting Homebrew casks: %s", output)
+            raise HomebrewError("Failed to get Homebrew casks: %s" % output)
 
         # Parse the output to extract cask names
         lines = output.split("\n")
@@ -162,14 +111,14 @@ def get_homebrew_casks() -> List[str]:
 
         return casks
     except NetworkError as e:
-        logging.error(f"Network error getting Homebrew casks: {e}")
+        logging.error("Network error getting Homebrew casks: %s", e)
         raise
-    except TimeoutError as e:
-        logging.error(f"Timeout getting Homebrew casks: {e}")
+    except BrewTimeoutError as e:
+        logging.error("Timeout getting Homebrew casks: %s", e)
         raise
     except Exception as e:
-        logging.error(f"Error getting Homebrew casks: {e}")
-        raise HomebrewError(f"Failed to get Homebrew casks: {e}")
+        logging.error("Error getting Homebrew casks: %s", e)
+        raise HomebrewError("Failed to get Homebrew casks") from e
 
 
 def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
@@ -261,7 +210,7 @@ def get_applications_from_system_profiler(apps_data: Dict[str, Any]) -> List[Tup
 
         return apps_list
     except Exception as e:
-        logging.error(f"Error parsing application data: {e}")
+        logging.error("Error parsing application data: %s", e)
         raise DataParsingError(f"Error parsing application data: {e}")
 
 
@@ -273,8 +222,8 @@ def get_homebrew_casks_list() -> List[str]:
 
     Raises:
         HomebrewError: If Homebrew is not available
-        PermissionError: If there's a permission error running brew
-        TimeoutError: If the brew command times out
+        BrewPermissionError: If there's a permission error running brew
+        BrewTimeoutError: If the brew command times out
     """
     # Fast path for non-homebrew systems
     if not is_homebrew_available():
@@ -292,59 +241,48 @@ def get_homebrew_casks_list() -> List[str]:
 
         # Get brew path from config or use the discovered path
         brew_command = getattr(config, "brew_path", BREW_PATH)
-        logging.debug(f"Using brew command: {brew_command}")
+        logging.debug("Using brew command: %s", brew_command)
 
         # Get list of casks
         cmd = f"{brew_command} list --cask"
-        logging.debug(f"Running command: {cmd}")
+        logging.debug("Running command: %s", cmd)
         output, returncode = run_command(cmd, timeout=30)
 
         # Check if the command succeeded
         if returncode != 0:
             # Try the alternate syntax if the command failed
             cmd = f"{brew_command} list --casks"
-            logging.debug(f"First command failed, trying alternate syntax: {cmd}")
+            logging.debug("First command failed, trying alternate syntax: %s", cmd)
             output, returncode = run_command(cmd, timeout=30)
 
             if returncode != 0:
-                logging.error(f"Error getting Homebrew casks: {output}")
-                raise HomebrewError(f"Failed to get Homebrew casks: {output}")
+                logging.error("Error getting Homebrew casks: %s", output)
+                raise HomebrewError("Failed to get Homebrew casks: %s" % output)
 
         # Also get formulas that might have GUIs
         cmd_formula = f"{brew_command} list --formula"
-        logging.debug(f"Running command: {cmd_formula}")
-        output_formula, returncode_formula = run_command(cmd_formula, timeout=30)
+        logging.debug("Running command: %s", cmd_formula)
+        output_formula, _ = run_command(cmd_formula, timeout=30)
 
-        # Combine casks and formulas
-        casks = (
-            [line.strip() for line in output.strip().split("\n") if line.strip()]
-            if output.strip()
-            else []
-        )
-        formulas = (
-            [line.strip() for line in output_formula.strip().split("\n") if line.strip()]
-            if output_formula.strip()
-            else []
-        )
+        # Parse outputs
+        casks = [line.strip() for line in output.strip().split("\n") if line.strip()]
+        formulas = [line.strip() for line in output_formula.strip().split("\n") if line.strip()]
 
         # Store in cache
         combined_list = casks + formulas
         write_cache("brew_casks", {"casks": combined_list})
 
-        logging.info(f"Found {len(casks)} casks and {len(formulas)} formulas")
+        logging.info("Found %d casks and %d formulas", len(casks), len(formulas))
         return combined_list
-    except FileNotFoundError as e:
-        logging.error(f"Homebrew not found: {e}")
-        raise HomebrewError("Homebrew is not installed or not in the PATH")
-    except PermissionError as e:
-        logging.error(f"Permission error accessing Homebrew: {e}")
+    except BrewPermissionError as e:
+        logging.error("Permission error accessing Homebrew: %s", e)
         raise
-    except TimeoutError as e:
-        logging.error(f"Timeout running Homebrew command: {e}")
+    except BrewTimeoutError as e:
+        logging.error("Timeout running Homebrew command: %s", e)
         raise
     except Exception as e:
-        logging.error(f"Error getting Homebrew casks: {e}")
-        raise HomebrewError(f"Failed to get Homebrew casks: {e}")
+        logging.error("Error getting Homebrew casks: %s", e)
+        raise HomebrewError("Failed to get Homebrew casks") from e
 
 
 def is_app_in_app_store(app_name: str, use_cache: bool = True) -> bool:
@@ -367,7 +305,7 @@ def is_app_in_app_store(app_name: str, use_cache: bool = True) -> bool:
         # Implementation TBD
         return False
     except Exception as e:
-        logging.warning(f"Error checking App Store for {app_name}: {e}")
+        logging.warning("Error checking App Store for %s: %s", app_name, e)
         return False
 
 
@@ -383,11 +321,11 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
 
     Raises:
         HomebrewError: If there is an error checking the cask
-        TimeoutError: If the brew search command times out
+        BrewTimeoutError: If the brew search command times out
         NetworkError: If there's a network issue during search
     """
     # Log debug info about which cask we're checking
-    logging.debug(f"Checking if {cask_name} is installable")
+    logging.debug("Checking if %s is installable", cask_name)
     try:
         # Fast path for non-homebrew systems
         if not is_homebrew_available():
@@ -403,7 +341,7 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
         # Check if cask is installable
         brew_command = getattr(config, "brew_path", "brew")
         # Use quotes around the cask name to handle special characters and spaces
-        cmd = f'{brew_command} search --cask "{cask_name}"'
+        cmd = '%s search --cask "%s"' % (brew_command, cask_name)
         try:
             output, returncode = run_command(cmd, timeout=30)
 
@@ -415,10 +353,10 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
                     return False
                 else:
                     # Log only for unexpected errors
-                    logging.warning(f"Error checking if {cask_name} is installable: {output}")
+                    logging.warning("Error checking if %s is installable: %s", cask_name, output)
                     return False
         except Exception as e:
-            logging.warning(f"Exception checking if {cask_name} is installable: {e}")
+            logging.warning("Exception checking if %s is installable: %s", cask_name, e)
             return False
 
         lines = output.strip().split("\n")
@@ -432,14 +370,14 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
                 return True
 
         return False
-    except TimeoutError as e:
-        logging.warning(f"Timeout checking if {cask_name} is installable: {e}")
+    except BrewTimeoutError as e:
+        logging.warning("Timeout checking if %s is installable: %s", cask_name, e)
         raise
     except Exception as e:
-        logging.warning(f"Error checking if {cask_name} is installable: {e}")
+        logging.warning("Error checking if %s is installable: %s", cask_name, e)
         if "Temporary failure in name resolution" in str(e):
             raise NetworkError("Network unavailable when checking homebrew casks")
-        raise HomebrewError(f"Error checking if {cask_name} is installable: {e}")
+        raise HomebrewError("Error checking if %s is installable: %s" % (cask_name, e))
 
 
 def is_homebrew_available() -> bool:
@@ -453,45 +391,47 @@ def is_homebrew_available() -> bool:
         if platform.system() != "Darwin":
             return False
 
-        # Try common Homebrew paths
-        # First check for an explicitly configured brew path in config
-        brew_path = None
+        # First check if we have a cached brew path that works
         if hasattr(config, "brew_path") and config.brew_path:
-            brew_path = config.brew_path
-        else:
-            # Check common paths based on CPU architecture
-            potential_paths = [
-                # M1/M2 Mac default location
-                "/opt/homebrew/bin/brew",
-                # Intel Mac default location
-                "/usr/local/bin/brew",
-                # Common aliases
-                "brew",
-            ]
+            try:
+                cmd = f"{config.brew_path} --version"
+                output, returncode = run_command(cmd, timeout=2)
+                if returncode == 0:
+                    return True
+            except Exception as e:
+                logging.debug("Cached brew path failed: %s", e)
 
-            for path in potential_paths:
-                try:
-                    cmd = f"{path} --version"
-                    output, returncode = run_command(cmd, timeout=2)
-                    if returncode == 0:
-                        brew_path = path
-                        # Store the found path in config for future use
-                        if hasattr(config, "set_brew_path"):
-                            config.set_brew_path(brew_path)
-                        break
-                except Exception:
-                    continue
+        # Define architecture-specific paths
+        is_arm = platform.machine().startswith('arm')
+        paths = [
+            "/opt/homebrew/bin/brew" if is_arm else "/usr/local/bin/brew",  # Primary path based on architecture
+            "/usr/local/bin/brew" if is_arm else "/opt/homebrew/bin/brew",  # Secondary path (cross-architecture)
+            "/usr/local/Homebrew/bin/brew",  # Alternative Intel location
+            "/homebrew/bin/brew",      # Custom installation
+            "brew"                     # PATH-based installation
+        ]
 
-        # If we found a working brew path
-        if brew_path:
-            # Store the found path as the module constant
-            global BREW_PATH
-            BREW_PATH = brew_path
-            return True
+        # Try each path
+        for path in paths:
+            try:
+                cmd = f"{path} --version"
+                output, returncode = run_command(cmd, timeout=2)
+                if returncode == 0:
+                    # Store the working path in config
+                    if hasattr(config, "set"):
+                        config.set("brew_path", path)
+                    # Update module constant
+                    global BREW_PATH
+                    BREW_PATH = path
+                    return True
+            except Exception as e:
+                logging.debug("Failed to check Homebrew at %s: %s", path, e)
+                continue
 
+        logging.warning("No working Homebrew installation found")
         return False
     except Exception as e:
-        logging.debug(f"Homebrew not available: {e}")
+        logging.debug("Error checking Homebrew availability: %s", e)
         return False
 
 
@@ -539,31 +479,31 @@ def check_brew_install_candidates(
             results.extend(batch_results)
             error_count = 0  # Reset error count on success
         except NetworkError as e:
-            logging.error(f"Network error processing batch: {e}")
+            logging.error("Network error processing batch: %s", e)
             error_count += 1
             if error_count >= max_errors:
-                raise NetworkError(f"Too many network errors ({error_count}), giving up")
+                raise NetworkError("Too many network errors (%d), giving up" % error_count)
             # Add all apps as not installable for this batch
             results.extend([(name, version, False) for name, version in batch])
-        except TimeoutError as e:
-            logging.error(f"Timeout processing batch: {e}")
+        except BrewTimeoutError as e:
+            logging.error("Timeout processing batch: %s", e)
             error_count += 1
             if error_count >= max_errors:
-                raise TimeoutError(f"Too many timeout errors ({error_count}), giving up")
+                raise BrewTimeoutError("Too many timeout errors (%d), giving up" % error_count)
             # Add all apps as not installable for this batch
             results.extend([(name, version, False) for name, version in batch])
         except HomebrewError as e:
-            logging.error(f"Homebrew error processing batch: {e}")
+            logging.error("Homebrew error processing batch: %s", e)
             error_count += 1
             if error_count >= max_errors:
                 raise
             # Add all apps as not installable for this batch
             results.extend([(name, version, False) for name, version in batch])
         except Exception as e:
-            logging.error(f"Error processing batch: {e}")
+            logging.error("Error processing batch: %s", e)
             error_count += 1
             if error_count >= max_errors:
-                raise HomebrewError(f"Too many errors ({error_count}), giving up")
+                raise HomebrewError("Too many errors (%d), giving up" % error_count)
             # Add all apps as not installable for this batch
             results.extend([(name, version, False) for name, version in batch])
 
@@ -586,7 +526,7 @@ def _process_brew_batch(
     Raises:
         HomebrewError: If there's an error with Homebrew operations
         NetworkError: If there's a network issue during checks
-        TimeoutError: If operations timeout
+        BrewTimeoutError: If operations timeout
     """
     batch_results: List[Tuple[str, str, bool]] = []
 
@@ -594,7 +534,6 @@ def _process_brew_batch(
     if not batch:
         return batch_results
 
-    # This statement is reachable
     try:
         # Check if Homebrew is available
         if not is_homebrew_available():
@@ -606,38 +545,23 @@ def _process_brew_batch(
             # Get rate limit value based on the type
             if isinstance(rate_limit, int):
                 rate_limit_seconds = rate_limit
-            # Object with api_rate_limit attribute
             elif hasattr(rate_limit, "api_rate_limit"):
                 if rate_limit.api_rate_limit is not None:
                     rate_limit_seconds = int(rate_limit.api_rate_limit)
-            # Dictionary-like object with get method
             elif hasattr(rate_limit, "get") and callable(getattr(rate_limit, "get")):
                 rate_limit_seconds = int(rate_limit.get("api_rate_limit", 1))
         except (AttributeError, ValueError, TypeError):
-            rate_limit_seconds = 1
-
-        # Import needed modules upfront
-        from typing import Union
-
-        from versiontracker.ui import AdaptiveRateLimiter
+            logging.debug("Using default rate limit: %d second(s)", rate_limit_seconds)
 
         # Create rate limiter
-        RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
-        def create_rate_limiter(delay: float) -> RateLimiterType:
-            return SimpleRateLimiter(float(delay))
-
-        # Use adaptive rate limiting if enabled in config
-        use_adaptive = getattr(config, "ui", {}).get("adaptive_rate_limiting", False)
-        if use_adaptive:
-            def create_rate_limiter(delay: float) -> RateLimiterType:
-                return AdaptiveRateLimiter(
-                    base_rate_limit_sec=float(delay),
-                    min_rate_limit_sec=max(0.1, float(delay) * 0.5),
-                    max_rate_limit_sec=float(delay) * 2.0,
-                )
-
-        # Create the rate limiter
-        api_rate_limiter: RateLimiterType = create_rate_limiter(rate_limit_seconds)
+        if getattr(config, "ui", {}).get("adaptive_rate_limiting", False):
+            rate_limiter = AdaptiveRateLimiter(
+                base_rate_limit_sec=float(rate_limit_seconds),
+                min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
+                max_rate_limit_sec=float(rate_limit_seconds) * 2.0,
+            )
+        else:
+            rate_limiter = SimpleRateLimiter(float(rate_limit_seconds))
 
         # Process applications in parallel
         with ThreadPoolExecutor(max_workers=rate_limit) as executor:
@@ -654,33 +578,33 @@ def _process_brew_batch(
                 try:
                     is_installable = future.result()
                     batch_results.append((name, version, is_installable))
-                except TimeoutError as e:
-                    logging.warning(f"Timeout checking {name}: {e}")
+                except BrewTimeoutError as e:
+                    logging.warning("Timeout checking %s: %s", name, e)
                     batch_results.append((name, version, False))
-                    raise
+                    raise BrewTimeoutError(f"Operation timed out while checking {name}") from e
                 except NetworkError as e:
-                    logging.warning(f"Network error checking {name}: {e}")
+                    logging.warning("Network error checking %s: %s", name, e)
                     batch_results.append((name, version, False))
-                    raise
+                    raise NetworkError(f"Network error while checking {name}") from e
                 except Exception as e:
                     # Check if this is a "No formulae or casks found" error which is expected
                     if "No formulae or casks found" in str(e):
-                        # Still log it, but as a detailed warning so it goes to the log file
-                        logging.warning(f"Expected error checking if {name} is installable: {e}")
+                        logging.debug("No formulae found for %s: %s", name, e)
                         batch_results.append((name, version, False))
                     else:
-                        # Log warnings for unexpected errors
-                        logging.warning(f"Error checking {name}: {e}")
+                        logging.warning("Error checking %s: %s", name, e)
                         batch_results.append((name, version, False))
                     # Don't re-raise here to allow other apps to be processed
 
         return batch_results
+
+    except NetworkError:
+        raise  # Re-raise network errors for special handling
+    except BrewTimeoutError:
+        raise  # Re-raise timeout errors for special handling
     except Exception as e:
-        logging.error(f"Error processing brew batch: {e}")
-        # Re-raise network and timeout errors for special handling
-        if isinstance(e, (NetworkError, TimeoutError)):
-            raise
-        raise HomebrewError(f"Error checking Homebrew installability: {e}")
+        logging.error("Error processing brew batch: %s", e)
+        raise HomebrewError("Error checking Homebrew installability") from e
 
 
 def filter_out_brews(
@@ -745,13 +669,13 @@ def search_brew_cask(search_term: str) -> List[str]:
 
         # Escape search term for shell safety
         search_term_escaped = search_term.replace('"', '\\"').replace("'", "\\'")
-        cmd = f'{brew_path} search --casks "{search_term_escaped}"'
+        cmd = '%s search --casks "%s"' % (brew_path, search_term_escaped)
 
-        logging.debug(f"Running search command: {cmd}")
+        logging.debug("Running search command: %s", cmd)
         output, return_code = run_command(cmd, timeout=30)
 
         if return_code != 0:
-            logging.warning(f"Homebrew search failed with code {return_code}: {output}")
+            logging.warning("Homebrew search failed with code %d: %s", return_code, output)
             return []
 
         # Process the output
@@ -765,7 +689,7 @@ def search_brew_cask(search_term: str) -> List[str]:
 
         return results
     except Exception as e:
-        logging.error(f"Error searching Homebrew: {e}")
+        logging.error("Error searching Homebrew: %s", e)
         return []
 
 
@@ -773,11 +697,11 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Any) -> Optional[st
     """Process a single brew search for an application.
 
     Args:
-        app (Tuple[str, str]): The application (name, version) to search for
-        rate_limiter (Any): Rate limiter for API calls
+        app: The application (name, version) to search for
+        rate_limiter: Rate limiter for API calls
 
     Returns:
-        Optional[str]: The application name if it can be installed with Homebrew, None otherwise
+        Optional[str]: The application name if installable with Homebrew, None otherwise
     """
     try:
         # Wait for rate limit if needed
@@ -786,29 +710,29 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Any) -> Optional[st
 
         # Normalize the app name for search
         search_term = normalise_name(app[0])
-
-        # Skip empty search terms
         if not search_term:
             return None
 
-        # Use double quotes and escape any internal quotes to avoid shell syntax errors
+        # Get brew path and run search
+        brew_path = getattr(config, "brew_path", BREW_PATH)
         search_term_escaped = search_term.replace('"', '\\"')
-        brew_path = getattr(config, "brew_path", "brew")
-        brew_search = f'{brew_path} search --casks "{search_term_escaped}"'
+        brew_search = '%s search --casks "%s"' % (brew_path, search_term_escaped)
 
         try:
             stdout, return_code = run_command(brew_search)
-            # Only process if command was successful
             if return_code == 0:
-                # Filter out header lines
                 response = [item for item in stdout.splitlines() if item and "==>" not in item]
             else:
+                # Log with % formatting
+                logging.warning("Homebrew search failed with code %d: %s", return_code, stdout)
                 response = []
-        except Exception:
-            # Fall back to cached function if direct call fails
+        except Exception as e:
+            # Log with % formatting
+            logging.warning("Command failed, falling back to cached search: %s", e)
             response = search_brew_cask(app[0])
 
-        logging.debug("\tBREW SEARCH: %s", response)
+        # Log with % formatting
+        logging.debug("Brew search results: %s", response)
 
         # Check if any brew matches the app name
         for brew in response:
@@ -816,7 +740,8 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Any) -> Optional[st
                 return app[0]
 
     except Exception as e:
-        logging.error(f"Error searching for {app[0]}: {e}")
+        # Log with % formatting
+        logging.error("Error searching for %s: %s", app[0], e)
 
     return None
 
@@ -884,24 +809,19 @@ def _batch_process_brew_search(
                         break
 
         except Exception as e:
-            logging.error(f"Error searching for {app_name}: {e}")
+            logging.error("Error searching for %s: %s", app_name, e)
 
     return results
 
 
 def check_brew_update_candidates(
-    data: List[Tuple[str, str]],
-    rate_limit: Union[int, "Config"] = 2,
-    similarity_threshold: int = 75,
+    data: List[Tuple[str, str]], rate_limit: Union[int, Config] = 2
 ) -> Dict[str, Dict[str, Union[str, float]]]:
     """Check which Homebrew formulae might be used to update installed applications.
-
-    This is a version that focuses on finding updates for already installed applications.
 
     Args:
         data: List of (name, version) tuples for installed applications
         rate_limit: Rate limit in seconds or Config object
-        similarity_threshold: Threshold for name matching (0-100)
 
     Returns:
         Dict[str, Dict[str, Union[str, float]]]: Dictionary of applications with matching Homebrew formulae
@@ -912,29 +832,13 @@ def check_brew_update_candidates(
     # Get installed casks for checking against strict filtering
     existing_brews: List[str] = []
     try:
-        # Use the get_homebrew_casks_list function we've already fixed
         existing_brews = [brew.lower() for brew in get_homebrew_casks_list()]
     except HomebrewError as e:
-        logging.error(f"Error getting installed casks: {e}")
+        logging.error("Error getting installed casks: %s", e)
     except Exception as e:
-        logging.error(f"Error getting installed casks: {e}")
+        logging.error("Error getting installed casks: %s", e)
 
     # Set up rate limiter
-    rate_limit_seconds = 1  # Default
-    if isinstance(rate_limit, int):
-        rate_limit_seconds = rate_limit
-    else:
-        # Try to get from config object
-        try:
-            if hasattr(rate_limit, "api_rate_limit"):
-                rate_limit_seconds = int(rate_limit.api_rate_limit)
-            elif hasattr(rate_limit, "get"):
-                rate_limit_seconds = int(rate_limit.get("api_rate_limit", 1))
-        except (ValueError, TypeError, AttributeError):
-            # If conversion fails, use default
-            rate_limit_seconds = 1
-
-    # Initialize rate limiting based on configuration
     rate_limit_seconds = 1  # Default
     if isinstance(rate_limit, int):
         rate_limit_seconds = rate_limit
@@ -948,35 +852,17 @@ def check_brew_update_candidates(
             rate_limit_seconds = int(rate_limit.get("api_rate_limit", 1))
         except (AttributeError, ValueError, TypeError):
             rate_limit_seconds = 1
-    else:
-        # Default fallback
-        rate_limit_seconds = 1
-
-    # Import needed modules upfront
-    from typing import Union
-
-    from versiontracker.ui import AdaptiveRateLimiter
 
     # Create rate limiter
-    RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
-    def create_rate_limiter(delay: float) -> RateLimiterType:
-        return SimpleRateLimiter(float(delay))
-
-    # Use adaptive rate limiting if enabled in config
-    use_adaptive = getattr(config, "ui", {}).get("adaptive_rate_limiting", False)
-    if use_adaptive:
-        def create_rate_limiter(delay: float) -> RateLimiterType:
-            return AdaptiveRateLimiter(
-                base_rate_limit_sec=float(delay),
-                min_rate_limit_sec=max(0.1, float(delay) * 0.5),
-                max_rate_limit_sec=float(delay) * 2.0,
-            )
-
-    # Create the rate limiter
-    api_rate_limiter: RateLimiterType = create_rate_limiter(rate_limit_seconds)
-
-    # Clear cache if needed (optimization)
-    # _cached_brew_search.cache_clear()
+    rate_limiter: RateLimiterType
+    if getattr(config, "ui", {}).get("adaptive_rate_limiting", False):
+        rate_limiter = AdaptiveRateLimiter(
+            base_rate_limit_sec=float(rate_limit_seconds),
+            min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
+            max_rate_limit_sec=float(rate_limit_seconds) * 2.0,
+        )
+    else:
+        rate_limiter = SimpleRateLimiter(float(rate_limit_seconds))
 
     # Create batches for parallel processing
     batches = [data[i : i + 5] for i in range(0, len(data), 5)]
@@ -990,11 +876,10 @@ def check_brew_update_candidates(
     if hasattr(config, "no_progress") and config.no_progress:
         show_progress = False
 
-    # Use ThreadPoolExecutor for parallel processing
+    # Process batches
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit batch processing tasks
         future_to_batch = {
-            executor.submit(_batch_process_brew_search, batch, api_rate_limiter): batch
+            executor.submit(_batch_process_brew_search, batch, rate_limiter): batch
             for batch in batches
         }
 
@@ -1008,27 +893,24 @@ def check_brew_update_candidates(
                 unit="batch",
                 monitor_resources=True,
                 ncols=80,
-                bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]",
             ):
-                batch = future_to_batch[future]
                 try:
                     batch_results = future.result()
                     for result in batch_results:
                         if result and result.lower() not in existing_brews:
                             installers[result] = {"version": "", "similarity": 0.0}
                 except Exception as e:
-                    logging.error(f"Error processing batch: {e}")
+                    logging.error("Error processing batch: %s", e)
         else:
             # Process without progress bar
             for future in concurrent.futures.as_completed(future_to_batch):
-                batch = future_to_batch[future]
                 try:
                     batch_results = future.result()
                     for result in batch_results:
                         if result and result.lower() not in existing_brews:
                             installers[result] = {"version": "", "similarity": 0.0}
                 except Exception as e:
-                    logging.error(f"Error processing batch: {e}")
+                    logging.error("Error processing batch: %s", e)
 
     # Get versions for installable casks
     for cask in installers:
@@ -1037,7 +919,7 @@ def check_brew_update_candidates(
             if version:
                 installers[cask]["version"] = version
         except Exception as e:
-            logging.error(f"Error getting version for {cask}: {e}")
+            logging.error("Error getting version for %s: %s", cask, e)
 
     return installers
 
@@ -1053,7 +935,7 @@ def get_cask_version(cask_name: str) -> Optional[str]:
 
     Raises:
         NetworkError: If there's a network issue connecting to Homebrew
-        TimeoutError: If the operation times out
+        BrewTimeoutError: If the operation times out
         HomebrewError: If there's an error with Homebrew
     """
     try:
@@ -1064,7 +946,7 @@ def get_cask_version(cask_name: str) -> Optional[str]:
         output, returncode = run_command(cmd, timeout=30)
 
         if returncode != 0:
-            logging.warning(f"Error getting cask info for {cask_name}: {output}")
+            logging.warning("Error getting cask info for %s: %s", cask_name, output)
             return None
 
         # Parse the output to extract version
@@ -1078,11 +960,11 @@ def get_cask_version(cask_name: str) -> Optional[str]:
 
         return None
     except NetworkError as e:
-        logging.error(f"Network error getting cask version for {cask_name}: {e}")
+        logging.error("Network error getting cask version for %s: %s", cask_name, e)
         raise
-    except TimeoutError as e:
-        logging.error(f"Timeout getting cask version for {cask_name}: {e}")
+    except BrewTimeoutError as e:
+        logging.error("Timeout getting cask version for %s: %s", cask_name, e)
         raise
     except Exception as e:
-        logging.error(f"Error getting cask version for {cask_name}: {e}")
-        raise HomebrewError(f"Failed to get cask version for {cask_name}: {e}")
+        logging.error("Error getting cask version for %s: %s", cask_name, e)
+        raise HomebrewError("Failed to get cask version for %s: %s" % (cask_name, e))

@@ -236,7 +236,11 @@ def export_to_csv(data, filename=None):
     Returns:
         str: The exported data as a CSV string or filename
     """
-    content = _export_to_csv(data)
+    try:
+        content = _export_to_csv(data)
+    except Exception as e:
+        logging.error(f"Error exporting to CSV: {e}")
+        raise ExportError(f"Failed to export to CSV: {e}")
 
     if filename:
         try:

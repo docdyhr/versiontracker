@@ -1,67 +1,57 @@
 """Custom exceptions for VersionTracker."""
 
-
 class VersionTrackerError(Exception):
     """Base exception for all VersionTracker errors."""
-
     pass
-
 
 class NetworkError(VersionTrackerError):
-    """Raised when a network operation fails."""
-
+    """Network-related errors."""
     pass
-
-
-class TimeoutError(NetworkError):
-    """Raised when a network operation times out."""
-
-    pass
-
-
-class PermissionError(VersionTrackerError):
-    """Raised when a permission-related operation fails."""
-
-    pass
-
-
-class ConfigError(VersionTrackerError):
-    """Raised when there's an issue with the configuration."""
-
-    pass
-
-
-class DataParsingError(VersionTrackerError):
-    """Raised when there's an issue parsing data."""
-
-    pass
-
-
-class VersionError(VersionTrackerError):
-    """Raised when there's an issue with version comparison or parsing."""
-
-    pass
-
 
 class HomebrewError(VersionTrackerError):
-    """Raised when there's an issue with Homebrew operations."""
-
+    """Homebrew-related errors."""
     pass
 
+class DataParsingError(VersionTrackerError):
+    """Data parsing errors."""
+    pass
+
+class ConfigError(VersionTrackerError):
+    """Configuration errors."""
+    pass
+
+# Redefine built-in errors to avoid conflicts
+class BrewPermissionError(HomebrewError):
+    """Permission errors when accessing Homebrew."""
+    pass
+
+class BrewTimeoutError(NetworkError):
+    """Timeout errors when accessing Homebrew."""
+    pass
+
+# Add missing exception classes
+class CacheError(VersionTrackerError):
+    """Cache-related errors."""
+    pass
 
 class ExportError(VersionTrackerError):
-    """Raised when there's an issue exporting data."""
-
+    """Export-related errors."""
     pass
 
-
-class CacheError(VersionTrackerError):
-    """Raised when there's an issue with the cache."""
-
-    pass
-
-
+# Add custom versions of built-in exceptions that are used in utils.py
 class FileNotFoundError(VersionTrackerError):
-    """Raised when a file or command is not found."""
+    """File not found errors."""
+    pass
 
+class PermissionError(VersionTrackerError):
+    """Permission errors."""
+    pass
+
+class TimeoutError(VersionTrackerError):
+    """Timeout errors."""
+    pass
+
+# Add VersionError for version.py
+class VersionError(VersionTrackerError):
+    """Version-related errors."""
     pass

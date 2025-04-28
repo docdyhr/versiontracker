@@ -5,11 +5,14 @@ import os
 import platform
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import yaml
 
 from versiontracker.exceptions import ConfigError
+from versiontracker.utils import run_command
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -97,12 +100,33 @@ class Config:
         Returns:
             str: The path to the brew executable
         """
-        apple_silicon_path = "/opt/homebrew/bin/brew"
-        intel_path = "/usr/local/bin/brew"
-
-        if Path(apple_silicon_path).exists():
-            return apple_silicon_path
-        return intel_path
+        # Define all possible Homebrew paths
+        paths = [
+            "/opt/homebrew/bin/brew",  # Apple Silicon default
+            "/usr/local/bin/brew",     # Intel default
+            "/usr/local/Homebrew/bin/brew",  # Alternative Intel location
+            "/homebrew/bin/brew",      # Custom installation
+            "brew"                     # PATH-based installation
+        ]
+        
+        # First try the architecture-appropriate path
+        is_arm = platform.machine().startswith('arm')
+        prioritized_paths = paths if is_arm else [paths[1]] + [p for p in paths if p != paths[1]]
+        
+        for path in prioritized_paths:
+            try:
+                cmd = f"{path} --version"
+                _, returncode = run_command(cmd, timeout=2)
+                if returncode == 0:
+                    logging.debug("Found working Homebrew at: %s", path)
+                    return path
+            except Exception:
+                logging.debug("Failed to check Homebrew at %s", path)
+                continue
+                
+        # Fallback to Intel path if nothing else works
+        logging.warning("No working Homebrew found, falling back to default Intel path")
+        return "/usr/local/bin/brew"
 
     def _load_from_file(self) -> None:
         """Load configuration from YAML configuration file."""
