@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error handling in logging statements
 - Updated global config instance name for better encapsulation
 - Fixed f-string usage in logging statements to use proper string formatting
+- Resolved dependency issues by ensuring all required packages were installed
 
 ## [0.6.3] - 2025-04-01
 
