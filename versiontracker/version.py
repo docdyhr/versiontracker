@@ -2,18 +2,21 @@
 
 import ast
 import collections
-import datetime
+import concurrent.futures
 import functools
 import itertools
 import json
 import logging
+import multiprocessing
 import os
 import platform
 import re
 import string
+import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
@@ -26,11 +29,11 @@ except ImportError:
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
 try:
-    from fuzzywuzzy import fuzz, process
+    from fuzzywuzzy import fuzz, process as fuzz_process
     from fuzzywuzzy.fuzz import partial_ratio as _partial_ratio
     USE_RAPIDFUZZ = False
 except ImportError:
-    from rapidfuzz import fuzz, process
+    from rapidfuzz import fuzz, process as fuzz_process
     from rapidfuzz.fuzz import partial_ratio as _partial_ratio
     USE_RAPIDFUZZ = True
 
@@ -47,6 +50,7 @@ from versiontracker.ui import (
     create_progress_bar,
     print_error,
     print_warning,
+    smart_progress,
 )
 from versiontracker.utils import normalise_name, run_command
 
@@ -681,8 +685,11 @@ def similarity_score(s1: str, s2: str, score_cutoff: Optional[int] = None) -> in
     if s1 == s2:
         return 100
 
-    # Use similarity_score function
-    return similarity_score(s1, s2, score_cutoff)
+    # Use fuzz.ratio or rapidfuzz equivalent
+    if USE_RAPIDFUZZ:
+        return int(fuzz.ratio(s1, s2, score_cutoff=score_cutoff if score_cutoff else 0))
+    else:
+        return int(fuzz.ratio(s1, s2))
 
 
 def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:

@@ -116,6 +116,9 @@ def get_homebrew_casks() -> List[str]:
     except BrewTimeoutError as e:
         logging.error("Timeout getting Homebrew casks: %s", e)
         raise
+    except HomebrewError:
+        # Re-raise HomebrewError without modification
+        raise
     except Exception as e:
         logging.error("Error getting Homebrew casks: %s", e)
         raise HomebrewError("Failed to get Homebrew casks") from e
@@ -211,7 +214,7 @@ def get_applications_from_system_profiler(apps_data: Dict[str, Any]) -> List[Tup
         return apps_list
     except Exception as e:
         logging.error("Error parsing application data: %s", e)
-        raise DataParsingError(f"Error parsing application data: {e}")
+        raise DataParsingError("Error parsing application data: %s" % e) from e
 
 
 def get_homebrew_casks_list() -> List[str]:
@@ -376,8 +379,8 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
     except Exception as e:
         logging.warning("Error checking if %s is installable: %s", cask_name, e)
         if "Temporary failure in name resolution" in str(e):
-            raise NetworkError("Network unavailable when checking homebrew casks")
-        raise HomebrewError("Error checking if %s is installable: %s" % (cask_name, e))
+            raise NetworkError("Network unavailable when checking homebrew casks") from e
+        raise HomebrewError("Error checking if %s is installable: %s" % (cask_name, e)) from e
 
 
 def is_homebrew_available() -> bool:
@@ -506,6 +509,8 @@ def check_brew_install_candidates(
                 raise HomebrewError("Too many errors (%d), giving up" % error_count)
             # Add all apps as not installable for this batch
             results.extend([(name, version, False) for name, version in batch])
+            # Add all apps as not installable for this batch
+            results.extend([(name, version, False) for name, version in batch])
 
     return results
 
@@ -601,7 +606,10 @@ def _process_brew_batch(
     except NetworkError:
         raise  # Re-raise network errors for special handling
     except BrewTimeoutError:
-        raise  # Re-raise timeout errors for special handling
+        raise  # Re-raise timeout errors for special handling 
+    except HomebrewError:
+        # Re-raise HomebrewError without modification
+        raise
     except Exception as e:
         logging.error("Error processing brew batch: %s", e)
         raise HomebrewError("Error checking Homebrew installability") from e
@@ -965,6 +973,9 @@ def get_cask_version(cask_name: str) -> Optional[str]:
     except BrewTimeoutError as e:
         logging.error("Timeout getting cask version for %s: %s", cask_name, e)
         raise
+    except HomebrewError:
+        # Re-raise HomebrewError without modification
+        raise
     except Exception as e:
         logging.error("Error getting cask version for %s: %s", cask_name, e)
-        raise HomebrewError("Failed to get cask version for %s: %s" % (cask_name, e))
+        raise HomebrewError("Failed to get cask version for %s: %s" % (cask_name, e)) from e
