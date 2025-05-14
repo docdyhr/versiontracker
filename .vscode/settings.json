@@ -4,5 +4,7 @@
     "python.linting.ruffEnabled": true,
     "python.formatting.provider": "ruff",
     "python.linting.enabled": true,
-    "code-runner.ignoreSelection": true
+    "code-runner.ignoreSelection": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }
