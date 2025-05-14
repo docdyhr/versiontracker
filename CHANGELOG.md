@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated global config instance name for better encapsulation
 - Fixed f-string usage in logging statements to use proper string formatting
 - Resolved dependency issues by ensuring all required packages were installed
+- Fixed exception order issues in multiple try-except blocks (bad-except-order)
+- Added missing 'from e' clauses to exception re-raising statements
+- Fixed various linting warnings to improve code quality
 
 ## [0.6.3] - 2025-04-01
 

@@ -11,6 +11,7 @@ This document outlines planned review, enhancements, known bugs, and potential o
 - [x] Fix config import errors in apps.py and version.py
 - [x] Fix test failures by ensuring all dependencies are properly installed
 - [x] Ensure all tests are passing
+- [x] Fix linting issues (bad-except-order, raise-missing-from, f-strings) in apps.py and version.py
 
 ## Features to Implement
 
