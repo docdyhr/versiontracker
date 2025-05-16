@@ -12,7 +12,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Union
 
 
 class DocstringInfo(NamedTuple):
@@ -36,8 +36,10 @@ def extract_docstring(node: ast.AST) -> Optional[str]:
     Returns:
         The docstring if it exists, None otherwise
     """
-    docstring = ast.get_docstring(node)
-    return docstring
+    if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)):
+        docstring = ast.get_docstring(node)
+        return docstring
+    return None
 
 
 def has_section(docstring: str, section_name: str) -> bool:
@@ -200,7 +202,7 @@ def analyze_directory(directory: Path, exclude_dirs: List[str] = None) -> Dict[P
     
     for root, dirs, files in os.walk(directory):
         # Skip excluded directories
-        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        dirs[:] = [d for d in dirs if d not in (exclude_dirs or [])]
         
         for file in files:
             if file.endswith('.py'):
@@ -273,7 +275,7 @@ def format_results(results: Dict[Path, List[DocstringInfo]], show_all: bool = Fa
     
     # Add summary
     total_files = len(results)
-    report_lines.append(f"\nSummary:")
+    report_lines.append("\nSummary:")
     report_lines.append(f"- Analyzed {total_files} Python files")
     report_lines.append(f"- Found {file_count} files with docstring issues")
     report_lines.append(f"- Found {problem_count} total docstring issues")

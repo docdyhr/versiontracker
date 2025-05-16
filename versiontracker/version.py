@@ -1,27 +1,18 @@
 """Version comparison and checking functionality for VersionTracker."""
 
-import ast
-import collections
+# Standard library imports
 import concurrent.futures
-import functools
-import itertools
-import json
 import logging
 import multiprocessing
-import os
-import platform
 import re
-import string
 import subprocess
-import sys
-import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, auto
-from functools import lru_cache
-from pathlib import Path
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
+
+# Optional dependency imports with fallbacks
 # Import packaging version if available, otherwise create a stub
 try:
     from packaging import version as packaging_version
@@ -36,8 +27,6 @@ except ImportError:
             return version_string
     
     packaging_version = _PackagingVersionStub('packaging.version')
-
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
 # Try to import fuzzy matching libraries with fallbacks
 USE_RAPIDFUZZ = False
@@ -55,20 +44,51 @@ except ImportError:
     except ImportError:
         # Create minimal fallback implementations if neither library is available
         class MinimalFuzz:
+            """Minimal implementation of fuzzy matching when no library is available."""
+            
             @staticmethod
-            def ratio(s1, s2, **kwargs):
-                """Minimal implementation of ratio."""
+            def ratio(s1: str, s2: str, **kwargs) -> int:
+                """Calculate the ratio of similarity between two strings.
+                
+                Args:
+                    s1: First string
+                    s2: Second string
+                    **kwargs: Additional arguments (ignored)
+                    
+                Returns:
+                    Similarity score from 0-100
+                """
                 return 100 if s1 == s2 else 0
                 
             @staticmethod
-            def partial_ratio(s1, s2, **kwargs):
-                """Minimal implementation of partial_ratio."""
+            def partial_ratio(s1: str, s2: str, **kwargs) -> int:
+                """Calculate partial ratio between two strings.
+                
+                Args:
+                    s1: First string
+                    s2: Second string
+                    **kwargs: Additional arguments (ignored)
+                    
+                Returns:
+                    Partial similarity score from 0-100
+                """
                 return 100 if s1 in s2 or s2 in s1 else 0
         
         class MinimalProcess:
+            """Minimal implementation of fuzzy process matching when no library is available."""
+            
             @staticmethod
-            def extractOne(query, choices, **kwargs):
-                """Simple implementation to find best match."""
+            def extractOne(query: str, choices: List[str], **kwargs) -> Optional[Tuple[str, int]]:
+                """Find the best match for query among choices.
+                
+                Args:
+                    query: The string to match
+                    choices: List of possible matches
+                    **kwargs: Additional arguments (ignored)
+                    
+                Returns:
+                    Tuple of (best_match, score) or None if no choices
+                """
                 if not choices:
                     return None
                 
@@ -93,22 +113,15 @@ except ImportError:
         fuzz_process = MinimalProcess()
         _partial_ratio = fuzz.partial_ratio
 
+# Internal imports
 from versiontracker.config import get_config
 from versiontracker.exceptions import (
-    DataParsingError,
-    HomebrewError,
     NetworkError,
     TimeoutError,
     VersionError,
 )
-from versiontracker.cache import read_cache, write_cache
-from versiontracker.ui import (
-    create_progress_bar,
-    print_error,
-    print_warning,
-    smart_progress,
-)
-from versiontracker.utils import normalise_name, run_command
+from versiontracker.ui import smart_progress
+from versiontracker.utils import normalise_name
 
 # Set up progress bar support
 HAS_VERSION_PROGRESS = False
@@ -118,13 +131,26 @@ try:
 except ImportError:
     # Create a minimal progress bar fallback
     class MinimalTqdm:
+        """Minimal implementation of tqdm progress bar when the library is not available."""
+        
         def __init__(self, iterable=None, **kwargs):
+            """Initialize minimal progress bar.
+            
+            Args:
+                iterable: Iterable to wrap with progress reporting
+                **kwargs: Additional arguments like desc (description)
+            """
             self.iterable = iterable
             self.total = len(iterable) if iterable is not None else None
             self.n = 0
             self.desc = kwargs.get('desc', '')
         
         def __iter__(self):
+            """Iterate through items with progress updates.
+            
+            Yields:
+                Items from the wrapped iterable
+            """
             for item in self.iterable:
                 self.n += 1
                 if self.n % 10 == 0:
@@ -133,9 +159,15 @@ except ImportError:
             print("\rCompleted", " " * 30)
         
         def update(self, n=1):
+            """Update progress by n steps.
+            
+            Args:
+                n: Number of steps to increment
+            """
             self.n += n
         
         def close(self):
+            """Close the progress bar."""
             pass
     
     tqdm = MinimalTqdm
@@ -145,15 +177,17 @@ except ImportError:
 # Create a compatibility function for partial_ratio
 def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
     """Get the partial ratio between two strings.
-    Provides compatibility between rapidfuzz and fuzzywuzzy.
+    
+    Provides compatibility between rapidfuzz and fuzzywuzzy, with fallbacks.
+    Uses the appropriate function based on which library is available.
 
     Args:
-        s1: First string
-        s2: Second string
+        s1: First string to compare
+        s2: Second string to compare
         score_cutoff: Optional score cutoff (only used with rapidfuzz)
 
     Returns:
-        int: Similarity score (0-100)
+        int: Similarity score (0-100) where 100 means identical
     """
     if not s1 or not s2:
         return 0
@@ -277,6 +311,15 @@ class VersionInfo:
             Optional[Tuple[int, ...]]: Latest parsed version tuple or None
         """
         return self._latest_parsed
+        
+    @latest_parsed.setter
+    def latest_parsed(self, value: Optional[Tuple[int, ...]]) -> None:
+        """Set the latest parsed version.
+        
+        Args:
+            value: Latest parsed version tuple
+        """
+        self._latest_parsed = value
 
     @property
     def outdated_by(self) -> Optional[Tuple[int, ...]]:
@@ -286,10 +329,22 @@ class VersionInfo:
             Optional[Tuple[int, ...]]: Version difference or None
         """
         return self._outdated_by
+        
+    @outdated_by.setter
+    def outdated_by(self, value: Optional[Tuple[int, ...]]) -> None:
+        """Set the version difference.
+        
+        Args:
+            value: Version difference tuple
+        """
+        self._outdated_by = value
 
 
 # Add a precompiled regex pattern cache for better performance
-@functools.lru_cache(maxsize=32)
+# Imported lru_cache at the top of the file
+from functools import lru_cache
+
+@lru_cache(maxsize=256)
 def get_compiled_pattern(pattern: str) -> re.Pattern:
     """Get a compiled regular expression pattern.
 
@@ -783,6 +838,34 @@ def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:
     return 0.0
 
 
+def _get_config_settings() -> Tuple[bool, int]:
+    """Get configuration settings for progress display and worker count.
+    
+    Returns:
+        Tuple of (show_progress, max_workers)
+    """
+    # Check if progress display is enabled
+    show_progress = getattr(get_config(), "show_progress", True)
+    if hasattr(get_config(), "no_progress") and get_config().no_progress:
+        show_progress = False
+        
+    # Determine max workers - default to either CPU count or 4, whichever is lower
+    max_workers = min(multiprocessing.cpu_count(), getattr(get_config(), "max_workers", 4))
+    
+    return show_progress, max_workers
+
+def _create_app_batches(apps: List[Tuple[str, str]], batch_size: int) -> List[List[Tuple[str, str]]]:
+    """Split applications into batches for parallel processing.
+    
+    Args:
+        apps: List of applications with name and version
+        batch_size: Size of each batch
+        
+    Returns:
+        List of application batches
+    """
+    return [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]
+
 def check_outdated_apps(
     apps: List[Tuple[str, str]], batch_size: int = 50
 ) -> List[Tuple[str, Dict[str, str], VersionStatus]]:
@@ -803,16 +886,11 @@ def check_outdated_apps(
     if not apps:
         return []
 
-    # Skip progress bar if explicitly disabled in config
-    show_progress = getattr(get_config(), "show_progress", True)
-    if hasattr(get_config(), "no_progress") and get_config().no_progress:
-        show_progress = False
-
-    # Determine max workers - default to either CPU count or 4, whichever is lower
-    max_workers = min(multiprocessing.cpu_count(), getattr(get_config(), "max_workers", 4))
-
+    # Get configuration settings
+    show_progress, max_workers = _get_config_settings()
+    
     # Create batches for parallel processing
-    batches = [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]
+    batches = _create_app_batches(apps, batch_size)
 
     results = []
     error_count = 0

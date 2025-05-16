@@ -499,7 +499,7 @@ def check_brew_install_candidates(
         HomebrewError: If there's an error with Homebrew
         NetworkError: If there's a network issue during checks
     """
-    """Fast path for non-homebrew systems
+    # Fast path for non-homebrew systems
     if not is_homebrew_available():
         return [(name, version, False) for name, version in data]
 
@@ -561,13 +561,16 @@ def _process_brew_batch(
 ) -> List[Tuple[str, str, bool]]:
     """Process a batch of applications to check if they can be installed with Homebrew.
 
+    Searches for each application name in Homebrew casks to determine
+    if they can be installed using the brew command.
+
     Args:
         batch: Batch of applications to check
-        rate_limit: Number of concurrent requests
-        use_cache: Whether to use the cache
+        rate_limit: Number of seconds between API calls
+        use_cache: Whether to use cached results
 
     Returns:
-        List[Tuple[str, str, bool]]: List of (app_name, version, installable) tuples
+        List of (app_name, version, installable) tuples
 
     Raises:
         HomebrewError: If there's an error with Homebrew operations
@@ -666,13 +669,13 @@ def filter_out_brews(
     """Filter out applications that are already managed by Homebrew.
 
     Args:
-        applications (List[Tuple[str, str]]): List of (app_name, version) tuples
-        brews (List[str]): List of installed Homebrew casks
-        strict_mode (bool, optional): If True, be more strict in filtering.
-                                     Defaults to False.
+        applications: List of (app_name, version) tuples
+        brews: List of installed Homebrew casks
+        strict_mode: If True, be more strict in filtering.
+                    Defaults to False.
 
     Returns:
-        List[Tuple[str, str]]: Filtered list of applications
+        List of application tuples that are not managed by Homebrew
     """
     logging.info("Getting installable casks from Homebrew...")
     print("Getting installable casks from Homebrew...")
@@ -1026,15 +1029,18 @@ def get_cask_version(cask_name: str) -> Optional[str]:
         raise HomebrewError("Failed to get cask version for %s: %s" % (cask_name, e)) from e
 
 
-def get_brew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterType] = None) -> Optional[str]:
+def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterType] = None) -> Optional[str]:
     """Get the Homebrew cask name for an application.
-    
+
+    Searches Homebrew for a cask matching the given application name,
+    using a rate limiter to prevent API abuse.
+
     Args:
-        app_name: Name of the application
+        app_name: Name of the application to search for
         rate_limiter: Optional rate limiter for API calls
-    
+
     Returns:
-        Homebrew cask name if found, None otherwise
+        Homebrew cask name if found, None if no match
     """
     if not app_name:
         return None

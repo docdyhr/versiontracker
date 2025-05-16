@@ -14,9 +14,21 @@ Returns:
 import logging
 import time
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, cast
 
-from tabulate import tabulate
+try:
+    from tabulate import tabulate
+except ImportError:
+    # Fallback if tabulate is not installed
+    def tabulate(data, headers=None, tablefmt=None):
+        """Simple tabulate fallback."""
+        result = []
+        if headers:
+            result.append(" | ".join(str(h) for h in headers))
+            result.append("-" * (len(result[0])))
+        for row in data:
+            result.append(" | ".join(str(cell) for cell in row))
+        return "\n".join(result)
 
 from versiontracker.apps import (
     filter_out_brews,
@@ -116,7 +128,7 @@ def _filter_applications(apps: List[Tuple[str, str]], brews: List[str], include_
     return apps
 
 
-def _check_outdated_apps(apps: List[Tuple[str, str]]) -> List[Tuple[str, Dict[str, str], str]]:
+def _check_outdated_apps(apps: List[Tuple[str, str]]) -> List[Tuple[str, Dict[str, str], Any]]:
     """Check which applications are outdated.
 
     Args:
@@ -131,10 +143,11 @@ def _check_outdated_apps(apps: List[Tuple[str, str]]) -> List[Tuple[str, Dict[st
         Exception: For other unexpected errors
     """
     batch_size = getattr(get_config(), "batch_size", 50)
-    return check_outdated_apps(apps, batch_size=batch_size)
+    # Use cast to handle the return type properly
+    return cast(List[Tuple[str, Dict[str, str], Any]], check_outdated_apps(apps, batch_size=batch_size))
 
 
-def _process_outdated_info(outdated_info: List[Tuple[str, Dict[str, str], str]]) -> Tuple[List[List[Union[str, Any]]], Dict[str, int]]:
+def _process_outdated_info(outdated_info: List[Tuple[str, Dict[str, str], Any]]) -> Tuple[List[List[Union[str, Any]]], Dict[str, int]]:
     """Process outdated information into a table and counters.
 
     Args:
