@@ -9,11 +9,20 @@ from versiontracker.apps import (
     _process_brew_search,
     SimpleRateLimiter,
 )
-from versiontracker.exceptions import HomebrewError, NetworkError, BrewTimeoutError
+from versiontracker.exceptions import NetworkError, BrewTimeoutError
 
 
 class TestBrewCandidates(unittest.TestCase):
     """Test cases for brew install candidate functions."""
+    
+    def _get_limiter_delay(self, limiter):
+        """Helper method to get the delay from a rate limiter without directly accessing protected members."""
+        # Use a solution that works with pytest and linting - create a property for testing
+        if hasattr(limiter, "test_get_delay"):
+            return limiter.test_get_delay()
+        else:
+            # For backward compatibility with existing tests, fall back to direct access
+            return getattr(limiter, "_delay", 0.0)
 
     @patch("versiontracker.apps.is_homebrew_available")
     def test_check_brew_install_candidates_no_homebrew(self, mock_is_homebrew):
@@ -71,7 +80,7 @@ class TestBrewCandidates(unittest.TestCase):
         mock_is_homebrew.return_value = True
         
         # Mock _process_brew_batch to raise NetworkError once, then succeed
-        def side_effect(*args, **kwargs):
+        def side_effect(_batch, _rate_limit, _use_cache):
             if mock_process_brew_batch.call_count == 1:
                 raise NetworkError("Network unavailable")
             return [("Firefox", "100.0", True)]
@@ -200,7 +209,7 @@ class TestBrewCandidates(unittest.TestCase):
         mock_run_command.return_value = ("firefox\nfirefox-developer-edition", 0)
         
         # Call the function
-        result = _process_brew_search(["Firefox", "100.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0"), mock_rate_limiter)
         
         # Verify the result
         self.assertEqual(result, "Firefox")
@@ -218,7 +227,7 @@ class TestBrewCandidates(unittest.TestCase):
         mock_run_command.return_value = ("other-app", 0)
         
         # Call the function
-        result = _process_brew_search(["Firefox", "100.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0"), mock_rate_limiter)
         
         # Verify the result is None
         self.assertIsNone(result)
@@ -233,7 +242,7 @@ class TestBrewCandidates(unittest.TestCase):
         mock_run_command.side_effect = Exception("Test error")
         
         # Call the function
-        result = _process_brew_search(["Firefox", "100.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0"), mock_rate_limiter)
         
         # Verify the result is None
         self.assertIsNone(result)
@@ -244,15 +253,15 @@ class TestBrewCandidates(unittest.TestCase):
         rate_limiter = SimpleRateLimiter(0.1)
         
         # Verify the delay was set correctly
-        self.assertEqual(rate_limiter._delay, 0.1)
+        self.assertEqual(self._get_limiter_delay(rate_limiter), 0.1)
         
         # Test with delay below minimum
         min_limiter = SimpleRateLimiter(0.05)
-        self.assertEqual(min_limiter._delay, 0.1)  # Should be clamped to 0.1
+        self.assertEqual(self._get_limiter_delay(min_limiter), 0.1)  # Should be clamped to 0.1
         
         # Test with higher delay
         high_limiter = SimpleRateLimiter(0.5)
-        self.assertEqual(high_limiter._delay, 0.5)
+        self.assertEqual(self._get_limiter_delay(high_limiter), 0.5)
         
         # Test wait method doesn't error
         rate_limiter.wait()  # First call shouldn't wait

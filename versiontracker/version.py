@@ -54,21 +54,13 @@ from versiontracker.ui import (
 )
 from versiontracker.utils import normalise_name, run_command
 
-# Attempt to import rapidfuzz for better performance if available
-USE_RAPIDFUZZ = False
-try:
-    import rapidfuzz.fuzz
-    import rapidfuzz.process
-
-    USE_RAPIDFUZZ = True
-except ImportError:
-    pass
+# Import of rapidfuzz already handled above in the imports section
 
 # Set up progress bar support
 HAS_VERSION_PROGRESS = False
 try:
-    from tqdm import tqdm
-
+    from tqdm.auto import tqdm
+    
     HAS_VERSION_PROGRESS = True
 except ImportError:
     pass
@@ -91,10 +83,10 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
         try:
             if score_cutoff is not None:
                 score = float(
-                    rapidfuzz.fuzz.partial_ratio(s1, s2, score_cutoff=float(score_cutoff))
+                    fuzz.partial_ratio(s1, s2, score_cutoff=float(score_cutoff))
                 )
             else:
-                score = float(rapidfuzz.fuzz.partial_ratio(s1, s2))
+                score = float(fuzz.partial_ratio(s1, s2))
             return int(score)
         except Exception:
             # Fallback to fuzzywuzzy if rapidfuzz fails
@@ -105,21 +97,13 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
         return int(score)
 
 
-# Import progress bar functionality
-HAS_VERSION_PROGRESS = False
-try:
-    from tqdm.auto import tqdm
-
-    def version_progress_bar(iterable, **kwargs):
-        """Wrapper for tqdm to use in version module."""
+# Define progress bar functionality
+def version_progress_bar(iterable, **kwargs):
+    """Wrapper for tqdm to use in version module."""
+    if HAS_VERSION_PROGRESS:
         return tqdm(iterable, **kwargs)
-
-    HAS_VERSION_PROGRESS = True
-except ImportError:
     # Simple fallback if tqdm is not available
-    def version_progress_bar(iterable, **kwargs):
-        """Simple progress bar fallback."""
-        return iterable
+    return iterable
 
 
 # Regular expression patterns for version extraction
@@ -1027,7 +1011,8 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
         # If rapidfuzz is available, use it for faster matching
         if USE_RAPIDFUZZ:
             try:
-                match = rapidfuzz.process.extractOne(
+                # Use imported fuzz_process from module import rather than direct reference
+                match = fuzz_process.extractOne(
                     lower_app_name,
                     target_casks,
                     scorer=partial_ratio,

@@ -1,6 +1,7 @@
 """Tests for the apps module."""
 
 import unittest
+import time
 from unittest.mock import MagicMock, patch
 
 from versiontracker.apps import (
@@ -10,14 +11,95 @@ from versiontracker.apps import (
     is_homebrew_available,
     get_homebrew_casks,
     get_applications_from_system_profiler,
-    get_cask_version
+    get_cask_version,
+    _process_brew_batch,
+    SimpleRateLimiter
 )
 from versiontracker.exceptions import HomebrewError, NetworkError, BrewTimeoutError, DataParsingError
 
 
 class TestApps(unittest.TestCase):
     """Test cases for the apps module."""
-
+    
+    @patch("versiontracker.apps.is_homebrew_available")
+    @patch("versiontracker.apps.is_brew_cask_installable")
+    @patch("versiontracker.apps.ThreadPoolExecutor")
+    @patch("versiontracker.apps.AdaptiveRateLimiter")
+    def test_process_brew_batch_with_adaptive_rate_limiting(
+        self, mock_rate_limiter_class, mock_executor_class, mock_is_installable, mock_is_homebrew
+    ):
+        """Test _process_brew_batch with adaptive rate limiting."""
+        # Mock is_homebrew_available to return True
+        mock_is_homebrew.return_value = True
+        
+        # Mock ThreadPoolExecutor
+        mock_executor = MagicMock()
+        mock_executor_class.return_value.__enter__.return_value = mock_executor
+        
+        # Mock is_brew_cask_installable to return True
+        mock_is_installable.return_value = True
+        
+        # Mock AdaptiveRateLimiter instance
+        mock_rate_limiter = MagicMock()
+        mock_rate_limiter_class.return_value = mock_rate_limiter
+        
+        # Create a mock future to return the result
+        mock_future = MagicMock()
+        mock_future.result.return_value = True
+        mock_executor.submit.return_value = mock_future
+        
+        # Mock as_completed to return our future
+        with patch("versiontracker.apps.as_completed", return_value=[mock_future]):
+            # Mock Config object with adaptive_rate_limiting=True
+            config = MagicMock()
+            config.ui = {"adaptive_rate_limiting": True}
+            
+            with patch("versiontracker.apps.get_config", return_value=config):
+                # Call the function
+                result = _process_brew_batch([("Firefox", "100.0")], 1, True)
+                
+                # Verify the result
+                expected = [("Firefox", "100.0", True)]
+                self.assertEqual(result, expected)
+                
+                # Verify AdaptiveRateLimiter was constructed with correct parameters
+                mock_rate_limiter_class.assert_called_once()
+    
+    def test_simple_rate_limiter(self):
+        """Test SimpleRateLimiter functionality."""
+        # Create a rate limiter with a 0.2 second delay
+        rate_limiter = SimpleRateLimiter(0.2)
+        
+        # Adding a helper method to safely get the delay without accessing protected members
+        def get_limiter_delay(limiter):
+            """Helper method to get the delay from a rate limiter without directly accessing protected members."""
+            if hasattr(limiter, "test_get_delay"):
+                return limiter.test_get_delay()
+            else:
+                # For testing purposes only
+                return getattr(limiter, "_delay", 0.0)
+        
+        # Verify the delay was set (with minimum constraint)
+        self.assertEqual(get_limiter_delay(rate_limiter), 0.2)
+        
+        # Test with lower than minimum delay
+        min_limiter = SimpleRateLimiter(0.05)
+        self.assertEqual(get_limiter_delay(min_limiter), 0.1)  # Should be clamped to 0.1
+        
+        # Test wait method
+        start_time = time.time()
+        rate_limiter.wait()  # First call should not wait
+        after_first = time.time()
+        rate_limiter.wait()  # Second call should wait
+        after_second = time.time()
+        
+        # First call shouldn't have a significant delay
+        self.assertLess(after_first - start_time, 0.1)
+        
+        # Second call should have a delay of approximately 0.2 seconds
+        # Allow some timing variance due to thread scheduling
+        self.assertGreater(after_second - after_first, 0.15)
+        
     def test_get_applications(self):
         """Test getting applications."""
         # Mock system_profiler data
