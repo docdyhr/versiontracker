@@ -407,3 +407,5 @@ test_config.yaml
 tmp_test/*.yaml
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,git,venv,direnv,python,visualstudiocode,pycharm,sublimetext
+
+private_*

@@ -32,6 +32,19 @@ This document outlines planned review, enhancements, known bugs, and potential o
   - [x] Add config file generation command
   - [x] Allow layered configuration (env vars override config file)
 
+- [ ] **Roadmap Short-Term Goals**
+  - [ ] Refactor `__main__.py` into smaller modules (move handler functions to a dedicated `handlers.py`)
+  - [ ] Implement a command pattern for better extension of CLI commands
+  - [ ] Standardize docstring format across the codebase
+  - [ ] Complete type hinting coverage across all modules
+  - [ ] Implement parameterized tests to reduce code duplication
+  - [ ] Create a mock server for network operation testing
+  - [ ] Add integration tests for real-world usage scenarios
+  - [ ] Improve test coverage for edge cases (network timeouts, malformed responses)
+  - [ ] Implement a more efficient caching mechanism for Homebrew queries
+  - [ ] Explore using `asyncio` for network operations
+  - [ ] Add request batching to reduce network calls
+
 ### Medium Priority
 
 - [ ] **Auto-Update Functionality**
