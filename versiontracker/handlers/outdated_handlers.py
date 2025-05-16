@@ -32,6 +32,246 @@ from versiontracker.utils import get_json_data
 from versiontracker.version import check_outdated_apps
 
 
+def _update_config_from_options(options: Any) -> None:
+    """Update configuration based on command-line options.
+
+    Args:
+        options: Command line options
+    """
+    # Update config with no_progress option if specified
+    if hasattr(options, "no_progress") and options.no_progress:
+        config = get_config()
+        if hasattr(config, "set"):
+            config.set("no_progress", True)
+            config.set("show_progress", False)
+
+
+def _get_installed_applications() -> List[Tuple[str, str]]:
+    """Get installed applications from the system.
+
+    Returns:
+        List of (app_name, version) tuples
+
+    Raises:
+        PermissionError: If there's an issue accessing application data
+        TimeoutError: If operations time out
+        Exception: For other unexpected errors
+    """
+    print(create_progress_bar().color("green")("Getting Apps from Applications/..."))
+    
+    apps_data = get_json_data(
+        getattr(
+            get_config(),
+            "system_profiler_cmd",
+            "system_profiler -json SPApplicationsDataType",
+        )
+    )
+    return get_applications(apps_data)
+
+
+def _get_homebrew_casks() -> List[str]:
+    """Get installed Homebrew casks.
+
+    Returns:
+        List of installed brew cask names
+
+    Raises:
+        FileNotFoundError: If Homebrew is not installed
+        PermissionError: If there's a permission issue
+        Exception: For other unexpected errors
+    """
+    print(
+        create_progress_bar().color("green")(
+            "Getting installable casks from Homebrew..."
+        )
+    )
+    return get_homebrew_casks()
+
+
+def _filter_applications(apps: List[Tuple[str, str]], brews: List[str], include_brews: bool) -> List[Tuple[str, str]]:
+    """Filter applications based on whether they're managed by Homebrew.
+
+    Args:
+        apps: List of (app_name, version) tuples
+        brews: List of brew cask names
+        include_brews: Whether to include brew-managed apps
+
+    Returns:
+        Filtered list of applications
+    """
+    if not include_brews:
+        try:
+            return filter_out_brews(apps, brews)
+        except Exception as e:
+            print(
+                create_progress_bar().color("yellow")(
+                    f"Warning: Error filtering applications: {e}"
+                )
+            )
+            print(
+                create_progress_bar().color("yellow")(
+                    "Proceeding with all applications."
+                )
+            )
+    return apps
+
+
+def _check_outdated_apps(apps: List[Tuple[str, str]]) -> List[Tuple[str, Dict[str, str], str]]:
+    """Check which applications are outdated.
+
+    Args:
+        apps: List of (app_name, version) tuples
+
+    Returns:
+        List of (app_name, version_info, status) tuples
+
+    Raises:
+        TimeoutError: If operations time out
+        NetworkError: If there are connectivity issues
+        Exception: For other unexpected errors
+    """
+    batch_size = getattr(get_config(), "batch_size", 50)
+    return check_outdated_apps(apps, batch_size=batch_size)
+
+
+def _process_outdated_info(outdated_info: List[Tuple[str, Dict[str, str], str]]) -> Tuple[List[List[Union[str, Any]]], Dict[str, int]]:
+    """Process outdated information into a table and counters.
+
+    Args:
+        outdated_info: List of (app_name, version_info, status) tuples
+
+    Returns:
+        Tuple of (table_rows, status_counts)
+    """
+    table = []
+    status_counts = {
+        'outdated': 0,
+        'uptodate': 0,
+        'not_found': 0,
+        'error': 0,
+        'unknown': 0
+    }
+
+    for app_name, version_info, status in outdated_info:
+        icon = get_status_icon(str(status))
+        color = get_status_color(str(status))
+
+        if status == "outdated":
+            status_counts['outdated'] += 1
+        elif status == "uptodate":
+            status_counts['uptodate'] += 1
+        elif status == "not_found":
+            status_counts['not_found'] += 1
+        elif status == "error":
+            status_counts['error'] += 1
+        else:
+            status_counts['unknown'] += 1
+
+        # Add row to table with colored status
+        installed_version = (
+            version_info["installed"] if "installed" in version_info else "Unknown"
+        )
+        latest_version = (
+            version_info["latest"] if "latest" in version_info else "Unknown"
+        )
+
+        table.append(
+            [
+                icon,
+                app_name,
+                color(installed_version),
+                color(latest_version),
+            ]
+        )
+
+    # Sort table by application name
+    table.sort(key=lambda x: x[1].lower())
+    return table, status_counts
+
+
+def _display_results(table: List[List[Union[str, Any]]], status_counts: Dict[str, int], app_count: int, elapsed_time: float) -> None:
+    """Display results table and summary.
+
+    Args:
+        table: Table rows to display
+        status_counts: Dictionary of status counts
+        app_count: Total number of applications checked
+        elapsed_time: Time taken to check for updates
+    """
+    if not table:
+        print(create_progress_bar().color("yellow")("No applications found."))
+        return
+
+    # Print summary information about processing
+    print("")
+    print(
+        create_progress_bar().color("green")(
+            f"✓ Processed {app_count} applications in {elapsed_time:.1f} seconds"
+        )
+    )
+
+    # Print status summary with counts and colors
+    print(create_progress_bar().color("green")("\nStatus Summary:"))
+    print(
+        f" {create_progress_bar().color('green')('✓')} Up to date: {create_progress_bar().color('green')(str(status_counts['uptodate']))}"
+    )
+    print(
+        f" {create_progress_bar().color('red')('!')} Outdated: {create_progress_bar().color('red')(str(status_counts['outdated']))}"
+    )
+    print(
+        f" {create_progress_bar().color('yellow')('?')} Unknown: {create_progress_bar().color('yellow')(str(status_counts['unknown']))}"
+    )
+    print(
+        f" {create_progress_bar().color('blue')('❓')} Not Found: {create_progress_bar().color('blue')(str(status_counts['not_found']))}"
+    )
+    print(
+        f" {create_progress_bar().color('red')('❌')} Error: {create_progress_bar().color('red')(str(status_counts['error']))}"
+    )
+    print("")
+
+    # Print the table with headers
+    headers = ["", "Application", "Installed Version", "Latest Version"]
+    print(tabulate(table, headers=headers, tablefmt="pretty"))
+
+    if status_counts['outdated'] > 0:
+        print(
+            create_progress_bar().color("red")(
+                f"\nFound {status_counts['outdated']} outdated applications."
+            )
+        )
+    else:
+        print(
+            create_progress_bar().color("green")(
+                "\nAll applications are up to date!"
+            )
+        )
+
+
+def _export_data(outdated_info: List[Tuple[str, Dict[str, str], str]], options: Any) -> int:
+    """Export data to the specified format.
+
+    Args:
+        outdated_info: List of (app_name, version_info, status) tuples
+        options: Command line options
+
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+
+    Raises:
+        ExportError: If there's an error during export
+    """
+    export_result = handle_export(
+        outdated_info,
+        options.export_format,
+        options.output_file if hasattr(options, "output_file") else None,
+    )
+    
+    if not options.output_file and isinstance(export_result, str):
+        print(export_result)
+    
+    return 0
+
+
 def handle_outdated_check(options: Any) -> int:
     """Handle checking for outdated applications.
     
@@ -55,24 +295,12 @@ def handle_outdated_check(options: Any) -> int:
         Exception: For other unexpected errors
     """
     try:
-        # Update config with no_progress option if specified
-        if hasattr(options, "no_progress") and options.no_progress:
-            get_config().no_progress = True
-            get_config().show_progress = False
+        # Update configuration from options
+        _update_config_from_options(options)
 
         # Get installed applications
-        print(
-            create_progress_bar().color("green")("Getting Apps from Applications/...")
-        )
         try:
-            apps_data = get_json_data(
-                getattr(
-                    get_config(),
-                    "system_profiler_cmd",
-                    "system_profiler -json SPApplicationsDataType",
-                )
-            )
-            apps = get_applications(apps_data)
+            apps = _get_installed_applications()
         except PermissionError:
             print(
                 create_progress_bar().color("red")(
@@ -106,13 +334,8 @@ def handle_outdated_check(options: Any) -> int:
             return 1
 
         # Get installed Homebrew casks
-        print(
-            create_progress_bar().color("green")(
-                "Getting installable casks from Homebrew..."
-            )
-        )
         try:
-            brews = get_homebrew_casks()
+            brews = _get_homebrew_casks()
         except FileNotFoundError:
             print(
                 create_progress_bar().color("red")(
@@ -145,37 +368,21 @@ def handle_outdated_check(options: Any) -> int:
             )
             return 1
 
-        # Filter out applications already managed by Homebrew
+        # Filter applications based on Homebrew management
         include_brews = getattr(options, "include_brews", False)
-        if not include_brews:
-            try:
-                apps = filter_out_brews(apps, brews)
-            except Exception as e:
-                print(
-                    create_progress_bar().color("yellow")(
-                        f"Warning: Error filtering applications: {e}"
-                    )
-                )
-                print(
-                    create_progress_bar().color("yellow")(
-                        "Proceeding with all applications."
-                    )
-                )
+        apps = _filter_applications(apps, brews, include_brews)
 
-        # Print status update
+        # Print status update and prepare for checking outdated apps
         print(
             create_progress_bar().color("green")(
                 f"Checking {len(apps)} applications for updates..."
             )
         )
-
-        # Start time for tracking
         start_time = time.time()
 
         # Check outdated status
         try:
-            batch_size = getattr(get_config(), "batch_size", 50)
-            outdated_info = check_outdated_apps(apps, batch_size=batch_size)
+            outdated_info = _check_outdated_apps(apps)
         except TimeoutError:
             print(
                 create_progress_bar().color("red")(
@@ -208,111 +415,17 @@ def handle_outdated_check(options: Any) -> int:
             )
             return 1
 
-        # End time and calculation
+        # Calculate elapsed time
         elapsed_time = time.time() - start_time
 
-        # Prepare results table
-        table = []
-        total_outdated = 0
-        total_up_to_date = 0
-        total_unknown = 0
-        total_not_found = 0
-        total_error = 0
-
-        for app_name, version_info, status in outdated_info:
-            icon = get_status_icon(str(status))
-            color = get_status_color(str(status))
-
-            if status == "outdated":
-                total_outdated += 1
-            elif status == "uptodate":
-                total_up_to_date += 1
-            elif status == "not_found":
-                total_not_found += 1
-            elif status == "error":
-                total_error += 1
-            else:
-                total_unknown += 1
-
-            # Add row to table with colored status
-            installed_version = (
-                version_info["installed"] if "installed" in version_info else "Unknown"
-            )
-            latest_version = (
-                version_info["latest"] if "latest" in version_info else "Unknown"
-            )
-
-            table.append(
-                [
-                    icon,
-                    app_name,
-                    color(installed_version),
-                    color(latest_version),
-                ]
-            )
-
-        # Sort table by application name
-        table.sort(key=lambda x: x[1].lower())
-
-        # Print results
-        if table:
-            # Print summary information about processing
-            print("")
-            print(
-                create_progress_bar().color("green")(
-                    f"✓ Processed {len(apps)} applications in {elapsed_time:.1f} seconds"
-                )
-            )
-
-            # Print status summary with counts and colors
-            print(create_progress_bar().color("green")("\nStatus Summary:"))
-            print(
-                f" {create_progress_bar().color('green')('✓')} Up to date: {create_progress_bar().color('green')(str(total_up_to_date))}"
-            )
-            print(
-                f" {create_progress_bar().color('red')('!')} Outdated: {create_progress_bar().color('red')(str(total_outdated))}"
-            )
-            print(
-                f" {create_progress_bar().color('yellow')('?')} Unknown: {create_progress_bar().color('yellow')(str(total_unknown))}"
-            )
-            print(
-                f" {create_progress_bar().color('blue')('❓')} Not Found: {create_progress_bar().color('blue')(str(total_not_found))}"
-            )
-            print(
-                f" {create_progress_bar().color('red')('❌')} Error: {create_progress_bar().color('red')(str(total_error))}"
-            )
-            print("")
-
-            # Print the table with headers
-            headers = ["", "Application", "Installed Version", "Latest Version"]
-            print(tabulate(table, headers=headers, tablefmt="pretty"))
-
-            if total_outdated > 0:
-                print(
-                    create_progress_bar().color("red")(
-                        f"\nFound {total_outdated} outdated applications."
-                    )
-                )
-            else:
-                print(
-                    create_progress_bar().color("green")(
-                        "\nAll applications are up to date!"
-                    )
-                )
-        else:
-            print(create_progress_bar().color("yellow")("No applications found."))
+        # Process results and display
+        table, status_counts = _process_outdated_info(outdated_info)
+        _display_results(table, status_counts, len(apps), elapsed_time)
 
         # Export if requested
         if hasattr(options, "export_format") and options.export_format:
             try:
-                export_result = handle_export(
-                    outdated_info,
-                    options.export_format,
-                    options.output_file if hasattr(options, "output_file") else None,
-                )
-                if not options.output_file and isinstance(export_result, str):
-                    print(export_result)
-                return 0
+                return _export_data(outdated_info, options)
             except ExportError as e:
                 print(create_progress_bar().color("red")(f"Error exporting data: {e}"))
                 return 1

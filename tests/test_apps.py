@@ -86,10 +86,10 @@ class TestApps(unittest.TestCase):
 
         # Mock applications and brews
         applications = [
-            ["Firefox", "100.0.0"],
-            ["Chrome", "101.0.0"],
-            ["Slack", "4.23.0"],
-            ["VSCode", "1.67.0"],
+            ("Firefox", "100.0.0"),
+            ("Chrome", "101.0.0"),
+            ("Slack", "4.23.0"),
+            ("VSCode", "1.67.0"),
         ]
         brews = ["firefox", "google-chrome", "visual-studio-code"]
 
@@ -98,7 +98,7 @@ class TestApps(unittest.TestCase):
 
         # Check the result
         self.assertEqual(len(result), 1)  # Only Slack should remain
-        self.assertIn(["Slack", "4.23.0"], result)
+        self.assertIn(("Slack", "4.23.0"), result)
 
     @patch("versiontracker.apps.run_command")
     def test_process_brew_search(self, mock_run_command):
@@ -110,17 +110,17 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("firefox\nfirefox-developer-edition", 0)
 
         # Test with a matching app
-        result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
         self.assertEqual(result, "Firefox")
 
         # Test with a non-matching app
         mock_run_command.return_value = ("some-other-app", 0)
-        result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
         self.assertIsNone(result)
 
         # Test exception handling
         mock_run_command.side_effect = Exception("Test error")
-        result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
         self.assertIsNone(result)
 
     @patch("platform.system")

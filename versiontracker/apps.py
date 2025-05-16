@@ -440,7 +440,8 @@ def is_homebrew_available() -> bool:
         config = get_config()
         if hasattr(config, "_config") and config._config.get("brew_path"):
             try:
-                cmd = f"{config._config['brew_path']} --version"
+                config = get_config()
+                cmd = f"{config._config.get('brew_path')} --version"
                 output, returncode = run_command(cmd, timeout=2)
                 if returncode == 0:
                     return True
@@ -498,13 +499,13 @@ def check_brew_install_candidates(
         HomebrewError: If there's an error with Homebrew
         NetworkError: If there's a network issue during checks
     """
-    # Fast path for non-homebrew systems
+    """Fast path for non-homebrew systems
     if not is_homebrew_available():
         return [(name, version, False) for name, version in data]
 
     # Extract rate limit value from Config object if needed
-    if hasattr(rate_limit, "rate_limit"):
-        rate_limit = rate_limit.rate_limit
+    if hasattr(rate_limit, "api_rate_limit"):
+        rate_limit = rate_limit.api_rate_limit
 
     # Create batches
     batches = []
@@ -523,18 +524,18 @@ def check_brew_install_candidates(
             batch_results = _process_brew_batch(batch, rate_limit, use_cache)
             results.extend(batch_results)
             error_count = 0  # Reset error count on success
-        except NetworkError as e:
-            logging.error("Network error processing batch: %s", e)
-            error_count += 1
-            if error_count >= MAX_ERRORS:
-                raise NetworkError("Too many network errors (%d), giving up" % error_count)
-            # Add all apps as not installable for this batch
-            results.extend([(name, version, False) for name, version in batch])
         except BrewTimeoutError as e:
             logging.error("Timeout processing batch: %s", e)
             error_count += 1
             if error_count >= MAX_ERRORS:
                 raise BrewTimeoutError("Too many timeout errors (%d), giving up" % error_count)
+            # Add all apps as not installable for this batch
+            results.extend([(name, version, False) for name, version in batch])
+        except NetworkError as e:
+            logging.error("Network error processing batch: %s", e)
+            error_count += 1
+            if error_count >= MAX_ERRORS:
+                raise NetworkError("Too many network errors (%d), giving up" % error_count)
             # Add all apps as not installable for this batch
             results.extend([(name, version, False) for name, version in batch])
         except HomebrewError as e:
@@ -628,6 +629,9 @@ def _process_brew_batch(
                     logging.warning("Timeout checking %s: %s", name, e)
                     batch_results.append((name, version, False))
                     raise BrewTimeoutError(f"Operation timed out while checking {name}") from e
+                except BrewTimeoutError as e:
+                    # This is already caught above, but keeping it here for completeness
+                    raise
                 except NetworkError as e:
                     logging.warning("Network error checking %s: %s", name, e)
                     batch_results.append((name, version, False))
@@ -644,10 +648,10 @@ def _process_brew_batch(
 
         return batch_results
 
+    except BrewTimeoutError:
+        raise  # Re-raise timeout errors for special handling
     except NetworkError:
         raise  # Re-raise network errors for special handling
-    except BrewTimeoutError:
-        raise  # Re-raise timeout errors for special handling 
     except HomebrewError:
         # Re-raise HomebrewError without modification
         raise

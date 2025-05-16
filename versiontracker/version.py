@@ -22,6 +22,7 @@ from datetime import datetime
 from enum import Enum, auto
 from functools import lru_cache
 from pathlib import Path
+# Import packaging version if available, otherwise create a stub
 try:
     from packaging import version as packaging_version
 except ImportError:
@@ -31,19 +32,66 @@ except ImportError:
     
     class _PackagingVersionStub(ModuleType):
         def parse(self, version_string):
-            return None
+            """Stub parse method."""
+            return version_string
     
     packaging_version = _PackagingVersionStub('packaging.version')
+
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple, Union, cast
+
+# Try to import fuzzy matching libraries with fallbacks
+USE_RAPIDFUZZ = False
+USE_FUZZYWUZZY = False
 
 try:
     from fuzzywuzzy import fuzz, process as fuzz_process
     from fuzzywuzzy.fuzz import partial_ratio as _partial_ratio
-    USE_RAPIDFUZZ = False
+    USE_FUZZYWUZZY = True
 except ImportError:
-    from rapidfuzz import fuzz, process as fuzz_process
-    from rapidfuzz.fuzz import partial_ratio as _partial_ratio
-    USE_RAPIDFUZZ = True
+    try:
+        from rapidfuzz import fuzz, process as fuzz_process
+        from rapidfuzz.fuzz import partial_ratio as _partial_ratio
+        USE_RAPIDFUZZ = True
+    except ImportError:
+        # Create minimal fallback implementations if neither library is available
+        class MinimalFuzz:
+            @staticmethod
+            def ratio(s1, s2, **kwargs):
+                """Minimal implementation of ratio."""
+                return 100 if s1 == s2 else 0
+                
+            @staticmethod
+            def partial_ratio(s1, s2, **kwargs):
+                """Minimal implementation of partial_ratio."""
+                return 100 if s1 in s2 or s2 in s1 else 0
+        
+        class MinimalProcess:
+            @staticmethod
+            def extractOne(query, choices, **kwargs):
+                """Simple implementation to find best match."""
+                if not choices:
+                    return None
+                
+                best_score = 0
+                best_match = None
+                
+                for choice in choices:
+                    if query.lower() in choice.lower():
+                        score = 90
+                    elif choice.lower() in query.lower():
+                        score = 70
+                    else:
+                        score = 0
+                        
+                    if score > best_score:
+                        best_score = score
+                        best_match = choice
+                
+                return (best_match, best_score) if best_match else (choices[0], 0)
+        
+        fuzz = MinimalFuzz()
+        fuzz_process = MinimalProcess()
+        _partial_ratio = fuzz.partial_ratio
 
 from versiontracker.config import get_config
 from versiontracker.exceptions import (
@@ -62,16 +110,36 @@ from versiontracker.ui import (
 )
 from versiontracker.utils import normalise_name, run_command
 
-# Import of rapidfuzz already handled above in the imports section
-
 # Set up progress bar support
 HAS_VERSION_PROGRESS = False
 try:
     from tqdm.auto import tqdm
-    
     HAS_VERSION_PROGRESS = True
 except ImportError:
-    pass
+    # Create a minimal progress bar fallback
+    class MinimalTqdm:
+        def __init__(self, iterable=None, **kwargs):
+            self.iterable = iterable
+            self.total = len(iterable) if iterable is not None else None
+            self.n = 0
+            self.desc = kwargs.get('desc', '')
+        
+        def __iter__(self):
+            for item in self.iterable:
+                self.n += 1
+                if self.n % 10 == 0:
+                    print(f"\r{self.desc}: {self.n}/{self.total}", end="", flush=True)
+                yield item
+            print("\rCompleted", " " * 30)
+        
+        def update(self, n=1):
+            self.n += n
+        
+        def close(self):
+            pass
+    
+    tqdm = MinimalTqdm
+    HAS_VERSION_PROGRESS = True
 
 
 # Create a compatibility function for partial_ratio
@@ -87,8 +155,11 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
     Returns:
         int: Similarity score (0-100)
     """
-    if USE_RAPIDFUZZ:
-        try:
+    if not s1 or not s2:
+        return 0
+        
+    try:
+        if USE_RAPIDFUZZ:
             if score_cutoff is not None:
                 score = float(
                     fuzz.partial_ratio(s1, s2, score_cutoff=float(score_cutoff))
@@ -96,13 +167,16 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
             else:
                 score = float(fuzz.partial_ratio(s1, s2))
             return int(score)
-        except Exception:
-            # Fallback to fuzzywuzzy if rapidfuzz fails
+        elif USE_FUZZYWUZZY:
             score = float(fuzz.partial_ratio(s1, s2))
             return int(score)
-    else:
-        score = float(fuzz.partial_ratio(s1, s2))
-        return int(score)
+        else:
+            # Use our minimal implementation
+            return fuzz.partial_ratio(s1, s2)
+    except Exception as e:
+        logging.warning(f"Error calculating string similarity: {e}")
+        # Simple fallback if all else fails
+        return 100 if s1 == s2 else (70 if s1 in s2 or s2 in s1 else 0)
 
 
 # Define progress bar functionality

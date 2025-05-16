@@ -15,7 +15,7 @@ import logging
 import sys
 import time
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict, cast
 
 from versiontracker.apps import (
     check_brew_install_candidates,
@@ -30,7 +30,13 @@ from versiontracker.ui import create_progress_bar
 from versiontracker.utils import get_json_data
 
 
-def handle_list_brews(options: Any) -> int:
+class BrewOptions(TypedDict, total=False):
+    """Type definition for brew command options."""
+    export_format: Optional[str]
+    output_file: Optional[str]
+    debug: bool
+
+def handle_list_brews(options: Union[BrewOptions, Any]) -> int:
     """Handle listing Homebrew packages.
     
     Retrieves and displays all installed Homebrew casks/packages
@@ -104,7 +110,17 @@ def handle_list_brews(options: Any) -> int:
         return 1
 
 
-def handle_brew_recommendations(options: Any) -> int:
+class RecommendOptions(TypedDict, total=False):
+    """Type definition for recommendation command options."""
+    recommend: bool
+    strict_recommend: bool
+    strict_recom: bool
+    debug: bool
+    rate_limit: Optional[int]
+    export_format: Optional[str]
+    output_file: Optional[str]
+
+def handle_brew_recommendations(options: Union[RecommendOptions, Any]) -> int:
     """Handle Homebrew installation recommendations.
     
     Analyzes installed applications and suggests ones that could be
@@ -174,7 +190,7 @@ def handle_brew_recommendations(options: Any) -> int:
                     "Proceeding without Homebrew cask filtering."
                 )
             )
-            apps_homebrew = []
+            apps_homebrew: List[str] = []
         except Exception as e:
             print(
                 create_progress_bar().color("red")(
@@ -206,7 +222,7 @@ def handle_brew_recommendations(options: Any) -> int:
                 logging.debug("\tbrew cask: %s", brew)
 
         # Get installable candidates
-        search_list = filter_out_brews(filtered_apps, apps_homebrew, strict_mode)
+        search_list: List[Tuple[str, str]] = filter_out_brews(filtered_apps, apps_homebrew, strict_mode)
 
         if options.debug:
             logging.debug("\n*** Candidates for search (not found as brew casks) ***")
@@ -215,7 +231,7 @@ def handle_brew_recommendations(options: Any) -> int:
 
         # Rate limit if specified - always convert to integer for consistency
         # If options.rate_limit is specified, use that, otherwise get from config or default to 10
-        rate_limit_int = 10  # Default value
+        rate_limit_int: int = 10  # Default value
         if hasattr(options, "rate_limit") and options.rate_limit is not None:
             rate_limit_int = int(options.rate_limit)
         elif hasattr(get_config(), "get"):
@@ -258,7 +274,7 @@ def handle_brew_recommendations(options: Any) -> int:
 
             # If in a test, the check_brew_install_candidates function should already be mocked
             # Use rate_limit_int for the API rate limit
-            installables = check_brew_install_candidates(
+            installables: List[str] = check_brew_install_candidates(
                 search_list, rate_limit_int, strict_mode
             )
         except HomebrewError as e:
@@ -286,7 +302,7 @@ def handle_brew_recommendations(options: Any) -> int:
             return 1
 
         # End time and calculation
-        elapsed_time = time.time() - start_time
+        elapsed_time: float = time.time() - start_time
 
         # Display results
         if not options.export_format:
@@ -324,7 +340,7 @@ def handle_brew_recommendations(options: Any) -> int:
 
         # Handle export if requested
         if options.export_format:
-            export_data_dict = {
+            export_data_dict: Dict[str, Any] = {
                 "installable_with_homebrew": installables,
                 "total_installable": len(installables),
             }
