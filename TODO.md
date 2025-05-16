@@ -33,8 +33,8 @@ This document outlines planned review, enhancements, known bugs, and potential o
   - [x] Allow layered configuration (env vars override config file)
 
 - [ ] **Roadmap Short-Term Goals**
-  - [ ] Refactor `__main__.py` into smaller modules (move handler functions to a dedicated `handlers.py`)
-  - [ ] Implement a command pattern for better extension of CLI commands
+  - [x] Refactor `__main__.py` into smaller modules (move handler functions to a dedicated `handlers/` directory)
+  - [x] Implement a command pattern for better extension of CLI commands
   - [ ] Standardize docstring format across the codebase
   - [ ] Complete type hinting coverage across all modules
   - [ ] Implement parameterized tests to reduce code duplication
