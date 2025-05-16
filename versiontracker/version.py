@@ -25,7 +25,15 @@ from pathlib import Path
 try:
     from packaging import version as packaging_version
 except ImportError:
-    packaging_version = None
+    # Handle case where packaging module is not available
+    # Define a stub module type for type checking
+    from types import ModuleType
+    
+    class _PackagingVersionStub(ModuleType):
+        def parse(self, version_string):
+            return None
+    
+    packaging_version = _PackagingVersionStub('packaging.version')
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
 try:

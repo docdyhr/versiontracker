@@ -1,4 +1,14 @@
-"""UI handlers for displaying status information."""
+"""UI handlers for displaying status information.
+
+This module contains handler functions for UI-related operations in VersionTracker,
+primarily focused on displaying status information with appropriate colors and icons.
+
+Args:
+    None: This is a module, not a function.
+
+Returns:
+    None: This module doesn't return anything directly.
+"""
 
 from typing import Any, Callable, Union
 
@@ -8,11 +18,17 @@ from versiontracker.ui import create_progress_bar
 def get_status_icon(status: str) -> str:
     """Get a status icon for a version status.
 
+    Provides a visual representation (emoji or text) for different application
+    status types like up-to-date, outdated, not found, or error.
+
     Args:
-        status: The version status
+        status: The version status (uptodate, outdated, not_found, error)
 
     Returns:
         str: An icon representing the status
+
+    Raises:
+        Exception: Falls back to text icons if colored icons are not available
     """
     try:
         if status == "uptodate":
@@ -40,11 +56,15 @@ def get_status_icon(status: str) -> str:
 def get_status_color(status: str) -> Callable[[str], Union[str, Any]]:
     """Get a color function for the given version status.
 
+    Returns a function that applies the appropriate color to text based on
+    the status (green for up-to-date, red for outdated, etc.).
+
     Args:
-        status: Version status
+        status: Version status (uptodate, outdated, newer, or any other status)
 
     Returns:
         function: Color function that takes a string and returns a colored string
+            using the appropriate color based on status
     """
     if status == "uptodate":
         return lambda text: create_progress_bar().color("green")(text)

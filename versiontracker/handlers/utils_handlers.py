@@ -1,4 +1,14 @@
-"""Utility handlers for VersionTracker."""
+"""Utility handlers for VersionTracker.
+
+This module contains utility functions for logging, error handling, and other
+support functionality used by various handlers in VersionTracker.
+
+Args:
+    None: This is a module, not a function.
+
+Returns:
+    None: This module doesn't return anything directly.
+"""
 
 import logging
 import sys
@@ -14,10 +24,15 @@ def setup_logging(
 ) -> None:
     """Configure logging for the application.
     
+    Sets up root logger, formatters, and handlers for console and file logging.
+    
     Args:
         level: The logging level to use (e.g. logging.DEBUG)
         log_file: Optional path to a file for storing logs
         warnings_file: Optional path to a file for storing warnings
+        
+    Returns:
+        None
     """
     # Configure root logger
     root_logger = logging.getLogger()
@@ -52,10 +67,29 @@ def setup_logging(
 def suppress_console_warnings() -> None:
     """Suppress specific warnings from being printed to the console.
     
-    This does not affect logging to warning log files.
+    This does not affect logging to warning log files. Specifically targets
+    DeprecationWarning, ResourceWarning, and UserWarning from external libraries.
+    
+    Args:
+        None
+        
+    Returns:
+        None
     """
     def warning_filter(message, category, filename, lineno, file=None, line=None):
-        """Custom warning filter function."""
+        """Custom warning filter function.
+    
+        Args:
+            message: Warning message
+            category: Warning category
+            filename: Source filename
+            lineno: Line number in source file
+            file: Optional file to write warning to
+            line: Optional line content where warning occurred
+        
+        Returns:
+            bool: True if the warning should be shown, False if it should be suppressed
+        """
         if filename and "versiontracker" in filename:
             # Don't suppress warnings from versiontracker code
             return True
@@ -69,7 +103,17 @@ def suppress_console_warnings() -> None:
     
     # Create warning filter class
     class WarningFilter:
+        """Filter for logging.Handler to suppress certain warning types."""
+    
         def filter(self, record):
+            """Filter log records based on warning type.
+        
+            Args:
+                record: The log record to check
+            
+            Returns:
+                bool: True if the record should be processed, False otherwise
+            """
             if record.levelno == logging.WARNING:
                 return warning_filter(
                     record.getMessage(), UserWarning, record.filename, record.lineno
@@ -92,6 +136,9 @@ def safe_function_call(
 ) -> Any:
     """Safely call a function, catching and logging any exceptions.
     
+    Wraps a function call in a try/except block to prevent failures from
+    propagating, logging errors and returning a default value instead.
+    
     Args:
         func: The function to call
         *args: Arguments to pass to the function
@@ -101,6 +148,9 @@ def safe_function_call(
         
     Returns:
         The result of the function call, or default_value if the call fails
+        
+    Raises:
+        No exceptions are raised; all are caught and logged
     """
     try:
         return func(*args, **kwargs)

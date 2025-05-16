@@ -5,7 +5,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from versiontracker.cli import get_arguments
 from versiontracker.config import Config, get_config
@@ -61,7 +61,10 @@ def setup_logging(options: Any) -> None:
     suppress_console_warnings()
 
 
-def suppress_console_warnings() -> None:
+# Import at the top of the file to avoid redefinition
+from versiontracker.handlers.utils_handlers import suppress_console_warnings
+
+def _suppress_console_warnings() -> None:
     """Suppress specific warnings from being printed to the console.
     
     This does not affect logging to warning log files.
@@ -97,14 +100,14 @@ def suppress_console_warnings() -> None:
             handler.addFilter(WarningFilter())
 
 
-def determine_command(options: Any) -> str:
+def determine_command(options: Any) -> Optional[str]:
     """Determine which command to execute based on the options.
 
     Args:
         options: Command line options
 
     Returns:
-        str: The command to execute
+        str: The command to execute, or None if no command is specified
     """
     if hasattr(options, "apps") and options.apps:
         return "list"

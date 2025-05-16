@@ -18,7 +18,7 @@ from versiontracker.exceptions import (
     BrewPermissionError,
     BrewTimeoutError,
 )
-from versiontracker.ui import AdaptiveRateLimiter
+from versiontracker.ui import AdaptiveRateLimiter as UIAdaptiveRateLimiter
 from versiontracker.utils import normalise_name, run_command
 from versiontracker.version import partial_ratio
 
@@ -50,7 +50,7 @@ class SimpleRateLimiter:
                     time.sleep(self._delay - elapsed)
             self._last_time = time.time()
 
-class AdaptiveRateLimiter:
+class _AdaptiveRateLimiter:
     """An adaptive rate limiter that adjusts based on feedback.
     
     This is a separate implementation for the tests, distinct from the UI module.
@@ -121,7 +121,7 @@ class AdaptiveRateLimiter:
 
 
 # Rate limiter type alias
-RateLimiterType = Union[SimpleRateLimiter, AdaptiveRateLimiter]
+RateLimiterType = Union[SimpleRateLimiter, _AdaptiveRateLimiter]
 
 # Progress bar availability
 HAS_PROGRESS = True
@@ -437,9 +437,10 @@ def is_homebrew_available() -> bool:
             return False
 
         # First check if we have a cached brew path that works
-        if hasattr(get_config(), "brew_path") and get_config().brew_path:
+        config = get_config()
+        if hasattr(config, "_config") and config._config.get("brew_path"):
             try:
-                cmd = f"{get_config().brew_path} --version"
+                cmd = f"{config._config['brew_path']} --version"
                 output, returncode = run_command(cmd, timeout=2)
                 if returncode == 0:
                     return True
@@ -598,8 +599,9 @@ def _process_brew_batch(
             logging.debug("Using default rate limit: %d second(s)", rate_limit_seconds)
 
         # Create rate limiter
+        rate_limiter: RateLimiterType
         if getattr(get_config(), "ui", {}).get("adaptive_rate_limiting", False):
-            rate_limiter = AdaptiveRateLimiter(
+            rate_limiter = _AdaptiveRateLimiter(
                 base_rate_limit_sec=float(rate_limit_seconds),
                 min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
                 max_rate_limit_sec=float(rate_limit_seconds) * 2.0,
@@ -903,7 +905,7 @@ def check_brew_update_candidates(
     # Create rate limiter
     rate_limiter: RateLimiterType
     if getattr(get_config(), "ui", {}).get("adaptive_rate_limiting", False):
-        rate_limiter = AdaptiveRateLimiter(
+        rate_limiter = _AdaptiveRateLimiter(
             base_rate_limit_sec=float(rate_limit_seconds),
             min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
             max_rate_limit_sec=float(rate_limit_seconds) * 2.0,

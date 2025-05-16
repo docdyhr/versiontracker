@@ -1,4 +1,14 @@
-"""Application handlers for VersionTracker."""
+"""Application handlers for VersionTracker.
+
+This module contains handler functions for the application listing
+commands of VersionTracker.
+
+Args:
+    None: This is a module, not a function.
+
+Returns:
+    None: This module doesn't return anything directly.
+"""
 
 import logging
 import traceback
@@ -21,11 +31,18 @@ from versiontracker.utils import get_json_data
 def handle_list_apps(options: Any) -> int:
     """Handle listing applications.
 
+    Retrieves and displays installed applications.
+    Can filter by blacklist, Homebrew management, and more.
+
     Args:
-        options: Command line options
+        options: Command line options containing parameters like blacklist,
+                brew_filter, include_brews, export_format, and output_file.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
+
+    Raises:
+        Exception: For errors retrieving or processing application data
     """
     try:
         logging.info("Starting VersionTracker list command")

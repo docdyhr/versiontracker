@@ -35,8 +35,8 @@ This document outlines planned review, enhancements, known bugs, and potential o
 - [ ] **Roadmap Short-Term Goals**
   - [x] Refactor `__main__.py` into smaller modules (move handler functions to a dedicated `handlers/` directory)
   - [x] Implement a command pattern for better extension of CLI commands
-  - [ ] Standardize docstring format across the codebase
-  - [ ] Complete type hinting coverage across all modules
+  - [x] Standardize docstring format across the codebase
+  - [x] Complete type hinting coverage across all modules
   - [ ] Implement parameterized tests to reduce code duplication
   - [ ] Create a mock server for network operation testing
   - [ ] Add integration tests for real-world usage scenarios

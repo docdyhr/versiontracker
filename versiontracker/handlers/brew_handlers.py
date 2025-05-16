@@ -1,4 +1,15 @@
-"""Brew handlers for VersionTracker."""
+"""Brew handlers for VersionTracker.
+
+This module contains handler functions for Homebrew-related commands
+in VersionTracker, including listing brew packages and providing
+recommendations for applications that can be installed with Homebrew.
+
+Args:
+    None: This is a module, not a function.
+
+Returns:
+    None: This module doesn't return anything directly.
+"""
 
 import logging
 import sys
@@ -21,12 +32,20 @@ from versiontracker.utils import get_json_data
 
 def handle_list_brews(options: Any) -> int:
     """Handle listing Homebrew packages.
+    
+    Retrieves and displays all installed Homebrew casks/packages
+    on the system. Can export the results in various formats.
 
     Args:
-        options: Command line options
+        options: Command line options containing parameters like
+                export_format and output_file.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
+        
+    Raises:
+        HomebrewError: If Homebrew is not installed or not accessible
+        Exception: For other errors retrieving Homebrew packages
     """
     try:
         print(create_progress_bar().color("green")("Getting Homebrew packages..."))
@@ -87,12 +106,23 @@ def handle_list_brews(options: Any) -> int:
 
 def handle_brew_recommendations(options: Any) -> int:
     """Handle Homebrew installation recommendations.
+    
+    Analyzes installed applications and suggests ones that could be
+    managed by Homebrew instead. Can filter results based on various criteria
+    and export the results to different formats.
 
     Args:
-        options: Command line options
+        options: Command line options containing parameters like rate_limit,
+                strict_recom, debug, export_format, and output_file.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
+        
+    Raises:
+        HomebrewError: If Homebrew is not installed or there's an error with Homebrew
+        NetworkError: If there are connectivity issues
+        TimeoutError: If operations time out
+        Exception: For other unexpected errors
     """
     # Set attribute for backward compatibility with tests
     setattr(options, "recommend", True) if not hasattr(options, "recommend") else None

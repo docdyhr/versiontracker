@@ -1,4 +1,15 @@
-"""Export handlers for VersionTracker."""
+"""Export handlers for VersionTracker.
+
+This module contains handler functions for exporting data in various formats
+such as JSON and CSV. It provides functions to handle the export of application
+data, recommendations, and other information gathered by VersionTracker.
+
+Args:
+    None: This is a module, not a function.
+
+Returns:
+    None: This module doesn't return anything directly.
+"""
 
 import logging
 import traceback
@@ -17,14 +28,22 @@ def handle_export(
 ) -> Union[int, str]:
     """Handle exporting data in the specified format.
 
+    Exports data to JSON or CSV format, either to a file or as a string.
+
     Args:
-        data: The data to export
+        data: The data to export (can be dictionary, list, or other serializable type)
         format_type: The format to export to ('json' or 'csv')
         filename: Optional filename to write to
 
     Returns:
         int: Exit code (0 for success, non-zero for failure) or
         str: The exported data as a string if no filename is provided
+    
+    Raises:
+        ValueError: If an unsupported format is specified
+        PermissionError: If there's an issue with file permissions
+        ExportError: If there's an error during the export process
+        Exception: For other unexpected errors
     """
     try:
         # Export data

@@ -1,4 +1,15 @@
-"""Outdated check handlers for VersionTracker."""
+"""Outdated check handlers for VersionTracker.
+
+This module contains handler functions for checking outdated applications
+in VersionTracker. It provides functionality to compare installed application
+versions with the latest available versions from Homebrew.
+
+Args:
+    None: This is a module, not a function.
+
+Returns:
+    None: This module doesn't return anything directly.
+"""
 
 import logging
 import time
@@ -23,12 +34,25 @@ from versiontracker.version import check_outdated_apps
 
 def handle_outdated_check(options: Any) -> int:
     """Handle checking for outdated applications.
+    
+    Compares installed application versions with the latest available versions
+    and displays a summary of which applications need updates. Can export
+    results in various formats.
 
     Args:
-        options: Command line options
+        options: Command line options containing parameters like no_progress,
+                include_brews, export_format, and output_file.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
+        
+    Raises:
+        PermissionError: If there's an issue accessing application data
+        TimeoutError: If operations time out
+        NetworkError: If there are connectivity issues
+        ConfigError: If there's a configuration error
+        ExportError: If there's an error during export
+        Exception: For other unexpected errors
     """
     try:
         # Update config with no_progress option if specified
