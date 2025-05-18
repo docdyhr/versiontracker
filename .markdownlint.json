@@ -1,0 +1,19 @@
+{
+  "default": true,
+  "line-length": {
+    "line_length": 120,
+    "headers": 120,
+    "code_blocks": false, 
+    "tables": false
+  },
+  "no-trailing-punctuation": {
+    "punctuation": ".,;:!"
+  },
+  "no-inline-html": false,
+  "ul-style": {
+    "style": "consistent"
+  },
+  "no-duplicate-header": {
+    "allow_different_nesting": true
+  }
+}
