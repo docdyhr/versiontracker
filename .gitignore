@@ -408,4 +408,11 @@ tmp_test/*.yaml
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,git,venv,direnv,python,visualstudiocode,pycharm,sublimetext
 
+# AI assistant configuration files
+CLAUDE.md
+.github/copilot-instructions.md
+
+# Temporary files
+.!*
+
 private_*
