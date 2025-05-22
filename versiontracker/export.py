@@ -12,6 +12,7 @@ from versiontracker.version import VersionStatus
 DEFAULT_FORMAT = "json"
 FORMAT_OPTIONS = ("json", "csv")
 
+
 def export_data(
     data: Union[
         Dict[str, Any],
@@ -92,17 +93,23 @@ def _export_to_json(
                     app_data = {
                         "name": str(app[0]),
                         "installed_version": (
-                            app[1].get("installed", "") if isinstance(app[1], dict) else ""
+                            app[1].get("installed", "")
+                            if isinstance(app[1], dict)
+                            else ""
                         ),
                         "latest_version": (
                             app[1].get("latest", "Unknown")
                             if isinstance(app[1], dict)
                             else "Unknown"
                         ),
-                        "status": app[2].name if hasattr(app[2], "name") else str(app[2]),
+                        "status": app[2].name
+                        if hasattr(app[2], "name")
+                        else str(app[2]),
                     }
                 else:
-                    app_name = str(app[0]) if isinstance(app, tuple) and len(app) > 0 else ""
+                    app_name = (
+                        str(app[0]) if isinstance(app, tuple) and len(app) > 0 else ""
+                    )
                     app_data = {
                         "name": app_name,
                         "installed_version": "",
@@ -170,7 +177,9 @@ def _export_to_csv(
                         writer.writerow(
                             [
                                 str(app[0]),
-                                app[1].get("installed", "") if isinstance(app[1], dict) else "",
+                                app[1].get("installed", "")
+                                if isinstance(app[1], dict)
+                                else "",
                                 (
                                     app[1].get("latest", "Unknown")
                                     if isinstance(app[1], dict)

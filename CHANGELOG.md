@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Implemented parameterized tests for version comparison to reduce code duplication
+- Created a mock server for network operation testing with simulated failures and edge cases
+- Developed an advanced caching mechanism for Homebrew queries with tiered caching (memory and disk)
+- Added cache compression for large responses to reduce disk usage
+- Implemented thread-safe batch operations for efficient Homebrew queries
+- Created detailed cache statistics and monitoring functionality
+- Added request batching to reduce network calls and improve performance
+- Enhanced error handling for network operations with comprehensive test coverage
+
 ## [0.6.4] - 2025-05-16
 
 ### Added

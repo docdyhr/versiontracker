@@ -39,7 +39,9 @@ class TestConfigFile(TestCase):
 
         try:
             # Create a test Config instance
-            with patch.object(Config, "_load_from_env"):  # Prevent loading from environment
+            with patch.object(
+                Config, "_load_from_env"
+            ):  # Prevent loading from environment
                 test_config = Config()
                 test_config._config["config_file"] = config_path
                 test_config._load_from_file()
@@ -73,13 +75,18 @@ class TestConfigFile(TestCase):
             with open(config_path, "r", encoding="utf-8") as f:
                 yaml_config = yaml.safe_load(f)
 
-            self.assertEqual(yaml_config["api-rate-limit"], test_config.get("api_rate_limit"))
+            self.assertEqual(
+                yaml_config["api-rate-limit"], test_config.get("api_rate_limit")
+            )
             self.assertEqual(yaml_config["max-workers"], test_config.get("max_workers"))
             self.assertEqual(
-                yaml_config["similarity-threshold"], test_config.get("similarity_threshold")
+                yaml_config["similarity-threshold"],
+                test_config.get("similarity_threshold"),
             )
             self.assertEqual(yaml_config["blacklist"], ["TestApp1", "TestApp2"])
-            self.assertEqual(yaml_config["show-progress"], test_config.get("show_progress"))
+            self.assertEqual(
+                yaml_config["show-progress"], test_config.get("show_progress")
+            )
 
     def test_env_vars_override_file(self):
         """Test that environment variables override file configuration."""
@@ -109,7 +116,9 @@ class TestConfigFile(TestCase):
             # Verify the environment variables override the file configuration
             self.assertEqual(test_config.get("api_rate_limit"), 10)
             self.assertEqual(test_config.get("max_workers"), 20)  # Not overridden
-            self.assertEqual(test_config.get_blacklist(), ["App3", "App4"])  # Overridden
+            self.assertEqual(
+                test_config.get_blacklist(), ["App3", "App4"]
+            )  # Overridden
         finally:
             # Clean up the temporary file
             os.unlink(config_path)
@@ -148,7 +157,9 @@ class TestConfigFile(TestCase):
 
         try:
             # Create a test Config instance with the custom path
-            with patch.object(Config, "_load_from_env"):  # Prevent loading from environment
+            with patch.object(
+                Config, "_load_from_env"
+            ):  # Prevent loading from environment
                 test_config = Config(config_file=custom_config_path)
 
             # Verify the configuration values were loaded from the custom path
@@ -156,7 +167,8 @@ class TestConfigFile(TestCase):
             self.assertEqual(test_config.get("max_workers"), 6)
             self.assertEqual(test_config.get_blacklist(), ["CustomApp1", "CustomApp2"])
             self.assertEqual(
-                test_config.get("additional_app_dirs"), ["/custom/path1", "/custom/path2"]
+                test_config.get("additional_app_dirs"),
+                ["/custom/path1", "/custom/path2"],
             )
         finally:
             # Clean up the temporary file

@@ -38,7 +38,7 @@ def handle_export(
     Returns:
         int: Exit code (0 for success, non-zero for failure) or
         str: The exported data as a string if no filename is provided
-    
+
     Raises:
         ValueError: If an unsupported format is specified
         PermissionError: If there's an issue with file permissions
@@ -52,7 +52,7 @@ def handle_export(
         # If we're exporting to a file, return success
         if filename:
             return 0
-        
+
         # Otherwise return the result for further processing
         return result
     except ValueError as e:

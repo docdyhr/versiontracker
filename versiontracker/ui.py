@@ -37,13 +37,71 @@ except ImportError:
 
     # Define a simple fallback class for tqdm
     class FallbackTqdm:
-        def __init__(self, iterable=None, **kwargs):
+        """Fallback implementation for tqdm progress bar.
+
+        This class provides a minimal implementation of the tqdm interface
+        for use when the tqdm package is not available.
+        """
+
+        def __init__(self, iterable=None, desc=None, total=None, **kwargs):
+            """Initialize the fallback progress bar.
+
+            Args:
+                iterable: Iterable to wrap
+                desc: Description to display
+                total: Total number of items (optional)
+                **kwargs: Additional arguments (ignored)
+            """
             self.iterable = iterable
+            self.desc = desc
+            self.total = total
+            self.n = 0
+
+            # Print initial message
+            if desc:
+                print(f"{desc}: started")
 
         def __iter__(self):
+            """Iterate over the wrapped iterable."""
             if self.iterable is None:
                 return iter([])
-            return iter(self.iterable)
+
+            # Print start
+            count = 0
+            for item in self.iterable:
+                count += 1
+                self.n = count
+                yield item
+
+            # Print completion
+            if self.desc:
+                print(f"{self.desc}: completed ({count} items)")
+
+        def update(self, n=1):
+            """Update progress by n items."""
+            self.n += n
+
+        def set_description(self, desc=None):
+            """Set the description of the progress bar."""
+            if desc:
+                self.desc = desc
+                print(f"Progress: {desc}")
+
+        def refresh(self):
+            """Refresh the display (no-op in fallback)."""
+            pass
+
+        def close(self):
+            """Close the progress bar."""
+            pass
+
+        def __enter__(self):
+            """Context manager entry."""
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            """Context manager exit."""
+            self.close()
 
         def set_postfix_str(self, s):
             # No-op for fallback
@@ -60,11 +118,33 @@ except ImportError:
 
     # Fallback implementation if termcolor is not available
     def colored(text, color=None, on_color=None, attrs=None):
-        """Fallback implementation of colored."""
+        """Fallback implementation of colored.
+
+        Returns the text unmodified since color formatting is not available.
+
+        Args:
+            text: Text to format
+            color: Foreground color (ignored in fallback)
+            on_color: Background color (ignored in fallback)
+            attrs: Text attributes (ignored in fallback)
+
+        Returns:
+            str: The unmodified text
+        """
         return text
 
     def cprint(text, color=None, on_color=None, attrs=None, **kwargs):
-        """Fallback implementation of cprint."""
+        """Fallback implementation of cprint.
+
+        Simply prints the text without color formatting.
+
+        Args:
+            text: Text to print
+            color: Foreground color (ignored in fallback)
+            on_color: Background color (ignored in fallback)
+            attrs: Text attributes (ignored in fallback)
+            **kwargs: Additional arguments passed to print
+        """
         print(text, **kwargs)
 
 
@@ -164,13 +244,13 @@ class SmartProgress(Generic[T]):
 
         # Check if we're in a terminal that supports progress bars
         self.use_tqdm = HAS_TQDM and sys.stdout.isatty()
-    
+
     def color(self, color_name: str):
         """Return a function that applies the specified color to a string.
-        
+
         Args:
             color_name: Name of the color to use
-            
+
         Returns:
             Function that applies the color to a string
         """
@@ -228,10 +308,10 @@ class SmartProgress(Generic[T]):
 # Create a progress bar function (adapter for smart_progress)
 def create_progress_bar():
     """Create a simple progress bar object that supports basic operations.
-    
+
     This is a simplified adapter that provides compatibility with code expecting
     a progress bar object with basic operations.
-    
+
     Returns:
         SmartProgress: A progress indicator object with color method
     """
@@ -315,7 +395,9 @@ class AdaptiveRateLimiter:
             )
 
             # Ensure we're within bounds
-            return float(max(self.min_rate_limit_sec, min(self.max_rate_limit_sec, rate_limit)))
+            return float(
+                max(self.min_rate_limit_sec, min(self.max_rate_limit_sec, rate_limit))
+            )
         except Exception:
             # If we can't get resource information, fall back to base rate
             return float(self.base_rate_limit_sec)
@@ -364,6 +446,7 @@ class QueryFilterManager:
         Returns:
             bool: True if the filter was saved successfully
         """
+        # Standard library import that's guaranteed to be available
         import json
 
         try:
@@ -389,6 +472,7 @@ class QueryFilterManager:
         Returns:
             Dict[str, Any]: Filter configuration data or None if not found
         """
+        # Standard library import that's guaranteed to be available
         import json
 
         try:

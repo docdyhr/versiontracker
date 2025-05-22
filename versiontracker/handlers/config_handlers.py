@@ -19,7 +19,7 @@ from versiontracker.config import get_config
 
 def handle_config_generation(options: Any) -> int:
     """Handle configuration file generation.
-    
+
     Creates a default configuration file at the specified path or at
     the default location (~/.config/versiontracker/config.yaml).
 
@@ -28,7 +28,7 @@ def handle_config_generation(options: Any) -> int:
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
-        
+
     Raises:
         Exception: If there's an error generating the configuration file
     """

@@ -8,16 +8,32 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 spec = importlib.util.spec_from_file_location(
-    "versiontracker.__main__", 
-    "/Users/thomas/Programming/versiontracker/versiontracker/__main__.py"
+    "versiontracker.__main__",
+    "/Users/thomas/Programming/versiontracker/versiontracker/__main__.py",
 )
 versiontracker_main_module = importlib.util.module_from_spec(spec)
 sys.modules["versiontracker.__main__"] = versiontracker_main_module
 spec.loader.exec_module(versiontracker_main_module)
 main = versiontracker_main_module.versiontracker_main
 
-# Override the get_applications function for testing
-versiontracker_main_module.get_applications = MagicMock()
+# Import handler modules
+from versiontracker.apps import get_applications, get_homebrew_casks, filter_out_brews, check_brew_install_candidates
+from versiontracker.utils import get_json_data
+from versiontracker.handlers.brew_handlers import handle_brew_recommendations
+from versiontracker.handlers.app_handlers import handle_list_apps
+from versiontracker.handlers.brew_handlers import handle_list_brews
+
+# Override the handler functions in the main module for testing
+versiontracker_main_module.handle_brew_recommendations = handle_brew_recommendations
+versiontracker_main_module.handle_list_apps = handle_list_apps
+versiontracker_main_module.handle_list_brews = handle_list_brews
+
+# Also add the functions needed by the tests
+versiontracker_main_module.get_applications = get_applications
+versiontracker_main_module.get_homebrew_casks = get_homebrew_casks
+versiontracker_main_module.filter_out_brews = filter_out_brews
+versiontracker_main_module.check_brew_install_candidates = check_brew_install_candidates
+versiontracker_main_module.get_json_data = get_json_data
 
 
 class TestIntegration(unittest.TestCase):
@@ -25,11 +41,11 @@ class TestIntegration(unittest.TestCase):
 
     # Patch check_dependencies at its source
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.__main__.get_applications")
-    @patch("versiontracker.__main__.get_homebrew_casks")
-    @patch("versiontracker.__main__.filter_out_brews")
-    @patch("versiontracker.__main__.check_brew_install_candidates")
-    @patch("versiontracker.__main__.get_json_data")
+    @patch("versiontracker.handlers.brew_handlers.get_applications")
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
+    @patch("versiontracker.handlers.brew_handlers.filter_out_brews")
+    @patch("versiontracker.handlers.brew_handlers.check_brew_install_candidates")
+    @patch("versiontracker.handlers.brew_handlers.get_json_data")
     @patch("versiontracker.__main__.setup_logging")
     @patch("versiontracker.config.Config")
     def test_main_recommend_workflow(
@@ -71,13 +87,15 @@ class TestIntegration(unittest.TestCase):
         # Run the recommend handler directly with mocked options
         with patch("builtins.print"):  # Suppress output
             mock_json_data.return_value = {}  # Mock JSON data
-            versiontracker_main_module.handle_brew_recommendations(MagicMock(
-                recommend=True, 
-                strict_recom=False,
-                debug=False,
-                strict_recommend=False,
-                rate_limit=10
-            ))
+            versiontracker_main_module.handle_brew_recommendations(
+                MagicMock(
+                    recommend=True,
+                    strict_recom=False,
+                    debug=False,
+                    strict_recommend=False,
+                    rate_limit=10,
+                )
+            )
 
         # Verify the functions were called
         mock_get_apps.assert_called_once()
@@ -85,22 +103,22 @@ class TestIntegration(unittest.TestCase):
         mock_filter_brews.assert_called_once()
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            10,  
+            10,
             False,
         )
 
     # Patch check_dependencies at its source
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.__main__.get_applications")
-    @patch("versiontracker.__main__.get_homebrew_casks")
-    @patch("versiontracker.__main__.filter_out_brews")
-    @patch("versiontracker.__main__.check_brew_install_candidates")
-    @patch("versiontracker.__main__.get_json_data")
+    @patch("versiontracker.handlers.brew_handlers.get_applications")
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
+    @patch("versiontracker.handlers.brew_handlers.filter_out_brews")
+    @patch("versiontracker.handlers.brew_handlers.check_brew_install_candidates")
+    @patch("versiontracker.handlers.brew_handlers.get_json_data")
     @patch("versiontracker.__main__.setup_logging")
-    @patch("versiontracker.__main__.get_config") 
+    @patch("versiontracker.handlers.brew_handlers.get_config")
     def test_main_strict_recommend_workflow(
         self,
-        mock_get_config, 
+        mock_get_config,
         mock_setup_logging,
         mock_json_data,
         mock_check_candidates,
@@ -121,7 +139,7 @@ class TestIntegration(unittest.TestCase):
             }
         )
         # Optional: Add assertions here to verify the mock state before calling main
-        assert hasattr(mock_config_instance, 'rate_limit')
+        assert hasattr(mock_config_instance, "rate_limit")
         assert isinstance(mock_config_instance.rate_limit, int)
         assert mock_config_instance.rate_limit == 5
 
@@ -167,14 +185,14 @@ class TestIntegration(unittest.TestCase):
         # Ensure strict param is True
         mock_check_candidates.assert_called_once_with(
             mock_filter_brews.return_value,
-            5,  
+            5,
             True,
         )
 
     # Patch check_dependencies at its source
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.__main__.get_applications")
-    @patch("versiontracker.__main__.get_json_data")
+    @patch("versiontracker.handlers.app_handlers.get_applications")
+    @patch("versiontracker.handlers.app_handlers.get_json_data")
     @patch("versiontracker.__main__.setup_logging")
     @patch("versiontracker.config.Config")
     def test_main_apps_workflow(
@@ -199,18 +217,16 @@ class TestIntegration(unittest.TestCase):
         # Run the apps handler directly with mocked options
         with patch("builtins.print"):  # Suppress output
             mock_json_data.return_value = {}  # Mock JSON data
-            versiontracker_main_module.handle_list_apps(MagicMock(
-                apps=True,
-                debug=False,
-                blacklist=None
-            ))
+            versiontracker_main_module.handle_list_apps(
+                MagicMock(apps=True, debug=False, blacklist=None)
+            )
 
         # Verify the function was called
         mock_get_apps.assert_called_once()
 
     # Patch check_dependencies at its source
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.__main__.get_homebrew_casks")
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
     @patch("versiontracker.__main__.setup_logging")
     @patch("versiontracker.config.Config")
     def test_main_brews_workflow(
@@ -233,11 +249,9 @@ class TestIntegration(unittest.TestCase):
 
         # Run the brews handler directly with mocked options
         with patch("builtins.print"):  # Suppress output
-            versiontracker_main_module.handle_list_brews(MagicMock(
-                brews=True,
-                debug=False,
-                export_format=None
-            ))
+            versiontracker_main_module.handle_list_brews(
+                MagicMock(brews=True, debug=False, export_format=None)
+            )
 
         # Verify the function was called
         mock_get_casks.assert_called_once()

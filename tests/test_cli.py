@@ -86,7 +86,9 @@ class TestCLI(unittest.TestCase):
 
     def test_blacklist_option(self):
         """Test --blacklist option."""
-        with patch("sys.argv", ["versiontracker", "--apps", "--blacklist", "Firefox,Chrome"]):
+        with patch(
+            "sys.argv", ["versiontracker", "--apps", "--blacklist", "Firefox,Chrome"]
+        ):
             args = get_arguments()
             self.assertEqual(args.blacklist, "Firefox,Chrome")
 

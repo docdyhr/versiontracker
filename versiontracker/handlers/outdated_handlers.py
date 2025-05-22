@@ -30,6 +30,7 @@ except ImportError:
             result.append(" | ".join(str(cell) for cell in row))
         return "\n".join(result)
 
+
 from versiontracker.apps import (
     filter_out_brews,
     get_applications,
@@ -70,7 +71,7 @@ def _get_installed_applications() -> List[Tuple[str, str]]:
         Exception: For other unexpected errors
     """
     print(create_progress_bar().color("green")("Getting Apps from Applications/..."))
-    
+
     apps_data = get_json_data(
         getattr(
             get_config(),
@@ -100,7 +101,9 @@ def _get_homebrew_casks() -> List[str]:
     return get_homebrew_casks()
 
 
-def _filter_applications(apps: List[Tuple[str, str]], brews: List[str], include_brews: bool) -> List[Tuple[str, str]]:
+def _filter_applications(
+    apps: List[Tuple[str, str]], brews: List[str], include_brews: bool
+) -> List[Tuple[str, str]]:
     """Filter applications based on whether they're managed by Homebrew.
 
     Args:
@@ -128,7 +131,9 @@ def _filter_applications(apps: List[Tuple[str, str]], brews: List[str], include_
     return apps
 
 
-def _check_outdated_apps(apps: List[Tuple[str, str]]) -> List[Tuple[str, Dict[str, str], Any]]:
+def _check_outdated_apps(
+    apps: List[Tuple[str, str]],
+) -> List[Tuple[str, Dict[str, str], Any]]:
     """Check which applications are outdated.
 
     Args:
@@ -144,10 +149,15 @@ def _check_outdated_apps(apps: List[Tuple[str, str]]) -> List[Tuple[str, Dict[st
     """
     batch_size = getattr(get_config(), "batch_size", 50)
     # Use cast to handle the return type properly
-    return cast(List[Tuple[str, Dict[str, str], Any]], check_outdated_apps(apps, batch_size=batch_size))
+    return cast(
+        List[Tuple[str, Dict[str, str], Any]],
+        check_outdated_apps(apps, batch_size=batch_size),
+    )
 
 
-def _process_outdated_info(outdated_info: List[Tuple[str, Dict[str, str], Any]]) -> Tuple[List[List[Union[str, Any]]], Dict[str, int]]:
+def _process_outdated_info(
+    outdated_info: List[Tuple[str, Dict[str, str], Any]],
+) -> Tuple[List[List[Union[str, Any]]], Dict[str, int]]:
     """Process outdated information into a table and counters.
 
     Args:
@@ -158,11 +168,11 @@ def _process_outdated_info(outdated_info: List[Tuple[str, Dict[str, str], Any]])
     """
     table = []
     status_counts = {
-        'outdated': 0,
-        'uptodate': 0,
-        'not_found': 0,
-        'error': 0,
-        'unknown': 0
+        "outdated": 0,
+        "uptodate": 0,
+        "not_found": 0,
+        "error": 0,
+        "unknown": 0,
     }
 
     for app_name, version_info, status in outdated_info:
@@ -170,15 +180,15 @@ def _process_outdated_info(outdated_info: List[Tuple[str, Dict[str, str], Any]])
         color = get_status_color(str(status))
 
         if status == "outdated":
-            status_counts['outdated'] += 1
+            status_counts["outdated"] += 1
         elif status == "uptodate":
-            status_counts['uptodate'] += 1
+            status_counts["uptodate"] += 1
         elif status == "not_found":
-            status_counts['not_found'] += 1
+            status_counts["not_found"] += 1
         elif status == "error":
-            status_counts['error'] += 1
+            status_counts["error"] += 1
         else:
-            status_counts['unknown'] += 1
+            status_counts["unknown"] += 1
 
         # Add row to table with colored status
         installed_version = (
@@ -202,7 +212,12 @@ def _process_outdated_info(outdated_info: List[Tuple[str, Dict[str, str], Any]])
     return table, status_counts
 
 
-def _display_results(table: List[List[Union[str, Any]]], status_counts: Dict[str, int], app_count: int, elapsed_time: float) -> None:
+def _display_results(
+    table: List[List[Union[str, Any]]],
+    status_counts: Dict[str, int],
+    app_count: int,
+    elapsed_time: float,
+) -> None:
     """Display results table and summary.
 
     Args:
@@ -246,7 +261,7 @@ def _display_results(table: List[List[Union[str, Any]]], status_counts: Dict[str
     headers = ["", "Application", "Installed Version", "Latest Version"]
     print(tabulate(table, headers=headers, tablefmt="pretty"))
 
-    if status_counts['outdated'] > 0:
+    if status_counts["outdated"] > 0:
         print(
             create_progress_bar().color("red")(
                 f"\nFound {status_counts['outdated']} outdated applications."
@@ -254,13 +269,13 @@ def _display_results(table: List[List[Union[str, Any]]], status_counts: Dict[str
         )
     else:
         print(
-            create_progress_bar().color("green")(
-                "\nAll applications are up to date!"
-            )
+            create_progress_bar().color("green")("\nAll applications are up to date!")
         )
 
 
-def _export_data(outdated_info: List[Tuple[str, Dict[str, str], str]], options: Any) -> int:
+def _export_data(
+    outdated_info: List[Tuple[str, Dict[str, str], str]], options: Any
+) -> int:
     """Export data to the specified format.
 
     Args:
@@ -278,16 +293,16 @@ def _export_data(outdated_info: List[Tuple[str, Dict[str, str], str]], options: 
         options.export_format,
         options.output_file if hasattr(options, "output_file") else None,
     )
-    
+
     if not options.output_file and isinstance(export_result, str):
         print(export_result)
-    
+
     return 0
 
 
 def handle_outdated_check(options: Any) -> int:
     """Handle checking for outdated applications.
-    
+
     Compares installed application versions with the latest available versions
     and displays a summary of which applications need updates. Can export
     results in various formats.
@@ -298,7 +313,7 @@ def handle_outdated_check(options: Any) -> int:
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
-        
+
     Raises:
         PermissionError: If there's an issue accessing application data
         TimeoutError: If operations time out

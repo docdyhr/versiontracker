@@ -6,15 +6,15 @@ import shutil
 import tempfile
 import time
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 from versiontracker.cache import (
+    CACHE_DIR,
+    CacheError,
     _ensure_cache_dir,
+    clear_cache,
     read_cache,
     write_cache,
-    clear_cache,
-    CACHE_DIR,
-    CacheError
 )
 
 
@@ -28,7 +28,7 @@ class TestCache(unittest.TestCase):
         # Save the original CACHE_DIR
         self.original_cache_dir = CACHE_DIR
         # Patch CACHE_DIR to use our temporary directory
-        self.patcher = patch('versiontracker.cache.CACHE_DIR', self.temp_dir)
+        self.patcher = patch("versiontracker.cache.CACHE_DIR", self.temp_dir)
         self.mock_cache_dir = self.patcher.start()
 
     def tearDown(self):
@@ -58,8 +58,9 @@ class TestCache(unittest.TestCase):
         """Test _ensure_cache_dir when an error occurs."""
         # Mock os.path.exists to return False so makedirs is called
         # Mock os.makedirs to raise an exception
-        with patch('os.path.exists', return_value=False), \
-             patch('os.makedirs', side_effect=PermissionError("Permission denied")):
+        with patch("os.path.exists", return_value=False), patch(
+            "os.makedirs", side_effect=PermissionError("Permission denied")
+        ):
             # Call the function and check it raises CacheError
             with self.assertRaises(CacheError):
                 _ensure_cache_dir()
@@ -121,7 +122,7 @@ class TestCache(unittest.TestCase):
     def test_read_cache_exception(self):
         """Test reading cache with an exception."""
         # Mock open to raise an exception
-        with patch('builtins.open', side_effect=Exception("Test error")):
+        with patch("builtins.open", side_effect=Exception("Test error")):
             # Call the function
             result = read_cache("test_cache")
             # Check the result is None
@@ -147,7 +148,7 @@ class TestCache(unittest.TestCase):
     def test_write_cache_exception(self):
         """Test writing cache with an exception."""
         # Mock open to raise an exception
-        with patch('builtins.open', side_effect=Exception("Test error")):
+        with patch("builtins.open", side_effect=Exception("Test error")):
             # Call the function and check it raises CacheError
             with self.assertRaises(CacheError):
                 write_cache("test_cache", {"test": "data"})
@@ -197,7 +198,7 @@ class TestCache(unittest.TestCase):
     def test_clear_cache_exception(self):
         """Test clearing cache with an exception."""
         # Mock os.remove to raise an exception
-        with patch('os.remove', side_effect=Exception("Test error")):
+        with patch("os.remove", side_effect=Exception("Test error")):
             # Create a cache file
             os.makedirs(self.temp_dir, exist_ok=True)
             cache_file = os.path.join(self.temp_dir, "test_cache.json")

@@ -141,6 +141,9 @@ def _write_cache_file(data: Dict[str, Any]) -> None:
 def get_json_data(command: str) -> Dict[str, Any]:
     """Execute a command and return the JSON output, with caching.
 
+    Executes the given command, parses its JSON output, and optionally
+    caches the results for future use (when using system_profiler).
+
     Args:
         command (str): The command to execute
 
@@ -148,7 +151,11 @@ def get_json_data(command: str) -> Dict[str, Any]:
         Dict[str, Any]: The parsed JSON data
 
     Raises:
-        RuntimeError: If the command fails
+        DataParsingError: If the JSON output cannot be parsed
+        FileNotFoundError: If the command executable cannot be found
+        PermissionError: If there's insufficient permission to run the command
+        TimeoutError: If the command execution times out
+        NetworkError: If a network-related error occurs during execution
     """
     # For system_profiler, check the cache first
     if SYSTEM_PROFILER_CMD in command:
@@ -158,16 +165,22 @@ def get_json_data(command: str) -> Dict[str, Any]:
             return cast(Dict[str, Any], cache["data"])
 
     try:
-        # Split the command into arguments for security
-        command_parts = command.split()
+        # For secure command execution, use run_command instead of directly calling subprocess
+        stdout, return_code = run_command(command, timeout=60)
 
-        # Use subprocess.run for more secure command execution
-        result = subprocess.run(command_parts, capture_output=True, text=True, check=True)
+        if return_code != 0:
+            raise subprocess.CalledProcessError(return_code, command, stdout)
 
-        if not result.stdout:
-            raise RuntimeError(f"Command '{command}' produced no output")
+        if not stdout:
+            raise DataParsingError(f"Command '{command}' produced no output")
 
-        parsed_data = json.loads(result.stdout)
+        try:
+            parsed_data = json.loads(stdout)
+        except json.JSONDecodeError as e:
+            logging.error(f"Failed to parse JSON output from '{command}': {e}")
+            raise DataParsingError(
+                f"Failed to parse JSON from command output: {e}"
+            ) from e
 
         # Cache system_profiler results
         if SYSTEM_PROFILER_CMD in command:
@@ -175,14 +188,30 @@ def get_json_data(command: str) -> Dict[str, Any]:
 
         return cast(Dict[str, Any], parsed_data)
     except subprocess.CalledProcessError as e:
-        logging.error(f"Command '{command}' failed with error code {e.returncode}: {e.stderr}")
-        raise RuntimeError(f"Command '{command}' failed: {e.stderr}")
-    except json.JSONDecodeError:
-        logging.error(f"Failed to parse JSON output from '{command}'")
-        raise RuntimeError(f"Failed to parse JSON output from '{command}'")
+        logging.error(f"Command '{command}' failed with error code {e.returncode}")
+        # Check for specific error patterns in the output
+        if "command not found" in str(e):
+            raise FileNotFoundError(f"Command not found: {command}") from e
+        elif "permission denied" in str(e).lower():
+            raise PermissionError(f"Permission denied when running: {command}") from e
+        else:
+            raise DataParsingError(f"Command execution failed: {e}") from e
+    except (
+        FileNotFoundError,
+        PermissionError,
+        TimeoutError,
+        NetworkError,
+        DataParsingError,
+    ):
+        # Re-raise specific exceptions for consistent error handling
+        raise
     except Exception as e:
-        logging.error(f"Failed to execute command '{command}': {e}")
-        raise RuntimeError(f"Failed to execute command '{command}': {e}")
+        logging.error(f"Unexpected error executing command '{command}': {e}")
+        # Check for network-related terms in the error message
+        if any(term in str(e).lower() for term in ["network", "connection", "timeout"]):
+            raise NetworkError(f"Network error executing command: {command}") from e
+        # Fallback to DataParsingError for other cases
+        raise DataParsingError(f"Error processing command output: {e}") from e
 
 
 def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
@@ -205,7 +234,9 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
 
         if returncode != 0:
             logging.error(f"Command failed with return code {returncode}: {output}")
-            raise DataParsingError(f"Command failed with return code {returncode}: {output}")
+            raise DataParsingError(
+                f"Command failed with return code {returncode}: {output}"
+            )
 
         # Parse JSON data
         try:
@@ -228,6 +259,10 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
 def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
     """Run a command and return the output.
 
+    Executes a shell command and captures its output and return code.
+    Handles various error conditions including timeouts, permission issues,
+    and network-related problems.
+
     Args:
         cmd: Command to run
         timeout: Optional timeout in seconds
@@ -236,10 +271,13 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
         Tuple[str, int]: Command output and return code
 
     Raises:
-        TimeoutError: If the command times out
-        PermissionError: If there's a permission error running the command
-        Exception: If there's a network-related error
+        TimeoutError: If the command execution exceeds the specified timeout
+        PermissionError: If there's insufficient permissions to run the command
+        FileNotFoundError: If the command executable cannot be found
+        NetworkError: If a network-related error occurs during execution
+        subprocess.SubprocessError: For other subprocess-related errors
     """
+    process = None
     try:
         # Run the command
         logging.debug(f"Running command: {cmd}")
@@ -259,30 +297,63 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
                 pass
             else:
                 # Log other failures as warnings
-                logging.warning(f"Command failed with return code {process.returncode}: {stderr}")
+                logging.warning(
+                    f"Command failed with return code {process.returncode}: {stderr}"
+                )
 
-            # Check for common errors
+            # Check for common errors in order of specificity
             if "command not found" in stderr:
                 raise FileNotFoundError(f"Command not found: {cmd}")
             elif "permission denied" in stderr.lower():
                 raise PermissionError(f"Permission denied: {cmd}")
-            elif "network is unreachable" in stderr.lower() or "no route to host" in stderr.lower():
+            elif any(
+                network_err in stderr.lower()
+                for network_err in [
+                    "network is unreachable",
+                    "no route to host",
+                    "connection refused",
+                    "temporary failure in name resolution",
+                ]
+            ):
                 raise NetworkError(f"Network error: {stderr}")
 
         return stdout, process.returncode
     except subprocess.TimeoutExpired as e:
         # Kill the process if it timed out
-        process.kill()
+        if process:
+            try:
+                process.kill()
+            except Exception as kill_error:
+                logging.debug(f"Error killing timed out process: {kill_error}")
+
         logging.error(f"Command timed out after {timeout} seconds: {cmd}")
         raise TimeoutError(f"Command timed out after {timeout} seconds: {cmd}") from e
+    except FileNotFoundError as e:
+        logging.error(f"Command not found: {cmd}")
+        raise FileNotFoundError(f"Command not found: {cmd}") from e
     except PermissionError as e:
-        logging.error(f"Permission error running command: {e}")
+        logging.error(f"Permission error running command: {cmd}")
+        raise PermissionError(f"Permission denied when running: {cmd}") from e
+    except subprocess.SubprocessError as e:
+        logging.error(f"Subprocess error running command: {cmd} - {e}")
         raise
     except Exception as e:
-        logging.error(f"Error running command: {e}")
-        if "network" in str(e).lower():
-            raise NetworkError(f"Network error running command: {e}")
-        raise
+        logging.error(f"Error running command '{cmd}': {e}")
+        # Check for network-related errors in the exception message
+        if any(
+            network_term in str(e).lower()
+            for network_term in [
+                "network",
+                "socket",
+                "connection",
+                "host",
+                "resolve",
+                "timeout",
+            ]
+        ):
+            raise NetworkError(f"Network error running command: {cmd}") from e
+        # Re-raise with more context
+        raise Exception(f"Error executing command '{cmd}': {e}") from e
 
 
 def run_command_original(command: str, timeout: int = 30) -> List[str]:
@@ -323,15 +394,21 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
             logging.error(
                 f"{error_msg}: Permission denied. Try running with sudo or check file permissions."
             )
-            raise PermissionError(f"Permission denied while executing '{command}'") from e
+            raise PermissionError(
+                f"Permission denied while executing '{command}'"
+            ) from e
         elif "command not found" in e.stderr:
             logging.error(
                 f"{error_msg}: Command not found. Check if the required program is installed."
             )
             raise Exception(f"Command not found: '{command}'") from e
         elif "No such file or directory" in e.stderr:
-            logging.error(f"{error_msg}: File or directory not found. Check if the path exists.")
-            raise Exception(f"File or directory not found in command: '{command}'") from e
+            logging.error(
+                f"{error_msg}: File or directory not found. Check if the path exists."
+            )
+            raise Exception(
+                f"File or directory not found in command: '{command}'"
+            ) from e
         else:
             # Generic error message with stderr output
             detailed_error = e.stderr.strip() if e.stderr else "Unknown error"
@@ -363,13 +440,17 @@ class RateLimiter:
             current_time = time.time()
 
             # Remove timestamps older than the period
-            self.timestamps = [t for t in self.timestamps if current_time - t < self.period]
+            self.timestamps = [
+                t for t in self.timestamps if current_time - t < self.period
+            ]
 
             # If we've reached the limit, wait until we can make another call
             if len(self.timestamps) >= self.calls_per_period:
                 sleep_time = self.period - (current_time - self.timestamps[0])
                 if sleep_time > 0:
-                    logging.debug(f"Rate limiting: waiting for {sleep_time:.2f} seconds")
+                    logging.debug(
+                        f"Rate limiting: waiting for {sleep_time:.2f} seconds"
+                    )
                     # Release the lock while sleeping to avoid blocking other threads
                     self._lock.release()
                     try:

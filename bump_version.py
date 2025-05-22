@@ -64,21 +64,21 @@ def update_changelog(version_str):
     """Update the CHANGELOG.md file with a new version entry."""
     today = datetime.now().strftime("%Y-%m-%d")
     changelog_path = Path(__file__).parent / "CHANGELOG.md"
-    
+
     with open(changelog_path, "r", encoding="utf-8") as f:
         content = f.readlines()
-    
+
     # Find the position to insert the new version
     insert_pos = None
     for i, line in enumerate(content):
         if line.startswith("## ["):
             insert_pos = i
             break
-    
+
     if insert_pos is None:
         print("Error: Could not find where to insert the new version in CHANGELOG.md")
         return False
-    
+
     # Create the new version entry
     new_entry = [
         f"## [{version_str}] - {today}\n",
@@ -86,15 +86,15 @@ def update_changelog(version_str):
         f"### Added ({version_str})\n",
         "\n",
         "- \n",
-        "\n"
+        "\n",
     ]
-    
+
     # Insert the new version entry
     content = content[:insert_pos] + new_entry + content[insert_pos:]
-    
+
     with open(changelog_path, "w", encoding="utf-8") as f:
         f.writelines(content)
-    
+
     return True
 
 

@@ -239,6 +239,16 @@ When making network requests, VersionTracker intelligently adjusts rate limits b
 
 This ensures optimal performance regardless of system load.
 
+### Advanced Caching System
+
+VersionTracker implements a sophisticated caching system for Homebrew queries:
+
+1. Tiered caching (memory and disk) for optimal performance
+2. Automatic expiry based on access patterns
+3. Cache compression for large responses
+4. Thread-safe batch operations
+5. Detailed cache statistics and monitoring
+
 ### Query Filter Management
 
 Save and reuse your favorite query settings:
@@ -331,7 +341,7 @@ export VERSIONTRACKER_PROGRESS_BARS=false
 
 ## Testing
 
-VersionTracker includes a test suite to ensure functionality. To run the tests:
+VersionTracker includes a comprehensive test suite to ensure functionality. To run the tests:
 
 ```shell
 # Activate your virtual environment if necessary
@@ -342,9 +352,19 @@ pip install pytest pytest-cov
 
 # Run tests with coverage
 pytest
+
+# Run tests with detailed coverage report
+pytest --cov=versiontracker --cov-report=term-missing
 ```
 
-This will run all tests and generate a coverage report showing which parts of the code are tested.
+The test suite includes:
+* Standard unit tests for core functionality
+* Parameterized tests for efficient testing of version comparison
+* Mock server for network operation testing
+* Simulated edge cases for error handling
+* Thread safety tests for concurrent operations
+
+This ensures robust functionality across various scenarios and network conditions.
 
 ## Continuous Integration
 
@@ -376,15 +396,19 @@ VersionTracker is currently undergoing significant enhancements following the ro
 * Added support for smart progress indicators and adaptive rate limiting
 * Moved handler functions to a dedicated `handlers/` directory
 
+## Current Improvements
+
+* Improved test coverage with parameterized tests for version comparison
+* Created a mock server for network operation testing with simulated failures
+* Implemented an advanced caching mechanism for Homebrew queries
+* Added request batching to reduce network calls
+* Enhanced error handling for network operations
+
 ## Planned Improvements
 
 * Add more package managers support (MacPorts, etc.)
 * Implement automatic update capabilities for Homebrew-manageable applications
-* Improve test coverage with parameterized tests
-* Create a mock server for network operation testing
-* Implement a more efficient caching mechanism for Homebrew queries
 * Explore using `asyncio` for network operations
-* Add request batching to reduce network calls
 * Add GUI interface
 
 ## License

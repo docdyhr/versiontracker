@@ -49,6 +49,18 @@ def get_arguments():
         action="store_true",
         help="Disable progress bars",
     )
+    performance_group.add_argument(
+        "--profile",
+        dest="profile",
+        action="store_true",
+        help="Enable performance profiling and report",
+    )
+    performance_group.add_argument(
+        "--detailed-profile",
+        dest="detailed_profile",
+        action="store_true",
+        help="Include detailed profiling information in report (requires --profile)",
+    )
 
     # UI options
     ui_group = parser.add_argument_group("UI options")
@@ -188,7 +200,9 @@ def get_arguments():
         dest="check_outdated",
         help="check for outdated applications compared to Homebrew versions",
     )
-    group.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
+    group.add_argument(
+        "-V", "--version", action="version", version=f"%(prog)s {__version__}"
+    )
 
     # If no arguments were provided, show help
     if len(sys.argv) == 1:

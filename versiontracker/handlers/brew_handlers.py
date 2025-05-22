@@ -15,7 +15,7 @@ import logging
 import sys
 import time
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict, cast
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
 
 from versiontracker.apps import (
     check_brew_install_candidates,
@@ -32,13 +32,15 @@ from versiontracker.utils import get_json_data
 
 class BrewOptions(TypedDict, total=False):
     """Type definition for brew command options."""
+
     export_format: Optional[str]
     output_file: Optional[str]
     debug: bool
 
-def handle_list_brews(options: Union[BrewOptions, Any]) -> int:
+
+def handle_list_brews(options: Any) -> int:
     """Handle listing Homebrew packages.
-    
+
     Retrieves and displays all installed Homebrew casks/packages
     on the system. Can export the results in various formats.
 
@@ -48,7 +50,7 @@ def handle_list_brews(options: Union[BrewOptions, Any]) -> int:
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
-        
+
     Raises:
         HomebrewError: If Homebrew is not installed or not accessible
         Exception: For other errors retrieving Homebrew packages
@@ -71,9 +73,7 @@ def handle_list_brews(options: Union[BrewOptions, Any]) -> int:
                     )
                 )
                 for i, brew in enumerate(brews, 1):
-                    print(
-                        f"{i:3d}. {create_progress_bar().color('green')(brew)}"
-                    )
+                    print(f"{i:3d}. {create_progress_bar().color('green')(brew)}")
             else:
                 print(
                     create_progress_bar().color("yellow")(
@@ -112,6 +112,7 @@ def handle_list_brews(options: Union[BrewOptions, Any]) -> int:
 
 class RecommendOptions(TypedDict, total=False):
     """Type definition for recommendation command options."""
+
     recommend: bool
     strict_recommend: bool
     strict_recom: bool
@@ -120,9 +121,10 @@ class RecommendOptions(TypedDict, total=False):
     export_format: Optional[str]
     output_file: Optional[str]
 
-def handle_brew_recommendations(options: Union[RecommendOptions, Any]) -> int:
+
+def handle_brew_recommendations(options: Any) -> int:
     """Handle Homebrew installation recommendations.
-    
+
     Analyzes installed applications and suggests ones that could be
     managed by Homebrew instead. Can filter results based on various criteria
     and export the results to different formats.
@@ -133,7 +135,7 @@ def handle_brew_recommendations(options: Union[RecommendOptions, Any]) -> int:
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
-        
+
     Raises:
         HomebrewError: If Homebrew is not installed or there's an error with Homebrew
         NetworkError: If there are connectivity issues
@@ -180,7 +182,8 @@ def handle_brew_recommendations(options: Union[RecommendOptions, Any]) -> int:
             create_progress_bar().color("green")("Getting installed Homebrew casks...")
         )
         try:
-            apps_homebrew = get_homebrew_casks()
+            homebrew_casks = get_homebrew_casks()
+            apps_homebrew = homebrew_casks
         except HomebrewError as e:
             print(
                 create_progress_bar().color("red")(f"Error getting Homebrew casks: {e}")
@@ -190,7 +193,7 @@ def handle_brew_recommendations(options: Union[RecommendOptions, Any]) -> int:
                     "Proceeding without Homebrew cask filtering."
                 )
             )
-            apps_homebrew: List[str] = []
+            apps_homebrew = []
         except Exception as e:
             print(
                 create_progress_bar().color("red")(
@@ -222,7 +225,9 @@ def handle_brew_recommendations(options: Union[RecommendOptions, Any]) -> int:
                 logging.debug("\tbrew cask: %s", brew)
 
         # Get installable candidates
-        search_list: List[Tuple[str, str]] = filter_out_brews(filtered_apps, apps_homebrew, strict_mode)
+        search_list: List[Tuple[str, str]] = filter_out_brews(
+            filtered_apps, apps_homebrew, strict_mode
+        )
 
         if options.debug:
             logging.debug("\n*** Candidates for search (not found as brew casks) ***")
@@ -274,9 +279,12 @@ def handle_brew_recommendations(options: Union[RecommendOptions, Any]) -> int:
 
             # If in a test, the check_brew_install_candidates function should already be mocked
             # Use rate_limit_int for the API rate limit
-            installables: List[str] = check_brew_install_candidates(
+            brew_candidates = check_brew_install_candidates(
                 search_list, rate_limit_int, strict_mode
             )
+            
+            # Extract installable app names from the results (app, version, installable)
+            installables = [app for app, _, installable in brew_candidates if installable]
         except HomebrewError as e:
             print(
                 create_progress_bar().color("red")(

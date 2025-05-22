@@ -18,6 +18,7 @@ def get_version():
                 return match.group(1)
     raise RuntimeError("Version not found in __init__.py")
 
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 

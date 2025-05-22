@@ -10,108 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
-
-# Optional dependency imports with fallbacks
-# Import packaging version if available, otherwise create a stub
-try:
-    from packaging import version as packaging_version
-except ImportError:
-    # Handle case where packaging module is not available
-    # Define a stub module type for type checking
-    from types import ModuleType
-    
-    class _PackagingVersionStub(ModuleType):
-        def parse(self, version_string):
-            """Stub parse method."""
-            return version_string
-    
-    packaging_version = _PackagingVersionStub('packaging.version')
-
-# Try to import fuzzy matching libraries with fallbacks
-USE_RAPIDFUZZ = False
-USE_FUZZYWUZZY = False
-
-try:
-    from fuzzywuzzy import fuzz, process as fuzz_process
-    from fuzzywuzzy.fuzz import partial_ratio as _partial_ratio
-    USE_FUZZYWUZZY = True
-except ImportError:
-    try:
-        from rapidfuzz import fuzz, process as fuzz_process
-        from rapidfuzz.fuzz import partial_ratio as _partial_ratio
-        USE_RAPIDFUZZ = True
-    except ImportError:
-        # Create minimal fallback implementations if neither library is available
-        class MinimalFuzz:
-            """Minimal implementation of fuzzy matching when no library is available."""
-            
-            @staticmethod
-            def ratio(s1: str, s2: str, **kwargs) -> int:
-                """Calculate the ratio of similarity between two strings.
-                
-                Args:
-                    s1: First string
-                    s2: Second string
-                    **kwargs: Additional arguments (ignored)
-                    
-                Returns:
-                    Similarity score from 0-100
-                """
-                return 100 if s1 == s2 else 0
-                
-            @staticmethod
-            def partial_ratio(s1: str, s2: str, **kwargs) -> int:
-                """Calculate partial ratio between two strings.
-                
-                Args:
-                    s1: First string
-                    s2: Second string
-                    **kwargs: Additional arguments (ignored)
-                    
-                Returns:
-                    Partial similarity score from 0-100
-                """
-                return 100 if s1 in s2 or s2 in s1 else 0
-        
-        class MinimalProcess:
-            """Minimal implementation of fuzzy process matching when no library is available."""
-            
-            @staticmethod
-            def extractOne(query: str, choices: List[str], **kwargs) -> Optional[Tuple[str, int]]:
-                """Find the best match for query among choices.
-                
-                Args:
-                    query: The string to match
-                    choices: List of possible matches
-                    **kwargs: Additional arguments (ignored)
-                    
-                Returns:
-                    Tuple of (best_match, score) or None if no choices
-                """
-                if not choices:
-                    return None
-                
-                best_score = 0
-                best_match = None
-                
-                for choice in choices:
-                    if query.lower() in choice.lower():
-                        score = 90
-                    elif choice.lower() in query.lower():
-                        score = 70
-                    else:
-                        score = 0
-                        
-                    if score > best_score:
-                        best_score = score
-                        best_match = choice
-                
-                return (best_match, best_score) if best_match else (choices[0], 0)
-        
-        fuzz = MinimalFuzz()
-        fuzz_process = MinimalProcess()
-        _partial_ratio = fuzz.partial_ratio
 
 # Internal imports
 from versiontracker.config import get_config
@@ -123,19 +23,129 @@ from versiontracker.exceptions import (
 from versiontracker.ui import smart_progress
 from versiontracker.utils import normalise_name
 
+# Optional dependency imports with fallbacks
+# Import packaging version if available, otherwise create a stub
+try:
+    from packaging import version as packaging_version
+except ImportError:
+    # Handle case where packaging module is not available
+    # Define a stub module type for type checking
+    from types import ModuleType
+
+    class _PackagingVersionStub(ModuleType):
+        def parse(self, version_string):
+            """Stub parse method."""
+            return version_string
+
+    packaging_version = _PackagingVersionStub("packaging.version")
+
+# Try to import fuzzy matching libraries with fallbacks
+USE_RAPIDFUZZ = False
+USE_FUZZYWUZZY = False
+
+try:
+    from fuzzywuzzy import fuzz
+    from fuzzywuzzy import process as fuzz_process
+    from fuzzywuzzy.fuzz import partial_ratio as _partial_ratio
+
+    USE_FUZZYWUZZY = True
+except ImportError:
+    try:
+        from rapidfuzz import fuzz
+        from rapidfuzz import process as fuzz_process
+        from rapidfuzz.fuzz import partial_ratio as _partial_ratio
+
+        USE_RAPIDFUZZ = True
+    except ImportError:
+        # Create minimal fallback implementations if neither library is available
+        class MinimalFuzz:
+            """Minimal implementation of fuzzy matching when no library is available."""
+
+            @staticmethod
+            def ratio(s1: str, s2: str, **kwargs) -> int:
+                """Calculate the ratio of similarity between two strings.
+
+                Args:
+                    s1: First string
+                    s2: Second string
+                    **kwargs: Additional arguments (ignored)
+
+                Returns:
+                    Similarity score from 0-100
+                """
+                return 100 if s1 == s2 else 0
+
+            @staticmethod
+            def partial_ratio(s1: str, s2: str, **kwargs) -> int:
+                """Calculate partial ratio between two strings.
+
+                Args:
+                    s1: First string
+                    s2: Second string
+                    **kwargs: Additional arguments (ignored)
+
+                Returns:
+                    Partial similarity score from 0-100
+                """
+                return 100 if s1 in s2 or s2 in s1 else 0
+
+        class MinimalProcess:
+            """Minimal implementation of fuzzy process matching when no library is available."""
+
+            @staticmethod
+            def extractOne(
+                query: str, choices: List[str], **kwargs
+            ) -> Optional[Tuple[str, int]]:
+                """Find the best match for query among choices.
+
+                Args:
+                    query: The string to match
+                    choices: List of possible matches
+                    **kwargs: Additional arguments (ignored)
+
+                Returns:
+                    Tuple of (best_match, score) or None if no choices
+                """
+                if not choices:
+                    return None
+
+                best_score = 0
+                best_match = None
+
+                for choice in choices:
+                    if query.lower() in choice.lower():
+                        score = 90
+                    elif choice.lower() in query.lower():
+                        score = 70
+                    else:
+                        score = 0
+
+                    if score > best_score:
+                        best_score = score
+                        best_match = choice
+
+                return (best_match, best_score) if best_match else (choices[0], 0)
+
+        fuzz = MinimalFuzz()
+        fuzz_process = MinimalProcess()
+        _partial_ratio = fuzz.partial_ratio
+
+# Set up progress bar support
+
 # Set up progress bar support
 HAS_VERSION_PROGRESS = False
 try:
     from tqdm.auto import tqdm
+
     HAS_VERSION_PROGRESS = True
 except ImportError:
     # Create a minimal progress bar fallback
     class MinimalTqdm:
         """Minimal implementation of tqdm progress bar when the library is not available."""
-        
+
         def __init__(self, iterable=None, **kwargs):
             """Initialize minimal progress bar.
-            
+
             Args:
                 iterable: Iterable to wrap with progress reporting
                 **kwargs: Additional arguments like desc (description)
@@ -143,11 +153,11 @@ except ImportError:
             self.iterable = iterable
             self.total = len(iterable) if iterable is not None else None
             self.n = 0
-            self.desc = kwargs.get('desc', '')
-        
+            self.desc = kwargs.get("desc", "")
+
         def __iter__(self):
             """Iterate through items with progress updates.
-            
+
             Yields:
                 Items from the wrapped iterable
             """
@@ -157,19 +167,19 @@ except ImportError:
                     print(f"\r{self.desc}: {self.n}/{self.total}", end="", flush=True)
                 yield item
             print("\rCompleted", " " * 30)
-        
+
         def update(self, n=1):
             """Update progress by n steps.
-            
+
             Args:
                 n: Number of steps to increment
             """
             self.n += n
-        
+
         def close(self):
             """Close the progress bar."""
             pass
-    
+
     tqdm = MinimalTqdm
     HAS_VERSION_PROGRESS = True
 
@@ -177,7 +187,7 @@ except ImportError:
 # Create a compatibility function for partial_ratio
 def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
     """Get the partial ratio between two strings.
-    
+
     Provides compatibility between rapidfuzz and fuzzywuzzy, with fallbacks.
     Uses the appropriate function based on which library is available.
 
@@ -191,7 +201,7 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
     """
     if not s1 or not s2:
         return 0
-        
+
     try:
         if USE_RAPIDFUZZ:
             if score_cutoff is not None:
@@ -206,7 +216,7 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
             return int(score)
         else:
             # Use our minimal implementation
-            return fuzz.partial_ratio(s1, s2)
+            return int(fuzz.partial_ratio(s1, s2))
     except Exception as e:
         logging.warning(f"Error calculating string similarity: {e}")
         # Simple fallback if all else fails
@@ -277,13 +287,17 @@ class VersionInfo:
         self._latest_parsed = (
             latest_parsed
             if latest_parsed
-            else parse_version(latest_version) if latest_version else None
+            else parse_version(latest_version)
+            if latest_version
+            else None
         )
         self._outdated_by = outdated_by
 
         # Calculate outdated_by if not provided and we have both versions
         if self._outdated_by is None and self._parsed and self._latest_parsed:
-            self._outdated_by = get_version_difference(self._parsed, self._latest_parsed)
+            self._outdated_by = get_version_difference(
+                self._parsed, self._latest_parsed
+            )
 
     @property
     def parsed(self) -> Optional[Tuple[int, ...]]:
@@ -311,11 +325,11 @@ class VersionInfo:
             Optional[Tuple[int, ...]]: Latest parsed version tuple or None
         """
         return self._latest_parsed
-        
+
     @latest_parsed.setter
     def latest_parsed(self, value: Optional[Tuple[int, ...]]) -> None:
         """Set the latest parsed version.
-        
+
         Args:
             value: Latest parsed version tuple
         """
@@ -329,11 +343,11 @@ class VersionInfo:
             Optional[Tuple[int, ...]]: Version difference or None
         """
         return self._outdated_by
-        
+
     @outdated_by.setter
     def outdated_by(self, value: Optional[Tuple[int, ...]]) -> None:
         """Set the version difference.
-        
+
         Args:
             value: Version difference tuple
         """
@@ -341,8 +355,7 @@ class VersionInfo:
 
 
 # Add a precompiled regex pattern cache for better performance
-# Imported lru_cache at the top of the file
-from functools import lru_cache
+
 
 @lru_cache(maxsize=256)
 def get_compiled_pattern(pattern: str) -> re.Pattern:
@@ -435,7 +448,9 @@ def _parse_version_components(version_str: str) -> Optional[Dict[str, Union[int,
     return None
 
 
-def _parse_version_to_dict(version_str: Optional[str]) -> Optional[Dict[str, Union[int, str]]]:
+def _parse_version_to_dict(
+    version_str: Optional[str],
+) -> Optional[Dict[str, Union[int, str]]]:
     """Parse a version string into a dictionary of components.
 
     Args:
@@ -461,10 +476,14 @@ def _parse_version_to_dict(version_str: Optional[str]) -> Optional[Dict[str, Uni
             result: Dict[str, Union[int, str]] = {
                 "major": int(groups[0]) if groups[0] and groups[0].isdigit() else 0,
                 "minor": (
-                    int(groups[1]) if len(groups) > 1 and groups[1] and groups[1].isdigit() else 0
+                    int(groups[1])
+                    if len(groups) > 1 and groups[1] and groups[1].isdigit()
+                    else 0
                 ),
                 "patch": (
-                    int(groups[2]) if len(groups) > 2 and groups[2] and groups[2].isdigit() else 0
+                    int(groups[2])
+                    if len(groups) > 2 and groups[2] and groups[2].isdigit()
+                    else 0
                 ),
             }
 
@@ -503,7 +522,9 @@ def parse_version(version_str: Optional[str]) -> Optional[Tuple[int, ...]]:
         return None
 
     # Simple common patterns
-    simple_pattern = r"(?:v|version\s+)?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?(?:[^\d].*)?$"
+    simple_pattern = (
+        r"(?:v|version\s+)?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?(?:[^\d].*)?$"
+    )
     match = re.search(simple_pattern, version_str.lower(), re.IGNORECASE)
 
     if match:
@@ -533,7 +554,9 @@ def parse_version(version_str: Optional[str]) -> Optional[Tuple[int, ...]]:
     return None
 
 
-def _dict_to_tuple(version_dict: Optional[Dict[str, Union[int, str]]]) -> Optional[Tuple[int, ...]]:
+def _dict_to_tuple(
+    version_dict: Optional[Dict[str, Union[int, str]]],
+) -> Optional[Tuple[int, ...]]:
     """Convert a version dictionary to a version tuple.
 
     Args:
@@ -561,7 +584,9 @@ def _dict_to_tuple(version_dict: Optional[Dict[str, Union[int, str]]]) -> Option
     return version_tuple
 
 
-def _tuple_to_dict(version_tuple: Optional[Tuple[int, ...]]) -> Dict[str, Union[int, str]]:
+def _tuple_to_dict(
+    version_tuple: Optional[Tuple[int, ...]],
+) -> Dict[str, Union[int, str]]:
     """Convert a version tuple to a version dictionary.
 
     Args:
@@ -768,7 +793,9 @@ def format_version_difference(
     return get_version_info(old_version, new_version)
 
 
-def compose_version_tuple(version_dict: Dict[str, int]) -> Optional[Dict[str, Union[int, str]]]:
+def compose_version_tuple(
+    version_dict: Dict[str, int],
+) -> Optional[Dict[str, Union[int, str]]]:
     """Compose a version tuple from a version dictionary.
 
     Args:
@@ -840,7 +867,7 @@ def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:
 
 def _get_config_settings() -> Tuple[bool, int]:
     """Get configuration settings for progress display and worker count.
-    
+
     Returns:
         Tuple of (show_progress, max_workers)
     """
@@ -848,23 +875,29 @@ def _get_config_settings() -> Tuple[bool, int]:
     show_progress = getattr(get_config(), "show_progress", True)
     if hasattr(get_config(), "no_progress") and get_config().no_progress:
         show_progress = False
-        
+
     # Determine max workers - default to either CPU count or 4, whichever is lower
-    max_workers = min(multiprocessing.cpu_count(), getattr(get_config(), "max_workers", 4))
-    
+    max_workers = min(
+        multiprocessing.cpu_count(), getattr(get_config(), "max_workers", 4)
+    )
+
     return show_progress, max_workers
 
-def _create_app_batches(apps: List[Tuple[str, str]], batch_size: int) -> List[List[Tuple[str, str]]]:
+
+def _create_app_batches(
+    apps: List[Tuple[str, str]], batch_size: int
+) -> List[List[Tuple[str, str]]]:
     """Split applications into batches for parallel processing.
-    
+
     Args:
         apps: List of applications with name and version
         batch_size: Size of each batch
-        
+
     Returns:
         List of application batches
     """
     return [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]
+
 
 def check_outdated_apps(
     apps: List[Tuple[str, str]], batch_size: int = 50
@@ -888,7 +921,7 @@ def check_outdated_apps(
 
     # Get configuration settings
     show_progress, max_workers = _get_config_settings()
-    
+
     # Create batches for parallel processing
     batches = _create_app_batches(apps, batch_size)
 
@@ -928,7 +961,9 @@ def check_outdated_apps(
                     logging.error(f"Network error processing batch: {e}")
                     # If we've had too many consecutive errors, propagate the error
                     if error_count >= max_errors:
-                        logging.critical(f"Too many consecutive network errors, aborting: {e}")
+                        logging.critical(
+                            f"Too many consecutive network errors, aborting: {e}"
+                        )
                         raise
                 except Exception as e:
                     logging.error(f"Error processing batch: {e}")
@@ -957,7 +992,9 @@ def check_outdated_apps(
                     logging.error(f"Network error processing batch: {e}")
                     # If we've had too many consecutive errors, propagate the error
                     if error_count >= max_errors:
-                        logging.critical(f"Too many consecutive network errors, aborting: {e}")
+                        logging.critical(
+                            f"Too many consecutive network errors, aborting: {e}"
+                        )
                         raise
                 except Exception as e:
                     logging.error(f"Error processing batch: {e}")
@@ -1018,7 +1055,9 @@ def _process_app_batch(batch: List[Tuple[str, str]]) -> List[AppVersionInfo]:
         except Exception as e:
             logging.error(f"Unexpected error processing {app_name}: {e}")
             # Still add the app to the results with UNKNOWN status
-            results.append(AppVersionInfo(app_name, installed_version, None, VersionStatus.UNKNOWN))
+            results.append(
+                AppVersionInfo(app_name, installed_version, None, VersionStatus.UNKNOWN)
+            )
 
     return results
 
@@ -1163,7 +1202,9 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
 
     # Next, look for casks that contain the app name
     target_casks = [
-        cask for cask in casks if lower_app_name in cask.lower() or cask.lower() in lower_app_name
+        cask
+        for cask in casks
+        if lower_app_name in cask.lower() or cask.lower() in lower_app_name
     ]
 
     # If we have potential matches, use fuzzy matching to find the best one
@@ -1182,19 +1223,26 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
                 if match:
                     return cast(Optional[str], match[0])
             except Exception as e:
-                logging.warning(f"Error using rapidfuzz: {e}, falling back to manual matching")
+                logging.warning(
+                    f"Error using rapidfuzz: {e}, falling back to manual matching"
+                )
                 # Fall through to manual matching
         else:
             # Use fuzzywuzzy as fallback
             try:
                 match = fuzz_process.extractOne(
-                    lower_app_name, target_casks, scorer=fuzz.partial_ratio, score_cutoff=75
+                    lower_app_name,
+                    target_casks,
+                    scorer=fuzz.partial_ratio,
+                    score_cutoff=75,
                 )
 
                 if match:
                     return cast(Optional[str], match[0])
             except Exception as e:
-                logging.warning(f"Error using fuzzywuzzy: {e}, falling back to manual matching")
+                logging.warning(
+                    f"Error using fuzzywuzzy: {e}, falling back to manual matching"
+                )
 
         # Manual matching as a fallback
         best_match = None
@@ -1300,7 +1348,9 @@ def enrich_app_with_version_info(app: Tuple[str, str]) -> VersionInfo:
 
             # Determine version status
             if version_info.parsed and version_info.latest_parsed:
-                comparison = compare_versions(version_info.parsed, version_info.latest_parsed)
+                comparison = compare_versions(
+                    version_info.parsed, version_info.latest_parsed
+                )
                 if comparison < 0:
                     version_info.status = VersionStatus.OUTDATED
                     version_info.outdated_by = get_version_difference(
