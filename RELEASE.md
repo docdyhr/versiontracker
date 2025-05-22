@@ -47,9 +47,8 @@ VersionTracker follows [Semantic Versioning](https://semver.org/):
    mypy versiontracker
 
    # Run linters
-   flake8 versiontracker
-   black versiontracker
-   isort versiontracker
+   ruff check versiontracker
+   ruff format versiontracker
    ```
 
 5. **Commit and Tag**
@@ -84,7 +83,7 @@ VersionTracker follows [Semantic Versioning](https://semver.org/):
 
 ## Post-Release
 
-1. Verify that the package is available on PyPI: https://pypi.org/project/versiontracker/
+1. Verify that the package is available on [PyPI](https://pypi.org/project/versiontracker/)
 2. Verify that the GitHub release page is correct
 3. Test the installation from PyPI: `pip install versiontracker`
 
@@ -93,6 +92,7 @@ VersionTracker follows [Semantic Versioning](https://semver.org/):
 For critical issues that need immediate attention:
 
 1. Create a hotfix branch from the release tag:
+
    ```bash
    git checkout -b hotfix/vX.Y.Z vX.Y.Z
    ```
@@ -100,3 +100,4 @@ For critical issues that need immediate attention:
 2. Make the necessary fixes and commit them
 3. Run the version bump script: `python bump_version.py patch`
 4. Follow the release process from step 3 onwards
+

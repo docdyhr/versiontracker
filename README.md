@@ -1,5 +1,6 @@
-![Logo](images/logo.png)
 # Versiontracker Update tool for macOS
+
+![Logo](images/logo.png)
 
 [![PyPI - Version](https://img.shields.io/pypi/v/versiontracker)](https://pypi.org/project/versiontracker/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/versiontracker)](https://pypi.org/project/versiontracker/)
@@ -7,19 +8,20 @@
 [![Lint](https://github.com/docdyhr/versiontracker/actions/workflows/Lint/badge.svg?branch=master)](https://github.com/docdyhr/versiontracker/actions/workflows/Lint)
 [![codecov](https://codecov.io/gh/docdyhr/versiontracker/branch/master/graph/badge.svg)](https://codecov.io/gh/docdyhr/versiontracker)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat)](https://pycqa.github.io/isort/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 * Name: Versiontracker
-* Version: 0.6.3
+* Version: 0.6.4
 * Programming language: Python 3
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
-* Release date: 21. Feb 2022 (Updated: March 2025)
+* Release date: 21. Feb 2022 (Updated: May 2025)
 
 ## Overview
 
-Versiontracker is a command-line tool for macOS that helps you manage applications installed outside of the App Store. It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed using Homebrew casks, making it easier to keep your applications up to date.
+Versiontracker is a command-line tool for macOS that helps you manage applications installed outside of the App Store.
+It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed
+using Homebrew casks, making it easier to keep your applications up to date.
 
 ## Features
 
@@ -42,9 +44,9 @@ Versiontracker is a command-line tool for macOS that helps you manage applicatio
 
 ## Requirements
 
-- macOS (tested on 10.15 Catalina and later)
-- Python 3.7 or later
-- Homebrew package manager
+* macOS (tested on 10.15 Catalina and later)
+* Python 3.7 or later
+* Homebrew package manager
 
 ## Installation
 
@@ -84,7 +86,7 @@ pip install -e .
 
 Versiontracker provides a simple command-line interface with several options:
 
-```
+```bash
 usage: versiontracker [-h] [-D DEBUG] [--rate-limit RATE_LIMIT]
                      [--max-workers MAX_WORKERS] [--no-progress]
                      [--blacklist BLACKLIST] [--additional-dirs ADDITIONAL_DIRS]
@@ -259,7 +261,8 @@ python -m versiontracker --delete-filter my-filter
 
 ### Configuration File
 
-VersionTracker supports a YAML configuration file located at `~/.config/versiontracker/config.yaml` by default. You can generate this file using the `--generate-config` command line option.
+VersionTracker supports a YAML configuration file located at `~/.config/versiontracker/config.yaml` by default.
+You can generate this file using the `--generate-config` command line option.
 
 You can also specify a custom configuration file location using the `--config-path` option:
 
@@ -300,7 +303,8 @@ show-progress: true
 
 ### Environment Variables
 
-You can also configure VersionTracker using environment variables, which will override any settings in the configuration file:
+You can also configure VersionTracker using environment variables, which will override any settings in the
+configuration file:
 
 ```shell
 # Set the API rate limit (seconds)
@@ -346,27 +350,42 @@ This will run all tests and generate a coverage report showing which parts of th
 
 VersionTracker uses GitHub Actions for continuous integration and deployment:
 
-- **Testing**: Automatically runs the test suite on multiple Python versions
-- **Linting**: Ensures code quality with flake8, black, and isort
-- **Releases**: Automatically publishes new versions to PyPI when a release is created
+* **Testing**: Automatically runs the test suite on multiple Python versions
+* **Linting**: Ensures code quality with flake8, black, and isort
+* **Releases**: Automatically publishes new versions to PyPI when a release is created
 
 The CI/CD pipeline helps maintain code quality and ensures that the application is always in a deployable state.
 
 ## Background
 
-On macOS, not all apps are installed through the App Store. If you have many apps downloaded outside of Apple's App Store, it can be a hassle to keep them all updated - especially those you don't use every day. While download sites like macupdate.com or macdownload.com exist, they may not prioritize user privacy.
+On macOS, not all apps are installed through the App Store. If you have many apps downloaded outside of Apple's
+App Store, it can be a hassle to keep them all updated - especially those you don't use every day. While download
+sites like macupdate.com or macdownload.com exist, they may not prioritize user privacy.
 
-Package managers like Homebrew and MacPort make it possible to install and maintain many popular applications through the command line. Versiontracker helps bridge the gap between your current applications and what could be managed through Homebrew.
+Package managers like Homebrew and MacPort make it possible to install and maintain many popular applications
+through the command line. Versiontracker helps bridge the gap between your current applications and what could
+be managed through Homebrew.
+
+## Project Status
+
+VersionTracker is currently undergoing significant enhancements following the roadmap in [ROADMAP.md](ROADMAP.md). Key recent improvements include:
+
+* Refactored the codebase to follow the command pattern with dedicated handlers
+* Improved project structure with better module separation
+* Enhanced error handling with custom exceptions
+* Added support for smart progress indicators and adaptive rate limiting
+* Moved handler functions to a dedicated `handlers/` directory
 
 ## Planned Improvements
 
 * Add more package managers support (MacPorts, etc.)
-* Add automatic update capabilities for Homebrew-manageable applications
-* Improve performance with parallel API requests
+* Implement automatic update capabilities for Homebrew-manageable applications
+* Improve test coverage with parameterized tests
+* Create a mock server for network operation testing
+* Implement a more efficient caching mechanism for Homebrew queries
+* Explore using `asyncio` for network operations
+* Add request batching to reduce network calls
 * Add GUI interface
-* Add support for application blacklisting
-* Generate reports of outdated applications
-* Support for more export formats
 
 ## License
 
