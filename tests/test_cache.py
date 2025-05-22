@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import time
 import unittest
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
 
 from versiontracker.cache import (
     CACHE_DIR,

@@ -11,7 +11,7 @@ import re
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple
 
 # Default cask data for testing
 DEFAULT_CASKS = {

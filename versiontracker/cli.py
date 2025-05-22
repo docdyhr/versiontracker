@@ -3,10 +3,9 @@
 import argparse
 import sys
 import textwrap
-from pathlib import Path
+from datetime import datetime
 
 from versiontracker import __version__
-from versiontracker.ui import QueryFilterManager
 
 
 def get_arguments():
@@ -17,9 +16,10 @@ def get_arguments():
     """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        # Copyright year automatically updates to current year
         epilog=textwrap.dedent(
-            """\
-         thomas@dyhr.com 2022
+            f"""\
+         thomas@dyhr.com {datetime.now().year}
          """
         ),
     )

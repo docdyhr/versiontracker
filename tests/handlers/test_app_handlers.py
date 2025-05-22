@@ -1,18 +1,13 @@
 """Test module for app_handlers module."""
 
-import sys
 import unittest
 from io import StringIO
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
+
+# Import the modules that will be patched
 
 # Import the function being tested
 from versiontracker.handlers.app_handlers import handle_list_apps
-
-# Import the modules that will be patched
-from versiontracker.apps import filter_out_brews, get_applications, get_homebrew_casks
-from versiontracker.config import Config, get_config
-from versiontracker.handlers.export_handlers import handle_export
-from versiontracker.utils import get_json_data
 
 
 class TestAppHandlers(unittest.TestCase):

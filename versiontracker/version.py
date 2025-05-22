@@ -8,17 +8,15 @@ import re
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 # Internal imports
 from versiontracker.config import get_config
 from versiontracker.exceptions import (
     NetworkError,
     TimeoutError,
-    VersionError,
 )
 from versiontracker.ui import smart_progress
 from versiontracker.utils import normalise_name
@@ -1108,47 +1106,69 @@ def _check_app_version(
         return None, VersionStatus.ERROR
 
 
-def check_latest_version(app_name: str, installed_version: str) -> Optional[str]:
-    """Check the latest version of an application available via Homebrew.
+@dataclass
+class LatestVersionResult:
+    app_name: str
+    cask_name: str
+    current_version: str
+    latest_version: str
+    is_outdated: bool
+
+
+def check_latest_version(*args, **kwargs):
+    """Check the latest version of an application (supports two or three arguments).
 
     Args:
         app_name: Name of the application
-        installed_version: Currently installed version
+        installed_version: Currently installed version (two-arg mode)
+        cask_name: Homebrew cask name (three-arg mode)
+        current_version: Currently installed version (three-arg mode)
 
     Returns:
-        Optional[str]: Latest version string if found, None otherwise
-
-    Raises:
-        NetworkError: If there's a network issue connecting to Homebrew
-        TimeoutError: If the operation times out
+        Optional[str] or LatestVersionResult
     """
     from versiontracker.apps import get_cask_version
-
-    try:
-        # First normalize the app name for better matching
-        normalized_name = normalise_name(app_name)
-
-        # Find corresponding Homebrew cask
-        cask = find_corresponding_cask(normalized_name)
-
-        if not cask:
-            logging.debug(f"No cask found for {app_name}")
+    from versiontracker.version import compare_versions
+    if len(args) == 2:
+        app_name, installed_version = args
+        try:
+            normalized_name = normalise_name(app_name)
+            cask = find_corresponding_cask(normalized_name)
+            if not cask:
+                logging.debug(f"No cask found for {app_name}")
+                return None
+            latest_version = get_cask_version(cask)
+            if not latest_version:
+                logging.debug(f"No version information found for {cask}")
+                return None
+            return latest_version
+        except (NetworkError, TimeoutError):
+            raise
+        except Exception as e:
+            logging.error(f"Error checking latest version for {app_name}: {e}")
             return None
-
-        # Get the latest version from Homebrew
-        latest_version = get_cask_version(cask)
-
-        if not latest_version:
-            logging.debug(f"No version information found for {cask}")
-            return None
-
-        return latest_version
-    except (NetworkError, TimeoutError):
-        # Re-raise these specific exceptions for proper handling upstream
-        raise
-    except Exception as e:
-        logging.error(f"Error checking latest version for {app_name}: {e}")
-        return None
+    elif len(args) == 3:
+        app_name, cask_name, current_version = args
+        try:
+            latest_version = get_cask_version(cask_name)
+            is_outdated = False
+            if latest_version and current_version:
+                cmp = compare_versions(current_version, latest_version)
+                is_outdated = cmp < 0
+            return LatestVersionResult(
+                app_name=app_name,
+                cask_name=cask_name,
+                current_version=current_version,
+                latest_version=latest_version or "",
+                is_outdated=is_outdated,
+            )
+        except (NetworkError, TimeoutError):
+            raise
+        except Exception as e:
+            logging.error(f"Error checking latest version for {app_name}: {e}")
+            raise
+    else:
+        raise TypeError("check_latest_version() takes 2 or 3 positional arguments")
 
 
 def find_matching_cask(app_name: str) -> Optional[str]:
@@ -1212,11 +1232,11 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
         # If rapidfuzz is available, use it for faster matching
         if USE_RAPIDFUZZ:
             try:
-                # Use imported fuzz_process from module import rather than direct reference
+                scorer = get_partial_ratio_scorer()
                 match = fuzz_process.extractOne(
                     lower_app_name,
                     target_casks,
-                    scorer=partial_ratio,
+                    scorer=scorer,
                     score_cutoff=75,  # Require at least 75% similarity
                 )
 
@@ -1230,10 +1250,11 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
         else:
             # Use fuzzywuzzy as fallback
             try:
+                scorer = get_partial_ratio_scorer()
                 match = fuzz_process.extractOne(
                     lower_app_name,
                     target_casks,
-                    scorer=fuzz.partial_ratio,
+                    scorer=scorer,
                     score_cutoff=75,
                 )
 
@@ -1257,6 +1278,22 @@ def _find_matching_cask(app_name: str, casks: List[str]) -> Optional[str]:
         return best_match
 
     return None
+
+
+def get_partial_ratio_scorer():
+    """Return a scorer function compatible with rapidfuzz/fuzzywuzzy extractOne."""
+    if USE_RAPIDFUZZ:
+        from rapidfuzz import fuzz as rapidfuzz_fuzz
+        return rapidfuzz_fuzz.partial_ratio
+    elif USE_FUZZYWUZZY:
+        from fuzzywuzzy import fuzz as fuzzywuzzy_fuzz
+        def scorer(s1, s2, *, score_cutoff=None):
+            return float(fuzzywuzzy_fuzz.partial_ratio(s1, s2))
+        return scorer
+    else:
+        def fallback_scorer(s1, s2, *, score_cutoff=None):
+            return float(_partial_ratio(s1, s2))
+        return fallback_scorer
 
 
 def find_corresponding_cask(app_name: str) -> Optional[str]:

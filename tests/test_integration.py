@@ -17,11 +17,18 @@ spec.loader.exec_module(versiontracker_main_module)
 main = versiontracker_main_module.versiontracker_main
 
 # Import handler modules
-from versiontracker.apps import get_applications, get_homebrew_casks, filter_out_brews, check_brew_install_candidates
-from versiontracker.utils import get_json_data
-from versiontracker.handlers.brew_handlers import handle_brew_recommendations
-from versiontracker.handlers.app_handlers import handle_list_apps
-from versiontracker.handlers.brew_handlers import handle_list_brews
+from versiontracker.apps import (  # noqa: E402
+    check_brew_install_candidates,
+    filter_out_brews,
+    get_applications,
+    get_homebrew_casks,
+)
+from versiontracker.handlers.app_handlers import handle_list_apps  # noqa: E402
+from versiontracker.handlers.brew_handlers import (  # noqa: E402
+    handle_brew_recommendations,
+    handle_list_brews,
+)
+from versiontracker.utils import get_json_data  # noqa: E402
 
 # Override the handler functions in the main module for testing
 versiontracker_main_module.handle_brew_recommendations = handle_brew_recommendations

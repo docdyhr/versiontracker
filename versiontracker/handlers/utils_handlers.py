@@ -12,7 +12,6 @@ Returns:
 
 import logging
 import sys
-import traceback
 import warnings
 from typing import Any, Callable, Optional
 

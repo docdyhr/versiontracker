@@ -78,19 +78,21 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "C901"]
+select = ["E", "F", "I"]
 # E203: whitespace before ':' (handled by black)
 # E501: line too long (we might want to enable this later, but keeping old config for now)
 # F401: unused import (keeping old config)
 # F811: redefinition of unused name (keeping old config)
 # F821: undefined name (keeping old config)
 # F841: assigned but unused variable (keeping old config)
-ignore = ["E203", "E501", "F401", "F811", "F821", "F841", "C901"]
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+ignore = ["E203", "E501", "F401", "F811", "F821", "F841"]
 
 # Allow autofix for all enabled rules (when --fix)
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+fixable = ["ALL"]
 unfixable = []
+
+# Allow unused variables when underscore-prefixed
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.isort]
 known-first-party = ["versiontracker"]

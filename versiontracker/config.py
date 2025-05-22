@@ -9,11 +9,11 @@ import os
 import platform
 import shutil
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union, cast
+from typing import Any, Dict, List, Optional, cast
 
 import yaml
 
-from versiontracker.exceptions import ConfigError, ValidationError
+from versiontracker.exceptions import ConfigError
 from versiontracker.utils import run_command
 
 logger = logging.getLogger(__name__)

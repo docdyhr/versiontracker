@@ -5,14 +5,16 @@ import functools
 import json
 import logging
 import os
+import platform
 import re
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
+from versiontracker import __version__
 from versiontracker.exceptions import (
     DataParsingError,
     FileNotFoundError,
@@ -369,13 +371,14 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
     Raises:
         PermissionError: If the command fails due to permission issues
         TimeoutError: If the command times out
+        FileNotFoundError: If the command is not found
+        NetworkError: For network-related command failures
         RuntimeError: For other command execution failures
     """
     try:
-        # Execute the command using a shell for complex commands with pipes
         result = subprocess.run(
             command,
-            shell=True,  # Using shell=True for compatibility with complex commands
+            shell=True,
             capture_output=True,
             text=True,
             check=True,
@@ -388,35 +391,59 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
         raise TimeoutError(error_msg) from e
     except subprocess.CalledProcessError as e:
         error_msg = f"Command '{command}' failed with error code {e.returncode}"
-
+        stderr = e.stderr or ""
         # Check for common error patterns to provide better messages
-        if e.returncode == 13 or "Permission denied" in e.stderr:
+        if e.returncode == 13 or "permission denied" in stderr.lower():
             logging.error(
                 f"{error_msg}: Permission denied. Try running with sudo or check file permissions."
             )
             raise PermissionError(
                 f"Permission denied while executing '{command}'"
             ) from e
-        elif "command not found" in e.stderr:
+        elif "command not found" in stderr.lower():
             logging.error(
                 f"{error_msg}: Command not found. Check if the required program is installed."
             )
-            raise Exception(f"Command not found: '{command}'") from e
-        elif "No such file or directory" in e.stderr:
+            raise FileNotFoundError(f"Command not found: '{command}'") from e
+        elif "no such file or directory" in stderr.lower():
             logging.error(
                 f"{error_msg}: File or directory not found. Check if the path exists."
             )
-            raise Exception(
+            raise FileNotFoundError(
                 f"File or directory not found in command: '{command}'"
             ) from e
+        elif any(
+            network_err in stderr.lower()
+            for network_err in [
+                "network is unreachable",
+                "no route to host",
+                "connection refused",
+                "temporary failure in name resolution",
+                "could not resolve host",
+                "connection timed out",
+                "timed out",
+            ]
+        ):
+            logging.error(f"{error_msg}: Network error: {stderr}")
+            raise NetworkError(f"Network error while executing '{command}': {stderr}") from e
         else:
-            # Generic error message with stderr output
-            detailed_error = e.stderr.strip() if e.stderr else "Unknown error"
+            detailed_error = stderr.strip() if stderr else "Unknown error"
             logging.error(f"{error_msg}: {detailed_error}")
             raise RuntimeError(f"Command '{command}' failed: {detailed_error}") from e
     except Exception as e:
         logging.error(f"Failed to execute command '{command}': {e}")
         raise RuntimeError(f"Failed to execute command '{command}': {e}") from e
+
+
+def get_user_agent() -> str:
+    """Return the default User-Agent string for VersionTracker network requests.
+
+    Returns:
+        str: The User-Agent string identifying VersionTracker and Python version.
+    """
+    python_version = platform.python_version()
+    system = platform.system()
+    return f"VersionTracker/{__version__} (Python/{python_version}; {system})"
 
 
 class RateLimiter:

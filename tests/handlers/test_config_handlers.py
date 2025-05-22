@@ -4,11 +4,9 @@ This module contains tests for the configuration handler functions
 in the versiontracker.handlers.config_handlers module.
 """
 
-import tempfile
-from unittest import mock
 from pathlib import Path
+from unittest import mock
 
-import pytest
 
 from versiontracker.handlers.config_handlers import handle_config_generation
 

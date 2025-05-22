@@ -1,7 +1,7 @@
 """Tests for additional functions in the apps module."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from tests.mock_adaptive_rate_limiter import MockAdaptiveRateLimiter
 from versiontracker.apps import (

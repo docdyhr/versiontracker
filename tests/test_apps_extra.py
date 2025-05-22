@@ -3,21 +3,17 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from tests.mock_adaptive_rate_limiter import MockAdaptiveRateLimiter
 from versiontracker.apps import (
     SimpleRateLimiter,
     _process_brew_batch,
     check_brew_install_candidates,
-    get_homebrew_casks,
     get_homebrew_casks_list,
     is_app_in_app_store,
     is_brew_cask_installable,
 )
 from versiontracker.exceptions import (
     BrewPermissionError,
-    BrewTimeoutError,
     HomebrewError,
-    NetworkError,
 )
 
 

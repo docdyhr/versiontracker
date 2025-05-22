@@ -3,15 +3,12 @@
 import logging
 import sys
 import unittest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-from versiontracker.__main__ import (
-    _suppress_console_warnings as suppress_console_warnings,
-)
-from versiontracker.__main__ import setup_logging
-from versiontracker.export import export_data
 from versiontracker.handlers.export_handlers import handle_export
+from versiontracker.handlers.setup_handlers import handle_setup_logging
 from versiontracker.handlers.ui_handlers import get_status_color, get_status_icon
+from versiontracker.handlers.utils_handlers import suppress_console_warnings
 
 
 class TestMain(unittest.TestCase):
@@ -105,31 +102,22 @@ class TestMain(unittest.TestCase):
         result = handle_export({"test": "data"}, "json", "/root/test.json")
         self.assertEqual(result, 1)  # Should return error code 1
 
-    @patch("versiontracker.__main__.logging")
-    @patch("versiontracker.__main__.Path")
-    @patch("versiontracker.__main__.get_config")
-    def test_setup_logging(self, mock_get_config, mock_path, mock_logging):
+    @patch("versiontracker.handlers.setup_handlers.logging")
+    def test_setup_logging(self, mock_logging):
         """Test logging setup."""
         # Mock options object
         mock_options = MagicMock()
-        mock_options.debug = True
+        mock_options.debug = 1
+        
+        # Mock logging.INFO with an integer
+        mock_logging.INFO = 20
 
-        # Mock Path
-        mock_home = MagicMock()
-        mock_log_dir = MagicMock()
-        mock_path.home.return_value = mock_home
-        mock_home.__truediv__.return_value = mock_home
-        mock_home.__truediv__.return_value.__truediv__.return_value = mock_log_dir
-        mock_log_dir.__truediv__.return_value = mock_log_dir
-
-        # Call the function
-        setup_logging(mock_options)
-
-        # Verify mkdir was called
-        mock_log_dir.mkdir.assert_called_with(parents=True, exist_ok=True)
+        # Call the function (using handle_setup_logging which is imported at the top)
+        result = handle_setup_logging(mock_options)
 
         # Verify logging was configured
-        mock_logging.basicConfig.assert_called_once()
+        self.assertEqual(result, 0)
+        mock_logging.basicConfig.assert_called_once_with(level=20)
 
     @patch("logging.getLogger")
     def test_suppress_console_warnings(self, mock_get_logger):

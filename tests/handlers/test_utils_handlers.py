@@ -4,10 +4,8 @@ This module contains tests for the utility handler functions
 in the versiontracker.handlers.utils_handlers module.
 """
 
-import sys
 from unittest import mock
 
-import pytest
 
 from versiontracker.handlers.utils_handlers import (
     setup_logging,

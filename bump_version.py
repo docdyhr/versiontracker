@@ -120,6 +120,9 @@ def main():
 
     print(f"Current version: {current_version}")
     version_tuple = parse_version(current_version)
+    if not version_tuple:
+        print("Error: Could not parse current version.")
+        return 1
     new_version_tuple = bump_version(version_tuple, args.bump_type)
     new_version = ".".join(map(str, new_version_tuple))
     print(f"New version: {new_version}")

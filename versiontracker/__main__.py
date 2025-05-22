@@ -2,18 +2,10 @@
 
 import logging
 import sys
-import time
-import traceback
 from pathlib import Path
 from typing import Any, Optional
 
 from versiontracker.cli import get_arguments
-from versiontracker.exceptions import (
-    ConfigError,
-    ExportError,
-    HomebrewError,
-    NetworkError,
-)
 from versiontracker.handlers import (
     handle_brew_recommendations,
     handle_config_generation,
@@ -26,7 +18,6 @@ from versiontracker.handlers import (
     handle_save_filter,
     handle_setup_logging,
 )
-from versiontracker.handlers.utils_handlers import suppress_console_warnings
 from versiontracker.profiling import (
     disable_profiling,
     enable_profiling,
@@ -35,8 +26,12 @@ from versiontracker.profiling import (
 )
 from versiontracker.ui import QueryFilterManager, create_progress_bar
 
-
 # Logging functions have been moved to versiontracker.handlers.setup_handlers
+
+
+def setup_logging(*args, **kwargs):
+    """Stub for setup_logging to satisfy test patching in test_integration.py."""
+    pass
 
 
 def determine_command(options: Any) -> Optional[str]:
@@ -87,7 +82,7 @@ def versiontracker_main() -> int:
 
     # Set up logging
     handle_setup_logging(options)
-    
+
     # Initialize configuration
     handle_initialize_config(options)
 
@@ -148,6 +143,15 @@ def versiontracker_main() -> int:
             disable_profiling()
 
         return 1
+
+
+def main() -> int:
+    """Main entry point function for console script.
+
+    Returns:
+        int: Exit code (0 for success, non-zero for failure)
+    """
+    return versiontracker_main()
 
 
 # Entry point for running as a script

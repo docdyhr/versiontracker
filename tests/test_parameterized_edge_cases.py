@@ -7,11 +7,11 @@ using parameterized tests to improve coverage and reduce code duplication.
 import pytest
 
 from versiontracker.version import (
+    VersionStatus,
     compare_versions,
-    parse_version,
     get_version_difference,
     get_version_info,
-    VersionStatus,
+    parse_version,
 )
 
 
@@ -268,7 +268,7 @@ def test_version_difference_edge_cases(version1, version2, expected_difference):
     [
         # Edge cases for version status
         (None, None, VersionStatus.UNKNOWN),
-        ("", "", VersionStatus.UP_TO_DATE),
+        ("", "", VersionStatus.UPTODATE),
         (None, "1.0", VersionStatus.UNKNOWN),
         ("1.0", None, VersionStatus.UNKNOWN),
         
@@ -277,13 +277,13 @@ def test_version_difference_edge_cases(version1, version2, expected_difference):
         ("not a version", "1.0", VersionStatus.UNKNOWN),
         
         # Various comparison scenarios
-        ("1.0", "1.0", VersionStatus.UP_TO_DATE),
+        ("1.0", "1.0", VersionStatus.UPTODATE),
         ("1.0", "1.1", VersionStatus.OUTDATED),
         ("1.1", "1.0", VersionStatus.NEWER),
         
         # Different formats
-        ("v1.0", "1.0", VersionStatus.UP_TO_DATE),
-        ("Version 1.0", "v1.0", VersionStatus.UP_TO_DATE),
+        ("v1.0", "1.0", VersionStatus.UPTODATE),
+        ("Version 1.0", "v1.0", VersionStatus.UPTODATE),
         
         # Pre-release versions
         ("1.0.0-alpha", "1.0.0", VersionStatus.OUTDATED),
@@ -291,7 +291,7 @@ def test_version_difference_edge_cases(version1, version2, expected_difference):
         ("1.0.0-alpha", "1.0.0-beta", VersionStatus.OUTDATED),
         
         # Build metadata (should be ignored)
-        ("1.0.0+build.1", "1.0.0+build.2", VersionStatus.UP_TO_DATE),
+        ("1.0.0+build.1", "1.0.0+build.2", VersionStatus.UPTODATE),
         
         # Complex versions
         ("Firefox 91.0.2", "Firefox 92.0.0", VersionStatus.OUTDATED),

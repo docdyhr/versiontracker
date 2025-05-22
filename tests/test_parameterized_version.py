@@ -8,11 +8,11 @@ comparison scenarios with a data-driven approach.
 import pytest
 
 from versiontracker.version import (
+    VersionStatus,
     compare_versions,
-    parse_version,
     get_version_difference,
     get_version_info,
-    VersionStatus,
+    parse_version,
 )
 
 
@@ -147,7 +147,7 @@ def test_get_version_difference(version1, version2, expected_difference):
     "current_version,latest_version,expected_status",
     [
         # Exact same versions
-        ("1.0.0", "1.0.0", VersionStatus.UP_TO_DATE),
+        ("1.0.0", "1.0.0", VersionStatus.UPTODATE),
         
         # Outdated versions
         ("1.0.0", "1.0.1", VersionStatus.OUTDATED),

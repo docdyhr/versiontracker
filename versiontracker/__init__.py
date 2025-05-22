@@ -33,3 +33,13 @@ __version__ = "0.6.4"
 from versiontracker.apps import get_applications, get_homebrew_casks
 from versiontracker.config import Config, get_config
 from versiontracker.exceptions import VersionTrackerError
+
+# Explicitly define what should be imported with "from versiontracker import *"
+__all__ = [
+    "__version__",
+    "get_applications",
+    "get_homebrew_casks",
+    "Config",
+    "get_config",
+    "VersionTrackerError",
+]

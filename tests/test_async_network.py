@@ -5,10 +5,8 @@ provided by the async_network.py module.
 """
 
 import asyncio
-import json
 from unittest.mock import MagicMock, patch
 
-import aiohttp
 import pytest
 from aiohttp import ClientResponseError, ClientSession
 

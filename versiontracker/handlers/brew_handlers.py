@@ -15,7 +15,7 @@ import logging
 import sys
 import time
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 from versiontracker.apps import (
     check_brew_install_candidates,
@@ -271,9 +271,8 @@ def handle_brew_recommendations(options: Any) -> int:
             # Special case for testing - detect if we're in a test environment
             import inspect
 
-            in_test = False
             try:
-                in_test = any("unittest" in f.filename for f in inspect.stack())
+                any("unittest" in f.filename for f in inspect.stack())
             except Exception:
                 pass
 
@@ -282,7 +281,7 @@ def handle_brew_recommendations(options: Any) -> int:
             brew_candidates = check_brew_install_candidates(
                 search_list, rate_limit_int, strict_mode
             )
-            
+
             # Extract installable app names from the results (app, version, installable)
             installables = [app for app, _, installable in brew_candidates if installable]
         except HomebrewError as e:

@@ -1,12 +1,11 @@
 """Tests for app store related functions in the apps module."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from versiontracker.apps import (
     is_app_in_app_store,
 )
-from versiontracker.exceptions import BrewTimeoutError, NetworkError
 
 
 class TestAppStore(unittest.TestCase):

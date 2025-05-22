@@ -5,12 +5,10 @@ provided by the async_homebrew.py module.
 """
 
 import asyncio
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import aiohttp
 import pytest
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientSession
 
 from versiontracker.async_homebrew import (
     HomebrewBatchProcessor,
@@ -21,7 +19,7 @@ from versiontracker.async_homebrew import (
     fetch_cask_info,
     search_casks,
 )
-from versiontracker.exceptions import HomebrewError, NetworkError, TimeoutError
+from versiontracker.exceptions import NetworkError
 
 
 @pytest.fixture

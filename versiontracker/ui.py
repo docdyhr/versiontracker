@@ -1,23 +1,17 @@
 """User interface utilities for VersionTracker."""
 
-import os
 import shutil
 import sys
 import time
-from functools import wraps
 from typing import (
     Any,
-    Callable,
     Dict,
     Generic,
     Iterable,
     Iterator,
     List,
     Optional,
-    Type,
     TypeVar,
-    Union,
-    cast,
 )
 
 import psutil

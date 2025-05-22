@@ -7,10 +7,9 @@ dealing with multiple Homebrew API calls or other network operations.
 
 import asyncio
 import logging
-import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -326,11 +325,11 @@ class AsyncBatchProcessor:
 
         # Create batches
         batches = self.create_batches(data)
-        
+
         # Process each batch
         all_results = []
         for batch in batches:
             batch_results = await self.process_batch(batch)
             all_results.extend(batch_results)
-            
+
         return all_results

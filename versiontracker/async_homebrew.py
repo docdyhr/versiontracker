@@ -5,29 +5,21 @@ using asyncio for improved performance and resource utilization.
 """
 
 import asyncio
-import json
 import logging
-import os
 import re
-import subprocess
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
 
 from versiontracker.async_network import AsyncBatchProcessor, async_to_sync, fetch_json
 from versiontracker.cache import read_cache, write_cache
-from versiontracker.config import get_config
 from versiontracker.exceptions import (
-    BrewTimeoutError,
     HomebrewError,
     NetworkError,
     TimeoutError,
 )
 from versiontracker.homebrew import (
-    get_brew_command,
-    get_caskroom_path,
-    is_brew_cask_installable,
     is_homebrew_available,
 )
 from versiontracker.utils import get_user_agent
@@ -160,24 +152,24 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
             Tuple of (app_name, version, installable)
         """
         app_name, version = item
-        
+
         # Skip empty names
         if not app_name:
             return (app_name, version, False)
-        
+
         # Format the name for cask search
         search_name = app_name.lower().replace(" ", "-")
-        
+
         try:
             # First check if we have an exact match
             result = await self._check_exact_match(search_name)
-            
+
             # If no exact match and not strict mode, try fuzzy search
             if not result and not self.strict_match:
                 result = await self._check_fuzzy_match(app_name)
-                
+
             return (app_name, version, result)
-            
+
         except (NetworkError, TimeoutError, HomebrewError) as e:
             logging.error(f"Error checking installability for {app_name}: {e}")
             return (app_name, version, False)
@@ -201,7 +193,7 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
                 return False
             # Other network errors should be propagated
             raise
-            
+
     async def _check_fuzzy_match(self, app_name: str) -> bool:
         """Check for fuzzy matches of an app name.
 
@@ -213,10 +205,10 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
         """
         # Create simplified search term
         search_term = re.sub(r'[^a-zA-Z0-9]', '', app_name.lower())
-        
+
         # Search for the app
         search_results = await search_casks(search_term, use_cache=self.use_cache)
-        
+
         # Check if any results contain our app name
         if search_results:
             for result in search_results:
@@ -224,9 +216,9 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
                 # Check if the app name is a significant part of the cask name
                 if self._is_significant_match(app_name, cask_name):
                     return True
-                    
+
         return False
-    
+
     def _is_significant_match(self, app_name: str, cask_name: str) -> bool:
         """Determine if an app name and cask name are a significant match.
 
@@ -240,17 +232,17 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
         # Clean up names for comparison
         clean_app = re.sub(r'[^a-zA-Z0-9]', '', app_name.lower())
         clean_cask = re.sub(r'[^a-zA-Z0-9]', '', cask_name.lower())
-        
+
         # Check if one name contains the other
         if clean_app in clean_cask or clean_cask in clean_app:
             # Calculate ratio of length to avoid false positives
             min_len = min(len(clean_app), len(clean_cask))
             max_len = max(len(clean_app), len(clean_cask))
-            
+
             # If the shorter name is at least 60% of the longer name, consider it a match
             if min_len / max_len >= 0.6:
                 return True
-                
+
         return False
 
     def handle_error(
@@ -287,7 +279,7 @@ async def async_check_brew_install_candidates(
     # Fast path for non-homebrew systems
     if not is_homebrew_available():
         return [(name, version, False) for name, version in data]
-        
+
     # Use async batch processor
     processor = HomebrewBatchProcessor(
         batch_size=50,
@@ -295,7 +287,7 @@ async def async_check_brew_install_candidates(
         rate_limit=rate_limit,
         strict_match=strict_match,
     )
-    
+
     return processor.process_all(data)
 
 
@@ -364,12 +356,12 @@ class HomebrewVersionChecker(AsyncBatchProcessor):
             Tuple of (app_name, version, cask_name, latest_version)
         """
         app_name, version, cask_name = item
-        
+
         try:
             # Get the latest version from Homebrew
             latest_version = await async_get_cask_version(cask_name, self.use_cache)
             return (app_name, version, cask_name, latest_version)
-            
+
         except (NetworkError, TimeoutError, HomebrewError) as e:
             logging.error(f"Error checking version for {app_name} ({cask_name}): {e}")
             return (app_name, version, cask_name, None)
@@ -407,12 +399,12 @@ async def async_check_brew_update_candidates(
     # Fast path for non-homebrew systems
     if not is_homebrew_available():
         return [(name, version, cask, None) for name, version, cask in data]
-        
+
     # Use async batch processor
     processor = HomebrewVersionChecker(
         batch_size=10,
         max_concurrency=int(5 / rate_limit),  # Adjust concurrency based on rate limit
         rate_limit=rate_limit,
     )
-    
+
     return processor.process_all(data)

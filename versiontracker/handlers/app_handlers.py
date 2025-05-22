@@ -12,8 +12,7 @@ Returns:
 
 import logging
 import traceback
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from tabulate import tabulate
 
@@ -63,9 +62,8 @@ def handle_list_apps(options: Any) -> int:
         apps = get_applications(apps_data)
 
         # Get additional paths if specified
-        additional_paths = []
         if getattr(options, "additional_dirs", None):
-            additional_paths = options.additional_dirs.split(",")
+            options.additional_dirs.split(",")
 
         # Apply filtering
         if getattr(options, "blacklist", None):

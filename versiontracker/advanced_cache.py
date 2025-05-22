@@ -23,7 +23,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
 
 from versiontracker.exceptions import CacheError
 
@@ -144,7 +144,7 @@ class AdvancedCache:
             try:
                 with open(metadata_file, "r") as f:
                     metadata_dict = json.load(f)
-                
+
                 # Convert the dictionary back to CacheMetadata objects
                 for key, meta in metadata_dict.items():
                     self._metadata[key] = CacheMetadata(
@@ -174,7 +174,7 @@ class AdvancedCache:
                     "size_bytes": meta.size_bytes,
                     "source": meta.source,
                 }
-            
+
             with open(metadata_file, "w") as f:
                 json.dump(metadata_dict, f)
         except Exception as e:
@@ -347,7 +347,7 @@ class AdvancedCache:
             is_access: Whether this is an access operation
         """
         current_time = time.time()
-        
+
         if key in self._metadata:
             metadata = self._metadata[key]
             if is_access:
@@ -396,15 +396,15 @@ class AdvancedCache:
                     if self._stats_enabled:
                         self._stats.misses += 1
                     return None
-                
+
                 # Update access metadata
                 self._update_metadata(
                     key, 0, "", CachePriority.NORMAL, is_access=True
                 )
-                
+
                 if self._stats_enabled:
                     self._stats.hits += 1
-                
+
                 return cast(T, self._memory_cache[key])
 
             # Check disk cache if requested
@@ -420,11 +420,11 @@ class AdvancedCache:
                             if self._stats_enabled:
                                 self._stats.misses += 1
                             return None
-                        
+
                         # Read data from disk
                         with open(cache_path, "rb") as f:
                             data = f.read()
-                        
+
                         # Check if data is compressed
                         try:
                             if data[:2] == b"\x1f\x8b":  # gzip magic number
@@ -435,20 +435,20 @@ class AdvancedCache:
                             if self._stats_enabled:
                                 self._stats.errors += 1
                             return None
-                        
+
                         # Update access metadata
                         self._update_metadata(
                             key, len(data), "", CachePriority.NORMAL, is_access=True
                         )
-                        
+
                         # Store in memory cache for faster access next time
                         if level == CacheLevel.ALL:
                             self._memory_cache[key] = value
                             self._evict_if_needed()
-                        
+
                         if self._stats_enabled:
                             self._stats.hits += 1
-                        
+
                         return cast(T, value)
                 except Exception as e:
                     logging.error(f"Error reading cache {key}: {e}")
@@ -458,7 +458,7 @@ class AdvancedCache:
 
             if self._stats_enabled:
                 self._stats.misses += 1
-            
+
             return None
 
     def put(
@@ -490,33 +490,31 @@ class AdvancedCache:
                 json_data = json.dumps(value)
                 data = json_data.encode("utf-8")
                 data_size = len(data)
-                
+
                 # Compress if needed
-                is_compressed = False
                 if self._should_compress(data):
                     data = self._compress_data(data)
-                    is_compressed = True
-                
+
                 # Store in memory cache if requested
                 if level in (CacheLevel.MEMORY, CacheLevel.ALL):
                     self._memory_cache[key] = value
-                
+
                 # Store on disk if requested
                 if level in (CacheLevel.DISK, CacheLevel.ALL):
                     cache_path = self._get_cache_path(key)
                     with open(cache_path, "wb") as f:
                         f.write(data)
-                
+
                 # Update metadata
                 self._update_metadata(key, data_size, source, priority)
-                
+
                 # Evict items if cache is full
                 self._evict_if_needed()
-                
+
                 if self._stats_enabled:
                     self._stats.writes += 1
                     self._update_cache_size()
-                
+
                 return True
             except Exception as e:
                 logging.error(f"Error writing cache {key}: {e}")
@@ -541,19 +539,19 @@ class AdvancedCache:
                 # Remove from memory cache
                 if key in self._memory_cache:
                     del self._memory_cache[key]
-                
+
                 # Remove from disk cache
                 cache_path = self._get_cache_path(key)
                 if cache_path.exists():
                     cache_path.unlink()
-                
+
                 # Remove metadata
                 if key in self._metadata:
                     del self._metadata[key]
-                
+
                 if self._stats_enabled:
                     self._update_cache_size()
-                
+
                 return True
             except Exception as e:
                 logging.error(f"Error deleting cache {key}: {e}")
@@ -578,30 +576,30 @@ class AdvancedCache:
                 if source:
                     # Clear only items from the specified source
                     keys_to_delete = [
-                        key for key, meta in self._metadata.items() 
+                        key for key, meta in self._metadata.items()
                         if meta.source == source
                     ]
-                    
+
                     # Delete each item
                     for key in keys_to_delete:
                         self.delete(key)
                 else:
                     # Clear memory cache
                     self._memory_cache.clear()
-                    
+
                     # Clear disk cache
                     for cache_path in self._cache_dir.glob("*.cache"):
                         try:
                             cache_path.unlink()
                         except (FileNotFoundError, PermissionError):
                             pass
-                    
+
                     # Clear metadata
                     self._metadata.clear()
-                
+
                 if self._stats_enabled:
                     self._update_cache_size()
-                
+
                 return True
             except Exception as e:
                 logging.error(f"Error clearing cache: {e}")
@@ -631,7 +629,7 @@ class AdvancedCache:
         with self._lock:
             if source:
                 return [
-                    key for key, meta in self._metadata.items() 
+                    key for key, meta in self._metadata.items()
                     if meta.source == source
                 ]
             return list(self._metadata.keys())
@@ -661,18 +659,18 @@ class AdvancedCache:
             # Check memory cache
             if level in (CacheLevel.MEMORY, CacheLevel.ALL) and key in self._memory_cache:
                 return True
-            
+
             # Check disk cache
             if level in (CacheLevel.DISK, CacheLevel.ALL):
                 cache_path = self._get_cache_path(key)
                 return cache_path.exists()
-            
+
             return False
 
     def get_or_set(
-        self, 
-        key: str, 
-        getter_func: Callable[[], T], 
+        self,
+        key: str,
+        getter_func: Callable[[], T],
         level: CacheLevel = CacheLevel.ALL,
         ttl: Optional[int] = None,
         priority: CachePriority = CachePriority.NORMAL,
@@ -698,13 +696,13 @@ class AdvancedCache:
         cached_value = self.get(key, level, ttl)
         if cached_value is not None:
             return cached_value
-        
+
         # Not in cache, call getter function
         value = getter_func()
-        
+
         # Store in cache
         self.put(key, value, level, priority, source)
-        
+
         return value
 
     def batch_get(

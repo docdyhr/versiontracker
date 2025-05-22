@@ -1,6 +1,5 @@
 """Tests for the get_homebrew_casks function in the apps module."""
 
-import functools
 import unittest
 from unittest.mock import MagicMock, patch
 

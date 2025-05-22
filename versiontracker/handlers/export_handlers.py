@@ -13,7 +13,7 @@ Returns:
 
 import logging
 import traceback
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from versiontracker.config import get_config
 from versiontracker.exceptions import ExportError

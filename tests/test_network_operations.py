@@ -5,15 +5,15 @@ focusing on testing Homebrew-related functionality with simulated
 network conditions including timeouts, errors, and malformed responses.
 """
 
-import os
-import pytest
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from versiontracker.version import find_matching_cask, check_latest_version
-from versiontracker.exceptions import NetworkError, HomebrewError, DataParsingError
+import pytest
+
+from tests.mock_homebrew_server import with_mock_homebrew_server
+from versiontracker.exceptions import DataParsingError, HomebrewError, NetworkError
 from versiontracker.utils import run_command
-from tests.mock_homebrew_server import MockHomebrewServer, with_mock_homebrew_server
+from versiontracker.version import check_latest_version, find_matching_cask
 
 
 class TestNetworkOperations(unittest.TestCase):

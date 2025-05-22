@@ -11,8 +11,7 @@ Returns:
 """
 
 import logging
-from pathlib import Path
-from typing import Any, Dict, Optional, cast
+from typing import Any
 
 from versiontracker.config import Config, get_config
 
@@ -87,23 +86,23 @@ def handle_setup_logging(options: Any) -> int:
     try:
         # Configure logging based on debug option
         debug_level = getattr(options, "debug", 0)
-        
+
         if debug_level == 1:
             logging.basicConfig(level=logging.INFO)
         elif debug_level >= 2:
             logging.basicConfig(level=logging.DEBUG)
         else:
             logging.basicConfig(level=logging.WARNING)
-            
+
         # Log some initial debug information
         logging.debug("Logging setup complete with level: %s", logging.getLevelName(logging.getLogger().level))
-        
+
         return 0
     except Exception as e:
         # If logging setup fails, try a basic configuration and log the error
         try:
             logging.basicConfig(level=logging.WARNING)
             logging.error(f"Error setting up logging: {e}")
-        except:
+        except Exception:
             pass  # Last resort if even basic logging fails
         return 1

@@ -11,7 +11,7 @@ import os
 import re
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Any, Dict, List
 
 from versiontracker.advanced_cache import (
     CacheLevel,
@@ -19,10 +19,9 @@ from versiontracker.advanced_cache import (
     get_cache,
 )
 from versiontracker.config import get_config
-from versiontracker.exceptions import HomebrewError, NetworkError, DataParsingError
+from versiontracker.exceptions import DataParsingError, HomebrewError, NetworkError
 from versiontracker.ui import create_progress_bar
 from versiontracker.utils import run_command
-
 
 # Cache keys for different Homebrew operations
 CACHE_KEY_ALL_CASKS = "homebrew:all_casks"
@@ -47,8 +46,8 @@ def is_homebrew_available() -> bool:
     """
     try:
         # Try to run brew --version
-        result = run_command("brew --version", timeout=5)
-        return result[0] == 0
+        stdout, returncode = run_command("brew --version", timeout=5)
+        return returncode == 0
     except Exception as e:
         logging.warning(f"Homebrew availability check failed: {e}")
         return False
@@ -70,20 +69,37 @@ def get_homebrew_path() -> str:
             "/opt/homebrew/bin/brew",  # Apple Silicon Mac
             os.path.expanduser("~/.homebrew/bin/brew"),  # Custom install
         ]
-        
+
         for path in common_paths:
             if os.path.exists(path) and os.access(path, os.X_OK):
                 return path
-        
+
         # Try to find using which
-        result = run_command("which brew", timeout=5)
-        if result[0] == 0 and result[1].strip():
-            return result[1].strip()
-        
+        stdout, returncode = run_command("which brew", timeout=5)
+        if returncode == 0 and stdout.strip():
+            return stdout.strip()
+
         raise HomebrewError("Homebrew not found in common locations")
     except Exception as e:
         logging.error(f"Failed to find Homebrew: {e}")
         raise HomebrewError(f"Homebrew not found: {e}")
+
+
+def get_brew_command() -> str:
+    """Return the Homebrew command path, using system detection and config if available.
+
+    Returns:
+        str: The path to the Homebrew executable
+    Raises:
+        HomebrewError: If Homebrew cannot be found
+    """
+    # Try config first
+    config = get_config()
+    brew_path = getattr(config, "brew_path", None)
+    if isinstance(brew_path, str) and os.path.exists(brew_path):
+        return str(brew_path)
+    # Fallback to detection logic
+    return get_homebrew_path()
 
 
 def get_all_homebrew_casks() -> List[Dict[str, Any]]:
@@ -98,33 +114,33 @@ def get_all_homebrew_casks() -> List[Dict[str, Any]]:
         DataParsingError: If there's an error parsing the response
     """
     cache = get_cache()
-    
+
     # Try to get from cache first
     cached_casks = cache.get(CACHE_KEY_ALL_CASKS, ttl=CACHE_TTL_ALL_CASKS)
     if cached_casks is not None:
         return cached_casks
-    
+
     try:
-        brew_path = get_homebrew_path()
+        brew_path = get_brew_command()
         command = f"{brew_path} info --json=v2 --cask $(ls $(brew --repository)/Library/Taps/homebrew/homebrew-cask/Casks/)"
-        
+
         # Show progress message
         progress_bar = create_progress_bar()
         print(progress_bar.color("blue")("Fetching all Homebrew casks (this may take a while)..."))
-        
+
         # Execute command with timeout
-        result = run_command(command, timeout=120)  # 2 minute timeout
-        
-        if result[0] != 0:
-            error_msg = f"Failed to retrieve Homebrew casks: {result[2]}"
+        stdout, returncode = run_command(command, timeout=120)  # 2 minute timeout
+
+        if returncode != 0:
+            error_msg = f"Failed to retrieve Homebrew casks: {stdout}"
             logging.error(error_msg)
             raise HomebrewError(error_msg)
-        
+
         try:
             # Parse JSON response
-            data = json.loads(result[1])
+            data = json.loads(stdout)
             casks = data.get("casks", [])
-            
+
             # Store in cache
             cache.put(
                 CACHE_KEY_ALL_CASKS,
@@ -133,7 +149,7 @@ def get_all_homebrew_casks() -> List[Dict[str, Any]]:
                 priority=CachePriority.HIGH,
                 source="homebrew",
             )
-            
+
             return casks
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse Homebrew casks JSON: {e}"
@@ -165,36 +181,36 @@ def get_cask_info(cask_name: str) -> Dict[str, Any]:
     """
     cache = get_cache()
     cache_key = f"{CACHE_KEY_CASK_PREFIX}{cask_name}"
-    
+
     # Try to get from cache first
     cached_info = cache.get(cache_key, ttl=CACHE_TTL_CASK_INFO)
     if cached_info is not None:
         return cached_info
-    
+
     try:
-        brew_path = get_homebrew_path()
+        brew_path = get_brew_command()
         command = f"{brew_path} info --json=v2 --cask {cask_name}"
-        
+
         # Execute command with timeout
-        result = run_command(command, timeout=30)
-        
-        if result[0] != 0:
-            error_msg = f"Failed to retrieve info for cask {cask_name}: {result[2]}"
+        stdout, returncode = run_command(command, timeout=30)
+
+        if returncode != 0:
+            error_msg = f"Failed to retrieve info for cask {cask_name}: {stdout}"
             logging.error(error_msg)
             raise HomebrewError(error_msg)
-        
+
         try:
             # Parse JSON response
-            data = json.loads(result[1])
+            data = json.loads(stdout)
             casks = data.get("casks", [])
-            
+
             if not casks:
                 error_msg = f"No information found for cask {cask_name}"
                 logging.warning(error_msg)
                 return {}
-            
+
             cask_info = casks[0]
-            
+
             # Store in cache
             cache.put(
                 cache_key,
@@ -203,7 +219,7 @@ def get_cask_info(cask_name: str) -> Dict[str, Any]:
                 priority=CachePriority.NORMAL,
                 source="homebrew",
             )
-            
+
             return cask_info
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse cask info JSON for {cask_name}: {e}"
@@ -235,31 +251,31 @@ def search_casks(query: str) -> List[Dict[str, Any]]:
     """
     cache = get_cache()
     cache_key = f"{CACHE_KEY_SEARCH_PREFIX}{query}"
-    
+
     # Try to get from cache first
     cached_results = cache.get(cache_key, ttl=CACHE_TTL_SEARCH)
     if cached_results is not None:
         return cached_results
-    
+
     try:
-        brew_path = get_homebrew_path()
+        brew_path = get_brew_command()
         # Escape special characters in query
         safe_query = re.sub(r'([^\w\s-])', r'\\\1', query)
         command = f"{brew_path} search --cask --json=v2 {safe_query}"
-        
+
         # Execute command with timeout
-        result = run_command(command, timeout=30)
-        
-        if result[0] != 0:
-            error_msg = f"Failed to search for casks with query '{query}': {result[2]}"
+        stdout, returncode = run_command(command, timeout=30)
+
+        if returncode != 0:
+            error_msg = f"Failed to search for casks with query '{query}': {stdout}"
             logging.error(error_msg)
             raise HomebrewError(error_msg)
-        
+
         try:
             # Parse JSON response
-            data = json.loads(result[1])
+            data = json.loads(stdout)
             casks = data.get("casks", [])
-            
+
             # Store in cache
             cache.put(
                 cache_key,
@@ -268,7 +284,7 @@ def search_casks(query: str) -> List[Dict[str, Any]]:
                 priority=CachePriority.NORMAL,
                 source="homebrew",
             )
-            
+
             return casks
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse search results JSON for '{query}': {e}"
@@ -298,61 +314,61 @@ def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
     """
     if not cask_names:
         return {}
-    
+
     cache = get_cache()
     result: Dict[str, Dict[str, Any]] = {}
     casks_to_fetch: List[str] = []
-    
+
     # Check cache first for all casks
     for cask_name in cask_names:
         cache_key = f"{CACHE_KEY_CASK_PREFIX}{cask_name}"
         cached_info = cache.get(cache_key, ttl=CACHE_TTL_CASK_INFO)
-        
+
         if cached_info is not None:
             result[cask_name] = cached_info
         else:
             casks_to_fetch.append(cask_name)
-    
+
     # If all casks were in cache, return early
     if not casks_to_fetch:
         return result
-    
+
     # Process remaining casks in batches
     config = get_config()
     batch_size = getattr(config, "homebrew_batch_size", DEFAULT_BATCH_SIZE)
     progress_bar = create_progress_bar()
-    
+
     print(progress_bar.color("blue")(f"Fetching info for {len(casks_to_fetch)} casks..."))
-    
+
     for i in range(0, len(casks_to_fetch), batch_size):
         batch = casks_to_fetch[i:i + batch_size]
-        
+
         try:
             # Construct a command to get info for multiple casks at once
-            brew_path = get_homebrew_path()
+            brew_path = get_brew_command()
             casks_arg = " ".join(batch)
             command = f"{brew_path} info --json=v2 --cask {casks_arg}"
-            
+
             # Execute command with timeout
-            command_result = run_command(command, timeout=60)
-            
-            if command_result[0] != 0:
-                logging.warning(f"Failed to retrieve info for cask batch: {command_result[2]}")
+            stdout, returncode = run_command(command, timeout=60)
+
+            if returncode != 0:
+                logging.warning(f"Failed to retrieve info for cask batch: {stdout}")
                 # Continue with next batch rather than failing completely
                 continue
-            
+
             try:
                 # Parse JSON response
-                data = json.loads(command_result[1])
+                data = json.loads(stdout)
                 casks = data.get("casks", [])
-                
+
                 # Process each cask in the response
                 for cask in casks:
                     cask_name = cask.get("token")
                     if cask_name:
                         # Store in result
                         result[cask_name] = cask
-                        
+
                         # Store in cache
                         cache_key = f"{CACHE_KEY_CASK_PREFIX}{cask_name}"
                         cache.put(
@@ -366,17 +382,17 @@ def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
                 logging.warning(f"Failed to parse cask info JSON for batch: {e}")
                 # Continue with next batch
                 continue
-            
+
             # Rate limiting to avoid overloading Homebrew
             rate_limit = getattr(config, "api_rate_limit", 0.5)
             if rate_limit > 0 and i + batch_size < len(casks_to_fetch):
                 time.sleep(rate_limit)
-            
+
         except Exception as e:
             logging.warning(f"Error retrieving info for cask batch: {e}")
             # Continue with next batch
             continue
-    
+
     return result
 
 
@@ -392,22 +408,22 @@ def get_installed_homebrew_casks() -> List[Dict[str, Any]]:
         DataParsingError: If there's an error parsing the response
     """
     try:
-        brew_path = get_homebrew_path()
+        brew_path = get_brew_command()
         command = f"{brew_path} list --cask --json=v2"
-        
+
         # Execute command with timeout
-        result = run_command(command, timeout=30)
-        
-        if result[0] != 0:
-            error_msg = f"Failed to retrieve installed Homebrew casks: {result[2]}"
+        stdout, returncode = run_command(command, timeout=30)
+
+        if returncode != 0:
+            error_msg = f"Failed to retrieve installed Homebrew casks: {stdout}"
             logging.error(error_msg)
             raise HomebrewError(error_msg)
-        
+
         try:
             # Parse JSON response
-            data = json.loads(result[1])
+            data = json.loads(stdout)
             casks = data.get("casks", [])
-            
+
             return casks
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse installed casks JSON: {e}"
@@ -445,22 +461,22 @@ def get_outdated_homebrew_casks() -> List[Dict[str, Any]]:
         DataParsingError: If there's an error parsing the response
     """
     try:
-        brew_path = get_homebrew_path()
+        brew_path = get_brew_command()
         command = f"{brew_path} outdated --cask --json=v2"
-        
+
         # Execute command with timeout
-        result = run_command(command, timeout=30)
-        
-        if result[0] != 0:
-            error_msg = f"Failed to retrieve outdated Homebrew casks: {result[2]}"
+        stdout, returncode = run_command(command, timeout=30)
+
+        if returncode != 0:
+            error_msg = f"Failed to retrieve outdated Homebrew casks: {stdout}"
             logging.error(error_msg)
             raise HomebrewError(error_msg)
-        
+
         try:
             # Parse JSON response
-            data = json.loads(result[1])
+            data = json.loads(stdout)
             casks = data.get("casks", [])
-            
+
             return casks
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse outdated casks JSON: {e}"
@@ -490,8 +506,26 @@ def get_cask_version(cask_name: str) -> str:
     """
     try:
         cask_info = get_cask_info(cask_name)
-        return cask_info.get("version", "")
+        return str(cask_info.get("version", ""))
     except Exception as e:
         error_msg = f"Error retrieving version for cask {cask_name}: {e}"
         logging.error(error_msg)
         raise HomebrewError(error_msg)
+
+
+def get_caskroom_path() -> str:
+    """Return the default Homebrew Caskroom path used for cask installations.
+
+    Returns:
+        str: The path to the Homebrew Caskroom directory
+    """
+    # Standard Homebrew Caskroom location
+    paths = [
+        "/usr/local/Caskroom",  # Intel Macs
+        "/opt/homebrew/Caskroom",  # Apple Silicon Macs
+    ]
+    for path in paths:
+        if os.path.exists(path):
+            return path
+    # Fallback to the first path if none exist
+    return paths[0]

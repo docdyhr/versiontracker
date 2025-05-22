@@ -5,12 +5,10 @@ in the versiontracker.handlers.filter_handlers module.
 """
 
 import json
-import os
 import tempfile
 from pathlib import Path
 from unittest import mock
 
-import pytest
 
 from versiontracker.handlers.filter_handlers import (
     handle_filter_management,

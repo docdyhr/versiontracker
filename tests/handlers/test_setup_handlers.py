@@ -5,12 +5,8 @@ in the versiontracker.handlers.setup_handlers module.
 """
 
 import logging
-import os
-import tempfile
-from pathlib import Path
 from unittest import mock
 
-import pytest
 
 from versiontracker.handlers.setup_handlers import (
     handle_configure_from_options,

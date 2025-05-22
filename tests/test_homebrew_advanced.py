@@ -4,32 +4,29 @@ This module contains tests for the homebrew.py module, which provides
 enhanced Homebrew querying capabilities with advanced caching.
 """
 
-import os
 import json
-import pytest
 import unittest
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch
 
-from versiontracker.homebrew import (
-    is_homebrew_available,
-    get_homebrew_path,
-    get_all_homebrew_casks,
-    get_cask_info,
-    search_casks,
-    batch_get_cask_info,
-    get_installed_homebrew_casks,
-    clear_homebrew_cache,
-    get_outdated_homebrew_casks,
-    get_cask_version,
-)
+import pytest
+
 from versiontracker.advanced_cache import (
-    AdvancedCache, 
-    CacheLevel, 
-    CachePriority, 
-    get_cache,
+    AdvancedCache,
     set_cache_instance,
 )
-from versiontracker.exceptions import HomebrewError, NetworkError, DataParsingError
+from versiontracker.exceptions import HomebrewError
+from versiontracker.homebrew import (
+    batch_get_cask_info,
+    clear_homebrew_cache,
+    get_all_homebrew_casks,
+    get_cask_info,
+    get_cask_version,
+    get_homebrew_path,
+    get_installed_homebrew_casks,
+    get_outdated_homebrew_casks,
+    is_homebrew_available,
+    search_casks,
+)
 
 
 class TestHomebrewModule(unittest.TestCase):
@@ -52,13 +49,13 @@ class TestHomebrewModule(unittest.TestCase):
     @patch('versiontracker.homebrew.run_command')
     def test_is_homebrew_available_success(self, mock_run_command):
         """Test checking Homebrew availability when it is available."""
-        mock_run_command.return_value = (0, "Homebrew 3.6.0", "")
+        mock_run_command.return_value = ("Homebrew 3.6.0", 0)
         self.assertTrue(is_homebrew_available())
 
     @patch('versiontracker.homebrew.run_command')
     def test_is_homebrew_available_failure(self, mock_run_command):
         """Test checking Homebrew availability when it is not available."""
-        mock_run_command.return_value = (1, "", "Command not found")
+        mock_run_command.return_value = ("Command not found", 1)
         self.assertFalse(is_homebrew_available())
 
     @patch('versiontracker.homebrew.run_command')
@@ -95,7 +92,7 @@ class TestHomebrewModule(unittest.TestCase):
         # Mock no paths exist
         mock_exists.return_value = False
         mock_access.return_value = False
-        mock_run_command.return_value = (0, "/custom/path/brew", "")
+        mock_run_command.return_value = ("/custom/path/brew", 0)
         
         result = get_homebrew_path()
         self.assertEqual(result, "/custom/path/brew")
@@ -109,7 +106,7 @@ class TestHomebrewModule(unittest.TestCase):
         # Mock no paths exist
         mock_exists.return_value = False
         mock_access.return_value = False
-        mock_run_command.return_value = (1, "", "Command not found")
+        mock_run_command.return_value = ("Command not found", 1)
         
         with pytest.raises(HomebrewError):
             get_homebrew_path()
@@ -143,7 +140,7 @@ class TestHomebrewModule(unittest.TestCase):
             {"token": "firefox", "name": "Firefox", "version": "100.0"},
             {"token": "chrome", "name": "Google Chrome", "version": "90.0"},
         ]
-        mock_run_command.return_value = (0, json.dumps({"casks": test_casks}), "")
+        mock_run_command.return_value = (json.dumps({"casks": test_casks}), 0)
         
         # Test function
         result = get_all_homebrew_casks()
@@ -179,7 +176,7 @@ class TestHomebrewModule(unittest.TestCase):
         # Setup mocks
         mock_get_homebrew_path.return_value = "/usr/local/bin/brew"
         test_cask = {"token": "firefox", "name": "Firefox", "version": "100.0"}
-        mock_run_command.return_value = (0, json.dumps({"casks": [test_cask]}), "")
+        mock_run_command.return_value = (json.dumps({"casks": [test_cask]}), 0)
         
         # Test function
         result = get_cask_info("firefox")
@@ -202,7 +199,7 @@ class TestHomebrewModule(unittest.TestCase):
             {"token": "firefox", "name": "Firefox", "version": "100.0"},
             {"token": "firefox-developer-edition", "name": "Firefox Developer Edition", "version": "101.0"},
         ]
-        mock_run_command.return_value = (0, json.dumps({"casks": test_casks}), "")
+        mock_run_command.return_value = (json.dumps({"casks": test_casks}), 0)
         
         # Test function
         result = search_casks("firefox")
@@ -225,7 +222,7 @@ class TestHomebrewModule(unittest.TestCase):
             {"token": "firefox", "name": "Firefox", "version": "100.0"},
             {"token": "chrome", "name": "Google Chrome", "version": "90.0"},
         ]
-        mock_run_command.return_value = (0, json.dumps({"casks": test_casks}), "")
+        mock_run_command.return_value = (json.dumps({"casks": test_casks}), 0)
         
         # Test function
         result = batch_get_cask_info(["firefox", "chrome"])
@@ -251,7 +248,7 @@ class TestHomebrewModule(unittest.TestCase):
             {"token": "firefox", "name": "Firefox", "version": "100.0"},
             {"token": "chrome", "name": "Google Chrome", "version": "90.0"},
         ]
-        mock_run_command.return_value = (0, json.dumps({"casks": test_casks}), "")
+        mock_run_command.return_value = (json.dumps({"casks": test_casks}), 0)
         
         # Test function
         result = get_installed_homebrew_casks()
@@ -289,7 +286,7 @@ class TestHomebrewModule(unittest.TestCase):
         test_casks = [
             {"token": "firefox", "name": "Firefox", "installed_versions": ["99.0"], "current_version": "100.0"},
         ]
-        mock_run_command.return_value = (0, json.dumps({"casks": test_casks}), "")
+        mock_run_command.return_value = (json.dumps({"casks": test_casks}), 0)
         
         # Test function
         result = get_outdated_homebrew_casks()

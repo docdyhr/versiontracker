@@ -6,24 +6,21 @@ in realistic scenarios.
 """
 
 import asyncio
-import json
-import os
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import pytest
+
+from tests.mock_homebrew_server import with_mock_homebrew_server
 from versiontracker.async_homebrew import (
     HomebrewBatchProcessor,
-    HomebrewVersionChecker,
     async_check_brew_install_candidates,
     async_check_brew_update_candidates,
     async_get_cask_version,
     fetch_cask_info,
     search_casks,
 )
-from versiontracker.exceptions import HomebrewError, NetworkError, TimeoutError
-from versiontracker.async_network import AsyncBatchProcessor, async_to_sync
-
-from tests.mock_homebrew_server import MockHomebrewServer, with_mock_homebrew_server
+from versiontracker.async_network import AsyncBatchProcessor
+from versiontracker.exceptions import NetworkError, TimeoutError
 
 
 @pytest.mark.asyncio

@@ -43,7 +43,6 @@ from versiontracker.exceptions import (
     HomebrewError,
     NetworkError,
 )
-from versiontracker.ui import AdaptiveRateLimiter as UIAdaptiveRateLimiter
 from versiontracker.utils import normalise_name, run_command
 from versiontracker.version import partial_ratio
 
@@ -149,7 +148,7 @@ class _AdaptiveRateLimiter:
                 time.sleep(self._current_rate_limit_sec - elapsed)
 
         self._last_call_time = time.time()
-    
+
     def get_current_limit(self) -> float:
         """Get the current rate limit.
 
@@ -792,7 +791,7 @@ def _process_brew_batch(
             return [(name, version, False) for name, version in batch]
 
         # Create rate limiter
-        rate_limiter = _create_rate_limiter(rate_limit)
+        _create_rate_limiter(rate_limit)
 
         # Process applications in parallel
         with ThreadPoolExecutor(max_workers=rate_limit) as executor:

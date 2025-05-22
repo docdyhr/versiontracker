@@ -12,7 +12,7 @@ Returns:
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from versiontracker.config import get_config
 from versiontracker.ui import QueryFilterManager, create_progress_bar
