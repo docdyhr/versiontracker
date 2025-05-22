@@ -14,13 +14,22 @@ Returns:
 
 from versiontracker.handlers.app_handlers import handle_list_apps
 from versiontracker.handlers.brew_handlers import (
-    handle_list_brews,
     handle_brew_recommendations,
+    handle_list_brews,
 )
 from versiontracker.handlers.config_handlers import handle_config_generation
 from versiontracker.handlers.export_handlers import handle_export
+from versiontracker.handlers.filter_handlers import (
+    handle_filter_management,
+    handle_save_filter,
+)
 from versiontracker.handlers.outdated_handlers import handle_outdated_check
-from versiontracker.handlers.ui_handlers import get_status_icon, get_status_color
+from versiontracker.handlers.setup_handlers import (
+    handle_configure_from_options,
+    handle_initialize_config,
+    handle_setup_logging,
+)
+from versiontracker.handlers.ui_handlers import get_status_color, get_status_icon
 
 __all__ = [
     "handle_list_apps",
@@ -28,7 +37,12 @@ __all__ = [
     "handle_brew_recommendations",
     "handle_config_generation",
     "handle_export",
+    "handle_filter_management",
+    "handle_save_filter",
     "handle_outdated_check",
+    "handle_initialize_config",
+    "handle_configure_from_options",
+    "handle_setup_logging",
     "get_status_icon",
     "get_status_color",
 ]
