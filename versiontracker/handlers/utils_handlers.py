@@ -123,7 +123,7 @@ def suppress_console_warnings() -> None:
     # Set warnings filter
     warnings.filterwarnings("default")
     for handler in logging.getLogger().handlers:
-        if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stderr:
+        if hasattr(handler, 'stream') and handler.stream == sys.stderr:
             handler.addFilter(WarningFilter())
 
 
