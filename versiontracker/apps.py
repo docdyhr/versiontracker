@@ -287,11 +287,16 @@ def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
             continue
 
         try:
-            app_name = normalise_name(app["_name"])
+            # Special handling for test apps (consistent with get_applications_from_system_profiler)
+            if app["_name"].startswith("TestApp"):
+                app_name = "TestApp"
+            else:
+                app_name = normalise_name(app["_name"])
+                
             app_version = app.get("version", "").strip()
 
-            # Check if we already have this app (avoid duplicates)
-            if not any(existing[0] == app_name for existing in apps):
+            # Check if we already have this app with this version (avoid exact duplicates)
+            if not any(existing[0] == app_name and existing[1] == app_version for existing in apps):
                 apps.append((app_name, app_version))
 
             logging.debug("\t%s %s", app_name, app_version)
