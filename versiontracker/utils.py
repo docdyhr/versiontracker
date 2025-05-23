@@ -304,22 +304,31 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
                 )
 
             # Check for common errors in order of specificity
-            if "command not found" in stderr:
-                raise FileNotFoundError(f"Command not found: {cmd}")
-            elif "permission denied" in stderr.lower():
-                raise PermissionError(f"Permission denied: {cmd}")
-            elif any(
-                network_err in stderr.lower()
-                for network_err in [
-                    "network is unreachable",
-                    "no route to host",
-                    "connection refused",
-                    "temporary failure in name resolution",
-                ]
-            ):
-                raise NetworkError(f"Network error: {stderr}")
+                if "command not found" in stderr:
+                    raise FileNotFoundError(f"Command not found: {cmd}")
+                elif "permission denied" in stderr.lower():
+                    raise PermissionError(f"Permission denied: {cmd}")
+                elif any(
+                    network_err in stderr.lower()
+                    for network_err in [
+                        "network is unreachable",
+                        "no route to host",
+                        "connection refused",
+                        "temporary failure in name resolution",
+                    ]
+                ):
+                    raise NetworkError(f"Network error: {stderr}")
 
-        return stdout, process.returncode
+            # For error conditions with empty stdout, return stderr to ensure error messages are visible
+            if process.returncode != 0 and not stdout.strip() and stderr.strip():
+                return stderr, process.returncode
+            # For special case with "No formulae or casks found" in stderr but nothing in stdout
+            elif process.returncode != 0 and "No formulae or casks found" in stderr and not stdout.strip():
+                return "No formulae or casks found", process.returncode
+            else:
+                return stdout, process.returncode
+        else:
+            return stdout, process.returncode
     except subprocess.TimeoutExpired as e:
         # Kill the process if it timed out
         if process:
