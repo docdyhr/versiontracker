@@ -381,7 +381,7 @@ def get_homebrew_casks_list() -> List[str]:
     """
     # Fast path for non-homebrew systems
     if not is_homebrew_available():
-        return []
+        raise HomebrewError("Homebrew is not available for listing casks")
 
     try:
         # Get all installed casks from get_homebrew_casks function
@@ -440,14 +440,18 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
     try:
         # Fast path for non-homebrew systems
         if not is_homebrew_available():
-            return False
+            raise HomebrewError(f"Homebrew is not available for checking cask: {cask_name}")
 
         # Check if cask is in cache
         cache_data = read_cache("brew_installable")
         if use_cache and cache_data:
-            installable_casks = cache_data.get("installable", [])
-            if cask_name in installable_casks:
-                return True
+            # Handle both structures: dict with "installable" key or direct key-value pairs
+            if "installable" in cache_data:
+                installable_casks = cache_data.get("installable", [])
+                if cask_name in installable_casks:
+                    return True
+            elif cask_name in cache_data:
+                return cache_data[cask_name]
 
         # Check if cask is installable
         brew_command = getattr(get_config(), "brew_path", "brew")
@@ -822,42 +826,57 @@ def _handle_future_result(
     Returns:
         Tuple containing the result tuple and an exception to raise (if any)
     """
+    # Check if the future has an exception
+    exception = future.exception()
+    if exception:
+        if isinstance(exception, BrewTimeoutError):
+            error_details = str(exception) if str(exception).strip() else "Unknown timeout error"
+            logging.warning("Timeout checking %s: %s", name, error_details)
+            timeout_error = BrewTimeoutError(
+                f"Operation timed out while checking {name}: {error_details}"
+            )
+            return (name, version, False), timeout_error
+        elif isinstance(exception, NetworkError):
+            error_details = str(exception) if str(exception).strip() else "Unknown network error"
+            logging.warning("Network error checking %s: %s", name, error_details)
+            network_error = NetworkError(
+                f"Network error while checking {name}: {error_details}"
+            )
+            return (name, version, False), network_error
+        elif isinstance(exception, HomebrewError):
+            error_details = str(exception) if str(exception).strip() else "Unknown Homebrew error"
+            logging.warning("Homebrew error checking %s: %s", name, error_details)
+            homebrew_error = HomebrewError(
+                f"Homebrew error while checking {name}: {error_details}"
+            )
+            return (name, version, False), homebrew_error
+        else:
+            # Handle other exceptions
+            if "No formulae or casks found" in str(exception):
+                logging.debug("No formulae found for %s: %s", name, exception)
+            else:
+                error_details = (
+                    str(exception)
+                    if str(exception).strip()
+                    else f"Unknown error of type {type(exception).__name__}"
+                )
+                logging.warning("Error checking %s: %s", name, error_details)
+            return (name, version, False), None
+    
+    # If no exception was present, get the result
     try:
         is_installable = future.result()
         return (name, version, is_installable), None
-    except BrewTimeoutError as e:
-        error_details = str(e) if str(e).strip() else "Unknown timeout error"
-        logging.warning("Timeout checking %s: %s", name, error_details)
-        timeout_error = BrewTimeoutError(
-            f"Operation timed out while checking {name}: {error_details}"
-        )
-        return (name, version, False), timeout_error
-    except NetworkError as e:
-        error_details = str(e) if str(e).strip() else "Unknown network error"
-        logging.warning("Network error checking %s: %s", name, error_details)
-        network_error = NetworkError(
-            f"Network error while checking {name}: {error_details}"
-        )
-        return (name, version, False), network_error
-    except HomebrewError as e:
-        error_details = str(e) if str(e).strip() else "Unknown Homebrew error"
-        logging.warning("Homebrew error checking %s: %s", name, error_details)
-        homebrew_error = HomebrewError(
-            f"Homebrew error while checking {name}: {error_details}"
-        )
-        return (name, version, False), homebrew_error
     except Exception as e:
-        # Check if this is a "No formulae or casks found" error which is expected
-        if "No formulae or casks found" in str(e):
-            logging.debug("No formulae found for %s: %s", name, e)
-        else:
-            error_details = (
-                str(e)
-                if str(e).strip()
-                else f"Unknown error of type {type(e).__name__}"
-            )
-            logging.warning("Error checking %s: %s", name, error_details)
-        return (name, version, False), None
+        # This should not normally happen since we already checked for exceptions
+        # But handle it just in case
+        error_details = (
+            str(e)
+            if str(e).strip()
+            else f"Unknown error of type {type(e).__name__}"
+        )
+        logging.warning("Unexpected error checking %s: %s", name, error_details)
+        return (name, version, False), e
 
 
 def _process_brew_batch(
@@ -907,6 +926,25 @@ def _process_brew_batch(
 
             for future in as_completed(future_to_app):
                 name, version = future_to_app[future]
+                
+                # Check if the future has an exception directly
+                if future.exception() is not None:
+                    exception = future.exception()
+                    if isinstance(exception, (BrewTimeoutError, NetworkError, HomebrewError)):
+                        # Re-raise these specific exceptions for proper handling
+                        raise exception
+                    else:
+                        # Log other exceptions but continue processing
+                        error_details = (
+                            str(exception)
+                            if str(exception).strip()
+                            else f"Unknown error of type {type(exception).__name__}"
+                        )
+                        logging.warning("Error checking %s: %s", name, error_details)
+                        batch_results.append((name, version, False))
+                        continue
+                
+                # No exception, handle the result normally
                 result, exception = _handle_future_result(future, name, version)
                 batch_results.append(result)
 

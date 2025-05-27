@@ -656,6 +656,7 @@ class TestApps(unittest.TestCase):
 
         mock_future = MagicMock()
         mock_future.result.return_value = True
+        mock_future.exception.return_value = None  # Explicitly set exception to None
         mock_executor.submit.return_value = mock_future
 
         # Mock as_completed to return the future
@@ -728,30 +729,42 @@ class TestApps(unittest.TestCase):
         mock_executor = MagicMock()
         mock_executor_class.return_value.__enter__.return_value = mock_executor
 
-        # Create a mock future that raises BrewTimeoutError
-        mock_future = MagicMock()
-        mock_future.result.side_effect = BrewTimeoutError("Operation timed out")
-        mock_executor.submit.return_value = mock_future
-
-        # Mock as_completed to return our future
-        mock_as_completed.return_value = [mock_future]
+        # Test BrewTimeoutError
+        mock_future1 = MagicMock()
+        mock_future1.result.side_effect = BrewTimeoutError("Operation timed out")
+        mock_future1.exception.return_value = BrewTimeoutError("Operation timed out")
+        mock_executor.submit.return_value = mock_future1
+        mock_as_completed.return_value = [mock_future1]
 
         # Test that the exception is re-raised
         with self.assertRaises(BrewTimeoutError):
             _process_brew_batch([("Firefox", "100.0")], 1, True)
 
-        # Test with NetworkError
-        mock_future.result.side_effect = NetworkError("Network unavailable")
+        # Test NetworkError - create a fresh mock
+        mock_future2 = MagicMock()
+        mock_future2.result.side_effect = NetworkError("Network unavailable")
+        mock_future2.exception.return_value = NetworkError("Network unavailable")
+        mock_executor.submit.return_value = mock_future2
+        mock_as_completed.return_value = [mock_future2]
+        
         with self.assertRaises(NetworkError):
             _process_brew_batch([("Firefox", "100.0")], 1, True)
 
         # Test with generic exception containing "No formulae or casks found"
-        mock_future.result.side_effect = Exception("No formulae or casks found")
+        mock_future3 = MagicMock()
+        mock_future3.result.side_effect = Exception("No formulae or casks found")
+        mock_future3.exception.return_value = Exception("No formulae or casks found")
+        mock_executor.submit.return_value = mock_future3
+        mock_as_completed.return_value = [mock_future3]
         result = _process_brew_batch([("Firefox", "100.0")], 1, True)
         self.assertEqual(result, [("Firefox", "100.0", False)])
 
         # Test with other generic exception
-        mock_future.result.side_effect = Exception("Some other error")
+        mock_future4 = MagicMock()
+        mock_future4.result.side_effect = Exception("Some other error")
+        mock_future4.exception.return_value = Exception("Some other error")
+        mock_executor.submit.return_value = mock_future4
+        mock_as_completed.return_value = [mock_future4]
         result = _process_brew_batch([("Firefox", "100.0")], 1, True)
         self.assertEqual(result, [("Firefox", "100.0", False)])
 

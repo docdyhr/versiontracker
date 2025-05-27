@@ -162,6 +162,7 @@ class TestAppsExtra(unittest.TestCase):
         # Create a mock future to return the result
         mock_future = MagicMock()
         mock_future.result.return_value = True
+        mock_future.exception.return_value = None  # Explicitly set exception to None
         mock_executor.submit.return_value = mock_future
 
         # Mock as_completed to return our future
@@ -256,11 +257,9 @@ class TestAppsExtra(unittest.TestCase):
         # Mock is_homebrew_available to return False
         mock_is_homebrew.return_value = False
 
-        # Call the function
-        result = get_homebrew_casks_list()
-
-        # Verify an empty list is returned
-        self.assertEqual(result, [])
+        # Call the function and expect HomebrewError
+        with self.assertRaises(HomebrewError):
+            get_homebrew_casks_list()
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
@@ -365,11 +364,9 @@ class TestAppsExtra(unittest.TestCase):
         # Mock is_homebrew_available to return False
         mock_is_homebrew.return_value = False
 
-        # Call the function
-        result = is_brew_cask_installable("firefox")
-
-        # Verify False is returned
-        self.assertFalse(result)
+        # Call the function and expect HomebrewError
+        with self.assertRaises(HomebrewError):
+            is_brew_cask_installable("firefox")
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.read_cache")
