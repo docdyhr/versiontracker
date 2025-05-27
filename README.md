@@ -2,22 +2,32 @@
 
 ![Logo](images/logo.png)
 
+<!-- Build Status -->
+[![Tests](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml)
+[![Lint](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
+[![Security](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
+[![CI](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Release](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
+
+<!-- Package Info -->
 [![PyPI - Version](https://img.shields.io/pypi/v/versiontracker)](https://pypi.org/project/versiontracker/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/versiontracker)](https://pypi.org/project/versiontracker/)
-[![Tests](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml)
-[![Lint](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
-[![Release](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
-[![Security](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
-[![CI](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/docdyhr/versiontracker/branch/main/graph/badge.svg)](https://codecov.io/gh/docdyhr/versiontracker)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/versiontracker)](https://pypi.org/project/versiontracker/)
+
+<!-- Quality & Coverage -->
+[![codecov](https://codecov.io/gh/docdyhr/versiontracker/branch/master/graph/badge.svg)](https://codecov.io/gh/docdyhr/versiontracker)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://bandit.readthedocs.io/en/latest/)
+
+<!-- Repository Stats -->
 [![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/issues)
 [![GitHub forks](https://img.shields.io/github/forks/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/network)
 [![GitHub stars](https://img.shields.io/github/stars/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/stargazers)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/versiontracker)](https://pypi.org/project/versiontracker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://bandit.readthedocs.io/en/latest/)
+
+<!-- Platform & Tools -->
 [![macOS](https://img.shields.io/badge/platform-macOS-blue.svg)](https://www.apple.com/macos/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
 * Name: Versiontracker
 * Version: 0.6.4
