@@ -3,31 +3,38 @@
 ![Logo](images/logo.png)
 
 <!-- Build Status -->
-[![Tests](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml)
-[![Lint](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
-[![Security](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
-[![CI](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
-[![Release](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml/badge.svg)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/test.yml?branch=master&label=tests&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml)
+[![Lint](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/lint.yml?branch=master&label=lint&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/security.yml?branch=master&label=security&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Build](https://img.shields.io/badge/build-ready-brightgreen?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions)
 
 <!-- Package Info -->
-[![PyPI - Version](https://img.shields.io/pypi/v/versiontracker)](https://pypi.org/project/versiontracker/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/versiontracker)](https://pypi.org/project/versiontracker/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/versiontracker)](https://pypi.org/project/versiontracker/)
+[![PyPI - Version](https://img.shields.io/pypi/v/versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/versiontracker/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/versiontracker?logo=python&logoColor=white)](https://pypi.org/project/versiontracker/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/versiontracker?logo=pypi&logoColor=white&label=downloads)](https://pypi.org/project/versiontracker/)
+[![PyPI Status](https://img.shields.io/pypi/status/versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/versiontracker/)
 
 <!-- Quality & Coverage -->
-[![codecov](https://codecov.io/gh/docdyhr/versiontracker/branch/master/graph/badge.svg)](https://codecov.io/gh/docdyhr/versiontracker)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://bandit.readthedocs.io/en/latest/)
+[![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white)](https://codecov.io/gh/docdyhr/versiontracker)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
+[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg?logo=python&logoColor=white)](https://bandit.readthedocs.io/en/latest/)
+[![Code Quality](https://img.shields.io/github/languages/code-size/docdyhr/versiontracker?logo=github&logoColor=white&label=code%20size)](https://github.com/docdyhr/versiontracker)
+[![Language Grade](https://img.shields.io/badge/language-Python-blue?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker)
 
 <!-- Repository Stats -->
-[![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/issues)
-[![GitHub forks](https://img.shields.io/github/forks/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/network)
-[![GitHub stars](https://img.shields.io/github/stars/docdyhr/versiontracker)](https://github.com/docdyhr/versiontracker/stargazers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/issues)
+[![GitHub forks](https://img.shields.io/github/forks/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/network)
+[![GitHub stars](https://img.shields.io/github/stars/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/commits/master)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
 <!-- Platform & Tools -->
-[![macOS](https://img.shields.io/badge/platform-macOS-blue.svg)](https://www.apple.com/macos/)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![macOS](https://img.shields.io/badge/platform-macOS-blue.svg?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Homebrew Compatible](https://img.shields.io/badge/homebrew-compatible-orange.svg?logo=homebrew&logoColor=white)](https://brew.sh/)
+[![CLI Tool](https://img.shields.io/badge/tool-CLI-brightgreen?logo=terminal&logoColor=white)](https://github.com/docdyhr/versiontracker)
+[![GitHub Repo Size](https://img.shields.io/github/repo-size/docdyhr/versiontracker?logo=github&logoColor=white&label=repo%20size)](https://github.com/docdyhr/versiontracker)
 
 * Name: Versiontracker
 * Version: 0.6.4
