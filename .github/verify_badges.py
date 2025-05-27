@@ -72,8 +72,8 @@ class BadgeVerifier:
         badges = [
             # GitHub Actions Badges (shields.io format)
             (
-                "Tests",
-                "https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/test.yml?branch=master&label=tests&logo=github&logoColor=white",
+                "CI Pipeline",
+                "https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI%20Pipeline&logo=github&logoColor=white",
             ),
             (
                 "Lint",
@@ -88,10 +88,6 @@ class BadgeVerifier:
                 "https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI&logo=github&logoColor=white",
             ),
             # GitHub Actions Badges (native format)
-            (
-                "Tests (Native)",
-                "https://github.com/docdyhr/versiontracker/actions/workflows/test.yml/badge.svg",
-            ),
             (
                 "Lint (Native)",
                 "https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml/badge.svg",
@@ -287,9 +283,8 @@ class BadgeVerifier:
         print("-" * 40)
 
         workflow_files = [
-            "test.yml",
             "lint.yml",
-            "security.yml",
+            "security.yml", 
             "ci.yml",
             "release.yml",
         ]
@@ -305,6 +300,8 @@ class BadgeVerifier:
                 f"{'✅' if exists else '❌'} {workflow}: {'Found' if exists else 'Missing'}"
             )
 
+        # Note about consolidated workflow
+        print("\nℹ️  Note: test.yml was consolidated into ci.yml for better efficiency")
         return True
 
 
