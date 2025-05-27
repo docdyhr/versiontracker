@@ -912,7 +912,9 @@ class Config:
             "ui": {
                 "use-color": self._config["ui"].get("use_color", True),
                 "monitor-resources": self._config["ui"].get("monitor_resources", True),
-                "adaptive-rate-limiting": self._config["ui"].get("adaptive_rate_limiting", True),
+                "adaptive-rate-limiting": self._config["ui"].get(
+                    "adaptive_rate_limiting", True
+                ),
                 "enhanced-progress": self._config["ui"].get("enhanced_progress", True),
             },
             "version-comparison": {

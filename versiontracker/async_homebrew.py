@@ -140,9 +140,7 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
         self.use_cache = use_cache
         self.strict_match = strict_match
 
-    async def process_item(
-        self, item: Tuple[str, str]
-    ) -> Tuple[str, str, bool]:
+    async def process_item(self, item: Tuple[str, str]) -> Tuple[str, str, bool]:
         """Check if an application can be installed with Homebrew.
 
         Args:
@@ -204,7 +202,7 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
             bool: True if a matching cask is found, False otherwise
         """
         # Create simplified search term
-        search_term = re.sub(r'[^a-zA-Z0-9]', '', app_name.lower())
+        search_term = re.sub(r"[^a-zA-Z0-9]", "", app_name.lower())
 
         # Search for the app
         search_results = await search_casks(search_term, use_cache=self.use_cache)
@@ -230,8 +228,8 @@ class HomebrewBatchProcessor(AsyncBatchProcessor):
             bool: True if names are a significant match
         """
         # Clean up names for comparison
-        clean_app = re.sub(r'[^a-zA-Z0-9]', '', app_name.lower())
-        clean_cask = re.sub(r'[^a-zA-Z0-9]', '', cask_name.lower())
+        clean_app = re.sub(r"[^a-zA-Z0-9]", "", app_name.lower())
+        clean_cask = re.sub(r"[^a-zA-Z0-9]", "", cask_name.lower())
 
         # Check if one name contains the other
         if clean_app in clean_cask or clean_cask in clean_app:

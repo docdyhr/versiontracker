@@ -108,7 +108,7 @@ class TestMain(unittest.TestCase):
         # Mock options object
         mock_options = MagicMock()
         mock_options.debug = 1
-        
+
         # Mock logging.INFO with an integer
         mock_logging.INFO = 20
 

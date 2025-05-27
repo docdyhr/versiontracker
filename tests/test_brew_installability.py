@@ -48,41 +48,42 @@ class TestBrewCaskInstallability(unittest.TestCase):
 
     @patch("versiontracker.apps.get_homebrew_cask_name")
     @patch("versiontracker.apps.is_homebrew_available", return_value=True)
-    def test_is_brew_cask_installable_with_cache(self, mock_homebrew_available, mock_get_brew_cask_name):
+    def test_is_brew_cask_installable_with_cache(
+        self, mock_homebrew_available, mock_get_brew_cask_name
+    ):
         """Test is_brew_cask_installable with caching."""
         # Set up the test
         # We'll mock the read_cache and write_cache functions instead of directly manipulating the cache
         with patch("versiontracker.apps.read_cache") as mock_read_cache:
             with patch("versiontracker.apps.write_cache") as mock_write_cache:
-
                 # First call - cache miss
                 mock_read_cache.return_value = None
                 mock_get_brew_cask_name.return_value = "firefox"
-                
+
                 # Mock run_command to return success
                 with patch("versiontracker.apps.run_command") as mock_run:
                     mock_run.return_value = ("firefox\n", 0)
-                    
+
                     # First call
                     result1 = is_brew_cask_installable("firefox", use_cache=True)
                     self.assertTrue(result1)
-                    
+
                     # Verify cache was written
                     mock_write_cache.assert_called_once()
-                
+
                 # Second call - cache hit
                 mock_read_cache.return_value = {"installable": ["firefox"]}
                 mock_run.reset_mock()
                 mock_get_brew_cask_name.reset_mock()
-                
+
                 # Second call with same app - should use cache
                 result2 = is_brew_cask_installable("firefox", use_cache=True)
                 self.assertTrue(result2)
                 mock_run.assert_not_called()  # Should use cache instead of running brew
-                
+
                 # Third call - cache disabled
                 mock_read_cache.reset_mock()
-                
+
                 # Call with use_cache=False - should query again
                 with patch("versiontracker.apps.run_command") as mock_run:
                     mock_run.return_value = ("firefox\n", 0)

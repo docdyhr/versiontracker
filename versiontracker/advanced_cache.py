@@ -192,7 +192,9 @@ class AdvancedCache:
             except (FileNotFoundError, PermissionError):
                 pass
 
-        memory_size = sum(len(json.dumps(v).encode()) for v in self._memory_cache.values())
+        memory_size = sum(
+            len(json.dumps(v).encode()) for v in self._memory_cache.values()
+        )
 
         self._stats.disk_size_bytes = disk_size
         self._stats.memory_size_bytes = memory_size
@@ -248,7 +250,9 @@ class AdvancedCache:
         with self._lock:
             # Check memory cache size
             if len(self._memory_cache) > self._memory_cache_size:
-                self._evict_from_memory(len(self._memory_cache) - self._memory_cache_size)
+                self._evict_from_memory(
+                    len(self._memory_cache) - self._memory_cache_size
+                )
 
             # Check disk cache size
             disk_size_mb = self._stats.disk_size_bytes / (1024 * 1024)
@@ -272,8 +276,12 @@ class AdvancedCache:
         items_to_evict = sorted(
             self._memory_cache.keys(),
             key=lambda k: (
-                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).priority.value,
-                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).last_accessed,
+                self._metadata.get(
+                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
+                ).priority.value,
+                self._metadata.get(
+                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
+                ).last_accessed,
             ),
         )
 
@@ -299,8 +307,12 @@ class AdvancedCache:
         items_to_evict = sorted(
             [f.stem for f in cache_files],
             key=lambda k: (
-                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).priority.value,
-                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).last_accessed,
+                self._metadata.get(
+                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
+                ).priority.value,
+                self._metadata.get(
+                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
+                ).last_accessed,
             ),
         )
 
@@ -335,7 +347,12 @@ class AdvancedCache:
         return current_time - metadata.created_at > ttl
 
     def _update_metadata(
-        self, key: str, size_bytes: int, source: str, priority: CachePriority, is_access: bool = False
+        self,
+        key: str,
+        size_bytes: int,
+        source: str,
+        priority: CachePriority,
+        is_access: bool = False,
     ) -> None:
         """Update metadata for a cache item.
 
@@ -389,7 +406,10 @@ class AdvancedCache:
 
         with self._lock:
             # Check memory cache first if requested
-            if level in (CacheLevel.MEMORY, CacheLevel.ALL) and key in self._memory_cache:
+            if (
+                level in (CacheLevel.MEMORY, CacheLevel.ALL)
+                and key in self._memory_cache
+            ):
                 if self._is_expired(key, ttl):
                     # Item is expired, remove it
                     del self._memory_cache[key]
@@ -398,9 +418,7 @@ class AdvancedCache:
                     return None
 
                 # Update access metadata
-                self._update_metadata(
-                    key, 0, "", CachePriority.NORMAL, is_access=True
-                )
+                self._update_metadata(key, 0, "", CachePriority.NORMAL, is_access=True)
 
                 if self._stats_enabled:
                     self._stats.hits += 1
@@ -576,7 +594,8 @@ class AdvancedCache:
                 if source:
                     # Clear only items from the specified source
                     keys_to_delete = [
-                        key for key, meta in self._metadata.items()
+                        key
+                        for key, meta in self._metadata.items()
                         if meta.source == source
                     ]
 
@@ -629,8 +648,7 @@ class AdvancedCache:
         with self._lock:
             if source:
                 return [
-                    key for key, meta in self._metadata.items()
-                    if meta.source == source
+                    key for key, meta in self._metadata.items() if meta.source == source
                 ]
             return list(self._metadata.keys())
 
@@ -657,7 +675,10 @@ class AdvancedCache:
         """
         with self._lock:
             # Check memory cache
-            if level in (CacheLevel.MEMORY, CacheLevel.ALL) and key in self._memory_cache:
+            if (
+                level in (CacheLevel.MEMORY, CacheLevel.ALL)
+                and key in self._memory_cache
+            ):
                 return True
 
             # Check disk cache
@@ -706,7 +727,10 @@ class AdvancedCache:
         return value
 
     def batch_get(
-        self, keys: List[str], level: CacheLevel = CacheLevel.ALL, ttl: Optional[int] = None
+        self,
+        keys: List[str],
+        level: CacheLevel = CacheLevel.ALL,
+        ttl: Optional[int] = None,
     ) -> Dict[str, Optional[T]]:
         """Get multiple items from cache.
 

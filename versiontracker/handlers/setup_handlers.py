@@ -95,7 +95,10 @@ def handle_setup_logging(options: Any) -> int:
             logging.basicConfig(level=logging.WARNING)
 
         # Log some initial debug information
-        logging.debug("Logging setup complete with level: %s", logging.getLevelName(logging.getLogger().level))
+        logging.debug(
+            "Logging setup complete with level: %s",
+            logging.getLevelName(logging.getLogger().level),
+        )
 
         return 0
     except Exception as e:

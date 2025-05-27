@@ -144,8 +144,7 @@ async def batch_fetch_json(
 
     # Create tasks for all URLs
     tasks = [
-        fetch_with_semaphore(url, cache_key)
-        for url, cache_key in zip(urls, cache_keys)
+        fetch_with_semaphore(url, cache_key) for url, cache_key in zip(urls, cache_keys)
     ]
 
     # Execute all tasks concurrently and gather results
@@ -162,7 +161,9 @@ async def batch_fetch_json(
             elif isinstance(result, NetworkError):
                 raise result
             else:
-                raise NetworkError(f"Error fetching {urls[i]}: {str(result)}") from result
+                raise NetworkError(
+                    f"Error fetching {urls[i]}: {str(result)}"
+                ) from result
         else:
             processed_results.append(result)
 
@@ -178,6 +179,7 @@ def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
     Returns:
         Synchronous wrapper function
     """
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         """Synchronous wrapper for async function."""
@@ -194,9 +196,7 @@ def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def run_async_in_thread(
-    func: Callable[..., Any], *args: Any, **kwargs: Any
-) -> Any:
+def run_async_in_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     """Run an async function in a separate thread.
 
     Args:
@@ -270,6 +270,7 @@ class AsyncBatchProcessor:
         Returns:
             List of processed results
         """
+
         async def process_with_rate_limit(item: T) -> R:
             """Process an item with rate limiting."""
             async with self.semaphore:

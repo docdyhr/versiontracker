@@ -126,7 +126,11 @@ def get_all_homebrew_casks() -> List[Dict[str, Any]]:
 
         # Show progress message
         progress_bar = create_progress_bar()
-        print(progress_bar.color("blue")("Fetching all Homebrew casks (this may take a while)..."))
+        print(
+            progress_bar.color("blue")(
+                "Fetching all Homebrew casks (this may take a while)..."
+            )
+        )
 
         # Execute command with timeout
         stdout, returncode = run_command(command, timeout=120)  # 2 minute timeout
@@ -260,7 +264,7 @@ def search_casks(query: str) -> List[Dict[str, Any]]:
     try:
         brew_path = get_brew_command()
         # Escape special characters in query
-        safe_query = re.sub(r'([^\w\s-])', r'\\\1', query)
+        safe_query = re.sub(r"([^\w\s-])", r"\\\1", query)
         command = f"{brew_path} search --cask --json=v2 {safe_query}"
 
         # Execute command with timeout
@@ -338,10 +342,12 @@ def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
     batch_size = getattr(config, "homebrew_batch_size", DEFAULT_BATCH_SIZE)
     progress_bar = create_progress_bar()
 
-    print(progress_bar.color("blue")(f"Fetching info for {len(casks_to_fetch)} casks..."))
+    print(
+        progress_bar.color("blue")(f"Fetching info for {len(casks_to_fetch)} casks...")
+    )
 
     for i in range(0, len(casks_to_fetch), batch_size):
-        batch = casks_to_fetch[i:i + batch_size]
+        batch = casks_to_fetch[i : i + batch_size]
 
         try:
             # Construct a command to get info for multiple casks at once

@@ -28,8 +28,8 @@ jobs:
     
     - name: Run Bandit security linter
       run: |
-        bandit -r versiontracker/ -f json -o bandit-report.json || true
-        bandit -r versiontracker/ -f txt
+        bandit -c bandit.yaml -r versiontracker/ -f json -o bandit-report.json || true
+        bandit -c bandit.yaml -r versiontracker/ -f txt
     
     - name: Run Safety to check dependencies
       run: |

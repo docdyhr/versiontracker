@@ -161,16 +161,18 @@ class _AdaptiveRateLimiter:
 # For backwards compatibility with tests
 class AdaptiveRateLimiter(_AdaptiveRateLimiter):
     """Alias for _AdaptiveRateLimiter for backwards compatibility with tests."""
+
     pass
 
 
 # Rate limiter protocol definition
 class RateLimiterProtocol(Protocol):
     """Protocol defining the interface for rate limiters."""
-    
+
     def wait(self) -> None:
         """Wait according to rate limiting rules."""
         ...
+
 
 # Rate limiter type alias
 RateLimiterType = Union[SimpleRateLimiter, _AdaptiveRateLimiter]
@@ -292,11 +294,14 @@ def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
                 app_name = "TestApp"
             else:
                 app_name = normalise_name(app["_name"])
-                
+
             app_version = app.get("version", "").strip()
 
             # Check if we already have this app with this version (avoid exact duplicates)
-            if not any(existing[0] == app_name and existing[1] == app_version for existing in apps):
+            if not any(
+                existing[0] == app_name and existing[1] == app_version
+                for existing in apps
+            ):
                 apps.append((app_name, app_version))
 
             logging.debug("\t%s %s", app_name, app_version)
@@ -459,15 +464,25 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
                     return False
                 else:
                     # Log only for unexpected errors with better error information
-                    error_msg = output.strip() if output.strip() else f"Command failed with exit code {returncode}"
+                    error_msg = (
+                        output.strip()
+                        if output.strip()
+                        else f"Command failed with exit code {returncode}"
+                    )
                     logging.warning(
                         "Error checking if %s is installable: %s", cask_name, error_msg
                     )
                     return False
         except Exception as e:
             # Provide more detailed error information with fallback for empty exceptions
-            error_details = str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
-            logging.warning("Exception checking if %s is installable: %s", cask_name, error_details)
+            error_details = (
+                str(e)
+                if str(e).strip()
+                else f"Unknown error of type {type(e).__name__}"
+            )
+            logging.warning(
+                "Exception checking if %s is installable: %s", cask_name, error_details
+            )
             return False
 
         lines = output.strip().split("\n")
@@ -490,13 +505,19 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
         logging.warning("Network error checking if %s is installable: %s", cask_name, e)
         raise
     except HomebrewError as e:
-        logging.warning("Homebrew error checking if %s is installable: %s", cask_name, e)
+        logging.warning(
+            "Homebrew error checking if %s is installable: %s", cask_name, e
+        )
         raise
     except Exception as e:
         # Provide better error details with fallback for empty exception messages
-        error_details = str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
-        logging.warning("Error checking if %s is installable: %s", cask_name, error_details)
-        
+        error_details = (
+            str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
+        )
+        logging.warning(
+            "Error checking if %s is installable: %s", cask_name, error_details
+        )
+
         # Check for network-related errors in exception message
         if any(
             network_term in str(e).lower()
@@ -513,12 +534,12 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
             raise NetworkError(
                 f"Network unavailable when checking homebrew cask: {cask_name}"
             ) from e
-            
+
         # Re-raise with improved error message
         raise HomebrewError(
             f"Error checking if {cask_name} is installable: {error_details}"
         ) from e
-        
+
         # Check for network-related errors in exception message
         if any(
             network_term in str(e).lower()
@@ -535,7 +556,7 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
             raise NetworkError(
                 f"Network unavailable when checking homebrew cask: {cask_name}"
             ) from e
-            
+
         # Re-raise with improved error message
         raise HomebrewError(
             f"Error checking if {cask_name} is installable: {error_details}"
@@ -776,7 +797,9 @@ def _create_rate_limiter(rate_limit: Union[int, Any]) -> RateLimiterProtocol:
         logging.debug("Using default rate limit: %d second(s)", rate_limit_seconds)
 
     # Create and return the appropriate rate limiter
-    if hasattr(get_config(), "ui") and getattr(get_config(), "ui", {}).get("adaptive_rate_limiting", False):
+    if hasattr(get_config(), "ui") and getattr(get_config(), "ui", {}).get(
+        "adaptive_rate_limiting", False
+    ):
         return _AdaptiveRateLimiter(
             base_rate_limit_sec=float(rate_limit_seconds),
             min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
@@ -805,24 +828,34 @@ def _handle_future_result(
     except BrewTimeoutError as e:
         error_details = str(e) if str(e).strip() else "Unknown timeout error"
         logging.warning("Timeout checking %s: %s", name, error_details)
-        timeout_error = BrewTimeoutError(f"Operation timed out while checking {name}: {error_details}")
+        timeout_error = BrewTimeoutError(
+            f"Operation timed out while checking {name}: {error_details}"
+        )
         return (name, version, False), timeout_error
     except NetworkError as e:
         error_details = str(e) if str(e).strip() else "Unknown network error"
         logging.warning("Network error checking %s: %s", name, error_details)
-        network_error = NetworkError(f"Network error while checking {name}: {error_details}")
+        network_error = NetworkError(
+            f"Network error while checking {name}: {error_details}"
+        )
         return (name, version, False), network_error
     except HomebrewError as e:
         error_details = str(e) if str(e).strip() else "Unknown Homebrew error"
         logging.warning("Homebrew error checking %s: %s", name, error_details)
-        homebrew_error = HomebrewError(f"Homebrew error while checking {name}: {error_details}")
+        homebrew_error = HomebrewError(
+            f"Homebrew error while checking {name}: {error_details}"
+        )
         return (name, version, False), homebrew_error
     except Exception as e:
         # Check if this is a "No formulae or casks found" error which is expected
         if "No formulae or casks found" in str(e):
             logging.debug("No formulae found for %s: %s", name, e)
         else:
-            error_details = str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
+            error_details = (
+                str(e)
+                if str(e).strip()
+                else f"Unknown error of type {type(e).__name__}"
+            )
             logging.warning("Error checking %s: %s", name, error_details)
         return (name, version, False), None
 
@@ -894,9 +927,13 @@ def _process_brew_batch(
         # Re-raise HomebrewError without modification
         raise
     except Exception as e:
-        error_details = str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
+        error_details = (
+            str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
+        )
         logging.error("Error processing brew batch: %s", error_details)
-        raise HomebrewError(f"Error checking Homebrew installability: {error_details}") from e
+        raise HomebrewError(
+            f"Error checking Homebrew installability: {error_details}"
+        ) from e
 
 
 def filter_out_brews(
@@ -987,7 +1024,9 @@ def search_brew_cask(search_term: str) -> List[str]:
         return []
 
 
-def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimiterProtocol] = None) -> Optional[str]:
+def _process_brew_search(
+    app: Tuple[str, str], rate_limiter: Optional[RateLimiterProtocol] = None
+) -> Optional[str]:
     """Process a single brew search for an application.
 
     Args:
@@ -1062,7 +1101,9 @@ def _batch_process_brew_search(
         app_name, _ = app
 
         # Wait for rate limit if needed
-        if rate_limiter is not None and isinstance(rate_limiter, (SimpleRateLimiter, _AdaptiveRateLimiter)):
+        if rate_limiter is not None and isinstance(
+            rate_limiter, (SimpleRateLimiter, _AdaptiveRateLimiter)
+        ):
             rate_limiter.wait()
 
         try:

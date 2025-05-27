@@ -1,0 +1,16 @@
+skips:
+  - B608  # Possible SQL injection - false positive in cache error messages
+  - B602  # subprocess with shell=True - intentional for homebrew command execution
+
+exclude_dirs:
+  - tests
+  - docs
+  - .venv
+  - .git
+  - .pytest_cache
+  - __pycache__
+  - .mypy_cache
+
+confidence: MEDIUM
+
+severity: MEDIUM

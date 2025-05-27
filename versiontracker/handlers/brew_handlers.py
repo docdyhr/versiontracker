@@ -283,7 +283,9 @@ def handle_brew_recommendations(options: Any) -> int:
             )
 
             # Extract installable app names from the results (app, version, installable)
-            installables = [app for app, _, installable in brew_candidates if installable]
+            installables = [
+                app for app, _, installable in brew_candidates if installable
+            ]
         except HomebrewError as e:
             print(
                 create_progress_bar().color("red")(

@@ -1129,6 +1129,7 @@ def check_latest_version(*args, **kwargs):
     """
     from versiontracker.apps import get_cask_version
     from versiontracker.version import compare_versions
+
     if len(args) == 2:
         app_name, installed_version = args
         try:
@@ -1284,15 +1285,20 @@ def get_partial_ratio_scorer():
     """Return a scorer function compatible with rapidfuzz/fuzzywuzzy extractOne."""
     if USE_RAPIDFUZZ:
         from rapidfuzz import fuzz as rapidfuzz_fuzz
+
         return rapidfuzz_fuzz.partial_ratio
     elif USE_FUZZYWUZZY:
         from fuzzywuzzy import fuzz as fuzzywuzzy_fuzz
+
         def scorer(s1, s2, *, score_cutoff=None):
             return float(fuzzywuzzy_fuzz.partial_ratio(s1, s2))
+
         return scorer
     else:
+
         def fallback_scorer(s1, s2, *, score_cutoff=None):
             return float(_partial_ratio(s1, s2))
+
         return fallback_scorer
 
 

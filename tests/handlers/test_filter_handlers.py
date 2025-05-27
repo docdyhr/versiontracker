@@ -9,7 +9,6 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-
 from versiontracker.handlers.filter_handlers import (
     handle_filter_management,
     handle_save_filter,
@@ -49,7 +48,9 @@ class TestFilterHandlers:
         mock_color.return_value.assert_called_with("No saved filters found.")
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
-    def test_handle_filter_management_list_filters_with_filters(self, mock_progress_bar):
+    def test_handle_filter_management_list_filters_with_filters(
+        self, mock_progress_bar
+    ):
         """Test listing filters when filters exist."""
         # Setup
         mock_options = mock.MagicMock()
@@ -118,11 +119,15 @@ class TestFilterHandlers:
         # Assert
         assert result == 0
         mock_color.assert_called_with("red")
-        mock_color.return_value.assert_called_with("Filter 'nonexistent-filter' not found.")
+        mock_color.return_value.assert_called_with(
+            "Filter 'nonexistent-filter' not found."
+        )
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
-    def test_handle_filter_management_load_filter_success(self, mock_get_config, mock_progress_bar):
+    def test_handle_filter_management_load_filter_success(
+        self, mock_get_config, mock_progress_bar
+    ):
         """Test loading a filter that exists."""
         # Setup
         mock_options = mock.MagicMock()
@@ -141,7 +146,7 @@ class TestFilterHandlers:
         filter_content = {
             "option1": "value1",
             "option2": "value2",
-            "config": {"test_key": "new_value"}
+            "config": {"test_key": "new_value"},
         }
         with open(filter_dir / "test-filter.json", "w") as f:
             json.dump(filter_content, f)
@@ -186,11 +191,12 @@ class TestFilterHandlers:
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
     def test_handle_save_filter_success(self, mock_get_config, mock_progress_bar):
         """Test saving a filter successfully."""
+
         # Setup
         # Use a regular object instead of MagicMock to avoid serialization issues
         class Options:
             pass
-        
+
         mock_options = Options()
         mock_options.save_filter = "test-save-filter"
         mock_options.option1 = "value1"
@@ -200,11 +206,7 @@ class TestFilterHandlers:
 
         # Setup mock config
         mock_config = mock.MagicMock()
-        mock_config._config = {
-            "ui": {"color": True},
-            "rate_limit": 5,
-            "max_workers": 8
-        }
+        mock_config._config = {"ui": {"color": True}, "rate_limit": 5, "max_workers": 8}
         mock_get_config.return_value = mock_config
 
         mock_color = mock_progress_bar.return_value.color
@@ -213,7 +215,7 @@ class TestFilterHandlers:
         # Use a patched filter manager to ensure save works
         patched_filter_manager = mock.MagicMock()
         patched_filter_manager.save_filter.return_value = True
-        
+
         # Execute
         result = handle_save_filter(mock_options, patched_filter_manager)
 
@@ -223,7 +225,7 @@ class TestFilterHandlers:
         patched_filter_manager.save_filter.assert_called_once()
         args, kwargs = patched_filter_manager.save_filter.call_args
         assert args[0] == "test-save-filter"  # First argument should be the filter name
-        
+
         # Verify the filter data content
         filter_data = args[1]  # Second argument should be the filter data
         assert filter_data["option1"] == "value1"
@@ -232,7 +234,7 @@ class TestFilterHandlers:
         assert "ui" in filter_data["config"]
         assert "rate_limit" in filter_data["config"]
         assert "max_workers" in filter_data["config"]
-        
+
         mock_color.assert_called_with("green")
         mock_color.return_value.assert_called_with(
             "Filter 'test-save-filter' saved successfully."
@@ -241,7 +243,9 @@ class TestFilterHandlers:
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
     @mock.patch("versiontracker.handlers.filter_handlers.logging")
-    def test_handle_save_filter_failure(self, mock_logging, mock_get_config, mock_progress_bar):
+    def test_handle_save_filter_failure(
+        self, mock_logging, mock_get_config, mock_progress_bar
+    ):
         """Test handling a failure when saving a filter."""
         # Setup
         mock_options = mock.MagicMock()
@@ -267,7 +271,9 @@ class TestFilterHandlers:
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
     @mock.patch("versiontracker.handlers.filter_handlers.logging")
-    def test_handle_save_filter_exception(self, mock_logging, mock_get_config, mock_progress_bar):
+    def test_handle_save_filter_exception(
+        self, mock_logging, mock_get_config, mock_progress_bar
+    ):
         """Test handling an exception when saving a filter."""
         # Setup
         mock_options = mock.MagicMock()

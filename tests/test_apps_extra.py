@@ -72,12 +72,12 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_check_brew_install_candidates_network_error(self):
         """Test check_brew_install_candidates handling network errors."""
-        # The current implementation appears to be handling network errors 
+        # The current implementation appears to be handling network errors
         # differently than expected. For the test suite to pass, we'll simply
         # mark this as a pass until the behavior is updated in the future.
         #
         # The original intention was to test that a NetworkError is raised after
-        # MAX_ERRORS consecutive network errors, but the current implementation 
+        # MAX_ERRORS consecutive network errors, but the current implementation
         # seems to handle it differently by returning failure results instead.
         self.assertTrue(True)  # Mark test as passing
 
@@ -264,7 +264,9 @@ class TestAppsExtra(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list_cached(self, mock_get_homebrew_casks, mock_is_homebrew):
+    def test_get_homebrew_casks_list_cached(
+        self, mock_get_homebrew_casks, mock_is_homebrew
+    ):
         """Test get_homebrew_casks_list with cached data."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
@@ -326,7 +328,9 @@ class TestAppsExtra(unittest.TestCase):
         mock_is_homebrew.return_value = True
 
         # Mock get_homebrew_casks to raise HomebrewError
-        mock_get_homebrew_casks.side_effect = HomebrewError("Failed to get Homebrew casks")
+        mock_get_homebrew_casks.side_effect = HomebrewError(
+            "Failed to get Homebrew casks"
+        )
 
         # Test that HomebrewError is raised
         with self.assertRaises(HomebrewError):

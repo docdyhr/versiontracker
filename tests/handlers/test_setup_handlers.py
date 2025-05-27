@@ -7,7 +7,6 @@ in the versiontracker.handlers.setup_handlers module.
 import logging
 from unittest import mock
 
-
 from versiontracker.handlers.setup_handlers import (
     handle_configure_from_options,
     handle_initialize_config,
@@ -27,15 +26,17 @@ class TestSetupHandlers:
     @mock.patch("versiontracker.handlers.setup_handlers.Config")
     @mock.patch("versiontracker.handlers.setup_handlers.get_config")
     @mock.patch("versiontracker.handlers.setup_handlers.logging")
-    def test_handle_initialize_config_success(self, mock_logging, mock_get_config, mock_config_class):
+    def test_handle_initialize_config_success(
+        self, mock_logging, mock_get_config, mock_config_class
+    ):
         """Test successful config initialization."""
         # Setup
         mock_options = mock.MagicMock()
         mock_options.config = "test_config.yaml"
-        
+
         # Mock the Config constructor to do nothing
         mock_config_class.side_effect = None
-        
+
         # Execute
         result = handle_initialize_config(mock_options)
 
@@ -46,16 +47,18 @@ class TestSetupHandlers:
     @mock.patch("versiontracker.handlers.setup_handlers.Config")
     @mock.patch("versiontracker.handlers.setup_handlers.get_config")
     @mock.patch("versiontracker.handlers.setup_handlers.logging")
-    def test_handle_initialize_config_no_config_file(self, mock_logging, mock_get_config, mock_config_class):
+    def test_handle_initialize_config_no_config_file(
+        self, mock_logging, mock_get_config, mock_config_class
+    ):
         """Test config initialization without a config file."""
         # Setup
         mock_options = mock.MagicMock()
         # Ensure config attribute doesn't exist
         mock_options.config = None
-        
+
         # Mock the Config constructor to do nothing
         mock_config_class.side_effect = None
-        
+
         # Execute
         result = handle_initialize_config(mock_options)
 
@@ -66,7 +69,9 @@ class TestSetupHandlers:
     @mock.patch("versiontracker.handlers.setup_handlers.Config")
     @mock.patch("versiontracker.handlers.setup_handlers.get_config")
     @mock.patch("versiontracker.handlers.setup_handlers.logging")
-    def test_handle_initialize_config_error(self, mock_logging, mock_get_config, mock_config_class):
+    def test_handle_initialize_config_error(
+        self, mock_logging, mock_get_config, mock_config_class
+    ):
         """Test error handling during config initialization."""
         # Setup
         mock_options = mock.MagicMock()
@@ -95,7 +100,7 @@ class TestSetupHandlers:
             "ui": {
                 "use_color": True,
                 "show_progress": True,
-                "adaptive_rate_limiting": True
+                "adaptive_rate_limiting": True,
             }
         }
         mock_get_config.return_value = mock_config
@@ -130,7 +135,7 @@ class TestSetupHandlers:
         # Setup
         mock_options = mock.MagicMock()
         mock_options.debug = 1
-        
+
         # Mock logging.INFO with an integer
         mock_logging.INFO = 20
 
@@ -148,7 +153,7 @@ class TestSetupHandlers:
         # Setup
         mock_options = mock.MagicMock()
         mock_options.debug = 2
-        
+
         # Mock logging.DEBUG with an integer
         mock_logging.DEBUG = 10
 
@@ -166,7 +171,7 @@ class TestSetupHandlers:
         # Setup
         mock_options = mock.MagicMock()
         mock_options.debug = 0
-        
+
         # Mock logging.WARNING with an integer
         mock_logging.WARNING = 30
 

@@ -65,22 +65,22 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
     should_return_error: bool = False
     error_code: int = 500
     error_message: str = "Internal Server Error"
-    
+
     def log_message(self, format: str, *args) -> None:
         """Suppress logging unless in debug mode."""
         pass
-    
+
     def do_GET(self) -> None:
         """Handle GET requests."""
         # Simulate a timeout if configured
         if self.should_timeout:
             time.sleep(10)  # Long delay to force timeout
             return
-        
+
         # Apply configured delay
         if self.delay_seconds > 0:
             time.sleep(self.delay_seconds)
-        
+
         # Return error if configured
         if self.should_return_error:
             self.send_response(self.error_code)
@@ -88,7 +88,7 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(self.error_message.encode("utf-8"))
             return
-        
+
         # Parse the path to determine what to return
         if self.path.startswith("/api/cask"):
             # Extract cask name from path
@@ -107,17 +107,17 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/plain")
             self.end_headers()
             self.wfile.write(b"Not Found")
-    
+
     def handle_cask_request(self, cask_name: str) -> None:
         """Handle request for a specific cask."""
         if cask_name in self.casks_data:
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            
+
             if self.should_return_malformed:
                 # Return malformed JSON
-                self.wfile.write(b"{\"name\": \"malformed")
+                self.wfile.write(b'{"name": "malformed')
             else:
                 # Return valid cask data
                 response = json.dumps(self.casks_data[cask_name])
@@ -128,21 +128,21 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "text/plain")
             self.end_headers()
             self.wfile.write(f"Cask '{cask_name}' not found".encode("utf-8"))
-    
+
     def handle_all_casks_request(self) -> None:
         """Handle request for all casks."""
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        
+
         if self.should_return_malformed:
             # Return malformed JSON
-            self.wfile.write(b"[{\"name\": \"malformed")
+            self.wfile.write(b'[{"name": "malformed')
         else:
             # Return all cask data
             response = json.dumps(list(self.casks_data.values()))
             self.wfile.write(response.encode("utf-8"))
-    
+
     def handle_search_request(self) -> None:
         """Handle search request."""
         # Parse query parameters
@@ -153,24 +153,27 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
             for param in params:
                 if param.startswith("q="):
                     query = param[2:]
-        
+
         # Filter casks by query
         results = []
         if query:
             for cask_name, cask_data in self.casks_data.items():
-                if query.lower() in cask_name.lower() or query.lower() in cask_data["desc"].lower():
+                if (
+                    query.lower() in cask_name.lower()
+                    or query.lower() in cask_data["desc"].lower()
+                ):
                     results.append(cask_data)
         else:
             # No query, return all casks
             results = list(self.casks_data.values())
-        
+
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.end_headers()
-        
+
         if self.should_return_malformed:
             # Return malformed JSON
-            self.wfile.write(b"[{\"name\": \"malformed")
+            self.wfile.write(b'[{"name": "malformed')
         else:
             # Return search results
             response = json.dumps(results)
@@ -179,10 +182,10 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
 
 class MockHomebrewServer:
     """Mock server for Homebrew API testing."""
-    
+
     def __init__(self, host: str = "localhost", port: int = 0) -> None:
         """Initialize the mock server.
-        
+
         Args:
             host: Hostname to bind to
             port: Port number to bind to (0 means automatic port selection)
@@ -192,27 +195,27 @@ class MockHomebrewServer:
         self.server: Optional[HTTPServer] = None
         self.server_thread: Optional[threading.Thread] = None
         self._original_casks = MockHomebrewHandler.casks_data.copy()
-    
+
     def start(self) -> Tuple[str, int]:
         """Start the mock server.
-        
+
         Returns:
             Tuple containing the server URL and port number
         """
         if self.server:
             raise MockHomebrewError("Server already running")
-        
+
         # Create and start the server
         self.server = HTTPServer((self.host, self.port), MockHomebrewHandler)
         self.port = self.server.server_port  # Get the actual port (if 0 was specified)
-        
+
         # Start the server in a separate thread
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
-        
+
         return f"http://{self.host}:{self.port}", self.port
-    
+
     def stop(self) -> None:
         """Stop the mock server."""
         if self.server:
@@ -222,7 +225,7 @@ class MockHomebrewServer:
             self.server_thread = None
             # Reset server behavior
             self.reset()
-    
+
     def reset(self) -> None:
         """Reset server behavior to defaults."""
         MockHomebrewHandler.casks_data = self._original_casks.copy()
@@ -232,18 +235,20 @@ class MockHomebrewServer:
         MockHomebrewHandler.should_return_error = False
         MockHomebrewHandler.error_code = 500
         MockHomebrewHandler.error_message = "Internal Server Error"
-    
+
     def set_casks(self, casks: Dict[str, Dict[str, str]]) -> None:
         """Set custom cask data.
-        
+
         Args:
             casks: Dictionary of cask data to use
         """
         MockHomebrewHandler.casks_data = casks
-    
-    def add_cask(self, name: str, version: str, desc: str = "", homepage: str = "") -> None:
+
+    def add_cask(
+        self, name: str, version: str, desc: str = "", homepage: str = ""
+    ) -> None:
         """Add a new cask to the mock server.
-        
+
         Args:
             name: Name of the cask
             version: Version string
@@ -256,43 +261,48 @@ class MockHomebrewServer:
             "desc": desc,
             "homepage": homepage,
         }
-    
+
     def remove_cask(self, name: str) -> None:
         """Remove a cask from the mock server.
-        
+
         Args:
             name: Name of the cask to remove
         """
         if name in MockHomebrewHandler.casks_data:
             del MockHomebrewHandler.casks_data[name]
-    
+
     def set_delay(self, seconds: float) -> None:
         """Set a delay for all responses.
-        
+
         Args:
             seconds: Delay in seconds
         """
         MockHomebrewHandler.delay_seconds = seconds
-    
+
     def set_timeout(self, should_timeout: bool = True) -> None:
         """Configure the server to timeout on requests.
-        
+
         Args:
             should_timeout: Whether requests should timeout
         """
         MockHomebrewHandler.should_timeout = should_timeout
-    
+
     def set_malformed_response(self, should_return_malformed: bool = True) -> None:
         """Configure the server to return malformed JSON.
-        
+
         Args:
             should_return_malformed: Whether to return malformed JSON
         """
         MockHomebrewHandler.should_return_malformed = should_return_malformed
-    
-    def set_error_response(self, should_return_error: bool = True, code: int = 500, message: str = "Internal Server Error") -> None:
+
+    def set_error_response(
+        self,
+        should_return_error: bool = True,
+        code: int = 500,
+        message: str = "Internal Server Error",
+    ) -> None:
         """Configure the server to return an error response.
-        
+
         Args:
             should_return_error: Whether to return an error
             code: HTTP status code
@@ -305,27 +315,28 @@ class MockHomebrewServer:
 
 def with_mock_homebrew_server(func: Callable) -> Callable:
     """Decorator that starts a mock server before the test and stops it after.
-    
+
     Args:
         func: Test function to decorate
-        
+
     Returns:
         Decorated function
     """
+
     def wrapper(*args, **kwargs):
         # Start mock server
         server = MockHomebrewServer()
         server_url, port = server.start()
-        
+
         # Add server to kwargs
         kwargs["mock_server"] = server
         kwargs["server_url"] = server_url
-        
+
         try:
             # Run the test
             return func(*args, **kwargs)
         finally:
             # Stop the server
             server.stop()
-    
+
     return wrapper

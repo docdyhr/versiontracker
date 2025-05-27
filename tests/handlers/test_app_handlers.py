@@ -5,7 +5,6 @@ from io import StringIO
 from unittest.mock import Mock, patch
 
 # Import the modules that will be patched
-
 # Import the function being tested
 from versiontracker.handlers.app_handlers import handle_list_apps
 

@@ -303,7 +303,7 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
                     f"Command failed with return code {process.returncode}: {stderr}"
                 )
 
-            # Check for common errors in order of specificity
+                # Check for common errors in order of specificity
                 if "command not found" in stderr:
                     raise FileNotFoundError(f"Command not found: {cmd}")
                 elif "permission denied" in stderr.lower():
@@ -323,7 +323,11 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
             if process.returncode != 0 and not stdout.strip() and stderr.strip():
                 return stderr, process.returncode
             # For special case with "No formulae or casks found" in stderr but nothing in stdout
-            elif process.returncode != 0 and "No formulae or casks found" in stderr and not stdout.strip():
+            elif (
+                process.returncode != 0
+                and "No formulae or casks found" in stderr
+                and not stdout.strip()
+            ):
                 return "No formulae or casks found", process.returncode
             else:
                 return stdout, process.returncode
@@ -434,7 +438,9 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
             ]
         ):
             logging.error(f"{error_msg}: Network error: {stderr}")
-            raise NetworkError(f"Network error while executing '{command}': {stderr}") from e
+            raise NetworkError(
+                f"Network error while executing '{command}': {stderr}"
+            ) from e
         else:
             detailed_error = stderr.strip() if stderr else "Unknown error"
             logging.error(f"{error_msg}: {detailed_error}")

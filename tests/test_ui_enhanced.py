@@ -110,7 +110,7 @@ class TestTerminalUI(unittest.TestCase):
         # Test with color
         color_func = get_status_color("uptodate")
         color_func(test_text)
-        
+
         # Verify color was called with the right color name
         mock_progress_bar.return_value.color.assert_called_with("green")
 
@@ -144,11 +144,11 @@ class TestTerminalUI(unittest.TestCase):
 
         # Create progress bar with initial status
         progress = SmartProgress(range(3), desc="Initial")
-        
+
         # Simulate iterating through the progress bar
         for _ in progress:
             pass
-            
+
         # Just verify the SmartProgress was created successfully
         self.assertIsNotNone(progress)
 
@@ -162,7 +162,7 @@ class TestAccessibility(unittest.TestCase):
         # Setup the mock
         mock_color = MagicMock()
         mock_progress_bar.return_value.color.return_value = mock_color
-        
+
         # Test statuses
         status_colors = ["uptodate", "outdated", "not_found", "error"]
 
@@ -176,7 +176,7 @@ class TestAccessibility(unittest.TestCase):
         # Setup the mock
         mock_color_green = MagicMock()
         mock_color_red = MagicMock()
-        
+
         # Configure the mock to return different color functions
         def side_effect(color):
             if color == "green":
@@ -184,13 +184,13 @@ class TestAccessibility(unittest.TestCase):
             elif color == "red":
                 return mock_color_red
             return MagicMock()
-            
+
         mock_progress_bar.return_value.color.side_effect = side_effect
-        
+
         # Call the functions
         get_status_color("uptodate")("Success message")
         get_status_color("outdated")("Error message")
-        
+
         # Verify the right colors were used
         mock_progress_bar.return_value.color.assert_any_call("green")
         mock_progress_bar.return_value.color.assert_any_call("red")
@@ -202,13 +202,15 @@ class TestAccessibility(unittest.TestCase):
         mock_color = MagicMock()
         mock_progress_bar.return_value.color.return_value = mock_color
         mock_color.side_effect = lambda x: x  # Just return the input text
-        
+
         # Call the function with symbols
         uptodate_message = "✓ Operation successful"
         error_message = "✗ Operation failed"
-        
+
         # Test that messages are passed through
-        self.assertEqual(get_status_color("uptodate")(uptodate_message), uptodate_message)
+        self.assertEqual(
+            get_status_color("uptodate")(uptodate_message), uptodate_message
+        )
         self.assertEqual(get_status_color("outdated")(error_message), error_message)
 
 
@@ -227,7 +229,7 @@ class TestInteractiveUI(unittest.TestCase):
         progress = SmartProgress(range(5), desc="Test")
         for _ in progress:
             pass
-            
+
         # Just verify the SmartProgress was created successfully
         self.assertIsNotNone(progress)
 
@@ -235,7 +237,7 @@ class TestInteractiveUI(unittest.TestCase):
         """Test that resource monitoring is available."""
         # Create a SmartProgress instance with resource monitoring
         progress = SmartProgress(range(3), monitor_resources=True, update_interval=0.1)
-        
+
         # Verify the monitor_resources flag was set
         self.assertTrue(progress.monitor_resources)
 
@@ -250,10 +252,10 @@ class TestInteractiveUI(unittest.TestCase):
         self.assertEqual(limiter.base_rate_limit_sec, 1.0)
         self.assertEqual(limiter.min_rate_limit_sec, 0.2)
         self.assertEqual(limiter.max_rate_limit_sec, 3.0)
-        
+
         # Get a current limit
         limit = limiter.get_current_limit()
-        
+
         # Verify the limit is in the expected range
         self.assertGreaterEqual(limit, 0.2)
         self.assertLessEqual(limit, 3.0)
