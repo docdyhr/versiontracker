@@ -8,8 +8,7 @@ a comprehensive status report for CI/CD pipeline health.
 
 import sys
 import time
-from typing import Dict, List, Tuple
-from urllib.parse import urlparse
+from typing import Dict, List
 
 import requests
 
@@ -277,8 +276,6 @@ class BadgeVerifier:
 
     def check_workflow_files(self):
         """Verify that all referenced workflow files exist."""
-        workflow_badges = [r for r in self.results if "workflows" in r["url"]]
-
         print("\n🔧 WORKFLOW FILE VERIFICATION:")
         print("-" * 40)
 
@@ -313,7 +310,7 @@ def main():
     verifier = BadgeVerifier()
 
     # Verify all badges
-    results = verifier.verify_all_badges()
+    verifier.verify_all_badges()
 
     # Check workflow files
     verifier.check_workflow_files()

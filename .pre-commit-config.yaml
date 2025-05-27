@@ -113,28 +113,30 @@ repos:
       # Check version consistency
       - id: check-version-consistency
         name: Check version consistency
-        entry: python -c "
-import sys
-import re
-try:
-    with open('versiontracker/__init__.py', 'r') as f:
-        content = f.read()
-        match = re.search(r'__version__ = [\"\'](.*?)[\"\']', content)
-        if not match:
-            print('ERROR: Could not find __version__ in versiontracker/__init__.py')
-            sys.exit(1)
-        version = match.group(1)
-        print(f'Found version: {version}')
-        
-        # Check if version follows semantic versioning
-        if not re.match(r'^\d+\.\d+\.\d+(-[\w\d.-]+)?$', version):
-            print(f'ERROR: Version {version} does not follow semantic versioning')
-            sys.exit(1)
-        print('✅ Version format is valid')
-except Exception as e:
-    print(f'ERROR: {e}')
-    sys.exit(1)
-"
+        entry: python
+        args:
+          - -c
+          - |
+            import sys
+            import re
+            try:
+                with open('versiontracker/__init__.py', 'r') as f:
+                    content = f.read()
+                    match = re.search(r'__version__ = [\"\'](.*?)[\"\']', content)
+                    if not match:
+                        print('ERROR: Could not find __version__ in versiontracker/__init__.py')
+                        sys.exit(1)
+                    version = match.group(1)
+                    print(f'Found version: {version}')
+                    
+                    # Check if version follows semantic versioning
+                    if not re.match(r'^\d+\.\d+\.\d+(-[\w\d.-]+)?$', version):
+                        print(f'ERROR: Version {version} does not follow semantic versioning')
+                        sys.exit(1)
+                    print('✅ Version format is valid')
+            except Exception as e:
+                print(f'ERROR: {e}')
+                sys.exit(1)
         language: system
         files: ^versiontracker/__init__.py$
         pass_filenames: false
