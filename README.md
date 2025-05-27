@@ -3,11 +3,10 @@
 ![Logo](images/logo.png)
 
 <!-- Build Status -->
-[![Tests](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/test.yml?branch=master&label=tests&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/test.yml)
+[![CI Pipeline](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Lint](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/lint.yml?branch=master&label=lint&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
 [![Security](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/security.yml?branch=master&label=security&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
-[![CI Status](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
-[![Build](https://img.shields.io/badge/build-ready-brightgreen?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions)
+[![Release](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=release&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
 
 <!-- Package Info -->
 [![PyPI - Version](https://img.shields.io/pypi/v/versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/versiontracker/)

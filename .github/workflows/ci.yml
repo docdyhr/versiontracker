@@ -7,26 +7,13 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-jobs:
-  ci-status:
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [test, lint, security]
-    steps:
-    - name: Check CI Status
-      run: |
-        if [[ "${{ needs.test.result }}" == "success" && "${{ needs.lint.result }}" == "success" && "${{ needs.security.result }}" == "success" ]]; then
-          echo "✅ All CI checks passed!"
-          exit 0
-        else
-          echo "❌ Some CI checks failed:"
-          echo "  Tests: ${{ needs.test.result }}"
-          echo "  Lint: ${{ needs.lint.result }}"
-          echo "  Security: ${{ needs.security.result }}"
-          exit 1
-        fi
+env:
+  PYTHONUNBUFFERED: 1
+  FORCE_COLOR: 1
 
+jobs:
   test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -34,29 +21,33 @@ jobs:
         os: [macos-latest, ubuntu-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
         exclude:
+          # Reduce CI time while maintaining good coverage
           - os: ubuntu-latest
             python-version: '3.8'
           - os: ubuntu-latest
             python-version: '3.9'
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    
+        cache: 'pip'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
         pip install -e .
-    
-    - name: Test with pytest
+
+    - name: Run tests with coverage
       run: |
-        pytest -c pytest-ci.ini --cov=versiontracker --cov-report=xml --cov-report=term -v
-    
+        pytest -c pytest-ci.ini --cov=versiontracker --cov-report=xml --cov-report=term --cov-report=html --junitxml=pytest.xml -v
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       if: matrix.os == 'macos-latest' && matrix.python-version == '3.10'
@@ -68,50 +59,194 @@ jobs:
         verbose: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+        path: |
+          coverage.xml
+          htmlcov/
+          pytest.xml
+
   lint:
+    name: Lint and Format Check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-    
+        python-version: '3.11'
+        cache: 'pip'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
         pip install -e .
-    
-    - name: Lint with Ruff
+
+    - name: Run Ruff linting
       run: |
         ruff check . --output-format=github
         ruff format --check .
-        
-    - name: Type checking with mypy
+
+    - name: Run type checking
       run: |
-        mypy --config-file=mypy.ini versiontracker
+        mypy --config-file=mypy.ini versiontracker --junit-xml=mypy-report.xml
+
+    - name: Upload lint artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lint-reports
+        path: |
+          mypy-report.xml
 
   security:
+    name: Security Checks
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-    
+        python-version: '3.11'
+        cache: 'pip'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
         pip install -e .
-    
+
     - name: Run security checks
       run: |
-        bandit -r versiontracker/ -ll
+        bandit -c bandit.yaml -r versiontracker/ -f json -o bandit-report.json || true
+        bandit -c bandit.yaml -r versiontracker/
+        safety check --json --output safety-report.json || true
         safety check
+        pip-audit --format=json --output=pip-audit-report.json || true
         pip-audit
+
+    - name: Upload security artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+          pip-audit-report.json
+
+  quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+
+    - name: Run code quality checks
+      run: |
+        # Docstring checking
+        pydocstyle versiontracker/ --convention=google || true
+        
+        # Code complexity analysis
+        radon cc versiontracker/ --min=B --json -O radon-cc.json || true
+        radon cc versiontracker/ --min=B
+        radon mi versiontracker/ --json -O radon-mi.json || true
+        radon mi versiontracker/ --min=B
+        
+        # Dead code detection
+        vulture versiontracker/ --json-output=vulture-report.json || true
+        vulture versiontracker/ --min-confidence=80
+
+    - name: Upload quality artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: quality-reports
+        path: |
+          radon-cc.json
+          radon-mi.json
+          vulture-report.json
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [test, lint, security]
+    if: always() && (needs.test.result == 'success' && needs.lint.result == 'success' && needs.security.result == 'success')
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel twine
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Verify package
+      run: |
+        twine check dist/*
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [test, lint, security, quality, build]
+    steps:
+    - name: Generate CI Summary
+      run: |
+        echo "## CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Tests | ${{ needs.test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Lint | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Security | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Quality | ${{ needs.quality.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build | ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        
+        # Set overall status
+        if [[ "${{ needs.test.result }}" == "success" && "${{ needs.lint.result }}" == "success" && "${{ needs.security.result }}" == "success" ]]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎉 **All critical checks passed!**" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        else
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Some checks failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi

@@ -6,42 +6,65 @@ on:
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+  schedule:
+    # Run security checks weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+env:
+  PYTHONUNBUFFERED: 1
+  FORCE_COLOR: 1
 
 jobs:
   security:
+    name: Security Analysis
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-    
+        python-version: '3.11'
+        cache: 'pip'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
-        pip install bandit[toml] safety pip-audit
         pip install -e .
-    
+
     - name: Run Bandit security linter
       run: |
+        echo "::group::Bandit Security Analysis"
         bandit -c bandit.yaml -r versiontracker/ -f json -o bandit-report.json || true
-        bandit -c bandit.yaml -r versiontracker/ -f txt
-    
+        bandit -c bandit.yaml -r versiontracker/ -ll
+        echo "::endgroup::"
+
     - name: Run Safety to check dependencies
       run: |
+        echo "::group::Safety Dependency Check"
         safety check --json --output safety-report.json || true
         safety check
-    
+        echo "::endgroup::"
+
     - name: Run pip-audit for dependency vulnerabilities
       run: |
+        echo "::group::Pip-Audit Vulnerability Check"
         pip-audit --format=json --output=pip-audit-report.json || true
         pip-audit
-    
-    - name: Upload security artifacts
+        echo "::endgroup::"
+
+    - name: Check for secrets with TruffleHog
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+    - name: Upload security reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -50,3 +73,28 @@ jobs:
           bandit-report.json
           safety-report.json
           pip-audit-report.json
+
+    - name: Create security summary
+      if: always()
+      run: |
+        echo "## Security Analysis Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Count findings if reports exist
+        if [ -f bandit-report.json ]; then
+          BANDIT_ISSUES=$(jq '.results | length' bandit-report.json 2>/dev/null || echo "0")
+          echo "- **Bandit Issues**: $BANDIT_ISSUES" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ -f safety-report.json ]; then
+          SAFETY_ISSUES=$(jq '.vulnerabilities | length' safety-report.json 2>/dev/null || echo "0")
+          echo "- **Safety Vulnerabilities**: $SAFETY_ISSUES" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ -f pip-audit-report.json ]; then
+          AUDIT_ISSUES=$(jq '.vulnerabilities | length' pip-audit-report.json 2>/dev/null || echo "0")
+          echo "- **Pip-Audit Vulnerabilities**: $AUDIT_ISSUES" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📊 Security scan completed. Check the uploaded artifacts for detailed reports." >> $GITHUB_STEP_SUMMARY

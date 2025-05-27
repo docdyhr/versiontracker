@@ -1,0 +1,152 @@
+# Pre-commit configuration for VersionTracker
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+repos:
+  # General file and formatting checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-json
+      - id: check-toml
+      - id: debug-statements
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: pretty-format-json
+        args: [--autofix, --indent=2]
+
+  # Python import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: [--profile=black, --line-length=88]
+
+  # Python code formatting and linting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      # Linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      # Formatter
+      - id: ruff-format
+
+  # Type checking with mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-PyYAML, types-tabulate, types-termcolor]
+        args: [--config-file=mypy.ini]
+        exclude: ^(tests/|docs/)
+
+  # Security linting with bandit
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-c, bandit.yaml, -r, versiontracker/]
+        exclude: ^tests/
+
+  # Documentation string checking
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args: [--convention=google]
+        exclude: ^(tests/|docs/)
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0
+    hooks:
+      - id: prettier
+        types: [yaml]
+        exclude: ^(.github/workflows/|docker-compose)
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.5
+    hooks:
+      - id: shellcheck
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        args: [--fix]
+        exclude: ^(CHANGELOG.md)
+
+  # Check for secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: ^(tests/|docs/)
+
+  # Additional Python checks
+  - repo: local
+    hooks:
+      # Check for TODO/FIXME comments
+      - id: check-todos
+        name: Check for TODO/FIXME comments
+        entry: python -c "import sys; import re; files = sys.argv[1:]; todo_pattern = re.compile(r'(TODO|FIXME|XXX|HACK)', re.IGNORECASE); found = False; [print(f'{f}:{i+1}:{line.strip()}') or setattr(sys.modules[__name__], 'found', True) for f in files for i, line in enumerate(open(f, encoding='utf-8', errors='ignore')) if todo_pattern.search(line)]; sys.exit(1 if found else 0)"
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      # Check version consistency
+      - id: check-version-consistency
+        name: Check version consistency
+        entry: python -c "
+import sys
+import re
+try:
+    with open('versiontracker/__init__.py', 'r') as f:
+        content = f.read()
+        match = re.search(r'__version__ = [\"\'](.*?)[\"\']', content)
+        if not match:
+            print('ERROR: Could not find __version__ in versiontracker/__init__.py')
+            sys.exit(1)
+        version = match.group(1)
+        print(f'Found version: {version}')
+        
+        # Check if version follows semantic versioning
+        if not re.match(r'^\d+\.\d+\.\d+(-[\w\d.-]+)?$', version):
+            print(f'ERROR: Version {version} does not follow semantic versioning')
+            sys.exit(1)
+        print('✅ Version format is valid')
+except Exception as e:
+    print(f'ERROR: {e}')
+    sys.exit(1)
+"
+        language: system
+        files: ^versiontracker/__init__.py$
+        pass_filenames: false
+
+# Configuration
+ci:
+  autofix_prs: true
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
+  autoupdate_schedule: weekly
+  skip: [check-todos]  # Skip TODO check in CI
+
+# Pre-commit hook installation:
+# pip install pre-commit
+# pre-commit install
+# pre-commit install --hook-type commit-msg
