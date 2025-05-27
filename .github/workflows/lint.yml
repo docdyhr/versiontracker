@@ -21,15 +21,49 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
+        pip install bandit[toml] pydocstyle radon vulture
         pip install -e .
     
     - name: Lint and check formatting with Ruff
       run: |
         # Check for lint errors, including import sorting
-        ruff check .
+        ruff check . --output-format=github
         # Check for formatting issues
         ruff format --check .
         
     - name: Type checking with mypy
       run: |
-        mypy --config-file=mypy.ini versiontracker
+        mypy --config-file=mypy.ini versiontracker --junit-xml=mypy-report.xml
+    
+    - name: Security linting with Bandit
+      run: |
+        bandit -r versiontracker/ -f json -o bandit-report.json || true
+        bandit -r versiontracker/ -ll
+    
+    - name: Docstring checking with pydocstyle
+      run: |
+        pydocstyle versiontracker/ --convention=google || true
+    
+    - name: Code complexity analysis with Radon
+      run: |
+        radon cc versiontracker/ --min=B --json -O radon-cc.json || true
+        radon cc versiontracker/ --min=B
+        radon mi versiontracker/ --json -O radon-mi.json || true
+        radon mi versiontracker/ --min=B
+    
+    - name: Dead code detection with Vulture
+      run: |
+        vulture versiontracker/ --json-output=vulture-report.json || true
+        vulture versiontracker/ --min-confidence=80
+    
+    - name: Upload lint artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: lint-reports
+        path: |
+          mypy-report.xml
+          bandit-report.json
+          radon-cc.json
+          radon-mi.json
+          vulture-report.json

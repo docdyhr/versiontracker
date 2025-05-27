@@ -5,11 +5,50 @@ on:
     types: [created]
 
 jobs:
+  pre-release-checks:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install bandit[toml] safety pip-audit
+        pip install -e .
+    
+    - name: Run comprehensive tests
+      run: |
+        pytest --cov=versiontracker --cov-report=xml --cov-report=term -v
+    
+    - name: Run linting
+      run: |
+        ruff check .
+        ruff format --check .
+    
+    - name: Run type checking
+      run: |
+        mypy --config-file=mypy.ini versiontracker
+    
+    - name: Run security checks
+      run: |
+        bandit -r versiontracker/ -ll
+        safety check
+        pip-audit
+
   deploy:
+    needs: pre-release-checks
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # For PyPI trusted publishing
       contents: read
+      actions: read
     
     steps:
     - uses: actions/checkout@v4
@@ -26,21 +65,68 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
     
-    - name: Run tests
+    - name: Install build dependencies
       run: |
-        pytest
+        python -m pip install --upgrade pip
+        pip install build wheel twine
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
     
-    - name: Build and verify package
+    - name: Build package
       run: |
         python -m build
-        twine check dist/*
     
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: https://pypi.org/legacy/
-        
-    - name: Verify package
+    - name: Verify package integrity
       run: |
+        twine check dist/*
+        # Check package contents
+        python -m tarfile -l dist/*.tar.gz
+        python -c "
+        import zipfile
+        import glob
+        whl_files = glob.glob('dist/*.whl')
+        if whl_files:
+            with zipfile.ZipFile(whl_files[0], 'r') as z:
+                print('Wheel contents:')
+                for name in z.namelist():
+                    print(f'  {name}')
+        "
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-packages
+        path: dist/
+    
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      
+    - name: Verify published package
+      run: |
+        # Wait a moment for package to be available
+        sleep 30
         pip install --no-cache-dir versiontracker
-        python -c "import versiontracker; print(f'Successfully published version {versiontracker.__version__}')"
+        python -c "
+        import versiontracker
+        import sys
+        print(f'Successfully installed version {versiontracker.__version__}')
+        print(f'Python version: {sys.version}')
+        "
+        # Test basic functionality
+        python -c "
+        import subprocess
+        result = subprocess.run(['versiontracker', '--version'], capture_output=True, text=True)
+        print(f'CLI version check: {result.stdout.strip()}')
+        if result.returncode != 0:
+            print(f'CLI test failed: {result.stderr}')
+            sys.exit(1)
+        "
+    
+    - name: Create release summary
+      run: |
+        echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- Package built successfully" >> $GITHUB_STEP_SUMMARY
+        echo "- Security checks passed" >> $GITHUB_STEP_SUMMARY
+        echo "- Published to PyPI" >> $GITHUB_STEP_SUMMARY
+        echo "- Installation verified" >> $GITHUB_STEP_SUMMARY
+        echo "- CLI functionality tested" >> $GITHUB_STEP_SUMMARY
