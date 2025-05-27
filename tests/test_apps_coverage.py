@@ -1,32 +1,28 @@
 """Additional tests for apps.py to improve coverage on missing areas."""
 
-import unittest
-from unittest.mock import Mock, patch, MagicMock, call
-import time
-import concurrent.futures
 import threading
-from typing import List, Tuple
+import time
+import unittest
+from unittest.mock import Mock, patch
 
 from versiontracker.apps import (
+    AdaptiveRateLimiter,
     SimpleRateLimiter,
     _AdaptiveRateLimiter,
-    AdaptiveRateLimiter,
+    _create_batches,
+    _create_rate_limiter,
+    _handle_batch_error,
+    _handle_future_result,
+    clear_homebrew_casks_cache,
+    filter_out_brews,
+    get_homebrew_casks_list,
     is_app_in_app_store,
     is_brew_cask_installable,
-    get_homebrew_casks_list,
-    _create_batches,
-    _handle_batch_error,
-    _create_rate_limiter,
-    _handle_future_result,
-    filter_out_brews,
-    clear_homebrew_casks_cache,
 )
 from versiontracker.exceptions import (
-    HomebrewError,
-    BrewPermissionError,
     BrewTimeoutError,
+    HomebrewError,
     NetworkError,
-    DataParsingError,
 )
 
 
@@ -144,9 +140,8 @@ class TestAppStoreCheck(unittest.TestCase):
 
     def test_is_app_in_app_store_no_cache(self):
         """Test is_app_in_app_store without using cache."""
-        with patch('versiontracker.apps.read_cache') as mock_read_cache:
-            result = is_app_in_app_store("TestApp", use_cache=False)
-            self.assertFalse(result)
+        result = is_app_in_app_store("TestApp", use_cache=False)
+        self.assertFalse(result)
 
     @patch('versiontracker.apps.read_cache')
     def test_is_app_in_app_store_exception(self, mock_read_cache):

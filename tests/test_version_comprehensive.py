@@ -1,33 +1,30 @@
 """Comprehensive tests for version module."""
 
+from typing import Dict, Union
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import subprocess
-from typing import Dict, List, Optional, Tuple, Union
 
 from versiontracker.version import (
-    VersionStatus,
-    VersionInfo,
-    parse_version,
-    compare_versions,
-    get_version_difference,
-    get_version_info,
-    format_version_difference,
-    similarity_score,
-    partial_ratio,
-    decompose_version,
-    get_compiled_pattern,
-    compose_version_tuple,
-    compare_fuzzy,
-    USE_RAPIDFUZZ,
     USE_FUZZYWUZZY,
+    USE_RAPIDFUZZ,
     VERSION_PATTERNS,
+    VersionInfo,
+    VersionStatus,
+    _dict_to_tuple,
     _parse_version_components,
     _parse_version_to_dict,
-    _dict_to_tuple,
     _tuple_to_dict,
+    compare_fuzzy,
+    compare_versions,
+    compose_version_tuple,
+    decompose_version,
+    get_compiled_pattern,
+    get_version_difference,
+    get_version_info,
+    parse_version,
+    partial_ratio,
+    similarity_score,
 )
-from versiontracker.exceptions import NetworkError, TimeoutError
 
 
 class TestVersionStatus:
@@ -137,9 +134,9 @@ class TestCompareVersions:
 
     def test_compare_with_none(self):
         """Test comparing with None values."""
-        assert compare_versions(None, "1.0.0") < 0
-        assert compare_versions("1.0.0", None) > 0
-        assert compare_versions(None, None) == 0
+        assert compare_versions(None, "1.0.0") < 0  # type: ignore[arg-type]
+        assert compare_versions("1.0.0", None) > 0  # type: ignore[arg-type]
+        assert compare_versions(None, None) == 0    # type: ignore[arg-type]
 
     @pytest.mark.parametrize("v1,v2,expected", [
         ("1.0.0", "1.0.0", 0),
@@ -184,7 +181,7 @@ class TestVersionDifference:
         assert get_version_difference(None, None) is None
 
 
-class TestVersionInfo:
+class TestGetVersionInfo:
     """Test get_version_info function."""
 
     def test_version_info_upgrade(self):
@@ -219,9 +216,9 @@ class TestSimilarityScore:
 
     def test_similarity_with_none(self):
         """Test similarity with None values."""
-        assert similarity_score(None, "test") == 0
-        assert similarity_score("test", None) == 0
-        assert similarity_score(None, None) == 0
+        assert similarity_score(None, "test") == 0  # type: ignore[arg-type]
+        assert similarity_score("test", None) == 0  # type: ignore[arg-type]
+        assert similarity_score(None, None) == 0    # type: ignore[arg-type]
 
     def test_similarity_empty_strings(self):
         """Test similarity with empty strings."""
@@ -268,7 +265,7 @@ class TestDecomposeVersion:
     def test_decompose_empty_version(self):
         """Test decomposing empty version."""
         assert decompose_version("") is None
-        assert decompose_version(None) is None
+        assert decompose_version(None) is None # type: ignore[arg-type]
 
     def test_decompose_complex_version(self):
         """Test decomposing complex version."""
@@ -310,7 +307,7 @@ class TestUtilityFunctions:
 
     def test_compose_version_tuple(self):
         """Test compose_version_tuple function."""
-        version_dict = {"major": 1, "minor": 2, "patch": 3}
+        version_dict: Dict[str, Union[int, str]] = {"major": 1, "minor": 2, "patch": 3}
         result = compose_version_tuple(version_dict)
         assert result is not None
 
@@ -378,7 +375,7 @@ class TestErrorHandling:
     def test_similarity_score_error_handling(self):
         """Test similarity_score error handling."""
         # Should handle None and empty inputs
-        assert similarity_score(None, "test") == 0
+        assert similarity_score(None, "test") == 0 # type: ignore[arg-type]
         assert similarity_score("", "") >= 0
 
 

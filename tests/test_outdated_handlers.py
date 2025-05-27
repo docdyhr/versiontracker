@@ -1,22 +1,21 @@
 """Comprehensive tests for outdated_handlers module."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock, call
-import time
-from typing import Any, Dict, List, Tuple, Union
+from unittest.mock import Mock, patch
 
+import pytest
+
+from versiontracker.exceptions import ConfigError, ExportError, NetworkError
 from versiontracker.handlers.outdated_handlers import (
-    _update_config_from_options,
-    _get_installed_applications,
-    _get_homebrew_casks,
-    _filter_applications,
     _check_outdated_apps,
-    _process_outdated_info,
     _display_results,
     _export_data,
+    _filter_applications,
+    _get_homebrew_casks,
+    _get_installed_applications,
+    _process_outdated_info,
+    _update_config_from_options,
     handle_outdated_check,
 )
-from versiontracker.exceptions import ConfigError, ExportError, NetworkError
 
 
 class TestUpdateConfigFromOptions:

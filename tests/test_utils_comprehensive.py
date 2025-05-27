@@ -1,40 +1,36 @@
 """Comprehensive tests for utils module."""
 
 import json
-import os
-import platform
-import pytest
 import subprocess
-import tempfile
 import threading
 import time
-from pathlib import Path
-from unittest.mock import Mock, patch, mock_open, MagicMock, call
-from typing import Any, Dict, List
+from unittest.mock import Mock, mock_open, patch
 
-from versiontracker.utils import (
-    setup_logging,
-    normalise_name,
-    _ensure_cache_dir,
-    _read_cache_file,
-    _write_cache_file,
-    get_json_data,
-    get_shell_json_data,
-    run_command,
-    run_command_original,
-    get_user_agent,
-    RateLimiter,
-    APP_CACHE_FILE,
-    APP_CACHE_TTL,
-    SYSTEM_PROFILER_CMD,
-    DEFAULT_API_RATE_LIMIT,
-)
+import pytest
+
 from versiontracker.exceptions import (
     DataParsingError,
     FileNotFoundError,
     NetworkError,
     PermissionError,
     TimeoutError,
+)
+from versiontracker.utils import (
+    APP_CACHE_FILE,
+    APP_CACHE_TTL,
+    DEFAULT_API_RATE_LIMIT,
+    SYSTEM_PROFILER_CMD,
+    RateLimiter,
+    _ensure_cache_dir,
+    _read_cache_file,
+    _write_cache_file,
+    get_json_data,
+    get_shell_json_data,
+    get_user_agent,
+    normalise_name,
+    run_command,
+    run_command_original,
+    setup_logging,
 )
 
 
