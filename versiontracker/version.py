@@ -159,6 +159,8 @@ except ImportError:
             Yields:
                 Items from the wrapped iterable
             """
+            if self.iterable is None:
+                return
             for item in self.iterable:
                 self.n += 1
                 if self.n % 10 == 0:
@@ -192,31 +194,20 @@ def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
     Args:
         s1: First string to compare
         s2: Second string to compare
-        score_cutoff: Optional score cutoff (only used with rapidfuzz)
+        score_cutoff: Optional score cutoff (ignored for compatibility)
 
     Returns:
-        int: Similarity score (0-100) where 100 means identical
+        int: Similarity score from 0-100
     """
     if not s1 or not s2:
         return 0
 
     try:
-        if USE_RAPIDFUZZ:
-            if score_cutoff is not None:
-                score = float(
-                    fuzz.partial_ratio(s1, s2, score_cutoff=float(score_cutoff))
-                )
-            else:
-                score = float(fuzz.partial_ratio(s1, s2))
-            return int(score)
-        elif USE_FUZZYWUZZY:
-            score = float(fuzz.partial_ratio(s1, s2))
-            return int(score)
-        else:
-            # Use our minimal implementation
-            return int(fuzz.partial_ratio(s1, s2))
+        # Use the appropriate library without score_cutoff to avoid compatibility issues
+        score = float(_partial_ratio(s1, s2))
+        return int(score)
     except Exception as e:
-        logging.warning(f"Error calculating string similarity: {e}")
+        logging.error(f"Error calculating partial ratio for '{s1}' vs '{s2}': {e}")
         # Simple fallback if all else fails
         return 100 if s1 == s2 else (70 if s1 in s2 or s2 in s1 else 0)
 
@@ -384,7 +375,7 @@ def decompose_version(version: str) -> Optional[Dict[str, Union[int, str]]]:
     version = version.strip().lower()
 
     # Extract components using regex pattern
-    for pattern in VERSION_PATTERNS:
+    for pattern in VERSION_PATTERNS or []:
         match = re.search(pattern, version)
         if match:
             groups = match.groupdict()
@@ -819,7 +810,7 @@ def similarity_score(s1: str, s2: str, score_cutoff: Optional[int] = None) -> in
     Args:
         s1: First string
         s2: Second string
-        score_cutoff: Minimum score cutoff (0-100)
+        score_cutoff: Minimum score cutoff (0-100, ignored for compatibility)
 
     Returns:
         int: Similarity score between 0 and 100
@@ -831,11 +822,13 @@ def similarity_score(s1: str, s2: str, score_cutoff: Optional[int] = None) -> in
     if s1 == s2:
         return 100
 
-    # Use fuzz.ratio or rapidfuzz equivalent
-    if USE_RAPIDFUZZ:
-        return int(fuzz.ratio(s1, s2, score_cutoff=score_cutoff if score_cutoff else 0))
-    else:
+    # Use fuzz.ratio without score_cutoff to avoid compatibility issues
+    try:
         return int(fuzz.ratio(s1, s2))
+    except Exception as e:
+        logging.error(f"Error calculating similarity score: {e}")
+        # Simple fallback
+        return 100 if s1 == s2 else 0
 
 
 def compare_fuzzy(name1: str, name2: str, threshold: int = 75) -> float:
