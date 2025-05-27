@@ -281,7 +281,7 @@ class BadgeVerifier:
 
         workflow_files = [
             "lint.yml",
-            "security.yml", 
+            "security.yml",
             "ci.yml",
             "release.yml",
         ]
