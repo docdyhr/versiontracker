@@ -14,7 +14,6 @@ from types import ModuleType
 from typing import Dict, List, Optional, Tuple
 
 # Internal imports
-from versiontracker.config import get_config
 from versiontracker.exceptions import NetworkError, TimeoutError
 from versiontracker.ui import smart_progress
 from versiontracker.utils import normalise_name
@@ -163,7 +162,35 @@ class ApplicationInfo:
     error_message: Optional[str] = None
 
 
-def parse_version(version_string: str) -> Tuple[int, ...]:
+@dataclass
+class VersionInfo:
+    """Information about a version comparison."""
+
+    name: str
+    version_string: str
+    latest_version: Optional[str] = None
+    latest_parsed: Optional[Tuple[int, ...]] = None
+    status: VersionStatus = VersionStatus.UNKNOWN
+    outdated_by: Optional[Tuple[int, int, int]] = None
+
+    def __post_init__(self) -> None:
+        self.parsed: Optional[Tuple[int, ...]] = parse_version(self.version_string)
+
+        if self.latest_version and self.latest_parsed is None:
+            self.latest_parsed = parse_version(self.latest_version)
+
+        if self.parsed is not None and self.latest_parsed is not None:
+            self.outdated_by = get_version_difference(self.parsed, self.latest_parsed)
+            cmp = compare_versions(self.version_string, self.latest_version)
+            if cmp < 0:
+                self.status = VersionStatus.OUTDATED
+            elif cmp > 0:
+                self.status = VersionStatus.NEWER
+            else:
+                self.status = VersionStatus.UP_TO_DATE
+
+
+def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     """Parse a version string into a tuple of integers for comparison.
     
     Args:
@@ -178,32 +205,31 @@ def parse_version(version_string: str) -> Tuple[int, ...]:
         >>> parse_version("2.0.1-beta")
         (2, 0, 1)
     """
-    if not version_string:
-        return (0,)
+    if not version_string or not str(version_string).strip():
+        return None
     
-    # Remove common prefixes and suffixes
-    cleaned = re.sub(r'^[vV]', '', str(version_string))
-    cleaned = re.sub(r'[+-].*$', '', cleaned)
-    cleaned = re.sub(r'[^\d\.].*$', '', cleaned)
-    
-    # Split by dots and convert to integers
-    try:
-        parts = []
-        for part in cleaned.split('.'):
-            if part.isdigit():
-                parts.append(int(part))
-            else:
-                # Extract leading digits if any
-                match = re.match(r'(\d+)', part)
-                if match:
-                    parts.append(int(match.group(1)))
-                break
-        return tuple(parts) if parts else (0,)
-    except (ValueError, AttributeError):
-        return (0,)
+    version_str = str(version_string)
+
+    # Extract the first version-like substring
+    match = re.search(r"\d+(?:\.\d+)*", version_str)
+    if not match:
+        return None
+
+    parts = [int(p) for p in match.group(0).split(".") if p]
+
+    while len(parts) < 3:
+        parts.append(0)
+
+    return tuple(parts[:3])
 
 
-def compare_versions(version1: str, version2: str) -> int:
+from typing import Union
+
+
+def compare_versions(
+    version1: Optional[Union[str, Tuple[int, ...]]],
+    version2: Optional[Union[str, Tuple[int, ...]]],
+) -> int:
     """Compare two version strings.
     
     Args:
@@ -215,8 +241,14 @@ def compare_versions(version1: str, version2: str) -> int:
          0 if version1 == version2
          1 if version1 > version2
     """
-    v1_tuple = parse_version(version1)
-    v2_tuple = parse_version(version2)
+    def _to_tuple(v: Optional[Union[str, Tuple[int, ...]]]) -> Tuple[int, ...]:
+        if isinstance(v, tuple):
+            return v
+        parsed = parse_version(v)
+        return parsed or (0,)
+
+    v1_tuple = _to_tuple(version1)
+    v2_tuple = _to_tuple(version2)
     
     # Pad with zeros to make equal length
     max_len = max(len(v1_tuple), len(v2_tuple))
@@ -229,6 +261,42 @@ def compare_versions(version1: str, version2: str) -> int:
         return 1
     else:
         return 0
+
+
+def get_version_difference(
+    version1: Optional[str | Tuple[int, ...]],
+    version2: Optional[str | Tuple[int, ...]],
+) -> Optional[Tuple[int, int, int]]:
+    """Return the difference between two versions.
+
+    Args:
+        version1: First version string or tuple
+        version2: Second version string or tuple
+
+    Returns:
+        Tuple of (major_diff, minor_diff, patch_diff) or ``None`` if either
+        version cannot be parsed.
+    """
+
+    v1_tuple = (
+        version1 if isinstance(version1, tuple) else parse_version(version1)
+    )
+    v2_tuple = (
+        version2 if isinstance(version2, tuple) else parse_version(version2)
+    )
+
+    if v1_tuple is None or v2_tuple is None:
+        return None
+
+    max_len = max(len(v1_tuple), len(v2_tuple), 3)
+    v1_padded = v1_tuple + (0,) * (max_len - len(v1_tuple))
+    v2_padded = v2_tuple + (0,) * (max_len - len(v2_tuple))
+
+    return (
+        v2_padded[0] - v1_padded[0],
+        v2_padded[1] - v1_padded[1],
+        v2_padded[2] - v1_padded[2],
+    )
 
 
 def is_version_newer(current: str, latest: str) -> bool:
@@ -353,6 +421,8 @@ def _get_config_settings() -> Tuple[bool, int]:
         Tuple of (show_progress, max_workers)
     """
     try:
+        from versiontracker.config import get_config
+
         config = get_config()
         show_progress = config.ui.progress if hasattr(config, 'ui') else True
         max_workers = min(
@@ -589,8 +659,10 @@ def get_partial_ratio_scorer():
 __all__ = [
     'VersionStatus',
     'ApplicationInfo',
+    'VersionInfo',
     'parse_version',
     'compare_versions',
+    'get_version_difference',
     'is_version_newer',
     'get_homebrew_cask_info',
     'check_outdated_apps',
