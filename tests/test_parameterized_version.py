@@ -136,7 +136,7 @@ def test_get_version_difference(version1, version2, expected_difference):
     "current_version,latest_version,expected_status",
     [
         # Exact same versions
-        ("1.0.0", "1.0.0", VersionStatus.UPTODATE),
+        ("1.0.0", "1.0.0", VersionStatus.UP_TO_DATE),
         # Outdated versions
         ("1.0.0", "1.0.1", VersionStatus.OUTDATED),
         ("1.0.0", "1.1.0", VersionStatus.OUTDATED),

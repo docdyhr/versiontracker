@@ -307,8 +307,9 @@ def _export_data(
         options.output_file if hasattr(options, "output_file") else None,
     )
 
-    if not options.output_file and isinstance(export_result, str):
-        print(export_result)
+    if not hasattr(options, "output_file") or not options.output_file:
+        if isinstance(export_result, str):
+            print(export_result)
 
     return 0
 

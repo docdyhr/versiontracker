@@ -503,14 +503,17 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
 
         return False
     except BrewTimeoutError as e:
-        logging.warning("Timeout checking if %s is installable: %s", cask_name, e)
+        error_msg = str(e) if str(e).strip() else f"Timeout error of type {type(e).__name__}"
+        logging.warning("Timeout checking if %s is installable: %s", cask_name, error_msg)
         raise
     except NetworkError as e:
-        logging.warning("Network error checking if %s is installable: %s", cask_name, e)
+        error_msg = str(e) if str(e).strip() else f"Network error of type {type(e).__name__}"
+        logging.warning("Network error checking if %s is installable: %s", cask_name, error_msg)
         raise
     except HomebrewError as e:
+        error_msg = str(e) if str(e).strip() else f"Homebrew error of type {type(e).__name__}"
         logging.warning(
-            "Homebrew error checking if %s is installable: %s", cask_name, e
+            "Homebrew error checking if %s is installable: %s", cask_name, error_msg
         )
         raise
     except Exception as e:

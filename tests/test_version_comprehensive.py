@@ -33,7 +33,7 @@ class TestVersionStatus:
     def test_version_status_values(self):
         """Test that VersionStatus has correct values."""
         assert VersionStatus.UNKNOWN.value == 0
-        assert VersionStatus.UPTODATE.value == 1
+        assert VersionStatus.UP_TO_DATE.value == 1
         assert VersionStatus.OUTDATED.value == 2
         assert VersionStatus.NEWER.value == 3
         assert VersionStatus.NOT_FOUND.value == 4

@@ -183,15 +183,23 @@ def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         """Synchronous wrapper for async function."""
-        # Get event loop or create a new one
+        # Check if we're already in an async context
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
+            # If we're already in a running loop, use a thread pool
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(asyncio.run, func(*args, **kwargs))
+                return future.result()
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # No running loop, so we can run normally
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
 
-        # Run the async function in the event loop
-        return loop.run_until_complete(func(*args, **kwargs))
+            # Run the async function in the event loop
+            return loop.run_until_complete(func(*args, **kwargs))
 
     return wrapper
 

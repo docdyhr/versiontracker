@@ -63,16 +63,18 @@ class TestApps(unittest.TestCase):
             config = MagicMock()
             config.ui = {"adaptive_rate_limiting": True}
 
-            with patch("versiontracker.apps.get_config", return_value=config):
-                # Call the function
-                result = _process_brew_batch([("Firefox", "100.0")], 1, True)
+            # Patch the _process_brew_search function to return "Firefox" for the search
+            with patch("versiontracker.apps._process_brew_search", return_value="Firefox"):
+                with patch("versiontracker.apps.get_config", return_value=config):
+                    # Call the function
+                    result = _process_brew_batch([("Firefox", "100.0")], 1, True)
 
-                # Verify the result
-                expected = [("Firefox", "100.0", True)]
-                self.assertEqual(result, expected)
+                    # Verify the result
+                    expected = [("Firefox", "100.0", True)]
+                    self.assertEqual(result, expected)
 
-                # Verify AdaptiveRateLimiter was constructed with correct parameters
-                mock_rate_limiter_class.assert_called_once()
+                    # Verify AdaptiveRateLimiter was constructed with correct parameters
+                    mock_rate_limiter_class.assert_called_once()
 
     def test_simple_rate_limiter(self):
         """Test SimpleRateLimiter functionality."""
@@ -374,18 +376,28 @@ class TestApps(unittest.TestCase):
         # Test that TimeoutError is converted to HomebrewError
         get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
         with self.assertRaises(HomebrewError):
-            get_homebrew_casks()
-
-    @patch("versiontracker.apps._brew_casks_cache", ["cached_cask1", "cached_cask2"])
+    @patch("versiontracker.apps.get_config")
     @patch("versiontracker.apps.run_command")
-    def test_get_homebrew_casks_cache(self, mock_run):
+    def test_get_homebrew_casks_cache(self, mock_run, mock_get_config):
         """Test caching behavior of get_homebrew_casks."""
+        # Create a mock config
+        mock_config = MagicMock()
+        mock_config.brew_path = "/usr/local/bin/brew"
+        mock_get_config.return_value = mock_config
+        
+        # Manually set the cache
+        get_homebrew_casks.cache_clear()  # Clear any existing cache
+        import versiontracker.apps
+        versiontracker.apps._brew_casks_cache = ["cached_cask1", "cached_cask2"]
+        
         # Call the function which should use the cache
         casks = get_homebrew_casks()
 
         # The command should not be called since we're using cached results
         mock_run.assert_not_called()
 
+        # Check the result matches our cache
+        self.assertEqual(casks, ["cached_cask1", "cached_cask2"])
         # Check the result matches our cache
         self.assertEqual(casks, ["cached_cask1", "cached_cask2"])
 

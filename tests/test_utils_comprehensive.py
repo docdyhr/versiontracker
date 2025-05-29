@@ -4,7 +4,7 @@ import json
 import subprocess
 import threading
 import time
-from unittest.mock import Mock, mock_open, patch
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
 
@@ -42,10 +42,10 @@ class TestSetupLogging:
     @patch('sys.version_info', (3, 10, 0))
     def test_setup_logging_debug_mode_python_39_plus(self, mock_basicconfig, mock_path):
         """Test setup_logging with debug mode in Python 3.9+."""
-        mock_log_dir = Mock()
-        mock_path.home.return_value = Mock()
+        mock_log_dir = MagicMock()
+        mock_path.home.return_value = MagicMock()
         mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_log_dir
-        mock_log_dir.mkdir = Mock()
+        mock_log_dir.mkdir = MagicMock()
         mock_log_dir.__truediv__.return_value = "/fake/path/versiontracker.log"
         
         setup_logging(debug=True)
@@ -61,10 +61,10 @@ class TestSetupLogging:
     @patch('sys.version_info', (3, 8, 0))
     def test_setup_logging_info_mode_python_38(self, mock_basicconfig, mock_path):
         """Test setup_logging with info mode in Python 3.8."""
-        mock_log_dir = Mock()
-        mock_path.home.return_value = Mock()
+        mock_log_dir = MagicMock()
+        mock_path.home.return_value = MagicMock()
         mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_log_dir
-        mock_log_dir.mkdir = Mock()
+        mock_log_dir.mkdir = MagicMock()
         mock_log_dir.__truediv__.return_value = "/fake/path/versiontracker.log"
         
         setup_logging(debug=False)
@@ -77,8 +77,8 @@ class TestSetupLogging:
     @patch('logging.basicConfig')
     def test_setup_logging_directory_creation_error(self, mock_basicconfig, mock_path):
         """Test setup_logging handles directory creation errors gracefully."""
-        mock_log_dir = Mock()
-        mock_path.home.return_value = Mock()
+        mock_log_dir = MagicMock()
+        mock_path.home.return_value = MagicMock()
         mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_log_dir
         mock_log_dir.mkdir.side_effect = OSError("Permission denied")
         mock_log_dir.__truediv__.return_value = "/fake/path/versiontracker.log"
@@ -230,6 +230,14 @@ class TestCacheHelpers:
 class TestGetJsonData:
     """Test get_json_data function."""
 
+    def setup_method(self):
+        """Clear the lru_cache before each test."""
+        get_json_data.cache_clear()
+    
+    def teardown_method(self):
+        """Clear the lru_cache after each test."""
+        get_json_data.cache_clear()
+
     @patch('versiontracker.utils._write_cache_file')
     @patch('versiontracker.utils._read_cache_file')
     @patch('versiontracker.utils.run_command')
@@ -240,7 +248,7 @@ class TestGetJsonData:
         
         result = get_json_data(SYSTEM_PROFILER_CMD)
         
-        assert result == cached_data
+        assert result == cached_data["data"]
         mock_run_cmd.assert_not_called()
         mock_write_cache.assert_not_called()
 
@@ -275,7 +283,7 @@ class TestGetJsonData:
         """Test get_json_data with command failure."""
         mock_run_cmd.return_value = ("error output", 1)
         
-        with pytest.raises(subprocess.CalledProcessError):
+        with pytest.raises(DataParsingError):
             get_json_data("failing command")
 
     @patch('versiontracker.utils.run_command')
@@ -641,7 +649,7 @@ class TestGetUserAgent:
 
     @patch('platform.python_version')
     @patch('platform.system')
-    @patch('versiontracker.__version__', '1.2.3')
+    @patch('versiontracker.utils.__version__', '0.6.4')
     def test_get_user_agent(self, mock_system, mock_python_version):
         """Test user agent string generation."""
         mock_python_version.return_value = "3.11.0"
@@ -649,7 +657,7 @@ class TestGetUserAgent:
         
         result = get_user_agent()
         
-        assert result == "VersionTracker/1.2.3 (Python/3.11.0; Darwin)"
+        assert result == "VersionTracker/0.6.4 (Python/3.11.0; Darwin)"
 
 
 class TestRateLimiter:

@@ -44,7 +44,7 @@ class TestExport(unittest.TestCase):
             (
                 "Chrome",
                 {"installed": "101.0", "latest": "101.0"},
-                VersionStatus.UPTODATE,
+                VersionStatus.UP_TO_DATE,
             ),
         ]
 
@@ -193,7 +193,7 @@ class TestExport(unittest.TestCase):
 
         # Check that it correctly handled the enum
         self.assertEqual(parsed["applications"][0]["status"], "OUTDATED")
-        self.assertEqual(parsed["applications"][1]["status"], "UPTODATE")
+        self.assertEqual(parsed["applications"][1]["status"], "UP_TO_DATE")
 
     def test_export_to_json_file_error(self):
         """Test error handling when exporting to JSON file."""
