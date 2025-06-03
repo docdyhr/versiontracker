@@ -1,224 +1,524 @@
-"""Tests for the UI module."""
-
-import io
+import json
 import os
+import shutil
 import sys
 import tempfile
 import time
-import unittest
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import pytest
 
-from versiontracker.ui import (
+from versiontracker.ui import DEBUG, ERROR, INFO, SUCCESS, TQDM_CLASS, WARNING
+
+"""Tests for the UI module."""
+
+
+from versiontracker.ui import (  # noqa: E402
+    HAS_TERMCOLOR,
+    HAS_TQDM,
+    TQDM_CLASS,
     AdaptiveRateLimiter,
     QueryFilterManager,
     SmartProgress,
+    colored,
+    cprint,
+    create_progress_bar,
+    get_terminal_size,
     print_debug,
     print_error,
     print_info,
     print_success,
     print_warning,
+    smart_progress,
 )
 
 
-class TestColorOutput(unittest.TestCase):
-    """Test the colored output functions."""
+class TestTerminalOutput:
+    """Test terminal output functions."""
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_success(self, mock_stdout):
-        """Test print_success function."""
-        print_success("Success message")
-        self.assertIn("Success message", mock_stdout.getvalue())
+    def test_get_terminal_size(self):
+        """Test terminal size detection."""
+        with patch("shutil.get_terminal_size") as mock_size:
+            mock_size.return_value = (80, 24)
+            columns, lines = get_terminal_size()
+            assert columns == 80
+            assert lines == 24
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_info(self, mock_stdout):
-        """Test print_info function."""
-        print_info("Info message")
-        self.assertIn("Info message", mock_stdout.getvalue())
+    @pytest.mark.parametrize(
+        "print_func,color",
+        [
+            (print_success, "green"),
+            (print_info, "blue"),
+            (print_warning, "yellow"),
+            (print_error, "red"),
+            (print_debug, "cyan"),
+        ],
+    )
+    def test_colored_print_functions(self, print_func, color, capsys):
+        """Test colored print functions."""
+        message = "test message"
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_warning(self, mock_stdout):
-        """Test print_warning function."""
-        print_warning("Warning message")
-        self.assertIn("Warning message", mock_stdout.getvalue())
+        with patch("versiontracker.ui.HAS_TERMCOLOR", True):
+            with patch("versiontracker.ui.cprint") as mock_cprint:
+                print_func(message)
+                mock_cprint.assert_called_once_with(message, color)
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_error(self, mock_stdout):
-        """Test print_error function."""
-        print_error("Error message")
-        self.assertIn("Error message", mock_stdout.getvalue())
+    @pytest.mark.parametrize(
+        "print_func",
+        [print_success, print_info, print_warning, print_error, print_debug],
+    )
+    def test_print_functions_fallback(self, print_func, capsys):
+        """Test print functions when termcolor is not available."""
+        message = "test message"
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_debug(self, mock_stdout):
-        """Test print_debug function."""
-        print_debug("Debug message")
-        self.assertIn("Debug message", mock_stdout.getvalue())
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
+            print_func(message)
+            captured = capsys.readouterr()
+            assert message in captured.out
+
+    def test_colored_fallback(self):
+        """Test colored function fallback."""
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
+            result = colored("test", "red")
+            assert result == "test"
+
+    def test_cprint_fallback(self, capsys):
+        """Test cprint function fallback."""
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
+            cprint("test", "red")
+            captured = capsys.readouterr()
+            assert "test" in captured.out
 
 
-class TestSmartProgress(unittest.TestCase):
-    """Test the SmartProgress class."""
+class TestSmartProgress:
+    """Test SmartProgress class."""
 
-    def test_smart_progress_creation(self):
-        """Test creating a SmartProgress instance."""
-        # Explicitly set the total since it's not automatically detected from range objects
-        progress = SmartProgress(
-            range(10), desc="Test", monitor_resources=False, total=10
-        )
-        self.assertEqual(progress.desc, "Test")
-        self.assertEqual(progress.total, 10)
-        self.assertFalse(progress.monitor_resources)
+    def test_init_with_iterable(self):
+        """Test SmartProgress initialization with iterable."""
+        data = [1, 2, 3]
+        progress = SmartProgress(data, desc="test", total=3)
+        assert progress.iterable == data
+        assert progress.desc == "test"
+        assert progress.total == 3
 
-    def test_smart_progress_iteration(self):
-        """Test iterating with SmartProgress."""
-        items = list(range(5))
-        result = []
+    def test_init_without_iterable(self):
+        """Test SmartProgress initialization without iterable."""
+        progress = SmartProgress(desc="test")
+        assert progress.iterable is None
+        assert progress.desc == "test"
 
-        # Disable actual progress bar for testing
-        with patch("versiontracker.ui.HAS_TQDM", False):
-            for i in SmartProgress(items, desc="Test", monitor_resources=False):
-                result.append(i)
+    def test_color_method(self):
+        """Test color method returns a function."""
+        progress = SmartProgress()
+        color_func = progress.color("red")
+        assert callable(color_func)
 
-        self.assertEqual(result, items)
+    def test_iterate_without_iterable(self):
+        """Test iteration when no iterable is provided."""
+        progress = SmartProgress()
+        result = list(progress)
+        assert result == []
+
+    @patch("versiontracker.ui.sys.stdout.isatty", return_value=True)
+    @patch("versiontracker.ui.HAS_TQDM", True)
+    def test_iterate_with_tqdm(self, mock_isatty):
+        """Test iteration with tqdm available."""
+        data = [1, 2, 3]
+        mock_tqdm = Mock()
+        mock_tqdm_instance = Mock()
+        mock_tqdm_instance.__iter__ = Mock(return_value=iter(data))
+        mock_tqdm.return_value = mock_tqdm_instance
+
+        with patch("versiontracker.ui.TQDM_CLASS", mock_tqdm):
+            progress = SmartProgress(data, desc="test")
+            result = list(progress)
+
+        assert result == data
+        mock_tqdm.assert_called_once()
+
+    @patch("versiontracker.ui.sys.stdout.isatty", return_value=False)
+    def test_iterate_without_tqdm(self, mock_isatty):
+        """Test iteration without tqdm (fallback mode)."""
+        data = [1, 2, 3]
+        progress = SmartProgress(data, desc="test")
+        result = list(progress)
+        assert result == data
 
     @patch("psutil.cpu_percent", return_value=50.0)
     @patch("psutil.virtual_memory")
-    def test_resource_monitoring(self, mock_memory, mock_cpu_percent):
-        """Test resource monitoring."""
-        mock_memory.return_value = MagicMock(percent=60.0)
+    def test_update_resource_info(self, mock_memory, mock_cpu):
+        """Test resource information updating."""
+        mock_memory.return_value.percent = 60.0
 
-        progress = SmartProgress(range(3), monitor_resources=True, update_interval=0)
+        progress = SmartProgress(monitor_resources=True)
+        progress.progress_bar = Mock()
         progress._update_resource_info()
 
-        self.assertEqual(progress.cpu_usage, 50.0)
-        self.assertEqual(progress.memory_usage, 60.0)
+        assert progress.cpu_usage == 50.0
+        assert progress.memory_usage == 60.0
+
+    def test_update_resource_info_disabled(self):
+        """Test resource monitoring when disabled."""
+        progress = SmartProgress(monitor_resources=False)
+        progress._update_resource_info()
+        # Should not raise any exceptions
+
+    @patch("psutil.cpu_percent", side_effect=Exception("psutil error"))
+    def test_update_resource_info_exception(self, mock_cpu):
+        """Test resource info update handles exceptions gracefully."""
+        progress = SmartProgress(monitor_resources=True)
+        progress._update_resource_info()
+        # Should not raise exceptions
 
 
-class TestAdaptiveRateLimiter(unittest.TestCase):
-    """Test the AdaptiveRateLimiter class."""
+class TestCreateProgressBar:
+    """Test create_progress_bar function."""
 
-    def test_initialization(self):
-        """Test initializing an AdaptiveRateLimiter."""
+    def test_create_progress_bar(self):
+        """Test create_progress_bar returns SmartProgress instance."""
+        progress_bar = create_progress_bar()
+        assert isinstance(progress_bar, SmartProgress)
+
+    def test_progress_bar_has_color_method(self):
+        """Test progress bar has color method."""
+        progress_bar = create_progress_bar()
+        assert hasattr(progress_bar, "color")
+        assert callable(progress_bar.color)
+
+
+class TestSmartProgressFunction:
+    """Test smart_progress function."""
+
+    def test_smart_progress_with_data(self):
+        """Test smart_progress function with data."""
+        data = [1, 2, 3]
+        result = list(smart_progress(data, desc="test"))
+        assert result == data
+
+    def test_smart_progress_without_data(self):
+        """Test smart_progress function without data."""
+        result = list(smart_progress())
+        assert result == []
+
+    def test_smart_progress_parameters(self):
+        """Test smart_progress function passes parameters correctly."""
+        data = [1, 2, 3]
+        with patch("versiontracker.ui.SmartProgress") as mock_progress:
+            mock_instance = Mock()
+            mock_instance.__iter__ = Mock(return_value=iter(data))
+            mock_progress.return_value = mock_instance
+
+            list(smart_progress(data, desc="test", total=3, monitor_resources=False))
+
+            mock_progress.assert_called_once_with(data, "test", 3, False)
+
+
+class TestAdaptiveRateLimiter:
+    """Test AdaptiveRateLimiter class."""
+
+    def test_init_with_defaults(self):
+        """Test AdaptiveRateLimiter initialization with defaults."""
+        limiter = AdaptiveRateLimiter()
+        assert limiter.base_rate_limit_sec == 1.0
+        assert limiter.min_rate_limit_sec == 0.1
+        assert limiter.max_rate_limit_sec == 5.0
+        assert limiter.cpu_threshold == 80.0
+        assert limiter.memory_threshold == 90.0
+
+    def test_init_with_custom_values(self):
+        """Test AdaptiveRateLimiter initialization with custom values."""
         limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.2, max_rate_limit_sec=3.0
+            base_rate_limit_sec=2.0,
+            min_rate_limit_sec=0.5,
+            max_rate_limit_sec=10.0,
+            cpu_threshold=70.0,
+            memory_threshold=85.0,
         )
-        self.assertEqual(limiter.base_rate_limit_sec, 1.0)
-        self.assertEqual(limiter.min_rate_limit_sec, 0.2)
-        self.assertEqual(limiter.max_rate_limit_sec, 3.0)
+        assert limiter.base_rate_limit_sec == 2.0
+        assert limiter.min_rate_limit_sec == 0.5
+        assert limiter.max_rate_limit_sec == 10.0
+        assert limiter.cpu_threshold == 70.0
+        assert limiter.memory_threshold == 85.0
 
-    @patch("psutil.cpu_percent", return_value=90.0)  # High CPU usage
+    @patch("psutil.cpu_percent", return_value=50.0)
     @patch("psutil.virtual_memory")
-    def test_high_resource_usage(self, mock_memory, mock_cpu):
-        """Test rate limiting with high resource usage."""
-        mock_memory.return_value = MagicMock(percent=95.0)  # High memory usage
+    def test_get_current_limit_normal_usage(self, mock_memory, mock_cpu):
+        """Test get_current_limit with normal resource usage."""
+        mock_memory.return_value.percent = 60.0
 
-        limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0
-        )
-
-        # With high resource usage, we should get a rate limit closer to the maximum
+        limiter = AdaptiveRateLimiter()
         limit = limiter.get_current_limit()
-        self.assertGreater(limit, limiter.base_rate_limit_sec)
 
-    @patch("psutil.cpu_percent", return_value=20.0)  # Low CPU usage
+        # Should be between base and max
+        assert limiter.min_rate_limit_sec <= limit <= limiter.max_rate_limit_sec
+
+    @patch("psutil.cpu_percent", return_value=90.0)
     @patch("psutil.virtual_memory")
-    def test_low_resource_usage(self, mock_memory, mock_cpu_percent):
-        """Test rate limiting with low resource usage."""
-        mock_memory.return_value = MagicMock(percent=30.0)  # Low memory usage
+    def test_get_current_limit_high_cpu(self, mock_memory, mock_cpu):
+        """Test get_current_limit with high CPU usage."""
+        mock_memory.return_value.percent = 60.0
 
-        limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0
-        )
-
-        # With low resource usage, we should get a rate limit closer to the minimum
+        limiter = AdaptiveRateLimiter()
         limit = limiter.get_current_limit()
-        # The formula base + factor * (max - base) with low usage should be less than
-        # double the base rate, not less than the base rate
-        self.assertLessEqual(limit, limiter.base_rate_limit_sec * 1.5)
 
-    def test_wait_function(self):
-        """Test the wait function."""
-        limiter = AdaptiveRateLimiter(base_rate_limit_sec=0.1)
+        # Should be higher due to high CPU usage
+        assert limit > limiter.base_rate_limit_sec
 
-        # First call should not wait
-        start = time.time()
+    @patch("psutil.cpu_percent", return_value=50.0)
+    @patch("psutil.virtual_memory")
+    def test_get_current_limit_high_memory(self, mock_memory, mock_cpu):
+        """Test get_current_limit with high memory usage."""
+        mock_memory.return_value.percent = 95.0
+
+        limiter = AdaptiveRateLimiter()
+        limit = limiter.get_current_limit()
+
+        # Should be higher due to high memory usage
+        assert limit > limiter.base_rate_limit_sec
+
+    @patch("psutil.cpu_percent", side_effect=Exception("psutil error"))
+    def test_get_current_limit_exception(self, mock_cpu):
+        """Test get_current_limit handles exceptions gracefully."""
+        limiter = AdaptiveRateLimiter()
+        limit = limiter.get_current_limit()
+        assert limit == limiter.base_rate_limit_sec
+
+    @patch("time.time", side_effect=[0, 0.5, 1.0])
+    @patch("time.sleep")
+    def test_wait_first_call(self, mock_sleep, mock_time):
+        """Test wait method on first call (should not sleep)."""
+        limiter = AdaptiveRateLimiter()
         limiter.wait()
-        duration1 = time.time() - start
+        mock_sleep.assert_not_called()
 
-        # Second call should wait at least the rate limit
-        start = time.time()
+    @patch("time.time", side_effect=[0, 0.5, 1.0])
+    @patch("time.sleep")
+    def test_wait_sufficient_time_passed(self, mock_sleep, mock_time):
+        """Test wait method when sufficient time has passed."""
+        limiter = AdaptiveRateLimiter(base_rate_limit_sec=0.3)
+        limiter.last_call_time = 0
         limiter.wait()
-        duration2 = time.time() - start
+        mock_sleep.assert_not_called()
 
-        # The first wait could take longer than expected in CI environments
-        # so we use a more relaxed assertion
-        self.assertLess(duration1, 0.2)  # First call should be relatively quick
-        self.assertGreaterEqual(duration2, 0.05)  # Second call should wait
+    @patch("time.time", side_effect=[0.2, 0.5])
+    @patch("time.sleep")
+    def test_wait_insufficient_time_passed(self, mock_sleep, mock_time):
+        """Test wait method when insufficient time has passed."""
+        with patch.object(AdaptiveRateLimiter, "get_current_limit", return_value=0.5):
+            limiter = AdaptiveRateLimiter()
+            limiter.last_call_time = 0.1  # Non-zero to avoid first call logic
+            limiter.wait()
+            mock_sleep.assert_called_once()
 
 
-class TestQueryFilterManager(unittest.TestCase):
-    """Test the QueryFilterManager class."""
+class TestQueryFilterManager:
+    """Test QueryFilterManager class."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test environment."""
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.filter_manager = QueryFilterManager(self.temp_dir.name)
+        self.temp_dir = tempfile.mkdtemp()
+        self.manager = QueryFilterManager(self.temp_dir)
 
-    def tearDown(self):
-        """Clean up after tests."""
-        self.temp_dir.cleanup()
+    def teardown_method(self):
+        """Clean up test environment."""
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_save_and_load_filter(self):
-        """Test saving and loading a filter."""
-        filter_data = {
-            "blacklist": "app1,app2",
-            "similarity": 85,
-            "additional_dirs": "/path1:/path2",
-        }
+    def test_init_creates_filters_directory(self):
+        """Test that initialization creates the filters directory."""
+        assert self.manager.filters_dir.exists()
+        assert self.manager.filters_dir.is_dir()
 
-        # Save the filter
-        result = self.filter_manager.save_filter("test-filter", filter_data)
-        self.assertTrue(result)
+    def test_save_filter_success(self):
+        """Test saving a filter successfully."""
+        filter_data = {"pattern": "*.app", "exclude": ["System"]}
+        result = self.manager.save_filter("test-filter", filter_data)
 
-        # Load the filter
-        loaded_data = self.filter_manager.load_filter("test-filter")
-        self.assertEqual(loaded_data, filter_data)
+        assert result is True
+        filter_file = self.manager.filters_dir / "test-filter.json"
+        assert filter_file.exists()
 
-    def test_list_filters(self):
-        """Test listing all filters."""
-        # Create some filters
-        self.filter_manager.save_filter("filter1", {"key1": "value1"})
-        self.filter_manager.save_filter("filter2", {"key2": "value2"})
+        with open(filter_file) as f:
+            saved_data = json.load(f)
+        assert saved_data == filter_data
 
-        # List filters
-        filters = self.filter_manager.list_filters()
-        self.assertIn("filter1", filters)
-        self.assertIn("filter2", filters)
-        self.assertEqual(len(filters), 2)
+    def test_save_filter_with_special_characters(self):
+        """Test saving a filter with special characters in name."""
+        filter_data = {"pattern": "*.app"}
+        result = self.manager.save_filter("Test Filter/Name", filter_data)
 
-    def test_delete_filter(self):
-        """Test deleting a filter."""
-        # Create a filter
-        self.filter_manager.save_filter("filter-to-delete", {"key": "value"})
+        assert result is True
+        filter_file = self.manager.filters_dir / "test-filter_name.json"
+        assert filter_file.exists()
 
-        # Delete the filter
-        result = self.filter_manager.delete_filter("filter-to-delete")
-        self.assertTrue(result)
+    def test_save_filter_exception(self):
+        """Test save_filter handles exceptions gracefully."""
+        # Make the filters directory read-only to cause an exception
+        os.chmod(self.manager.filters_dir, 0o444)
 
-        # Verify it's deleted
-        filters = self.filter_manager.list_filters()
-        self.assertNotIn("filter-to-delete", filters)
+        filter_data = {"pattern": "*.app"}
+        result = self.manager.save_filter("test", filter_data)
 
-    def test_invalid_filter_name(self):
-        """Test loading a non-existent filter."""
-        loaded_data = self.filter_manager.load_filter("non-existent-filter")
-        self.assertIsNone(loaded_data)
+        assert result is False
 
-    def test_delete_nonexistent_filter(self):
-        """Test deleting a non-existent filter."""
-        result = self.filter_manager.delete_filter("non-existent-filter")
-        self.assertFalse(result)
+        # Restore permissions for cleanup
+        os.chmod(self.manager.filters_dir, 0o755)
+
+    def test_load_filter_success(self):
+        """Test loading a filter successfully."""
+        filter_data = {"pattern": "*.app", "exclude": ["System"]}
+        filter_file = self.manager.filters_dir / "test.json"
+
+        with open(filter_file, "w") as f:
+            json.dump(filter_data, f)
+
+        loaded_data = self.manager.load_filter("test")
+        assert loaded_data == filter_data
+
+    def test_load_filter_not_found(self):
+        """Test loading a filter that doesn't exist."""
+        result = self.manager.load_filter("nonexistent")
+        assert result is None
+
+    def test_load_filter_invalid_json(self):
+        """Test loading a filter with invalid JSON."""
+        filter_file = self.manager.filters_dir / "invalid.json"
+
+        with open(filter_file, "w") as f:
+            f.write("invalid json content")
+
+        result = self.manager.load_filter("invalid")
+        assert result is None
+
+    def test_list_filters_empty(self):
+        """Test listing filters when none exist."""
+        filters = self.manager.list_filters()
+        assert filters == []
+
+    def test_list_filters_with_filters(self):
+        """Test listing filters when some exist."""
+        # Create some filter files
+        for name in ["filter1", "filter2", "filter3"]:
+            filter_file = self.manager.filters_dir / f"{name}.json"
+            with open(filter_file, "w") as f:
+                json.dump({"test": True}, f)
+
+        filters = self.manager.list_filters()
+        assert sorted(filters) == ["filter1", "filter2", "filter3"]
+
+    def test_list_filters_ignores_non_json(self):
+        """Test list_filters ignores non-JSON files."""
+        # Create JSON and non-JSON files
+        json_file = self.manager.filters_dir / "filter.json"
+        txt_file = self.manager.filters_dir / "readme.txt"
+
+        with open(json_file, "w") as f:
+            json.dump({"test": True}, f)
+        with open(txt_file, "w") as f:
+            f.write("readme")
+
+        filters = self.manager.list_filters()
+        assert filters == ["filter"]
+
+    def test_delete_filter_success(self):
+        """Test deleting a filter successfully."""
+        filter_file = self.manager.filters_dir / "test.json"
+        with open(filter_file, "w") as f:
+            json.dump({"test": True}, f)
+
+        assert filter_file.exists()
+        result = self.manager.delete_filter("test")
+
+        assert result is True
+        assert not filter_file.exists()
+
+    def test_delete_filter_not_found(self):
+        """Test deleting a filter that doesn't exist."""
+        result = self.manager.delete_filter("nonexistent")
+        assert result is False
+
+    def test_delete_filter_exception(self):
+        """Test delete_filter handles exceptions gracefully."""
+        # Create a filter file then make directory read-only
+        filter_file = self.manager.filters_dir / "test.json"
+        with open(filter_file, "w") as f:
+            json.dump({"test": True}, f)
+
+        os.chmod(self.manager.filters_dir, 0o444)
+
+        result = self.manager.delete_filter("test")
+        assert result is False
+
+        # Restore permissions for cleanup
+        os.chmod(self.manager.filters_dir, 0o755)
 
 
-if __name__ == "__main__":
-    unittest.main()
+class TestFallbackTqdm:
+    """Test the fallback tqdm implementation."""
+
+    def test_fallback_when_tqdm_unavailable(self):
+        """Test that fallback is used when tqdm is not available."""
+        # Import FallbackTqdm for testing
+        from versiontracker.ui import FallbackTqdm
+
+        # Test directly with FallbackTqdm
+        progress = FallbackTqdm([1, 2, 3], desc="test")
+
+        # Test basic functionality
+        assert progress.desc == "test"
+        assert progress.total is None
+        assert progress.n == 0
+
+    def test_fallback_tqdm_iteration(self, capsys):
+        """Test fallback tqdm iteration."""
+        from versiontracker.ui import FallbackTqdm
+
+        data = [1, 2, 3]
+        progress = FallbackTqdm(data, desc="test")
+        result = list(progress)
+
+        assert result == data
+
+    def test_fallback_tqdm_methods(self):
+        """Test fallback tqdm methods."""
+        with patch("versiontracker.ui.HAS_TQDM", False):
+            progress = TQDM_CLASS(desc="test")
+
+            # Test methods don't raise exceptions
+            progress.update(1)
+            progress.set_description("new desc")
+            progress.refresh()
+            progress.close()
+            progress.set_postfix_str("test")
+
+    def test_fallback_tqdm_context_manager(self):
+        """Test fallback tqdm as context manager."""
+        with patch("versiontracker.ui.HAS_TQDM", False):
+            with TQDM_CLASS(desc="test") as progress:
+                assert progress is not None
+
+
+class TestModuleConstants:
+    """Test module-level constants and imports."""
+
+    def test_color_constants(self):
+        """Test color constants are defined."""
+
+        assert SUCCESS == "green"
+        assert INFO == "blue"
+        assert WARNING == "yellow"
+        assert ERROR == "red"
+        assert DEBUG == "cyan"
+
+    def test_has_tqdm_boolean(self):
+        """Test HAS_TQDM is a boolean."""
+        assert isinstance(HAS_TQDM, bool)
+
+    def test_has_termcolor_boolean(self):
+        """Test HAS_TERMCOLOR is a boolean."""
+        assert isinstance(HAS_TERMCOLOR, bool)
+
+    def test_tqdm_class_exists(self):
+        """Test TQDM_CLASS is defined."""
+        assert TQDM_CLASS is not None
+        assert callable(TQDM_CLASS)

@@ -2,8 +2,9 @@
 
 import threading
 import time
-import unittest
 from unittest.mock import Mock, patch
+
+import pytest
 
 from versiontracker.apps import (
     AdaptiveRateLimiter,
@@ -100,6 +101,8 @@ def test_adaptive_rate_limiter_max_limit():
     for _ in range(20):
         limiter.feedback(False)
 
+    assert limiter.get_current_limit() <= 3.0
+
 
 def test_adaptive_rate_limiter_min_limit():
     """Test _AdaptiveRateLimiter respects minimum limit."""
@@ -163,11 +166,8 @@ def test_is_brew_cask_installable_no_homebrew(mock_homebrew_available):
     """Test cask check when Homebrew not available."""
     mock_homebrew_available.return_value = False
 
-    try:
+    with pytest.raises(HomebrewError):
         is_brew_cask_installable("testapp")
-        assert False, "Should have raised HomebrewError"
-    except HomebrewError:
-        pass  # Expected
 
 
 @patch("versiontracker.apps.read_cache")
@@ -201,11 +201,9 @@ def test_is_brew_cask_installable_cache_miss(mock_homebrew_available, mock_read_
 def test_get_homebrew_casks_list_no_homebrew(mock_homebrew_available):
     """Test get_homebrew_casks_list when Homebrew not available."""
     mock_homebrew_available.return_value = False
-    try:
+
+    with pytest.raises(HomebrewError):
         get_homebrew_casks_list()
-        assert False, "Should have raised HomebrewError"
-    except HomebrewError:
-        pass  # Expected
 
 
 @patch("versiontracker.apps.is_homebrew_available")
@@ -255,186 +253,203 @@ def test_handle_batch_error_network():
     assert error_count == 1
     # The function may not return the original error
     for result in results:
-        assert not result[2]  # All apps marked as not installable
-
-    def test_handle_batch_error_timeout(self):
-        """Test _handle_batch_error with timeout error."""
-        error = BrewTimeoutError("Timeout")
-        batch = [("app1", "1.0")]
-
-        results, error_count, last_error = _handle_batch_error(error, 1, batch)
-
-        self.assertEqual(len(results), 1)
-        self.assertEqual(error_count, 2)
-
-    def test_create_rate_limiter_int(self):
-        """Test _create_rate_limiter with integer input."""
-        limiter = _create_rate_limiter(2)
-        self.assertIsInstance(limiter, SimpleRateLimiter)
-
-    def test_create_rate_limiter_object_with_delay(self):
-        """Test _create_rate_limiter with object having delay attribute."""
-        mock_config = Mock()
-        mock_config.delay = 1.5
-
-        limiter = _create_rate_limiter(mock_config)
-        self.assertIsInstance(limiter, SimpleRateLimiter)
-
-    def test_create_rate_limiter_object_with_rate_limit(self):
-        """Test _create_rate_limiter with object having rate_limit attribute."""
-        mock_config = Mock()
-        mock_config.rate_limit = 2.0
-        del mock_config.delay  # Ensure delay attribute doesn't exist
-
-        limiter = _create_rate_limiter(mock_config)
-        self.assertIsInstance(limiter, SimpleRateLimiter)
-
-    def test_create_rate_limiter_default_fallback(self):
-        """Test _create_rate_limiter falls back to default."""
-        mock_config = Mock()
-        # Remove all expected attributes
-        mock_config.spec = []
-
-        limiter = _create_rate_limiter(mock_config)
-        self.assertIsInstance(limiter, SimpleRateLimiter)
-
-    def test_handle_future_result_success(self):
-        """Test _handle_future_result with successful future."""
-        future = Mock()
-        future.result.return_value = True
-        future.exception.return_value = None
-
-        result, error = _handle_future_result(future, "testapp", "1.0")
-
-        self.assertEqual(result, ("testapp", "1.0", True))
-        self.assertIsNone(error)
-
-    def test_handle_future_result_exception(self):
-        """Test _handle_future_result with exception."""
-        future = Mock()
-        future.exception.return_value = NetworkError("Network failed")
-
-        result, error = _handle_future_result(future, "testapp", "1.0")
-
-        self.assertEqual(result, ("testapp", "1.0", False))
-        # The function may handle exceptions differently
-        self.assertIsNotNone(error)
+        assert result[2] is False  # All apps marked as not installable
 
 
-class TestFilterOutBrews(unittest.TestCase):
-    """Test filter_out_brews function with different scenarios."""
+def test_handle_batch_error_timeout():
+    """Test _handle_batch_error with timeout error."""
+    error = BrewTimeoutError("Timeout")
+    batch = [("app1", "1.0")]
 
-    def test_filter_out_brews_strict_mode(self):
-        """Test filter_out_brews in strict mode."""
-        applications = [("TestApp", "1.0"), ("AnotherApp", "2.0"), ("ThirdApp", "3.0")]
-        brews = ["testapp", "another-app"]
+    results, error_count, last_error = _handle_batch_error(error, 1, batch)
 
-        result = filter_out_brews(applications, brews, strict_mode=True)
-
-        # In strict mode, should filter more aggressively
-        self.assertIsInstance(result, list)
-
-    def test_filter_out_brews_empty_brews(self):
-        """Test filter_out_brews with empty brews list."""
-        applications = [("TestApp", "1.0"), ("AnotherApp", "2.0")]
-        brews = []
-
-        result = filter_out_brews(applications, brews)
-
-        self.assertEqual(result, applications)
-
-    def test_filter_out_brews_empty_applications(self):
-        """Test filter_out_brews with empty applications list."""
-        applications = []
-        brews = ["testapp", "another-app"]
-
-        result = filter_out_brews(applications, brews)
-
-        self.assertEqual(result, [])
-
-    def test_filter_out_brews_no_matches(self):
-        """Test filter_out_brews with no matches."""
-        applications = [("UniqueApp", "1.0"), ("SpecialApp", "2.0")]
-        brews = ["commonapp", "standardapp"]
-
-        result = filter_out_brews(applications, brews)
-
-        self.assertEqual(result, applications)
+    assert len(results) == 1
+    assert error_count == 2
 
 
-class TestCacheManagement(unittest.TestCase):
-    """Test cache management functions."""
-
-    @patch("versiontracker.apps.get_homebrew_casks")
-    def test_clear_homebrew_casks_cache(self, mock_get_homebrew_casks):
-        """Test clear_homebrew_casks_cache function."""
-        # Mock the cache_clear method
-        mock_get_homebrew_casks.cache_clear = Mock()
-
-        clear_homebrew_casks_cache()
-
-        # Verify cache_clear was called
-        mock_get_homebrew_casks.cache_clear.assert_called_once()
+def test_create_rate_limiter_int():
+    """Test _create_rate_limiter with integer input."""
+    limiter = _create_rate_limiter(2)
+    assert isinstance(limiter, SimpleRateLimiter)
 
 
-class TestRateLimiterEdgeCases(unittest.TestCase):
-    """Test edge cases for rate limiters."""
+def test_create_rate_limiter_object_with_delay():
+    """Test _create_rate_limiter with object having delay attribute."""
+    mock_config = Mock()
+    mock_config.delay = 1.5
 
-    def test_simple_rate_limiter_zero_delay(self):
-        """Test SimpleRateLimiter with zero delay."""
-        limiter = SimpleRateLimiter(0)
-        self.assertEqual(limiter._delay, 0.1)  # Should enforce minimum
-
-    def test_simple_rate_limiter_negative_delay(self):
-        """Test SimpleRateLimiter with negative delay."""
-        limiter = SimpleRateLimiter(-1)
-        self.assertEqual(limiter._delay, 0.1)  # Should enforce minimum
-
-    def test_simple_rate_limiter_thread_safety(self):
-        """Test SimpleRateLimiter thread safety."""
-        limiter = SimpleRateLimiter(0.1)
-
-        def worker():
-            limiter.wait()
-
-        threads = []
-        for _ in range(3):
-            thread = threading.Thread(target=worker)
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-        # Should complete without errors
+    limiter = _create_rate_limiter(mock_config)
+    assert isinstance(limiter, SimpleRateLimiter)
 
 
-class TestComplexScenarios(unittest.TestCase):
-    """Test complex scenarios and integration points."""
+def test_create_rate_limiter_object_with_rate_limit():
+    """Test _create_rate_limiter with object having rate_limit attribute."""
+    mock_config = Mock()
+    mock_config.rate_limit = 2.0
+    del mock_config.delay  # Ensure delay attribute doesn't exist
 
-    def test_simple_rate_limiter_multiple_waits(self):
-        """Test SimpleRateLimiter with multiple consecutive waits."""
-        limiter = SimpleRateLimiter(0.05)  # Small delay for testing
+    limiter = _create_rate_limiter(mock_config)
+    assert isinstance(limiter, SimpleRateLimiter)
 
-        start_time = time.time()
+
+def test_create_rate_limiter_default_fallback():
+    """Test _create_rate_limiter falls back to default."""
+    mock_config = Mock()
+    # Remove all expected attributes
+    mock_config.spec = []
+
+    limiter = _create_rate_limiter(mock_config)
+    assert isinstance(limiter, SimpleRateLimiter)
+
+
+def test_handle_future_result_success():
+    """Test _handle_future_result with successful future."""
+    future = Mock()
+    future.result.return_value = True
+    future.exception.return_value = None
+
+    result, error = _handle_future_result(future, "testapp", "1.0")
+
+    assert result == ("testapp", "1.0", True)
+    assert error is None
+
+
+def test_handle_future_result_exception():
+    """Test _handle_future_result with exception."""
+    future = Mock()
+    future.exception.return_value = NetworkError("Network failed")
+
+    result, error = _handle_future_result(future, "testapp", "1.0")
+
+    assert result == ("testapp", "1.0", False)
+    # The function may handle exceptions differently
+    assert error is not None
+
+
+# Test functions for filter_out_brews function with different scenarios
+
+
+def test_filter_out_brews_strict_mode():
+    """Test filter_out_brews in strict mode."""
+    applications = [("TestApp", "1.0"), ("AnotherApp", "2.0"), ("ThirdApp", "3.0")]
+    brews = ["testapp", "another-app"]
+
+    result = filter_out_brews(applications, brews, strict_mode=True)
+
+    # In strict mode, should filter more aggressively
+    assert isinstance(result, list)
+
+
+def test_filter_out_brews_empty_brews():
+    """Test filter_out_brews with empty brews list."""
+    applications = [("TestApp", "1.0"), ("AnotherApp", "2.0")]
+    brews = []
+
+    result = filter_out_brews(applications, brews)
+
+    assert result == applications
+
+
+def test_filter_out_brews_empty_applications():
+    """Test filter_out_brews with empty applications list."""
+    applications = []
+    brews = ["testapp", "another-app"]
+
+    result = filter_out_brews(applications, brews)
+
+    assert result == []
+
+
+def test_filter_out_brews_no_matches():
+    """Test filter_out_brews with no matches."""
+    applications = [("UniqueApp", "1.0"), ("SpecialApp", "2.0")]
+    brews = ["commonapp", "standardapp"]
+
+    result = filter_out_brews(applications, brews)
+
+    assert result == applications
+
+
+# Test functions for cache management
+
+
+@patch("versiontracker.apps.get_homebrew_casks")
+def test_clear_homebrew_casks_cache(mock_get_homebrew_casks):
+    """Test clear_homebrew_casks_cache function."""
+    # Mock the cache_clear method
+    mock_get_homebrew_casks.cache_clear = Mock()
+
+    clear_homebrew_casks_cache()
+
+    # Verify cache_clear was called
+    mock_get_homebrew_casks.cache_clear.assert_called_once()
+
+
+# Test functions for rate limiter edge cases
+
+
+def test_simple_rate_limiter_zero_delay():
+    """Test SimpleRateLimiter with zero delay."""
+    limiter = SimpleRateLimiter(0)
+    assert limiter._delay == 0.1  # Should enforce minimum
+
+
+def test_simple_rate_limiter_negative_delay():
+    """Test SimpleRateLimiter with negative delay."""
+    limiter = SimpleRateLimiter(-1)
+    assert limiter._delay == 0.1  # Should enforce minimum
+
+
+def test_simple_rate_limiter_thread_safety():
+    """Test SimpleRateLimiter thread safety."""
+    limiter = SimpleRateLimiter(0.1)
+
+    def worker():
         limiter.wait()
-        limiter.wait()
-        end_time = time.time()
 
-        # Should have waited at least one delay period
-        self.assertGreaterEqual(end_time - start_time, 0.04)
+    threads = []
+    for _ in range(3):
+        thread = threading.Thread(target=worker)
+        threads.append(thread)
+        thread.start()
 
-    def test_adaptive_rate_limiter_mixed_feedback(self):
-        """Test _AdaptiveRateLimiter with mixed success/failure feedback."""
-        limiter = _AdaptiveRateLimiter()
-        original_rate = limiter.get_current_limit()
+    for thread in threads:
+        thread.join()
 
-        # Mix of successes and failures
+    # Should complete without errors
+
+
+# Test functions for complex scenarios and integration points
+
+
+def test_simple_rate_limiter_multiple_waits():
+    """Test SimpleRateLimiter with multiple consecutive waits."""
+    limiter = SimpleRateLimiter(0.05)  # Small delay for testing
+
+    start_time = time.time()
+    limiter.wait()
+    limiter.wait()
+    end_time = time.time()
+
+    # Should have waited at least one delay period
+    assert end_time - start_time >= 0.04
+
+
+def test_adaptive_rate_limiter_mixed_feedback():
+    """Test _AdaptiveRateLimiter with consecutive success/failure feedback."""
+    limiter = _AdaptiveRateLimiter()
+    original_rate = limiter.get_current_limit()
+
+    # First test consecutive successes (should decrease rate limit)
+    for i in range(10):
         limiter.feedback(True)
-        limiter.feedback(False)
-        limiter.feedback(True)
+
+    decreased_rate = limiter.get_current_limit()
+    assert decreased_rate < original_rate
+
+    # Then test consecutive failures (should increase rate limit)
+    for i in range(5):
         limiter.feedback(False)
 
-        # Rate should still be around original
-        current_rate = limiter.get_current_limit()
-        self.assertAlmostEqual(current_rate, original_rate, delta=0.5)
+    increased_rate = limiter.get_current_limit()
+    assert increased_rate > decreased_rate

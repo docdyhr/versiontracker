@@ -61,7 +61,7 @@ class TestVersionInfo:
             latest_version="2.0.0",
             latest_parsed=(2, 0, 0),
             status=VersionStatus.OUTDATED,
-            outdated_by=(1, 0, 0)
+            outdated_by=(1, 0, 0),
         )
         assert info.name == "TestApp"
         assert info.version_string == "1.0.0"
@@ -100,18 +100,21 @@ class TestParseVersion:
         assert parse_version("not-a-version") is None
         assert parse_version("abc.def.ghi") is None
 
-    @pytest.mark.parametrize("version,expected", [
-        ("1.0.0", (1, 0, 0)),
-        ("2.1", (2, 1)),
-        ("3", (3,)),
-        ("1.2.3-alpha", (1, 2, 3)),
-        ("1.0.0+build.1", (1, 0, 0)),
-    ])
+    @pytest.mark.parametrize(
+        "version,expected",
+        [
+            ("1.0.0", (1, 0, 0)),
+            ("2.1", (2, 1)),
+            ("3", (3,)),
+            ("1.2.3-alpha", (1, 2, 3)),
+            ("1.0.0+build.1", (1, 0, 0)),
+        ],
+    )
     def test_parse_version_parametrized(self, version, expected):
         """Test parsing various version formats."""
         result = parse_version(version)
         assert result is not None
-        assert result[:len(expected)] == expected
+        assert result[: len(expected)] == expected
 
 
 class TestCompareVersions:
@@ -136,15 +139,18 @@ class TestCompareVersions:
         """Test comparing with None values."""
         assert compare_versions(None, "1.0.0") < 0  # type: ignore[arg-type]
         assert compare_versions("1.0.0", None) > 0  # type: ignore[arg-type]
-        assert compare_versions(None, None) == 0    # type: ignore[arg-type]
+        assert compare_versions(None, None) == 0  # type: ignore[arg-type]
 
-    @pytest.mark.parametrize("v1,v2,expected", [
-        ("1.0.0", "1.0.0", 0),
-        ("1.0.0", "2.0.0", -1),
-        ("2.0.0", "1.0.0", 1),
-        ("1.0.0", "1.0.1", -1),
-        ("1.1.0", "1.0.9", 1),
-    ])
+    @pytest.mark.parametrize(
+        "v1,v2,expected",
+        [
+            ("1.0.0", "1.0.0", 0),
+            ("1.0.0", "2.0.0", -1),
+            ("2.0.0", "1.0.0", 1),
+            ("1.0.0", "1.0.1", -1),
+            ("1.1.0", "1.0.9", 1),
+        ],
+    )
     def test_compare_versions_parametrized(self, v1, v2, expected):
         """Test version comparison with various inputs."""
         result = compare_versions(v1, v2)
@@ -218,7 +224,7 @@ class TestSimilarityScore:
         """Test similarity with None values."""
         assert similarity_score(None, "test") == 0  # type: ignore[arg-type]
         assert similarity_score("test", None) == 0  # type: ignore[arg-type]
-        assert similarity_score(None, None) == 0    # type: ignore[arg-type]
+        assert similarity_score(None, None) == 0  # type: ignore[arg-type]
 
     def test_similarity_empty_strings(self):
         """Test similarity with empty strings."""
@@ -265,7 +271,7 @@ class TestDecomposeVersion:
     def test_decompose_empty_version(self):
         """Test decomposing empty version."""
         assert decompose_version("") is None
-        assert decompose_version(None) is None # type: ignore[arg-type]
+        assert decompose_version(None) is None  # type: ignore[arg-type]
 
     def test_decompose_complex_version(self):
         """Test decomposing complex version."""
@@ -285,8 +291,9 @@ class TestVersionPatterns:
     def test_version_patterns_match(self):
         """Test that version patterns can match common versions."""
         import re
+
         test_versions = ["1.2.3", "2.0", "5", "1.0.0-beta"]
-        
+
         for version in test_versions:
             matched = False
             for pattern in VERSION_PATTERNS:
@@ -315,7 +322,7 @@ class TestUtilityFunctions:
         """Test compare_fuzzy function."""
         score = compare_fuzzy("test", "test")
         assert score == 100.0
-        
+
         score = compare_fuzzy("similar", "different")
         assert 0 <= score <= 100
 
@@ -375,7 +382,7 @@ class TestErrorHandling:
     def test_similarity_score_error_handling(self):
         """Test similarity_score error handling."""
         # Should handle None and empty inputs
-        assert similarity_score(None, "test") == 0 # type: ignore[arg-type]
+        assert similarity_score(None, "test") == 0  # type: ignore[arg-type]
         assert similarity_score("", "") >= 0
 
 
@@ -393,7 +400,7 @@ class TestFuzzyLibraryCompatibility:
         # These should work regardless of which fuzzy library is available
         score1 = similarity_score("test", "test")
         score2 = partial_ratio("test", "testing")
-        
+
         assert score1 == 100
         assert isinstance(score2, int)
         assert 0 <= score2 <= 100
@@ -425,7 +432,7 @@ class TestEdgeCases:
             "1.2.3$",
             "1.2.3%",
         ]
-        
+
         for version in special_versions:
             result = parse_version(version)
             # Should not raise exceptions
@@ -439,7 +446,7 @@ class TestEdgeCases:
             "\n1.2.3\n",
             "1. 2. 3",
         ]
-        
+
         for version in whitespace_versions:
             result = parse_version(version)
             # Should handle whitespace gracefully

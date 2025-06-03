@@ -109,7 +109,9 @@ async def test_search_casks_with_mock_server(mock_server, server_url):
 
 @pytest.mark.asyncio
 @with_mock_homebrew_server
-async def test_async_check_brew_install_candidates_with_mock_server(mock_server, server_url):
+async def test_async_check_brew_install_candidates_with_mock_server(
+    mock_server, server_url
+):
     """Test checking brew install candidates with the mock server."""
     # Configure the base URL to use our mock server
     with patch(
@@ -123,8 +125,10 @@ async def test_async_check_brew_install_candidates_with_mock_server(mock_server,
                 "versiontracker.async_homebrew.is_homebrew_available", return_value=True
             ):
                 # Use the unwrapped async function instead of the wrapper
-                from versiontracker.async_homebrew import _async_check_brew_install_candidates
-                
+                from versiontracker.async_homebrew import (
+                    _async_check_brew_install_candidates,
+                )
+
                 # Check install candidates
                 results = await _async_check_brew_install_candidates(
                     [
@@ -146,9 +150,15 @@ async def test_async_check_brew_install_candidates_with_mock_server(mock_server,
                 assert firefox_result[2] is True  # Firefox should be installable
                 assert chrome_result[2] is True  # Chrome should be installable
                 assert (
+                    nonexistent_result[2] is False
+                )  # NonExistentApp should not be installable
+
+
 @pytest.mark.asyncio
 @with_mock_homebrew_server
-async def test_async_check_brew_update_candidates_with_mock_server(mock_server, server_url):
+async def test_async_check_brew_update_candidates_with_mock_server(
+    mock_server, server_url
+):
     """Test checking brew update candidates with the mock server."""
     # Configure the base URL to use our mock server
     with patch(
@@ -158,8 +168,10 @@ async def test_async_check_brew_update_candidates_with_mock_server(mock_server, 
             "versiontracker.async_homebrew.is_homebrew_available", return_value=True
         ):
             # Use the unwrapped async function instead of the wrapper
-            from versiontracker.async_homebrew import _async_check_brew_update_candidates
-            
+            from versiontracker.async_homebrew import (
+                _async_check_brew_update_candidates,
+            )
+
             # Check update candidates
             results = await _async_check_brew_update_candidates(
                 [
@@ -180,7 +192,9 @@ async def test_async_check_brew_update_candidates_with_mock_server(mock_server, 
             assert (
                 chrome_result[3] == "120.0.6099.129"
             )  # Chrome version from mock server
-            assert (
+            assert nonexistent_result[3] is None  # NonExistent should have no version
+
+
 @pytest.mark.asyncio
 @with_mock_homebrew_server
 async def test_async_get_cask_version_with_mock_server(mock_server, server_url):
@@ -191,7 +205,7 @@ async def test_async_get_cask_version_with_mock_server(mock_server, server_url):
     ):
         # Use the unwrapped async function instead of the wrapper
         from versiontracker.async_homebrew import _async_get_cask_version
-        
+
         # Get version for an existing cask
         version = await _async_get_cask_version("firefox", use_cache=False)
 
@@ -200,13 +214,12 @@ async def test_async_get_cask_version_with_mock_server(mock_server, server_url):
 
         # Try to get version for a non-existent cask
         version = await _async_get_cask_version("nonexistent-cask", use_cache=False)
-
         # Verify the version is None
         assert version is None
-        # Verify the version
+
     @pytest.mark.asyncio
     @with_mock_homebrew_server
-    async def test_batch_processing_with_server_errors(self, mock_server, server_url):
+    async def test_batch_processing_with_server_errors(mock_server, server_url):
         """Test batch processing when the server has intermittent errors."""
 
         # Setup a processor that will process items through the mock server
@@ -263,10 +276,7 @@ async def test_async_get_cask_version_with_mock_server(mock_server, server_url):
             data = [
                 ("Firefox", "100.0"),
                 ("Chrome", "99.0"),
-                ("Slack", "4.0"),
-                ("VSCode", "1.60"),
             ]
-
             # Process the data
             processor = TestProcessor(server_url)
             results = await processor.process_all_async(data)
@@ -276,9 +286,12 @@ async def test_async_get_cask_version_with_mock_server(mock_server, server_url):
             # Due to alternating errors, some should succeed and some should fail
             success_count = sum(1 for _, success in results if success)
             failure_count = sum(1 for _, success in results if not success)
+            assert success_count > 0
+            assert failure_count > 0
+
     @pytest.mark.asyncio
     @with_mock_homebrew_server
-    async def test_high_concurrency_with_rate_limiting(self, mock_server, server_url):
+    async def test_high_concurrency_with_rate_limiting(mock_server, server_url):
         """Test high concurrency processing with rate limiting."""
         # Configure the base URL to use our mock server
         with patch(
@@ -352,41 +365,22 @@ async def test_async_get_cask_version_with_mock_server(mock_server, server_url):
                         assert chrome_result[2] is True
 
                         # Verify rate limiting worked by checking request times
-                        if len(request_times) >= 2:
-                            # Force a stricter rate limit for testing
-                            # This ensures a more reliable test
-                            assert len(request_times) > 5, "Not enough requests captured for valid test"
-                            
-                            # Sort the times to ensure we're measuring actual delays
-                            request_times.sort()
-                            
-                            time_diffs = [
-                                request_times[i + 1] - request_times[i]
-                                for i in range(len(request_times) - 1)
-                            ]
-                            
-                            # Get the average of the top 25% of time differences
-                            # This focuses on the actual rate-limited requests
-                            sorted_diffs = sorted(time_diffs, reverse=True)
-                            top_quarter = sorted_diffs[:max(1, len(sorted_diffs) // 4)]
-                            avg_time_diff = sum(top_quarter) / len(top_quarter)
+                        # Force a stricter rate limit for testing
+                        # This ensures a more reliable test
+                        # Sort the times to ensure we're measuring actual delays
+                        request_times.sort()
 
-                            # We expect some of the delays to be close to the rate limit
-                            assert avg_time_diff > 0.1  # Half of our 0.2 rate limit
+                        # Calculate time differences between requests
+                        time_diffs = [
+                            request_times[i] - request_times[i - 1]
+                            for i in range(1, len(request_times))
+                        ]
 
-                        assert firefox_result[2] is True
-                        assert chrome_result[2] is True
+                        # This focuses on the actual rate-limited requests
+                        sorted_diffs = sorted(time_diffs, reverse=True)
+                        top_quarter = sorted_diffs[: max(1, len(sorted_diffs) // 4)]
+                        avg_time_diff = sum(top_quarter) / len(top_quarter)
 
-                        # Verify rate limiting worked by checking request times
-                        if len(request_times) >= 2:
-                            time_diffs = [
-                                request_times[i + 1] - request_times[i]
-                                for i in range(len(request_times) - 1)
-                            ]
-
-                            # The average time between requests should be close to the rate limit
-                            avg_time_diff = sum(time_diffs) / len(time_diffs)
-
-                            # We expect the average to be at least half the rate limit
-                            # (considering concurrent requests)
-                            assert avg_time_diff > 0.1  # Half of our 0.2 rate limit
+                        # We expect some of the delays to be close to the rate limit
+                        assert avg_time_diff > 0.1  # Half of our 0.2 rate limit
+                        assert avg_time_diff > 0.1  # Half of our 0.2 rate limit

@@ -126,13 +126,17 @@ class TestTerminalUI(unittest.TestCase):
             # Use print directly to test terminal wrapping
             progress = create_progress_bar()
             color_func = progress.color("blue")
-            print(color_func(long_message))
+            # Force flush to ensure output is captured
+            print(color_func(long_message), flush=True)
+
+            # Get the output and ensure it's properly stripped of color codes
+            output_text = output.getvalue()
+            cleaned_text = (
+                output_text.replace("\033[34m", "").replace("\033[0m", "").strip()
+            )
 
             # Just verify output was produced, actual wrapping is hard to test
-            output_text = output.getvalue()
-            self.assertIn(
-                long_message, output_text.replace("\033[34m", "").replace("\033[0m", "")
-            )
+            self.assertIn(long_message, cleaned_text)
 
     @patch("versiontracker.ui.TQDM_CLASS")
     def test_progress_bar_status_updates(self, mock_tqdm_class):

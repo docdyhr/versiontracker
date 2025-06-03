@@ -266,8 +266,8 @@ class TestExport(unittest.TestCase):
             with self.assertRaises(ExportError):
                 export_to_json(self.test_data)
 
-    @patch("versiontracker.export._export_to_csv", side_effect=Exception("CSV error"))
-    def test_export_to_csv_error(self, mock_export):
+    @patch("csv.writer", side_effect=Exception("CSV error"))
+    def test_export_to_csv_error(self, mock_writer):
         """Test error handling during CSV export."""
         with self.assertRaises(ExportError):
             export_to_csv(self.test_data)

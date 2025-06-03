@@ -193,7 +193,9 @@ class TestBrewCandidates(unittest.TestCase):
             batch = [("Firefox", "100.0")]
 
             # Call the function with proper mocking of executor's future result
-            with patch("versiontracker.apps._process_brew_search", return_value="Firefox"):
+            with patch(
+                "versiontracker.apps._process_brew_search", return_value="Firefox"
+            ):
                 result = _process_brew_batch(batch, 2, True)
 
             # Verify the result

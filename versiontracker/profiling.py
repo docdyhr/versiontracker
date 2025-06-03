@@ -114,7 +114,9 @@ class PerformanceProfiler:
 
                 # Only measure memory for outermost calls to avoid skewed measurements
                 if is_outermost_call and HAS_PSUTIL:
-                    assert psutil is not None  # Ensure psutil is not None for type checker
+                    assert (
+                        psutil is not None
+                    )  # Ensure psutil is not None for type checker
                     process = psutil.Process()
                     memory_before = process.memory_info().rss / 1024 / 1024  # MB
                 else:
@@ -134,7 +136,9 @@ class PerformanceProfiler:
 
                         # Get final memory usage
                         if HAS_PSUTIL:
-                            assert psutil is not None  # Ensure psutil is not None for type checker
+                            assert (
+                                psutil is not None
+                            )  # Ensure psutil is not None for type checker
                             process = psutil.Process()
                             memory_after = process.memory_info().rss / 1024 / 1024  # MB
                             memory_diff = memory_after - memory_before

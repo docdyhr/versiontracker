@@ -130,7 +130,10 @@ def _read_cache_file() -> Dict[str, Any]:
                 cache_data = json.load(f)
 
             # Check if cache has timestamp and is still valid
-            if "timestamp" in cache_data and time.time() - cache_data["timestamp"] <= APP_CACHE_TTL:
+            if (
+                "timestamp" in cache_data
+                and time.time() - cache_data["timestamp"] <= APP_CACHE_TTL
+            ):
                 return cast(Dict[str, Any], cache_data)
 
             logging.info("Cache expired, will refresh application data")
@@ -526,7 +529,7 @@ class RateLimiter:
                         # Reacquire the lock after sleeping
                         self._lock.acquire()
                     current_time = time.time()  # Update current time after sleeping
-                    
+
                     # Remove timestamps older than the period after sleeping
                     self.timestamps = [
                         t for t in self.timestamps if current_time - t <= self.period

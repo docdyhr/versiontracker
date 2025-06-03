@@ -1,7 +1,8 @@
 """Tests for the apps module."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from versiontracker.apps import (
     SimpleRateLimiter,
@@ -23,87 +24,88 @@ from versiontracker.exceptions import (
     NetworkError,
 )
 
-
 # Test functions for the apps module
 
 
 def test_get_applications():
-        """Test getting applications."""
-        # Mock system_profiler data
-        mock_data = {
-            "SPApplicationsDataType": [
-                {
-                    "_name": "TestApp1",
-                    "path": "/Applications/TestApp1.app",
-                    "version": "1.0.0",
-                    "obtained_from": "Developer ID",
-                },
-                {
-                    "_name": "TestApp2",
-                    "path": "/Applications/TestApp2.app",
-                    "version": "2.0.0",
-                    "obtained_from": "mac_app_store",  # Should be filtered out
-                },
-                {
-                    "_name": "TestApp3",
-                    "path": "/Applications/TestApp3.app",
-                    "version": "3.0.0",
-                    "obtained_from": "apple",  # Should be filtered out
-                },
-                {
-                    "_name": "TestApp4",
-                    "path": "/Applications/TestApp4.app",
-                    "version": "4.0.0",
-                    "obtained_from": "Unknown",
-                },
-                {
-                    "_name": "TestApp5",
-                    "path": "/System/Applications/TestApp5.app",  # Should be filtered out by path
-                    "version": "5.0.0",
-                    "obtained_from": "Unknown",
-                },
-            ]
-        }
+    """Test getting applications."""
+    # Mock system_profiler data
+    mock_data = {
+        "SPApplicationsDataType": [
+            {
+                "_name": "TestApp1",
+                "path": "/Applications/TestApp1.app",
+                "version": "1.0.0",
+                "obtained_from": "Developer ID",
+            },
+            {
+                "_name": "TestApp2",
+                "path": "/Applications/TestApp2.app",
+                "version": "2.0.0",
+                "obtained_from": "mac_app_store",  # Should be filtered out
+            },
+            {
+                "_name": "TestApp3",
+                "path": "/Applications/TestApp3.app",
+                "version": "3.0.0",
+                "obtained_from": "apple",  # Should be filtered out
+            },
+            {
+                "_name": "TestApp4",
+                "path": "/Applications/TestApp4.app",
+                "version": "4.0.0",
+                "obtained_from": "Unknown",
+            },
+            {
+                "_name": "TestApp5",
+                "path": "/System/Applications/TestApp5.app",  # Should be filtered out by path
+                "version": "5.0.0",
+                "obtained_from": "Unknown",
+            },
+        ]
+    }
 
-        # Call the function with our mock data
-        result = get_applications(mock_data)
+    # Call the function with our mock data
+    result = get_applications(mock_data)
 
-        # TestApp1 should be in the results, normalized to TestApp
-        assert ("TestApp", "1.0.0") in result
+    # TestApp1 should be in the results, normalized to TestApp
+    assert ("TestApp", "1.0.0") in result
+
 
 @patch("versiontracker.apps.partial_ratio")
 def test_filter_out_brews(mock_partial_ratio):
-        """Test filtering out applications already installed via Homebrew."""
+    """Test filtering out applications already installed via Homebrew."""
 
-        # Set up the mock partial_ratio to match our expectations
-        def side_effect(app, brew):
-            # Return high similarity for Firefox/firefox, Chrome/google-chrome,
-            # VSCode/visual-studio-code
-            if app == "firefox" and brew == "firefox":
-                return 100
-            elif app == "chrome" and brew == "google-chrome":
-                return 80
-            elif app == "vscode" and brew == "visual-studio-code":
-                return 85
-            return 30  # Return low similarity for everything else
+    # Set up the mock partial_ratio to match our expectations
+    def side_effect(app, brew):
+        # Return high similarity for Firefox/firefox, Chrome/google-chrome,
+        # VSCode/visual-studio-code
+        if app == "firefox" and brew == "firefox":
+            return 100
+        elif app == "chrome" and brew == "google-chrome":
+            return 80
+        elif app == "vscode" and brew == "visual-studio-code":
+            return 85
+        return 30  # Return low similarity for everything else
 
-        mock_partial_ratio.side_effect = side_effect
+    mock_partial_ratio.side_effect = side_effect
 
-        # Mock applications and brews
-        applications = [
-            ("Firefox", "100.0.0"),
-            ("Chrome", "101.0.0"),
-            ("Slack", "4.23.0"),
-            ("VSCode", "1.67.0"),
-        ]
-        brews = ["firefox", "google-chrome", "visual-studio-code"]
+    # Mock applications and brews
+    applications = [
+        ("Firefox", "100.0.0"),
+        ("Chrome", "101.0.0"),
+        ("Slack", "4.23.0"),
+        ("VSCode", "1.67.0"),
+    ]
+    brews = ["firefox", "google-chrome", "visual-studio-code"]
 
-        # Call the function
-        result = filter_out_brews(applications, brews)
+    # Call the function
+    result = filter_out_brews(applications, brews)
 
-        # Check the result
-        assert len(result) == 1  # Only Slack should remain
-        assert ("Slack", "4.23.0") in result
+    # Check the result
+    assert len(result) == 1  # Only Slack should remain
+    assert ("Slack", "4.23.0") in result
+
 
 @patch("versiontracker.apps.run_command")
 def test_process_brew_search(mock_run_command):
@@ -128,6 +130,7 @@ def test_process_brew_search(mock_run_command):
     result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
     assert result is None
 
+
 @patch("platform.system")
 @patch("platform.machine")
 @patch("versiontracker.apps.run_command")
@@ -143,6 +146,7 @@ def test_is_homebrew_available_true(mock_run_command, mock_machine, mock_system)
     # Test that is_homebrew_available returns True
     assert is_homebrew_available()
 
+
 @patch("platform.system")
 @patch("versiontracker.apps.run_command")
 def test_is_homebrew_available_false(mock_run_command, mock_system):
@@ -155,6 +159,7 @@ def test_is_homebrew_available_false(mock_run_command, mock_system):
     # Test that is_homebrew_available returns False when brew command fails
     assert not is_homebrew_available()
 
+
 @patch("platform.system")
 def test_is_homebrew_available_non_macos(mock_system):
     """Test is_homebrew_available on non-macOS platforms."""
@@ -164,12 +169,11 @@ def test_is_homebrew_available_non_macos(mock_system):
     # Test that is_homebrew_available returns False on non-macOS platforms
     assert not is_homebrew_available()
 
+
 @patch("platform.system")
 @patch("platform.machine")
 @patch("versiontracker.apps.run_command")
-def test_is_homebrew_available_arm(
-    mock_run_command, mock_machine, mock_system
-):
+def test_is_homebrew_available_arm(mock_run_command, mock_machine, mock_system):
     """Test is_homebrew_available on ARM macOS (Apple Silicon)."""
     # Mock platform.system() to return "Darwin" (macOS)
     mock_system.return_value = "Darwin"
@@ -187,6 +191,7 @@ def test_is_homebrew_available_arm(
 
     # Test that is_homebrew_available returns True
     assert is_homebrew_available()
+
 
 def test_get_homebrew_casks_success():
     """Test successful retrieval of Homebrew casks."""
@@ -217,6 +222,7 @@ def test_get_homebrew_casks_success():
     # Check the result
     assert casks == ["cask1", "cask2", "cask3"]
 
+
 def test_get_homebrew_casks_empty():
     """Test when no casks are installed."""
     # Use the dedicated cache clearing function
@@ -238,6 +244,7 @@ def test_get_homebrew_casks_empty():
             # Check the result
             assert casks == []
 
+
 def test_get_homebrew_casks_error():
     """Test error handling for Homebrew command failures."""
     # Use the dedicated cache clearing function
@@ -256,6 +263,7 @@ def test_get_homebrew_casks_error():
             # Test that HomebrewError is raised
             with pytest.raises(HomebrewError):
                 get_homebrew_casks()
+
 
 def test_get_homebrew_casks_network_error():
     """Test network error handling."""
@@ -276,6 +284,7 @@ def test_get_homebrew_casks_network_error():
             with pytest.raises(NetworkError):
                 get_homebrew_casks()
 
+
 def test_get_homebrew_casks_timeout():
     """Test timeout error handling."""
     # Use the dedicated cache clearing function
@@ -294,6 +303,7 @@ def test_get_homebrew_casks_timeout():
             # Test that BrewTimeoutError is re-raised
             with pytest.raises(BrewTimeoutError):
                 get_homebrew_casks()
+
 
 def test_get_homebrew_casks_cache():
     """Test caching behavior of get_homebrew_casks."""
@@ -335,6 +345,7 @@ def test_get_homebrew_casks_cache():
 
         # Results should be different now that cache was cleared
         assert first_result != third_result
+
 
 @patch("versiontracker.apps.get_config")
 def test_get_applications_from_system_profiler_valid(mock_get_config):
@@ -385,6 +396,7 @@ def test_get_applications_from_system_profiler_valid(mock_get_config):
     assert ("SystemApp", "3.0") not in apps
     assert ("SysPathApp", "4.0") not in apps
 
+
 @patch("versiontracker.apps.get_config")
 def test_get_applications_from_system_profiler_empty(mock_get_config):
     """Test handling empty system_profiler data."""
@@ -395,6 +407,7 @@ def test_get_applications_from_system_profiler_empty(mock_get_config):
     empty_data: dict = {"SPApplicationsDataType": []}
     apps = get_applications_from_system_profiler(empty_data)
     assert apps == []
+
 
 @patch("versiontracker.apps.get_config")
 def test_get_applications_from_system_profiler_invalid(mock_get_config):
@@ -407,10 +420,9 @@ def test_get_applications_from_system_profiler_invalid(mock_get_config):
     with pytest.raises(DataParsingError):
         get_applications_from_system_profiler(invalid_data)
 
+
 @patch("versiontracker.apps.get_config")
-def test_get_applications_from_system_profiler_test_app_normalization(
-    mock_get_config
-):
+def test_get_applications_from_system_profiler_test_app_normalization(mock_get_config):
     """Test normalization of test app names."""
     # Mock configuration
     mock_config = MagicMock()
@@ -444,6 +456,7 @@ def test_get_applications_from_system_profiler_test_app_normalization(
     assert ("TestApp", "2.0") in apps
     assert ("RegularApp", "3.0") in apps
 
+
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
 @patch("versiontracker.apps.run_command")
 def test_get_cask_version_found(mock_run_command):
@@ -467,6 +480,7 @@ def test_get_cask_version_found(mock_run_command):
         "/usr/local/bin/brew info --cask firefox", timeout=30
     )
 
+
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
 @patch("versiontracker.apps.run_command")
 def test_get_cask_version_not_found(mock_run_command):
@@ -479,6 +493,7 @@ def test_get_cask_version_not_found(mock_run_command):
 
     # Verify the result
     assert version is None
+
 
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
 @patch("versiontracker.apps.run_command")
@@ -493,6 +508,7 @@ def test_get_cask_version_latest(mock_run_command):
     # Verify the result is None for 'latest' versions
     assert version is None
 
+
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
 @patch("versiontracker.apps.run_command")
 def test_get_cask_version_error(mock_run_command):
@@ -506,6 +522,7 @@ def test_get_cask_version_error(mock_run_command):
     # Verify the result
     assert version is None
 
+
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
 @patch("versiontracker.apps.run_command")
 def test_get_cask_version_network_error(mock_run_command):
@@ -516,6 +533,7 @@ def test_get_cask_version_network_error(mock_run_command):
     # Test that NetworkError is re-raised
     with pytest.raises(NetworkError):
         get_cask_version("firefox")
+
 
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
 @patch("versiontracker.apps.run_command")
@@ -528,6 +546,7 @@ def test_get_cask_version_timeout(mock_run_command):
     with pytest.raises(BrewTimeoutError):
         get_cask_version("firefox")
 
+
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
 @patch("versiontracker.apps.run_command")
 def test_get_cask_version_general_exception(mock_run_command):
@@ -538,6 +557,7 @@ def test_get_cask_version_general_exception(mock_run_command):
     # Test that a HomebrewError is raised with the original error wrapped
     with pytest.raises(HomebrewError):
         get_cask_version("firefox")
+
 
 @patch("versiontracker.apps.is_homebrew_available")
 def test_check_brew_install_candidates_no_homebrew(mock_is_homebrew):
@@ -554,6 +574,7 @@ def test_check_brew_install_candidates_no_homebrew(mock_is_homebrew):
     # Verify that all apps are marked as not installable
     expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
     assert result == expected
+
 
 @patch("versiontracker.apps.is_homebrew_available")
 @patch("versiontracker.apps._process_brew_batch")
@@ -584,6 +605,7 @@ def test_check_brew_install_candidates_success(
     # Verify _process_brew_batch was called with the right parameters
     mock_process_brew_batch.assert_called_once_with(data, 1, True)
 
+
 @patch("versiontracker.apps.is_homebrew_available")
 def test_process_brew_batch_no_homebrew(mock_is_homebrew):
     """Test _process_brew_batch when Homebrew is not available."""
@@ -600,6 +622,7 @@ def test_process_brew_batch_no_homebrew(mock_is_homebrew):
     expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
     assert result == expected
 
+
 def test_process_brew_batch_empty():
     """Test _process_brew_batch with an empty batch."""
     # Call the function with an empty batch
@@ -607,6 +630,7 @@ def test_process_brew_batch_empty():
 
     # Verify an empty result is returned
     assert result == []
+
 
 def test_simple_rate_limiter():
     """Test SimpleRateLimiter functionality."""
@@ -623,6 +647,7 @@ def test_simple_rate_limiter():
     # Test with higher delay
     high_limiter = SimpleRateLimiter(0.5)
     assert high_limiter._delay == 0.5
+
 
 @patch("versiontracker.apps.is_homebrew_available")
 @patch("versiontracker.apps.is_brew_cask_installable")
@@ -670,6 +695,7 @@ def test_process_brew_batch_with_simple_rate_limiter(
     mock_executor.submit.assert_called_once()
     mock_as_completed.assert_called_once()
 
+
 @patch("versiontracker.apps.is_homebrew_available")
 @patch("versiontracker.apps.get_config")
 @patch("versiontracker.apps.ThreadPoolExecutor")
@@ -710,6 +736,7 @@ def test_process_brew_batch_with_adaptive_rate_limiter(
             base_rate_limit_sec=2.0, min_rate_limit_sec=1.0, max_rate_limit_sec=4.0
         )
 
+
 @patch("versiontracker.apps.is_homebrew_available")
 @patch("versiontracker.apps.ThreadPoolExecutor")
 @patch("versiontracker.apps.as_completed")
@@ -741,7 +768,7 @@ def test_process_brew_batch_future_exceptions(
     mock_future2.exception.return_value = NetworkError("Network unavailable")
     mock_executor.submit.return_value = mock_future2
     mock_as_completed.return_value = [mock_future2]
-        
+
     with pytest.raises(NetworkError):
         _process_brew_batch([("Firefox", "100.0")], 1, True)
 

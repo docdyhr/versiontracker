@@ -112,7 +112,15 @@ except ImportError:
     HAS_TERMCOLOR = False
 
     # Fallback implementation if termcolor is not available
-    def colored(text: object, color=None, on_color=None, attrs=None, *, no_color=None, force_color=None) -> str:
+    def colored(
+        text: object,
+        color=None,
+        on_color=None,
+        attrs=None,
+        *,
+        no_color=None,
+        force_color=None,
+    ) -> str:
         """Fallback implementation of colored.
 
         Returns the text unmodified since color formatting is not available.
@@ -131,7 +139,16 @@ except ImportError:
         _ = color, on_color, attrs, no_color, force_color
         return str(text)
 
-    def cprint(text: object, color=None, on_color=None, attrs=None, *, no_color=None, force_color=None, **kwargs) -> None:
+    def cprint(
+        text: object,
+        color=None,
+        on_color=None,
+        attrs=None,
+        *,
+        no_color=None,
+        force_color=None,
+        **kwargs,
+    ) -> None:
         """Fallback implementation of cprint.
 
         Simply prints the text without color formatting.
@@ -406,12 +423,12 @@ class AdaptiveRateLimiter:
     def wait(self):
         """Wait for the appropriate amount of time."""
         current_time = time.time()
-        
+
         # Skip wait on very first call (when last_call_time is still 0)
         if self.last_call_time == 0.0:
             self.last_call_time = current_time
             return
-            
+
         time_since_last_call = current_time - self.last_call_time
         rate_limit = self.get_current_limit()
 
