@@ -64,15 +64,13 @@ def setup_logging(debug: bool = False) -> None:
     # Python 3.9+ supports encoding parameter
     try:
         if log_file and sys.version_info >= (3, 9):
-            # Use encoding parameter for Python 3.9+
-            basicconfig_kwargs = {
-                "filename": log_file,
-                "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
-                "encoding": "utf-8",
-                "filemode": "w",
-                "level": log_level,
-            }
-            logging.basicConfig(**basicconfig_kwargs)
+            logging.basicConfig(  # type: ignore[call-arg]
+                filename=log_file,
+                format="%(asctime)s %(levelname)s %(name)s %(message)s",
+                encoding="utf-8",
+                filemode="w",
+                level=log_level,
+            )
         elif log_file:
             logging.basicConfig(
                 filename=log_file,
