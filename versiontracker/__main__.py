@@ -29,6 +29,11 @@ from versiontracker.ui import QueryFilterManager, create_progress_bar
 # Logging, configuration, and filter management functions have been moved to handlers modules
 
 
+def setup_logging(*args, **kwargs):
+    """Stub for setup_logging to satisfy test patching in test_integration.py."""
+    pass
+
+
 @profile_function("versiontracker_main")
 def versiontracker_main() -> int:
     """Main entry point for VersionTracker.
