@@ -87,8 +87,8 @@ if not USE_RAPIDFUZZ and not USE_FUZZYWUZZY:
 
             return (best_match, best_score) if best_match else (choices[0], 0)
 
-    fuzz = MinimalFuzz()
-    fuzz_process = MinimalProcess()
+    fuzz = MinimalFuzz()  # type: ignore[assignment]
+    fuzz_process = MinimalProcess()  # type: ignore[assignment]
 
 # Internal imports
 from versiontracker.config import get_config  # noqa: E402
@@ -281,7 +281,11 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     all_numbers = re.findall(number_pattern, cleaned)
 
     if not all_numbers:
-        return (0, 0, 0)  # Return (0, 0, 0) for malformed versions for test compatibility
+        return (
+            0,
+            0,
+            0,
+        )  # Return (0, 0, 0) for malformed versions for test compatibility
 
     parts = []
     for num_str in all_numbers:
@@ -292,7 +296,11 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
             continue
 
     if not parts:
-        return (0, 0, 0)  # Return (0, 0, 0) for malformed versions for test compatibility
+        return (
+            0,
+            0,
+            0,
+        )  # Return (0, 0, 0) for malformed versions for test compatibility
 
     # Handle different version formats
     original_str = version_str.lower()
@@ -339,7 +347,9 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
                 return tuple(parts[:3])
             else:
                 # For pre-release without number, add 0 only if original had 3+ components
-                original_components = len(re.findall(r"\d+", version_str.split('-')[0].split('+')[0]))
+                original_components = len(
+                    re.findall(r"\d+", version_str.split("-")[0].split("+")[0])
+                )
                 if original_components >= 3:
                     while len(parts) < 3:
                         parts.append(0)

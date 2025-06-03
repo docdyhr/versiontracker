@@ -17,10 +17,10 @@ import traceback
 from typing import Any, Dict, List, Tuple, Union, cast
 
 try:
-    from tabulate import tabulate
+    from tabulate import tabulate  # type: ignore[import-untyped]
 except ImportError:
     # Fallback if tabulate is not installed
-    def tabulate(
+    def tabulate(  # type: ignore[misc]
         tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any
     ) -> str:
         """Simple tabulate fallback."""

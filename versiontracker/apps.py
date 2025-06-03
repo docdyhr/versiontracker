@@ -579,28 +579,6 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
             f"Error checking if {cask_name} is installable: {error_details}"
         ) from e
 
-        # Check for network-related errors in exception message
-        if any(
-            network_term in str(e).lower()
-            for network_term in [
-                "temporary failure in name resolution",
-                "network",
-                "socket",
-                "connection",
-                "host",
-                "resolve",
-                "timeout",
-            ]
-        ):
-            raise NetworkError(
-                f"Network unavailable when checking homebrew cask: {cask_name}"
-            ) from e
-
-        # Re-raise with improved error message
-        raise HomebrewError(
-            f"Error checking if {cask_name} is installable: {error_details}"
-        ) from e
-
 
 def is_homebrew_available() -> bool:
     """Check if Homebrew is available on the system.

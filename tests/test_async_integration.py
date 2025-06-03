@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
+from tests.mock_aiohttp_session import create_mock_session_factory, mock_aiohttp_session
 from tests.mock_homebrew_server import with_mock_homebrew_server
 from versiontracker.async_homebrew import (
     HomebrewBatchProcessor,
@@ -217,170 +218,169 @@ async def test_async_get_cask_version_with_mock_server(mock_server, server_url):
         # Verify the version is None
         assert version is None
 
-    @pytest.mark.asyncio
-    @with_mock_homebrew_server
-    async def test_batch_processing_with_server_errors(mock_server, server_url):
-        """Test batch processing when the server has intermittent errors."""
 
-        # Setup a processor that will process items through the mock server
-        class TestProcessor(AsyncBatchProcessor):
-            def __init__(self, server_url):
-                super().__init__(batch_size=2, max_concurrency=2, rate_limit=0.1)
-                self.server_url = server_url
-                self.api_base = f"{server_url}/api/cask"
+@pytest.mark.asyncio
+@with_mock_homebrew_server
+async def test_batch_processing_with_server_errors(mock_server, server_url):
+    """Test batch processing when the server has intermittent errors."""
 
-            async def process_item(self, item):
-                app_name, _ = item
-                cask_name = app_name.lower().replace(" ", "-")
-                url = f"{self.api_base}/{cask_name}.json"
+    # Setup a processor that will process items through the mock server
+    class TestProcessor(AsyncBatchProcessor):
+        def __init__(self, server_url):
+            super().__init__(batch_size=2, max_concurrency=2, rate_limit=0.1)
+            self.server_url = server_url
+            self.api_base = f"{server_url}/api/cask"
 
-                # Simple fetch implementation
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url) as response:
-                        if response.status == 200:
-                            return (app_name, True)
-                        return (app_name, False)
+        async def process_item(self, item):
+            app_name, _ = item
+            cask_name = app_name.lower().replace(" ", "-")
+            url = f"{self.api_base}/{cask_name}.json"
 
-            def handle_error(self, item, error):
-                app_name, _ = item
-                return (app_name, False)
+            # Simple fetch implementation
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        return (app_name, True)
+                    return (app_name, False)
 
-            # Override process_all to use the async version directly
-            async def process_all_async(self, items):
-                return await self._process_all_async(items)
+        def handle_error(self, item, error):
+            app_name, _ = item
+            return (app_name, False)
 
-        # Configure the server to return errors for every second request
-        original_get = mock_server.server.RequestHandlerClass.do_GET
+        # Override process_all to use the async version directly
+        async def process_all_async(self, items):
+            return await self._process_all_async(items)
 
-        # A counter to make every second request fail
-        counter = {"value": 0}
+    # Configure the server to return errors for every second request
+    original_get = mock_server.server.RequestHandlerClass.do_GET
 
-        def alternating_error_get(self):
-            counter["value"] += 1
-            if counter["value"] % 2 == 0:
-                self.send_response(500)
-                self.send_header("Content-type", "text/plain")
-                self.end_headers()
-                self.wfile.write(b"Internal Server Error")
-            else:
-                original_get(self)
+    # A counter to make every second request fail
+    counter = {"value": 0}
 
-        # Patch the server's GET method
-        with patch.object(
-            mock_server.server.RequestHandlerClass, "do_GET", alternating_error_get
-        ):
-            # Import the aiohttp library here to ensure it's available
-            import aiohttp
+    def alternating_error_get(self):
+        counter["value"] += 1
+        if counter["value"] % 2 == 0:
+            self.send_response(500)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Internal Server Error")
+        else:
+            original_get(self)
 
-            # Create test data
-            data = [
-                ("Firefox", "100.0"),
-                ("Chrome", "99.0"),
-            ]
-            # Process the data
-            processor = TestProcessor(server_url)
-            results = await processor.process_all_async(data)
+    # Patch the server's GET method
+    with patch.object(
+        mock_server.server.RequestHandlerClass, "do_GET", alternating_error_get
+    ):
+        # Import the aiohttp library here to ensure it's available
+        import aiohttp
 
-            # Verify the results
-            assert len(results) == 4
-            # Due to alternating errors, some should succeed and some should fail
-            success_count = sum(1 for _, success in results if success)
-            failure_count = sum(1 for _, success in results if not success)
-            assert success_count > 0
-            assert failure_count > 0
+        # Create test data
+        data = [
+            ("Firefox", "100.0"),
+            ("Chrome", "99.0"),
+        ]
+        # Process the data
+        processor = TestProcessor(server_url)
+        results = await processor.process_all_async(data)
 
-    @pytest.mark.asyncio
-    @with_mock_homebrew_server
-    async def test_high_concurrency_with_rate_limiting(mock_server, server_url):
-        """Test high concurrency processing with rate limiting."""
-        # Configure the base URL to use our mock server
+        # Verify the results
+        assert len(results) == 4
+        # Due to alternating errors, some should succeed and some should fail
+        success_count = sum(1 for _, success in results if success)
+        failure_count = sum(1 for _, success in results if not success)
+        assert success_count > 0
+        assert failure_count > 0
+
+
+@pytest.mark.asyncio
+@with_mock_homebrew_server
+async def test_high_concurrency_with_rate_limiting(mock_server, server_url):
+    """Test high concurrency processing with rate limiting."""
+    # Configure the base URL to use our mock server
+    with patch(
+        "versiontracker.async_homebrew.HOMEBREW_API_BASE", f"{server_url}/api/cask"
+    ):
         with patch(
-            "versiontracker.async_homebrew.HOMEBREW_API_BASE", f"{server_url}/api/cask"
+            "versiontracker.async_homebrew.is_homebrew_available", return_value=True
         ):
-            with patch(
-                "versiontracker.async_homebrew.is_homebrew_available", return_value=True
+            # Create a large batch of data
+            data = [(f"App{i}", f"1.{i}") for i in range(20)]
+
+            # Add some known apps
+            data.extend(
+                [
+                    ("Firefox", "100.0"),
+                    ("Google Chrome", "99.0"),
+                    ("Slack", "4.0"),
+                    ("VSCode", "1.60"),
+                ]
+            )
+
+            # Mock any browser casks to return true (for apps that aren't in the mock server)
+            original_check_exact = HomebrewBatchProcessor._check_exact_match
+
+            async def mock_check_exact_match(self, cask_name):
+                if cask_name in ["firefox", "google-chrome", "slack", "iterm2"]:
+                    return True
+                return await original_check_exact(self, cask_name)
+
+            # Track how many concurrent requests we get
+            request_times = []
+            original_fetch_json = fetch_cask_info
+
+            async def track_concurrent_fetch(cask_name, **kwargs):
+                request_times.append(asyncio.get_event_loop().time())
+                try:
+                    return await original_fetch_json(cask_name, **kwargs)
+                except Exception as e:
+                    # Convert 404s for our test apps to success
+                    if "404" in str(e) and cask_name in ["app0", "app1", "app2"]:
+                        return {"name": cask_name, "version": "1.0"}
+                    raise
+
+            with patch.object(
+                HomebrewBatchProcessor, "_check_exact_match", mock_check_exact_match
             ):
-                # Create a large batch of data
-                data = [(f"App{i}", f"1.{i}") for i in range(20)]
-
-                # Add some known apps
-                data.extend(
-                    [
-                        ("Firefox", "100.0"),
-                        ("Google Chrome", "99.0"),
-                        ("Slack", "4.0"),
-                        ("VSCode", "1.60"),
-                    ]
-                )
-
-                # Mock any browser casks to return true (for apps that aren't in the mock server)
-                original_check_exact = HomebrewBatchProcessor._check_exact_match
-
-                async def mock_check_exact_match(self, cask_name):
-                    if cask_name in ["firefox", "google-chrome", "slack", "iterm2"]:
-                        return True
-                    return await original_check_exact(self, cask_name)
-
-                # Track how many concurrent requests we get
-                request_times = []
-                original_fetch_json = fetch_cask_info
-
-                async def track_concurrent_fetch(cask_name, **kwargs):
-                    request_times.append(asyncio.get_event_loop().time())
-                    try:
-                        return await original_fetch_json(cask_name, **kwargs)
-                    except Exception as e:
-                        # Convert 404s for our test apps to success
-                        if "404" in str(e) and cask_name in ["app0", "app1", "app2"]:
-                            return {"name": cask_name, "version": "1.0"}
-                        raise
-
-                with patch.object(
-                    HomebrewBatchProcessor, "_check_exact_match", mock_check_exact_match
+                with patch(
+                    "versiontracker.async_homebrew.fetch_cask_info",
+                    track_concurrent_fetch,
                 ):
-                    with patch(
-                        "versiontracker.async_homebrew.fetch_cask_info",
-                        track_concurrent_fetch,
-                    ):
-                        # Process with high concurrency but strict rate limiting
-                        processor = HomebrewBatchProcessor(
-                            batch_size=10,
-                            max_concurrency=10,  # High concurrency
-                            rate_limit=0.2,  # Strict rate limiting
-                        )
+                    # Process with high concurrency but strict rate limiting
+                    processor = HomebrewBatchProcessor(
+                        batch_size=10,
+                        max_concurrency=10,  # High concurrency
+                        rate_limit=0.2,  # Strict rate limiting
+                    )
 
-                        # Use the async method directly instead of the wrapper
-                        results = await processor._process_all_async(data)
+                    # Use the async method directly instead of the wrapper
+                    results = await processor._process_all_async(data)
 
-                        # Verify we got results for all items
-                        assert len(results) == len(data)
+                    # Verify we got results for all items
+                    assert len(results) == len(data)
 
-                        # Verify known apps are marked as installable
-                        firefox_result = next(r for r in results if r[0] == "Firefox")
-                        chrome_result = next(
-                            r for r in results if r[0] == "Google Chrome"
-                        )
+                    # Verify known apps are marked as installable
+                    firefox_result = next(r for r in results if r[0] == "Firefox")
+                    chrome_result = next(r for r in results if r[0] == "Google Chrome")
 
-                        assert firefox_result[2] is True
-                        assert chrome_result[2] is True
+                    assert firefox_result[2] is True
+                    assert chrome_result[2] is True
 
-                        # Verify rate limiting worked by checking request times
-                        # Force a stricter rate limit for testing
-                        # This ensures a more reliable test
-                        # Sort the times to ensure we're measuring actual delays
-                        request_times.sort()
+                    # Verify rate limiting worked by checking request times
+                    # Force a stricter rate limit for testing
+                    # This ensures a more reliable test
+                    # Sort the times to ensure we're measuring actual delays
+                    request_times.sort()
 
-                        # Calculate time differences between requests
-                        time_diffs = [
-                            request_times[i] - request_times[i - 1]
-                            for i in range(1, len(request_times))
-                        ]
+                    # Calculate time differences between requests
+                    time_diffs = [
+                        request_times[i] - request_times[i - 1]
+                        for i in range(1, len(request_times))
+                    ]
 
-                        # This focuses on the actual rate-limited requests
-                        sorted_diffs = sorted(time_diffs, reverse=True)
-                        top_quarter = sorted_diffs[: max(1, len(sorted_diffs) // 4)]
-                        avg_time_diff = sum(top_quarter) / len(top_quarter)
+                    # This focuses on the actual rate-limited requests
+                    sorted_diffs = sorted(time_diffs, reverse=True)
+                    top_quarter = sorted_diffs[: max(1, len(sorted_diffs) // 4)]
+                    avg_time_diff = sum(top_quarter) / len(top_quarter)
 
-                        # We expect some of the delays to be close to the rate limit
-                        assert avg_time_diff > 0.1  # Half of our 0.2 rate limit
-                        assert avg_time_diff > 0.1  # Half of our 0.2 rate limit
+                    # We expect some of the delays to be close to the rate limit
+                    assert avg_time_diff > 0.1  # Half of our 0.2 rate limit

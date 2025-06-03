@@ -40,9 +40,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
     def test_adaptive_rate_limiter_custom_params(self):
         """Test _AdaptiveRateLimiter with custom parameters."""
         limiter = _AdaptiveRateLimiter(
-            base_rate_limit_sec=2.0,
-            min_rate_limit_sec=0.5,
-            max_rate_limit_sec=10.0
+            base_rate_limit_sec=2.0, min_rate_limit_sec=0.5, max_rate_limit_sec=10.0
         )
         self.assertEqual(limiter._base_rate_limit_sec, 2.0)
         self.assertEqual(limiter._min_rate_limit_sec, 0.5)
@@ -57,7 +55,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         end_time = time.time()
         # First call should be immediate
         self.assertLess(end_time - start_time, 0.05)
-        
+
         # Second call should wait
         start_time = time.time()
         limiter.wait()
@@ -69,11 +67,11 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         """Test _AdaptiveRateLimiter feedback with successes."""
         limiter = _AdaptiveRateLimiter()
         original_rate = limiter.get_current_limit()
-        
+
         # Provide many successful feedbacks
         for _ in range(15):
             limiter.feedback(True)
-        
+
         # Rate should decrease after 10 successes
         self.assertLess(limiter.get_current_limit(), original_rate)
 
@@ -81,11 +79,11 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         """Test _AdaptiveRateLimiter feedback with failures."""
         limiter = _AdaptiveRateLimiter()
         original_rate = limiter.get_current_limit()
-        
+
         # Provide many failure feedbacks
         for _ in range(10):
             limiter.feedback(False)
-        
+
         # Rate should increase after 5 failures
         self.assertGreater(limiter.get_current_limit(), original_rate)
 
@@ -93,22 +91,22 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         """Test _AdaptiveRateLimiter respects maximum limit."""
         limiter = _AdaptiveRateLimiter(max_rate_limit_sec=3.0)
         limiter._current_rate_limit_sec = 2.5
-        
+
         # Many failures should not exceed max
         for _ in range(20):
             limiter.feedback(False)
-        
+
         self.assertLessEqual(limiter.get_current_limit(), 3.0)
 
     def test_adaptive_rate_limiter_min_limit(self):
         """Test _AdaptiveRateLimiter respects minimum limit."""
         limiter = _AdaptiveRateLimiter(min_rate_limit_sec=0.5)
         limiter._current_rate_limit_sec = 0.7
-        
+
         # Many successes should not go below min
         for _ in range(50):
             limiter.feedback(True)
-        
+
         self.assertGreaterEqual(limiter.get_current_limit(), 0.5)
 
 
@@ -124,14 +122,14 @@ class TestAdaptiveRateLimiterAlias(unittest.TestCase):
 class TestAppStoreCheck(unittest.TestCase):
     """Test App Store checking functionality."""
 
-    @patch('versiontracker.apps.read_cache')
+    @patch("versiontracker.apps.read_cache")
     def test_is_app_in_app_store_cache_hit(self, mock_read_cache):
         """Test is_app_in_app_store with cache hit."""
         mock_read_cache.return_value = {"apps": ["TestApp", "AnotherApp"]}
         result = is_app_in_app_store("TestApp", use_cache=True)
         self.assertTrue(result)
 
-    @patch('versiontracker.apps.read_cache')
+    @patch("versiontracker.apps.read_cache")
     def test_is_app_in_app_store_cache_miss(self, mock_read_cache):
         """Test is_app_in_app_store with cache miss."""
         mock_read_cache.return_value = None
@@ -143,7 +141,7 @@ class TestAppStoreCheck(unittest.TestCase):
         result = is_app_in_app_store("TestApp", use_cache=False)
         self.assertFalse(result)
 
-    @patch('versiontracker.apps.read_cache')
+    @patch("versiontracker.apps.read_cache")
     def test_is_app_in_app_store_exception(self, mock_read_cache):
         """Test is_app_in_app_store exception handling."""
         mock_read_cache.side_effect = Exception("Cache error")
@@ -154,31 +152,35 @@ class TestAppStoreCheck(unittest.TestCase):
 class TestBrewCaskInstallable(unittest.TestCase):
     """Test Homebrew cask installability checking."""
 
-    @patch('versiontracker.apps.is_homebrew_available')
+    @patch("versiontracker.apps.is_homebrew_available")
     def test_is_brew_cask_installable_no_homebrew(self, mock_homebrew_available):
         """Test cask check when Homebrew not available."""
         mock_homebrew_available.return_value = False
-        
+
         with self.assertRaises(HomebrewError):
             is_brew_cask_installable("testapp")
 
-    @patch('versiontracker.apps.read_cache')
-    @patch('versiontracker.apps.is_homebrew_available') 
-    def test_is_brew_cask_installable_cache_hit(self, mock_homebrew_available, mock_read_cache):
+    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps.is_homebrew_available")
+    def test_is_brew_cask_installable_cache_hit(
+        self, mock_homebrew_available, mock_read_cache
+    ):
         """Test cask check with cache hit."""
         mock_homebrew_available.return_value = True
         mock_read_cache.return_value = {"testapp": True}
-        
+
         result = is_brew_cask_installable("testapp", use_cache=True)
         self.assertTrue(result)
 
-    @patch('versiontracker.apps.read_cache')
-    @patch('versiontracker.apps.is_homebrew_available')
-    def test_is_brew_cask_installable_cache_miss(self, mock_homebrew_available, mock_read_cache):
+    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps.is_homebrew_available")
+    def test_is_brew_cask_installable_cache_miss(
+        self, mock_homebrew_available, mock_read_cache
+    ):
         """Test cask check with cache miss."""
         mock_homebrew_available.return_value = True
         mock_read_cache.return_value = None
-        
+
         # This will exercise the actual brew search logic
         result = is_brew_cask_installable("testapp", use_cache=True)
         # Result depends on actual implementation
@@ -188,19 +190,19 @@ class TestBrewCaskInstallable(unittest.TestCase):
 class TestHomebrewCasksList(unittest.TestCase):
     """Test get_homebrew_casks_list function."""
 
-    @patch('versiontracker.apps.is_homebrew_available')
+    @patch("versiontracker.apps.is_homebrew_available")
     def test_get_homebrew_casks_list_no_homebrew(self, mock_homebrew_available):
         """Test get_homebrew_casks_list when Homebrew not available."""
         mock_homebrew_available.return_value = False
-        
+
         with self.assertRaises(HomebrewError):
             get_homebrew_casks_list()
 
-    @patch('versiontracker.apps.is_homebrew_available')
+    @patch("versiontracker.apps.is_homebrew_available")
     def test_get_homebrew_casks_list_with_homebrew(self, mock_homebrew_available):
         """Test get_homebrew_casks_list when Homebrew is available."""
         mock_homebrew_available.return_value = True
-        
+
         # This will test the actual implementation
         result = get_homebrew_casks_list()
         self.assertIsInstance(result, list)
@@ -233,9 +235,9 @@ class TestUtilityFunctions(unittest.TestCase):
         """Test _handle_batch_error with network error."""
         error = NetworkError("Network failed")
         batch = [("app1", "1.0"), ("app2", "2.0")]
-        
+
         results, error_count, last_error = _handle_batch_error(error, 0, batch)
-        
+
         self.assertEqual(len(results), 2)
         self.assertEqual(error_count, 1)
         # The function may not return the original error
@@ -246,9 +248,9 @@ class TestUtilityFunctions(unittest.TestCase):
         """Test _handle_batch_error with timeout error."""
         error = BrewTimeoutError("Timeout")
         batch = [("app1", "1.0")]
-        
+
         results, error_count, last_error = _handle_batch_error(error, 1, batch)
-        
+
         self.assertEqual(len(results), 1)
         self.assertEqual(error_count, 2)
 
@@ -261,7 +263,7 @@ class TestUtilityFunctions(unittest.TestCase):
         """Test _create_rate_limiter with object having delay attribute."""
         mock_config = Mock()
         mock_config.delay = 1.5
-        
+
         limiter = _create_rate_limiter(mock_config)
         self.assertIsInstance(limiter, SimpleRateLimiter)
 
@@ -270,7 +272,7 @@ class TestUtilityFunctions(unittest.TestCase):
         mock_config = Mock()
         mock_config.rate_limit = 2.0
         del mock_config.delay  # Ensure delay attribute doesn't exist
-        
+
         limiter = _create_rate_limiter(mock_config)
         self.assertIsInstance(limiter, SimpleRateLimiter)
 
@@ -279,7 +281,7 @@ class TestUtilityFunctions(unittest.TestCase):
         mock_config = Mock()
         # Remove all expected attributes
         mock_config.spec = []
-        
+
         limiter = _create_rate_limiter(mock_config)
         self.assertIsInstance(limiter, SimpleRateLimiter)
 
@@ -288,9 +290,9 @@ class TestUtilityFunctions(unittest.TestCase):
         future = Mock()
         future.result.return_value = True
         future.exception.return_value = None
-        
+
         result, error = _handle_future_result(future, "testapp", "1.0")
-        
+
         self.assertEqual(result, ("testapp", "1.0", True))
         self.assertIsNone(error)
 
@@ -298,9 +300,9 @@ class TestUtilityFunctions(unittest.TestCase):
         """Test _handle_future_result with exception."""
         future = Mock()
         future.exception.return_value = NetworkError("Network failed")
-        
+
         result, error = _handle_future_result(future, "testapp", "1.0")
-        
+
         self.assertEqual(result, ("testapp", "1.0", False))
         # The function may handle exceptions differently
         self.assertIsNotNone(error)
@@ -313,9 +315,9 @@ class TestFilterOutBrews(unittest.TestCase):
         """Test filter_out_brews in strict mode."""
         applications = [("TestApp", "1.0"), ("AnotherApp", "2.0"), ("ThirdApp", "3.0")]
         brews = ["testapp", "another-app"]
-        
+
         result = filter_out_brews(applications, brews, strict_mode=True)
-        
+
         # In strict mode, should filter more aggressively
         self.assertIsInstance(result, list)
 
@@ -323,41 +325,41 @@ class TestFilterOutBrews(unittest.TestCase):
         """Test filter_out_brews with empty brews list."""
         applications = [("TestApp", "1.0"), ("AnotherApp", "2.0")]
         brews = []
-        
+
         result = filter_out_brews(applications, brews)
-        
+
         self.assertEqual(result, applications)
 
     def test_filter_out_brews_empty_applications(self):
         """Test filter_out_brews with empty applications list."""
         applications = []
         brews = ["testapp", "another-app"]
-        
+
         result = filter_out_brews(applications, brews)
-        
+
         self.assertEqual(result, [])
 
     def test_filter_out_brews_no_matches(self):
         """Test filter_out_brews with no matches."""
         applications = [("UniqueApp", "1.0"), ("SpecialApp", "2.0")]
         brews = ["commonapp", "standardapp"]
-        
+
         result = filter_out_brews(applications, brews)
-        
+
         self.assertEqual(result, applications)
 
 
 class TestCacheManagement(unittest.TestCase):
     """Test cache management functions."""
 
-    @patch('versiontracker.apps.get_homebrew_casks')
+    @patch("versiontracker.apps.get_homebrew_casks")
     def test_clear_homebrew_casks_cache(self, mock_get_homebrew_casks):
         """Test clear_homebrew_casks_cache function."""
         # Mock the cache_clear method
         mock_get_homebrew_casks.cache_clear = Mock()
-        
+
         clear_homebrew_casks_cache()
-        
+
         # Verify cache_clear was called
         mock_get_homebrew_casks.cache_clear.assert_called_once()
 
@@ -378,19 +380,19 @@ class TestRateLimiterEdgeCases(unittest.TestCase):
     def test_simple_rate_limiter_thread_safety(self):
         """Test SimpleRateLimiter thread safety."""
         limiter = SimpleRateLimiter(0.1)
-        
+
         def worker():
             limiter.wait()
-        
+
         threads = []
         for _ in range(3):
             thread = threading.Thread(target=worker)
             threads.append(thread)
             thread.start()
-        
+
         for thread in threads:
             thread.join()
-        
+
         # Should complete without errors
 
 
@@ -400,12 +402,12 @@ class TestComplexScenarios(unittest.TestCase):
     def test_simple_rate_limiter_multiple_waits(self):
         """Test SimpleRateLimiter with multiple consecutive waits."""
         limiter = SimpleRateLimiter(0.05)  # Small delay for testing
-        
+
         start_time = time.time()
         limiter.wait()
         limiter.wait()
         end_time = time.time()
-        
+
         # Should have waited at least one delay period
         self.assertGreaterEqual(end_time - start_time, 0.04)
 
@@ -413,13 +415,13 @@ class TestComplexScenarios(unittest.TestCase):
         """Test _AdaptiveRateLimiter with mixed success/failure feedback."""
         limiter = _AdaptiveRateLimiter()
         original_rate = limiter.get_current_limit()
-        
+
         # Mix of successes and failures
         limiter.feedback(True)
         limiter.feedback(False)
         limiter.feedback(True)
         limiter.feedback(False)
-        
+
         # Rate should still be around original
         current_rate = limiter.get_current_limit()
         self.assertAlmostEqual(current_rate, original_rate, delta=0.5)
