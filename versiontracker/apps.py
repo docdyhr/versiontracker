@@ -32,7 +32,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Protocol, Tuple, TypeVar, Union, cast
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Protocol, Tuple, TypeVar, Union, cast
 
 from versiontracker.cache import read_cache, write_cache
 from versiontracker.config import Config, get_config
@@ -184,9 +184,17 @@ try:
 except ImportError:
     HAS_PROGRESS = False
 
-    def smart_progress(iterable: Any, **kwargs) -> Any:
+    def smart_progress(
+        iterable: Optional[Iterable[T]] = None,
+        desc: str = "",
+        total: Optional[int] = None,
+        monitor_resources: bool = True,
+        **kwargs: Any,
+    ) -> Iterator[T]:
         """Simple fallback for environments without smart_progress."""
-        return iterable
+        if iterable is None:
+            return iter([])
+        return iter(iterable)
 
 
 # Command constants

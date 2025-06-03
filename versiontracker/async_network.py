@@ -9,7 +9,7 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -220,7 +220,7 @@ def run_async_in_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> 
         return future.result()
 
 
-class AsyncBatchProcessor:
+class AsyncBatchProcessor(Generic[T, R]):
     """Process batches of data asynchronously with rate limiting."""
 
     def __init__(

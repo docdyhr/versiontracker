@@ -113,13 +113,10 @@ except ImportError:
 
     # Fallback implementation if termcolor is not available
     def colored(
-        text: object,
-        color=None,
-        on_color=None,
-        attrs=None,
-        *,
-        no_color=None,
-        force_color=None,
+        text: str,
+        color: Optional[str] = None,
+        on_color: Optional[str] = None,
+        attrs: Optional[Iterable[str]] = None,
     ) -> str:
         """Fallback implementation of colored.
 
@@ -130,24 +127,19 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
-            no_color: Disable color (ignored in fallback)
-            force_color: Force color (ignored in fallback)
 
         Returns:
             str: The unmodified text
         """
-        _ = color, on_color, attrs, no_color, force_color
+        _ = color, on_color, attrs
         return str(text)
 
     def cprint(
-        text: object,
-        color=None,
-        on_color=None,
-        attrs=None,
-        *,
-        no_color=None,
-        force_color=None,
-        **kwargs,
+        text: str,
+        color: Optional[str] = None,
+        on_color: Optional[str] = None,
+        attrs: Optional[Iterable[str]] = None,
+        **kwargs: Any,
     ) -> None:
         """Fallback implementation of cprint.
 
@@ -158,11 +150,9 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
-            no_color: Disable color (ignored in fallback)
-            force_color: Force color (ignored in fallback)
             **kwargs: Additional arguments passed to print
         """
-        _ = color, on_color, attrs, no_color, force_color
+        _ = color, on_color, attrs
         print(text, **kwargs)
 
 

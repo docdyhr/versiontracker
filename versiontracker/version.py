@@ -426,19 +426,15 @@ def compare_versions(
         v1_tuple = parse_version(version1)
         if v1_tuple is None:
             v1_tuple = (0, 0, 0)
-    elif isinstance(version1, tuple):
+    else:  # isinstance(version1, tuple) - since None was handled earlier
         v1_tuple = version1
-    else:
-        v1_tuple = (0, 0, 0)
 
     if isinstance(version2, str):
         v2_tuple = parse_version(version2)
         if v2_tuple is None:
             v2_tuple = (0, 0, 0)
-    elif isinstance(version2, tuple):
+    else:  # isinstance(version2, tuple) - since None was handled earlier
         v2_tuple = version2
-    else:
-        v2_tuple = (0, 0, 0)
 
     # Handle special application formats (only if they contain app names)
     if isinstance(version1, str) and isinstance(version2, str):
@@ -503,20 +499,20 @@ def compare_versions(
         return result
 
     # Compare base versions (first 3 components for consistency with most apps)
-    v1_base = (
+    v1_base_tuple = (
         v1_padded[:3]
         if len(v1_padded) >= 3
         else v1_padded + (0,) * (3 - len(v1_padded))
     )
-    v2_base = (
+    v2_base_tuple = (
         v2_padded[:3]
         if len(v2_padded) >= 3
         else v2_padded + (0,) * (3 - len(v2_padded))
     )
 
-    if v1_base < v2_base:
+    if v1_base_tuple < v2_base_tuple:
         return -1
-    elif v1_base > v2_base:
+    elif v1_base_tuple > v2_base_tuple:
         return 1
     else:
         # Base versions are equal
@@ -541,8 +537,6 @@ def compare_versions(
 
 def _is_prerelease(version_str: str) -> bool:
     """Check if a version string indicates a pre-release."""
-    if isinstance(version_str, tuple):
-        return False
     return bool(
         re.search(
             r"[-.](?:alpha|beta|rc|final|[αβγδ])(?:\W|$)",
@@ -1083,14 +1077,14 @@ def get_partial_ratio_scorer():
 
         def rapidfuzz_scorer(s1, s2):
             # fuzz is not None here due to the checks above
-            return float(fuzz.partial_ratio(s1, s2))  # type: ignore
+            return float(fuzz.partial_ratio(s1, s2))
 
         return rapidfuzz_scorer
     elif USE_FUZZYWUZZY and fuzz and hasattr(fuzz, "partial_ratio"):
 
         def fuzzywuzzy_scorer(s1, s2):
             # fuzz is not None here due to the checks above
-            return float(fuzz.partial_ratio(s1, s2))  # type: ignore
+            return float(fuzz.partial_ratio(s1, s2))
 
         return fuzzywuzzy_scorer
     else:
