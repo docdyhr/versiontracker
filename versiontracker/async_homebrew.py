@@ -116,7 +116,9 @@ async def search_casks(
         raise NetworkError(f"Unexpected error: {str(e)}") from e
 
 
-class HomebrewBatchProcessor(AsyncBatchProcessor[Tuple[str, str], Tuple[str, str, bool]]):
+class HomebrewBatchProcessor(
+    AsyncBatchProcessor[Tuple[str, str], Tuple[str, str, bool]]
+):
     """Process batches of applications to check for Homebrew installability."""
 
     def __init__(
@@ -321,7 +323,9 @@ async def async_get_cask_version(
         raise HomebrewError(f"Error getting cask version: {e}") from e
 
 
-class HomebrewVersionChecker(AsyncBatchProcessor[Tuple[str, str, str], Tuple[str, str, str, Optional[str]]]):
+class HomebrewVersionChecker(
+    AsyncBatchProcessor[Tuple[str, str, str], Tuple[str, str, str, Optional[str]]]
+):
     """Process batches of applications to check for updates via Homebrew."""
 
     def __init__(

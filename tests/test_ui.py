@@ -1,3 +1,5 @@
+"""Tests for the UI module."""
+
 import json
 import os
 import shutil
@@ -9,15 +11,15 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from versiontracker.ui import DEBUG, ERROR, INFO, SUCCESS, TQDM_CLASS, WARNING
-
-"""Tests for the UI module."""
-
-
 from versiontracker.ui import (  # noqa: E402
+    DEBUG,
+    ERROR,
     HAS_TERMCOLOR,
     HAS_TQDM,
+    INFO,
+    SUCCESS,
     TQDM_CLASS,
+    WARNING,
     AdaptiveRateLimiter,
     QueryFilterManager,
     SmartProgress,

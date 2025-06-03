@@ -1,6 +1,6 @@
 [run]
 source = versiontracker
-omit = 
+omit =
     versiontracker/__main__.py
     versiontracker/test_*.py
     */tests/*

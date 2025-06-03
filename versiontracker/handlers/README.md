@@ -19,6 +19,7 @@ The handlers package was created as part of the refactoring of the `__main__.py`
 ## Design Patterns
 
 These modules follow a command pattern approach, where each handler:
+
 1. Takes command-line options as input
 2. Performs actions based on those options
 3. Returns an exit code (0 for success, non-zero for failure)
@@ -28,6 +29,7 @@ These modules follow a command pattern approach, where each handler:
 Handler functions are imported and called from the main entry point in `__main__.py`. They should not be called directly by other parts of the application.
 
 Example:
+
 ```python
 from versiontracker.handlers import handle_list_apps
 

@@ -383,6 +383,7 @@ pytest --cov=versiontracker --cov-report=term-missing
 ```
 
 The test suite includes:
+
 * Standard unit tests for core functionality
 * Parameterized tests for efficient testing of version comparison
 * Mock server for network operation testing

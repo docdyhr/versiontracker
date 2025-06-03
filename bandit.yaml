@@ -1,6 +1,6 @@
 skips:
-  - B608  # Possible SQL injection - false positive in cache error messages
-  - B602  # subprocess with shell=True - intentional for homebrew command execution
+  - B608 # Possible SQL injection - false positive in cache error messages
+  - B602 # subprocess with shell=True - intentional for homebrew command execution
 
 exclude_dirs:
   - tests

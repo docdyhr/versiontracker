@@ -37,7 +37,7 @@ jobs:
         echo "::group::Ruff Check"
         ruff check . --output-format=github
         echo "::endgroup::"
-        
+
         echo "::group::Ruff Format Check"
         ruff format --check .
         echo "::endgroup::"

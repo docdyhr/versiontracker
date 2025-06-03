@@ -32,7 +32,19 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Protocol, Tuple, TypeVar, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from versiontracker.cache import read_cache, write_cache
 from versiontracker.config import Config, get_config

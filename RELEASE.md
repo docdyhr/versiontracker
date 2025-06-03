@@ -100,4 +100,3 @@ For critical issues that need immediate attention:
 2. Make the necessary fixes and commit them
 3. Run the version bump script: `python bump_version.py patch`
 4. Follow the release process from step 3 onwards
-

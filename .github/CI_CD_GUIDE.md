@@ -7,10 +7,12 @@ This document outlines the CI/CD pipeline for VersionTracker, including workflow
 VersionTracker uses GitHub Actions for continuous integration and deployment with the following workflows:
 
 ### 1. Main CI Pipeline (`ci.yml`)
+
 **Triggers**: Push/PR to main/master branches, manual dispatch
 **Purpose**: Comprehensive testing, linting, security checks, and package building
 
-#### Jobs:
+#### Jobs
+
 - **Test**: Multi-platform testing (macOS, Ubuntu) across Python 3.8-3.12
 - **Lint**: Code linting and formatting with Ruff, type checking with MyPy
 - **Security**: Security analysis with Bandit, Safety, and pip-audit
@@ -18,7 +20,8 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 - **Build**: Package building and verification
 - **CI Summary**: Consolidated status reporting
 
-#### Key Features:
+#### Key Features
+
 - Pip caching for faster builds
 - Parallel execution across multiple Python versions
 - Coverage reporting to Codecov
@@ -26,58 +29,69 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 - Smart failure handling with detailed summaries
 
 ### 2. Lint Pipeline (`lint.yml`)
+
 **Triggers**: Push/PR to main/master branches, manual dispatch
 **Purpose**: Fast linting and formatting checks
 
-#### Checks:
+#### Checks
+
 - Ruff linting with GitHub annotations
 - Ruff format checking
 - MyPy type checking with XML report generation
 
 ### 3. Security Pipeline (`security.yml`)
+
 **Triggers**: Push/PR to main/master branches, manual dispatch, weekly schedule
 **Purpose**: Comprehensive security analysis
 
-#### Security Tools:
+#### Security Tools
+
 - **Bandit**: Python security linter
 - **Safety**: Dependency vulnerability scanning
 - **pip-audit**: Package vulnerability detection
 - **TruffleHog**: Secret detection
 - **Scheduled scans**: Weekly security audits
 
-#### Features:
+#### Features
+
 - JSON report generation for all tools
 - Security summary with issue counts
 - Artifact upload for detailed analysis
 
 ### 4. Release Pipeline (`release.yml`)
+
 **Triggers**: GitHub releases, manual workflow dispatch
 **Purpose**: Automated package building, testing, and PyPI publishing
 
-#### Release Stages:
+#### Release Stages
 
 ##### Validation
+
 - Semantic version format validation
 - Changelog entry verification
 - Version consistency checks
 
 ##### Pre-Release Checks
+
 - Full test suite execution
 - Code quality verification
 - Security scanning
 - Package metadata validation
 
 ##### Build and Test
+
 - Multi-platform package building
 - Installation testing across Python versions
 - CLI functionality verification
 
 ##### Publishing
+
 - Test PyPI for pre-releases
 - Production PyPI for stable releases
 - Package integrity verification
 
 ##### Verification
+
 - Post-publish installation testing
 - Version verification
 - CLI functionality testing
@@ -85,6 +99,7 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 ## Configuration Files
 
 ### Test Configuration
+
 - **pytest-ci.ini**: CI-optimized pytest configuration
   - Coverage reporting with 85% minimum threshold
   - Parallel execution support
@@ -97,12 +112,14 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
   - Exclusion patterns for non-critical code
 
 ### Type Checking
+
 - **mypy.ini**: Strict type checking configuration
   - Gradual typing adoption
   - Module-specific settings
   - Platform-specific configurations
 
 ### Security
+
 - **bandit.yaml**: Security linting configuration
   - Custom skip rules for false positives
   - Directory exclusions
@@ -113,22 +130,26 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 The README includes comprehensive badges for:
 
 ### Build Status
+
 - CI Pipeline status
 - Lint status
 - Security status
 - Release status
 
 ### Package Information
+
 - PyPI version and downloads
 - Python version compatibility
 - Package status
 
 ### Quality Metrics
+
 - Code coverage (Codecov)
 - Code style (Ruff)
 - Security analysis (Bandit)
 
 ### Repository Statistics
+
 - Issues, forks, stars
 - Last commit, code size
 - License information
@@ -136,23 +157,29 @@ The README includes comprehensive badges for:
 ## Best Practices
 
 ### 1. Branch Protection
+
 Configure branch protection rules for main/master:
+
 - Require status checks to pass
 - Require branches to be up to date
 - Require review from code owners
 - Restrict pushes to admin users
 
 ### 2. Secrets Management
+
 Required repository secrets:
+
 - `CODECOV_TOKEN`: For coverage reporting
 - PyPI publishing uses trusted publishing (no token needed)
 
 ### 3. Dependencies
+
 - Use pip caching for faster builds
 - Pin development dependencies with version ranges
 - Regular dependency updates via security scanning
 
 ### 4. Performance Optimization
+
 - Matrix strategy for efficient testing
 - Artifact caching between jobs
 - Smart exclusions to reduce CI time
@@ -163,24 +190,28 @@ Required repository secrets:
 ### Common Issues
 
 #### Test Failures
+
 1. Check test logs in CI Summary
 2. Download test artifacts for detailed analysis
 3. Run tests locally with same Python version
 4. Check for platform-specific issues (macOS vs Ubuntu)
 
 #### Coverage Issues
+
 1. Minimum coverage threshold: 85%
 2. Check `.coveragerc` exclusions
 3. Review coverage reports in artifacts
 4. Add tests for uncovered code paths
 
 #### Security Failures
+
 1. Review Bandit report for false positives
 2. Update `bandit.yaml` skip rules if needed
 3. Check Safety/pip-audit for dependency vulnerabilities
 4. Update requirements.txt for security patches
 
 #### Release Failures
+
 1. Verify version format (semantic versioning)
 2. Check package metadata consistency
 3. Ensure all tests pass before release
@@ -197,6 +228,7 @@ Required repository secrets:
 ### Performance Monitoring
 
 The CI pipeline includes performance monitoring:
+
 - **Build times**: Tracked across jobs
 - **Test execution**: Duration reporting
 - **Artifact sizes**: Package size monitoring
@@ -205,12 +237,14 @@ The CI pipeline includes performance monitoring:
 ## Maintenance
 
 ### Regular Tasks
+
 - **Weekly**: Review security scan results
 - **Monthly**: Update GitHub Actions versions
 - **Quarterly**: Review and update Python version matrix
 - **Release**: Update CHANGELOG.md and version numbers
 
 ### Updates
+
 - Keep GitHub Actions up to date
 - Monitor for new security tools
 - Review and optimize CI performance
@@ -219,7 +253,9 @@ The CI pipeline includes performance monitoring:
 ## Development Workflow
 
 ### Pre-commit Checks
+
 Before committing code:
+
 ```bash
 # Run linting
 ruff check .
@@ -233,6 +269,7 @@ pytest -c pytest-ci.ini --cov=versiontracker
 ```
 
 ### Pull Request Process
+
 1. Create feature branch
 2. Implement changes with tests
 3. Ensure CI passes locally
@@ -241,6 +278,7 @@ pytest -c pytest-ci.ini --cov=versiontracker
 6. Merge after CI approval
 
 ### Release Process
+
 1. Update version in `versiontracker/__init__.py`
 2. Update CHANGELOG.md
 3. Create GitHub release with semantic version tag

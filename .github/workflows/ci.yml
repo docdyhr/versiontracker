@@ -168,13 +168,13 @@ jobs:
       run: |
         # Docstring checking
         pydocstyle versiontracker/ --convention=google || true
-        
+
         # Code complexity analysis
         radon cc versiontracker/ --min=B --json -O radon-cc.json || true
         radon cc versiontracker/ --min=B
         radon mi versiontracker/ --json -O radon-mi.json || true
         radon mi versiontracker/ --min=B
-        
+
         # Dead code detection
         vulture versiontracker/ --json-output=vulture-report.json || true
         vulture versiontracker/ --min-confidence=80
@@ -240,7 +240,7 @@ jobs:
         echo "| Security | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Quality | ${{ needs.quality.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Build | ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        
+
         # Set overall status
         if [[ "${{ needs.test.result }}" == "success" && "${{ needs.lint.result }}" == "success" && "${{ needs.security.result }}" == "success" ]]; then
           echo "" >> $GITHUB_STEP_SUMMARY

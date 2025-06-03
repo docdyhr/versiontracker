@@ -20,88 +20,89 @@ import psutil
 HAS_TQDM = False
 TQDM_CLASS: Any = None  # Will hold the tqdm class
 
+
+# Define a simple fallback class for tqdm (always available for testing)
+class FallbackTqdm:
+    """Fallback implementation for tqdm progress bar.
+
+    This class provides a minimal implementation of the tqdm interface
+    for use when the tqdm package is not available.
+    """
+
+    def __init__(self, iterable=None, desc=None, total=None, **kwargs):
+        """Initialize the fallback progress bar.
+
+        Args:
+            iterable: Iterable to wrap
+            desc: Description to display
+            total: Total number of items (optional)
+            **kwargs: Additional arguments (ignored)
+        """
+        self.iterable = iterable
+        self.desc = desc
+        self.total = total
+        self.n = 0
+
+        # Print initial message
+        if desc:
+            print(f"{desc}: started")
+
+    def __iter__(self):
+        """Iterate over the wrapped iterable."""
+        if self.iterable is None:
+            return iter([])
+
+        # Print start
+        count = 0
+        for item in self.iterable:
+            count += 1
+            self.n = count
+            yield item
+
+        # Print completion
+        if self.desc:
+            print(f"{self.desc}: completed ({count} items)")
+
+    def update(self, n=1):
+        """Update progress by n items."""
+        self.n += n
+
+    def set_description(self, desc=None):
+        """Set the description of the progress bar."""
+        if desc:
+            self.desc = desc
+            print(f"Progress: {desc}")
+
+    def refresh(self):
+        """Refresh the display (no-op in fallback)."""
+        pass
+
+    def close(self):
+        """Close the progress bar."""
+        pass
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        _ = exc_type, exc_val, exc_tb
+        self.close()
+
+    def set_postfix_str(self, s):
+        # No-op for fallback
+        pass
+
+
+# Try to import tqdm, use fallback if not available
 try:
     from tqdm import tqdm
 
     HAS_TQDM = True
     TQDM_CLASS = tqdm
 except ImportError:
-    # If tqdm is not available, create a simple fallback
     HAS_TQDM = False
-
-    # Define a simple fallback class for tqdm
-    class FallbackTqdm:
-        """Fallback implementation for tqdm progress bar.
-
-        This class provides a minimal implementation of the tqdm interface
-        for use when the tqdm package is not available.
-        """
-
-        def __init__(self, iterable=None, desc=None, total=None, **kwargs):
-            """Initialize the fallback progress bar.
-
-            Args:
-                iterable: Iterable to wrap
-                desc: Description to display
-                total: Total number of items (optional)
-                **kwargs: Additional arguments (ignored)
-            """
-            self.iterable = iterable
-            self.desc = desc
-            self.total = total
-            self.n = 0
-
-            # Print initial message
-            if desc:
-                print(f"{desc}: started")
-
-        def __iter__(self):
-            """Iterate over the wrapped iterable."""
-            if self.iterable is None:
-                return iter([])
-
-            # Print start
-            count = 0
-            for item in self.iterable:
-                count += 1
-                self.n = count
-                yield item
-
-            # Print completion
-            if self.desc:
-                print(f"{self.desc}: completed ({count} items)")
-
-        def update(self, n=1):
-            """Update progress by n items."""
-            self.n += n
-
-        def set_description(self, desc=None):
-            """Set the description of the progress bar."""
-            if desc:
-                self.desc = desc
-                print(f"Progress: {desc}")
-
-        def refresh(self):
-            """Refresh the display (no-op in fallback)."""
-            pass
-
-        def close(self):
-            """Close the progress bar."""
-            pass
-
-        def __enter__(self):
-            """Context manager entry."""
-            return self
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            """Context manager exit."""
-            _ = exc_type, exc_val, exc_tb
-            self.close()
-
-        def set_postfix_str(self, s):
-            # No-op for fallback
-            pass
-
     TQDM_CLASS = FallbackTqdm
 
 try:

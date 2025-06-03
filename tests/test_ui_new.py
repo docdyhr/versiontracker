@@ -147,7 +147,7 @@ class TestSmartProgress(unittest.TestCase):
     @patch("psutil.cpu_percent", return_value=75.0)
     @patch("psutil.virtual_memory")
     def test_resource_monitoring_with_tqdm(
-        self, mock_memory, mock_cpu_percent, mock_isatty, mock_has_tqdm
+        self, mock_memory, mock_cpu_percent, mock_isatty
     ):
         """Test resource monitoring with tqdm progress bar."""
         mock_memory.return_value = MagicMock(percent=80.0)
