@@ -15,12 +15,12 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Set, TypeVar
 
 try:
-    import psutil  # type: ignore[import-untyped]
+    import psutil
 
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
-    psutil = None  # type: ignore[assignment]
+    psutil = None
 
 # Type variable for generic function decorator
 T = TypeVar("T")

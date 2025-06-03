@@ -87,8 +87,8 @@ if not USE_RAPIDFUZZ and not USE_FUZZYWUZZY:
 
             return (best_match, best_score) if best_match else (choices[0], 0)
 
-    fuzz = MinimalFuzz()  # type: ignore[assignment]
-    fuzz_process = MinimalProcess()  # type: ignore[assignment]
+    fuzz = MinimalFuzz()
+    fuzz_process = MinimalProcess()
 
 # Internal imports
 from versiontracker.config import get_config  # noqa: E402
