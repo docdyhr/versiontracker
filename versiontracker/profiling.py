@@ -20,7 +20,7 @@ try:
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
-    psutil = None  # Define to avoid unbound variable errors
+    psutil = None
 
 # Type variable for generic function decorator
 T = TypeVar("T")

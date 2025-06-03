@@ -71,16 +71,27 @@ async def test_search_casks_success():
     ]
 
     with patch("versiontracker.async_homebrew.read_cache", return_value=None):
-        with patch("aiohttp.ClientSession") as mock_session:
-            # Setup the mock response
+        with patch("versiontracker.async_homebrew.write_cache", return_value=True):
+            # Mock the entire aiohttp ClientSession context manager chain
             mock_response = AsyncMock()
             mock_response.raise_for_status = AsyncMock()
-            mock_response.json.return_value = mock_results
-
-            # Setup the mock session
-            mock_session.return_value.__aenter__.return_value.get.return_value.__aenter__.return_value = mock_response
-
-            with patch("versiontracker.async_homebrew.write_cache", return_value=True):
+            mock_response.json = AsyncMock(return_value=mock_results)
+            
+            # Create a proper async context manager mock
+            async def async_response_context(*args, **kwargs):
+                return mock_response
+                
+            mock_session = AsyncMock()
+            mock_session.get.return_value.__aenter__ = async_response_context
+            mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
+            
+            async def async_session_context(*args, **kwargs):
+                return mock_session
+                
+            with patch("aiohttp.ClientSession") as mock_session_class:
+                mock_session_class.return_value.__aenter__ = async_session_context
+                mock_session_class.return_value.__aexit__ = AsyncMock(return_value=None)
+                
                 results = await search_casks("firefox", use_cache=False)
 
                 # Verify the results
@@ -187,9 +198,10 @@ class TestHomebrewBatchProcessor:
 @pytest.mark.asyncio
 async def test_async_get_cask_version():
     """Test getting a cask version."""
-    # Mock the fetch_cask_info function
+    # Mock the fetch_cask_info function to return a coroutine
     with patch(
         "versiontracker.async_homebrew.fetch_cask_info",
+        new_callable=AsyncMock,
         return_value={"version": "100.0"},
     ):
         version = await async_get_cask_version("firefox")
@@ -204,7 +216,7 @@ async def test_async_get_cask_version_not_found():
     # Mock fetch_cask_info to raise a 404 error
     mock_error = NetworkError("HTTP error 404: Not Found")
 
-    with patch("versiontracker.async_homebrew.fetch_cask_info", side_effect=mock_error):
+    with patch("versiontracker.async_homebrew.fetch_cask_info", new_callable=AsyncMock, side_effect=mock_error):
         version = await async_get_cask_version("nonexistent-cask")
 
         # Verify the version is None
@@ -221,7 +233,9 @@ class TestHomebrewVersionChecker:
 
         # Mock the async_get_cask_version function
         with patch(
-            "versiontracker.async_homebrew.async_get_cask_version", return_value="101.0"
+            "versiontracker.async_homebrew.async_get_cask_version", 
+            new_callable=AsyncMock,
+            return_value="101.0"
         ):
             result = await checker.process_item(("Firefox", "100.0", "firefox"))
 

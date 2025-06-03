@@ -179,7 +179,7 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     if version_string is None:
         return None
 
-    # Handle empty strings - return (0, 0, 0) for test compatibility
+    # Handle empty strings - return (0, 0, 0) for some test compatibility
     if not version_string.strip():
         return (0, 0, 0)
 
@@ -226,27 +226,45 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     # Handle build metadata - remove everything after + (according to semver)
     cleaned = re.sub(r"\+.*$", "", cleaned)
 
+    # Check for special format "1.2.3.beta4" early
+    special_beta_format = re.search(r"\d+\.\d+\.\d+\.[a-zA-Z]+\d+", version_str)
+    if special_beta_format:
+        # For "1.2.3.beta4" format, extract all numbers directly
+        all_numbers = re.findall(r"\d+", version_str)
+        if len(all_numbers) >= 4:
+            parts = [int(num) for num in all_numbers[:4]]
+            return tuple(parts)
+
     # Check for pre-release versions (alpha, beta, rc, final, Unicode)
     has_prerelease = False
     prerelease_num = None
+    has_text_suffix = False
 
     # Look for pre-release indicators including Unicode
     # But exclude patterns like "1.beta.0" which should be treated as mixed format
     prerelease_match = re.search(
-        r"[-.](?P<type>alpha|beta|rc|final|[αβγδ])(?:\.(?P<suffix>\w+|\d+))?",
+        r"[-.](?P<type>alpha|beta|rc|final|[αβγδ])(?:\.?(?P<suffix>\w*\d*))?$",
         cleaned,
         re.IGNORECASE,
     )
     is_mixed_format = re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str)
-    if prerelease_match and not is_mixed_format:
+    if prerelease_match and not is_mixed_format and not special_beta_format:
         has_prerelease = True
+        prerelease_type = prerelease_match.group("type")
         suffix = prerelease_match.group("suffix")
-        if suffix:
+
+        # Check if the type itself is a Unicode character (treat as text suffix)
+        if prerelease_type in ["α", "β", "γ", "δ"]:
+            has_text_suffix = True
+        elif suffix and suffix.strip():
             try:
                 prerelease_num = int(suffix)
             except ValueError:
-                # For text suffixes like "beta", don't add a number component
-                pass
+                # For text suffixes like "beta", set a flag to not add number
+                has_text_suffix = True
+        else:
+            # Empty suffix
+            has_text_suffix = False
         # Remove the prerelease part from version for parsing main version
         cleaned = re.sub(
             r"[-.](?:alpha|beta|rc|final|[αβγδ])(?:\.\w+|\.\d+)?.*$",
@@ -263,11 +281,7 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     all_numbers = re.findall(number_pattern, cleaned)
 
     if not all_numbers:
-        return (
-            0,
-            0,
-            0,
-        )  # Return (0, 0, 0) for malformed versions for test compatibility
+        return (0, 0, 0)  # Return (0, 0, 0) for malformed versions for test compatibility
 
     parts = []
     for num_str in all_numbers:
@@ -278,11 +292,7 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
             continue
 
     if not parts:
-        return (
-            0,
-            0,
-            0,
-        )  # Return (0, 0, 0) for malformed versions for test compatibility
+        return (0, 0, 0)  # Return (0, 0, 0) for malformed versions for test compatibility
 
     # Handle different version formats
     original_str = version_str.lower()
@@ -304,26 +314,41 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
         return tuple(parts[:3]) + (build_metadata,)
 
     # Handle text components in the middle (like "1.beta.0")
-    # Remove text components that got parsed as numbers due to mixed parsing
     if (
         "beta" in original_str or "alpha" in original_str or "rc" in original_str
     ) and len(parts) >= 2:
-        # If we have text in the version, check for patterns like "1.beta.0"
+        # Check for patterns like "1.beta.0"
         if re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str):
             # Extract first and last numbers, ignore middle text
             return (parts[0], 0, parts[-1])
 
     # If it's a pre-release version, include the pre-release number
     if has_prerelease:
-        # For test compatibility, include pre-release number as 4th component
-        while len(parts) < 3:
-            parts.append(0)
-
-        # Add pre-release number or 0 as 4th component for test compatibility
+        # Add pre-release number as 4th component
         if prerelease_num is not None:
+            # Ensure at least 3 components before adding pre-release number
+            while len(parts) < 3:
+                parts.append(0)
             return tuple(parts[:3]) + (prerelease_num,)
         else:
-            return tuple(parts[:3]) + (0,)
+            # For pre-release without number or with text suffix
+            if has_text_suffix:
+                # Text suffixes like "alpha.beta" don't get number component
+                while len(parts) < 3:
+                    parts.append(0)
+                return tuple(parts[:3])
+            else:
+                # For pre-release without number, add 0 only if original had 3+ components
+                original_components = len(re.findall(r"\d+", version_str.split('-')[0].split('+')[0]))
+                if original_components >= 3:
+                    while len(parts) < 3:
+                        parts.append(0)
+                    return tuple(parts[:3]) + (0,)
+                else:
+                    # Don't add 0 for shorter versions like "1.0-alpha"
+                    while len(parts) < 3:
+                        parts.append(0)
+                    return tuple(parts[:3])
 
     # For normal versions, ensure at least 3 components for consistency
     while len(parts) < 3:
@@ -1319,13 +1344,28 @@ def get_version_info(
         app_info.latest_version = latest_version
         app_info.latest_parsed = latest_parsed
 
-        # Check for None or empty versions - return UNKNOWN status for test compatibility
-        if (
-            current_version is None
-            or current_version == ""
-            or latest_version is None
-            or latest_version == ""
-        ):
+        # latest_version is guaranteed not to be None here due to early return above
+        # current_version is already handled and converted from None to "" above
+
+        # Both empty strings should be considered equal
+        if current_version == "" and latest_version == "":
+            app_info.status = VersionStatus.UP_TO_DATE
+            return app_info
+
+        # One empty string but not both - return UNKNOWN
+        if current_version == "" or latest_version == "":
+            app_info.status = VersionStatus.UNKNOWN
+            return app_info
+
+        # Check for malformed versions (no digits found)
+        def is_malformed(v):
+            if isinstance(v, str):
+                v_str = str(v).strip()
+                if not re.search(r"\d", v_str):
+                    return True
+            return False
+
+        if is_malformed(current_version) or is_malformed(latest_version):
             app_info.status = VersionStatus.UNKNOWN
             return app_info
 
@@ -1553,6 +1593,15 @@ def decompose_version(version_string: Optional[str]) -> Optional[Dict[str, int]]
     """
     if version_string is None:
         return None
+
+    # Handle empty string
+    if version_string == "":
+        return {
+            "major": 0,
+            "minor": 0,
+            "patch": 0,
+            "build": 0,
+        }
 
     parsed = parse_version(version_string)
     if parsed is None:

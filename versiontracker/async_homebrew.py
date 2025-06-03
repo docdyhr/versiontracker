@@ -79,7 +79,8 @@ async def search_casks(
         cached_data = read_cache(cache_key, CACHE_EXPIRY)
         if cached_data:
             logging.debug(f"Using cached search results for {query}")
-            return cached_data
+            # cached_data should be a list, but cache functions are typed for Dict only
+            return cached_data  # type: ignore[return-value]
 
     # Configure timeout
     timeout_obj = ClientTimeout(total=timeout)
@@ -98,7 +99,7 @@ async def search_casks(
 
                 # Cache the result
                 if use_cache:
-                    write_cache(cache_key, casks)
+                    write_cache(cache_key, casks)  # type: ignore[arg-type]
 
                 return casks
 

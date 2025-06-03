@@ -9,7 +9,7 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, cast
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -151,7 +151,7 @@ async def batch_fetch_json(
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Process results, re-raising any exceptions
-    processed_results = []
+    processed_results: List[Dict[str, Any]] = []
     for i, result in enumerate(results):
         if isinstance(result, Exception):
             logging.error(f"Error fetching {urls[i]}: {result}")
@@ -165,7 +165,8 @@ async def batch_fetch_json(
                     f"Error fetching {urls[i]}: {str(result)}"
                 ) from result
         else:
-            processed_results.append(result)
+            # result is guaranteed to be Dict[str, Any] here since exceptions were handled above
+            processed_results.append(cast(Dict[str, Any], result))
 
     return processed_results
 
@@ -293,14 +294,15 @@ class AsyncBatchProcessor(Generic[T, R]):
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Process results, logging any exceptions
-        processed_results = []
+        processed_results: List[R] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logging.error(f"Error processing item {batch[i]}: {result}")
                 # Handle the error in a subclass-specific way
                 processed_results.append(self.handle_error(batch[i], result))
             else:
-                processed_results.append(result)
+                # result is guaranteed to be R here since exceptions were handled above
+                processed_results.append(cast(R, result))
 
         return processed_results
 

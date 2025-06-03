@@ -11,7 +11,9 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Tuple,
     TypeVar,
+    Union,
 )
 
 import psutil
@@ -91,6 +93,7 @@ class FallbackTqdm:
         self.close()
 
     def set_postfix_str(self, s):
+        """Set postfix string (no-op for fallback)."""
         # No-op for fallback
         pass
 
@@ -114,10 +117,13 @@ except ImportError:
 
     # Fallback implementation if termcolor is not available
     def colored(
-        text: str,
-        color: Optional[str] = None,
-        on_color: Optional[str] = None,
+        text: object,
+        color: Union[str, Tuple[int, int, int], None] = None,
+        on_color: Union[str, Tuple[int, int, int], None] = None,
         attrs: Optional[Iterable[str]] = None,
+        *,
+        no_color: Optional[bool] = None,
+        force_color: Optional[bool] = None,
     ) -> str:
         """Fallback implementation of colored.
 
@@ -128,18 +134,23 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
+            no_color: Whether to disable color (ignored in fallback)
+            force_color: Whether to force color (ignored in fallback)
 
         Returns:
             str: The unmodified text
         """
-        _ = color, on_color, attrs
+        _ = color, on_color, attrs, no_color, force_color
         return str(text)
 
     def cprint(
-        text: str,
-        color: Optional[str] = None,
-        on_color: Optional[str] = None,
+        text: object,
+        color: Union[str, Tuple[int, int, int], None] = None,
+        on_color: Union[str, Tuple[int, int, int], None] = None,
         attrs: Optional[Iterable[str]] = None,
+        *,
+        no_color: Optional[bool] = None,
+        force_color: Optional[bool] = None,
         **kwargs: Any,
     ) -> None:
         """Fallback implementation of cprint.
@@ -151,10 +162,12 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
+            no_color: Whether to disable color (ignored in fallback)
+            force_color: Whether to force color (ignored in fallback)
             **kwargs: Additional arguments passed to print
         """
-        _ = color, on_color, attrs
-        print(text, **kwargs)
+        _ = color, on_color, attrs, no_color, force_color
+        print(str(text), **kwargs)
 
 
 # Constants for terminal output

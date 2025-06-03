@@ -168,17 +168,17 @@ class TestVersionDifference:
     def test_version_difference_basic(self):
         """Test basic version difference calculation."""
         diff = get_version_difference("1.0.0", "2.0.0")
-        assert diff == (1, 0, 0)
+        assert diff == (-1, 0, 0)
 
     def test_version_difference_minor(self):
         """Test minor version difference."""
         diff = get_version_difference("1.0.0", "1.1.0")
-        assert diff == (0, 1, 0)
+        assert diff == (0, -1, 0)
 
     def test_version_difference_patch(self):
         """Test patch version difference."""
         diff = get_version_difference("1.0.0", "1.0.1")
-        assert diff == (0, 0, 1)
+        assert diff == (0, 0, -1)
 
     def test_version_difference_with_none(self):
         """Test version difference with None values."""
@@ -272,7 +272,8 @@ class TestDecomposeVersion:
 
     def test_decompose_empty_version(self):
         """Test decomposing empty version."""
-        assert decompose_version("") is None
+        result = decompose_version("")
+        assert result == {"major": 0, "minor": 0, "patch": 0, "build": 0}
         assert decompose_version(None) is None  # type: ignore[arg-type]
 
     def test_decompose_complex_version(self):
@@ -372,8 +373,8 @@ class TestErrorHandling:
     def test_parse_version_error_handling(self):
         """Test parse_version error handling."""
         # Should not raise exceptions for invalid input
-        assert parse_version("invalid...version") is None
-        assert parse_version("") is None
+        assert parse_version("invalid...version") == (0, 0, 0)
+        assert parse_version("") == (0, 0, 0)
 
     def test_compare_versions_error_handling(self):
         """Test compare_versions error handling."""

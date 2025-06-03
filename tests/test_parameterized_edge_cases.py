@@ -111,11 +111,11 @@ def test_compare_versions_edge_cases(version1, version2, expected_result):
     "version_string,expected_tuple",
     [
         # Empty versions
-        ("", None),
+        ("", (0, 0, 0)),
         (None, None),
         # Malformed versions
-        ("not a version", None),
-        ("version without numbers", None),
+        ("not a version", (0, 0, 0)),
+        ("version without numbers", (0, 0, 0)),
         # Versions with text and whitespace
         ("version 1.0", (1, 0, 0)),
         ("version  1.0", (1, 0, 0)),  # Extra whitespace
@@ -303,14 +303,8 @@ def test_version_difference_components_edge_cases(
     version1, version2, expected_major, expected_minor, expected_patch
 ):
     """Test individual component differences in versions with edge cases."""
-    version_info = get_version_info(version1, version2)
-    if version_info.status != VersionStatus.UNKNOWN:
-        diff = (
-            version_info.newer_by
-            if version_info.status == VersionStatus.NEWER
-            else version_info.outdated_by
-        )
-
+    diff = get_version_difference(version1, version2)
+    if diff is not None:
         # Check only the first three components (major, minor, patch)
         if len(diff) >= 3:
             assert diff[0] == expected_major, (

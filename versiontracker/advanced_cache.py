@@ -718,12 +718,9 @@ class AdvancedCache:
         if cached_value is not None:
             return cached_value
 
-        # Not in cache, call getter function
+        # Not in cache, call getter function and store it
         value = getter_func()
-
-        # Store in cache
         self.put(key, value, level, priority, source)
-
         return value
 
     def batch_get(
