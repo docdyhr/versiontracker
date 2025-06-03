@@ -12,7 +12,15 @@ from unittest.mock import MagicMock, Mock, patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from versiontracker.ui import (
+    DEBUG,
+    ERROR,
+    HAS_TQDM,
+    INFO,
+    SUCCESS,
+    TQDM_CLASS,
+    WARNING,
     AdaptiveRateLimiter,
+    FallbackTqdm,
     QueryFilterManager,
     SmartProgress,
     colored,
@@ -30,35 +38,35 @@ from versiontracker.ui import (
 class TestColorOutput(unittest.TestCase):
     """Test the colored output functions."""
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_success(self, mock_stdout):
+    @patch("versiontracker.ui.cprint")
+    def test_print_success(self, mock_cprint):
         """Test print_success function."""
         print_success("Success message")
-        self.assertIn("Success message", mock_stdout.getvalue())
+        mock_cprint.assert_called_with("Success message", "green")
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_info(self, mock_stdout):
+    @patch("versiontracker.ui.cprint")
+    def test_print_info(self, mock_cprint):
         """Test print_info function."""
         print_info("Info message")
-        self.assertIn("Info message", mock_stdout.getvalue())
+        mock_cprint.assert_called_with("Info message", "blue")
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_warning(self, mock_stdout):
+    @patch("versiontracker.ui.cprint")
+    def test_print_warning(self, mock_cprint):
         """Test print_warning function."""
         print_warning("Warning message")
-        self.assertIn("Warning message", mock_stdout.getvalue())
+        mock_cprint.assert_called_with("Warning message", "yellow")
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_error(self, mock_stdout):
+    @patch("versiontracker.ui.cprint")
+    def test_print_error(self, mock_cprint):
         """Test print_error function."""
         print_error("Error message")
-        self.assertIn("Error message", mock_stdout.getvalue())
+        mock_cprint.assert_called_with("Error message", "red")
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_debug(self, mock_stdout):
+    @patch("versiontracker.ui.cprint")
+    def test_print_debug(self, mock_cprint):
         """Test print_debug function."""
         print_debug("Debug message")
-        self.assertIn("Debug message", mock_stdout.getvalue())
+        mock_cprint.assert_called_with("Debug message", "cyan")
 
     def test_colored_function(self):
         """Test the colored function."""
@@ -132,7 +140,7 @@ class TestSmartProgress(unittest.TestCase):
 
     @patch("psutil.cpu_percent", return_value=50.0)
     @patch("psutil.virtual_memory")
-    def test_resource_monitoring(self, mock_memory, mock_cpu_percent):
+    def test_resource_monitoring(self, mock_memory, _mock_cpu_percent):
         """Test resource monitoring."""
         mock_memory.return_value = MagicMock(percent=60.0)
 
@@ -147,7 +155,7 @@ class TestSmartProgress(unittest.TestCase):
     @patch("psutil.cpu_percent", return_value=75.0)
     @patch("psutil.virtual_memory")
     def test_resource_monitoring_with_tqdm(
-        self, mock_memory, mock_cpu_percent, mock_isatty
+        self, mock_memory, _mock_cpu_percent, _mock_isatty
     ):
         """Test resource monitoring with tqdm progress bar."""
         mock_memory.return_value = MagicMock(percent=80.0)
@@ -185,7 +193,7 @@ class TestSmartProgress(unittest.TestCase):
         self.assertEqual(progress.memory_usage, 0.0)
 
     @patch("psutil.cpu_percent", side_effect=Exception("Mock exception"))
-    def test_resource_monitoring_exception_handling(self, mock_cpu):
+    def test_resource_monitoring_exception_handling(self, _mock_cpu):
         """Test resource monitoring handles exceptions gracefully."""
         progress = SmartProgress(range(3), monitor_resources=True)
         # Should not raise an exception even when psutil fails
@@ -224,7 +232,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
 
     @patch("psutil.cpu_percent", return_value=90.0)  # High CPU usage
     @patch("psutil.virtual_memory")
-    def test_high_resource_usage(self, mock_memory, mock_cpu):
+    def test_high_resource_usage(self, mock_memory, _mock_cpu):
         """Test rate limiting with high resource usage."""
         mock_memory.return_value = MagicMock(percent=95.0)  # High memory usage
 
@@ -238,7 +246,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
 
     @patch("psutil.cpu_percent", return_value=20.0)  # Low CPU usage
     @patch("psutil.virtual_memory")
-    def test_low_resource_usage(self, mock_memory, mock_cpu_percent):
+    def test_low_resource_usage(self, mock_memory, _mock_cpu_percent):
         """Test rate limiting with low resource usage."""
         mock_memory.return_value = MagicMock(percent=30.0)  # Low memory usage
 
@@ -254,7 +262,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
 
     @patch("psutil.cpu_percent", return_value=50.0)
     @patch("psutil.virtual_memory")
-    def test_medium_resource_usage(self, mock_memory, mock_cpu):
+    def test_medium_resource_usage(self, mock_memory, _mock_cpu):
         """Test rate limiting with medium resource usage."""
         mock_memory.return_value = MagicMock(percent=60.0)
 
@@ -268,7 +276,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         self.assertLessEqual(limit, limiter.max_rate_limit_sec)
 
     @patch("psutil.cpu_percent", side_effect=Exception("Mock exception"))
-    def test_resource_monitoring_exception_fallback(self, mock_cpu):
+    def test_resource_monitoring_exception_fallback(self, _mock_cpu):
         """Test rate limiter falls back to base rate when monitoring fails."""
         limiter = AdaptiveRateLimiter(base_rate_limit_sec=1.5)
 
@@ -414,7 +422,7 @@ class TestQueryFilterManager(unittest.TestCase):
         """Test load filter error handling with corrupted file."""
         # Create a corrupted JSON file
         filter_path = self.filter_manager.filters_dir / "corrupted.json"
-        with open(filter_path, "w") as f:
+        with open(filter_path, "w", encoding="utf-8") as f:
             f.write("invalid json content")
 
         # Should return None for corrupted file
@@ -465,17 +473,15 @@ class TestFallbackFunctionality(unittest.TestCase):
     @patch("versiontracker.ui.HAS_TERMCOLOR", False)
     def test_colored_fallback(self):
         """Test colored function fallback when termcolor is not available."""
-        from versiontracker.ui import colored
-
         result = colored("test text", "red")
         self.assertEqual(result, "test text")
 
     @patch("versiontracker.ui.HAS_TERMCOLOR", False)
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_print_functions_fallback(self, mock_stdout):
+    @patch("builtins.print")
+    def test_print_functions_fallback(self, mock_print):
         """Test print functions fallback when termcolor is not available."""
         print_success("Success without color")
-        self.assertIn("Success without color", mock_stdout.getvalue())
+        mock_print.assert_called_with("Success without color")
 
     @patch("versiontracker.ui.HAS_TQDM", False)
     def test_smart_progress_fallback(self):
@@ -487,7 +493,6 @@ class TestFallbackFunctionality(unittest.TestCase):
 
     def test_fallback_tqdm_class(self):
         """Test the FallbackTqdm class functionality."""
-        from versiontracker.ui import FallbackTqdm
 
         # Test initialization
         fallback = FallbackTqdm([1, 2, 3], desc="Test")
@@ -507,9 +512,8 @@ class TestFallbackFunctionality(unittest.TestCase):
             self.assertEqual(fb, fallback)
 
     @patch("sys.stdout", new_callable=io.StringIO)
-    def test_fallback_tqdm_empty_iterable(self, mock_stdout):
+    def test_fallback_tqdm_empty_iterable(self, _mock_stdout):
         """Test FallbackTqdm with None iterable."""
-        from versiontracker.ui import FallbackTqdm
 
         fallback = FallbackTqdm(None, desc="Empty Test")
         result = list(fallback)
@@ -521,7 +525,6 @@ class TestConstants(unittest.TestCase):
 
     def test_color_constants(self):
         """Test that color constants are defined."""
-        from versiontracker.ui import DEBUG, ERROR, INFO, SUCCESS, WARNING
 
         self.assertEqual(SUCCESS, "green")
         self.assertEqual(INFO, "blue")
@@ -531,7 +534,6 @@ class TestConstants(unittest.TestCase):
 
     def test_tqdm_class_availability(self):
         """Test TQDM_CLASS is properly set."""
-        from versiontracker.ui import HAS_TQDM, TQDM_CLASS
 
         self.assertIsNotNone(TQDM_CLASS)
         self.assertIsInstance(HAS_TQDM, bool)

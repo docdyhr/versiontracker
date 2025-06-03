@@ -17,30 +17,35 @@ from typing import Callable, Dict, Optional, Tuple
 DEFAULT_CASKS = {
     "firefox": {
         "name": "firefox",
+        "token": "firefox_cask",
         "version": "120.0.1",
         "desc": "Web browser",
         "homepage": "https://www.mozilla.org/firefox/",
     },
     "visual-studio-code": {
         "name": "visual-studio-code",
+        "token": "visual-studio-code_cask",
         "version": "1.85.1",
         "desc": "Open-source code editor",
         "homepage": "https://code.visualstudio.com/",
     },
     "slack": {
         "name": "slack",
+        "token": "slack_cask",
         "version": "4.35.131",
         "desc": "Team communication and collaboration software",
         "homepage": "https://slack.com/",
     },
     "google-chrome": {
         "name": "google-chrome",
+        "token": "google-chrome_cask",
         "version": "120.0.6099.129",
         "desc": "Web browser",
         "homepage": "https://www.google.com/chrome/",
     },
     "iterm2": {
         "name": "iterm2",
+        "token": "iterm2_cask",
         "version": "3.4.21",
         "desc": "Terminal emulator as alternative to Apple's Terminal app",
         "homepage": "https://iterm2.com/",
@@ -95,11 +100,14 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
             match = re.search(r"/api/cask/([^/]+)", self.path)
             if match:
                 cask_name = match.group(1)
+                # Remove .json extension if present
+                if cask_name.endswith(".json"):
+                    cask_name = cask_name[:-5]
                 self.handle_cask_request(cask_name)
             else:
                 self.handle_all_casks_request()
-        elif self.path == "/api/search":
-            # Handle search queries
+        elif self.path.startswith("/api/search"):
+            # Handle search queries (both /api/search and /api/search.json)
             self.handle_search_request()
         else:
             # Handle unknown paths
@@ -322,8 +330,28 @@ def with_mock_homebrew_server(func: Callable) -> Callable:
     Returns:
         Decorated function
     """
+    import asyncio
+    from functools import wraps
 
-    def wrapper(*args, **kwargs):
+    @wraps(func)
+    async def async_wrapper(*args, **kwargs):
+        # Start mock server
+        server = MockHomebrewServer()
+        server_url, port = server.start()
+
+        # Add server to kwargs
+        kwargs["mock_server"] = server
+        kwargs["server_url"] = server_url
+
+        try:
+            # Run the test
+            return await func(*args, **kwargs)
+        finally:
+            # Stop the server
+            server.stop()
+
+    @wraps(func)
+    def sync_wrapper(*args, **kwargs):
         # Start mock server
         server = MockHomebrewServer()
         server_url, port = server.start()
@@ -339,4 +367,8 @@ def with_mock_homebrew_server(func: Callable) -> Callable:
             # Stop the server
             server.stop()
 
-    return wrapper
+    # Check if the function is async
+    if asyncio.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+        return sync_wrapper

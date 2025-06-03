@@ -8,7 +8,6 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from aiohttp import ClientSession
 
 from tests.mock_aiohttp_session import create_mock_session_factory, mock_aiohttp_session
 from versiontracker.async_homebrew import (
@@ -236,7 +235,8 @@ class TestHomebrewVersionChecker:
             assert result == ("Firefox", "100.0", "firefox", None)
 
 
-def test_async_check_brew_install_candidates():
+@pytest.mark.asyncio
+async def test_async_check_brew_install_candidates():
     """Test checking brew install candidates."""
     # Mock the process_all method
     with patch(
@@ -245,26 +245,44 @@ def test_async_check_brew_install_candidates():
         with patch.object(
             HomebrewBatchProcessor,
             "process_all",
+            new_callable=AsyncMock,
             return_value=[("Firefox", "100.0", True)],
         ):
-            results = async_check_brew_install_candidates([("Firefox", "100.0")])
+            # Access the underlying async function without the sync wrapper
+            if hasattr(async_check_brew_install_candidates, "__wrapped__"):
+                results = await async_check_brew_install_candidates.__wrapped__(
+                    [("Firefox", "100.0")]
+                )
+            else:
+                results = await async_check_brew_install_candidates(
+                    [("Firefox", "100.0")]
+                )
 
             # Verify the results
             assert results == [("Firefox", "100.0", True)]
 
 
-def test_async_check_brew_install_candidates_no_homebrew():
+@pytest.mark.asyncio
+async def test_async_check_brew_install_candidates_no_homebrew():
     """Test checking brew install candidates when Homebrew is not available."""
     with patch(
         "versiontracker.async_homebrew.is_homebrew_available", return_value=False
     ):
-        results = async_check_brew_install_candidates([("Firefox", "100.0")])
+        # Access the underlying async function without the sync wrapper
+        if hasattr(async_check_brew_install_candidates, "__wrapped__"):
+            results = await async_check_brew_install_candidates.__wrapped__(
+                [("Firefox", "100.0")]
+            )
+        else:
+            results = await async_check_brew_install_candidates([("Firefox", "100.0")])
 
         # Verify the results
         assert results == [("Firefox", "100.0", False)]
+        # Verify the results
 
 
-def test_async_check_brew_update_candidates():
+@pytest.mark.asyncio
+async def test_async_check_brew_update_candidates():
     """Test checking brew update candidates."""
     # Mock the process_all method
     with patch(
@@ -273,22 +291,38 @@ def test_async_check_brew_update_candidates():
         with patch.object(
             HomebrewVersionChecker,
             "process_all",
+            new_callable=AsyncMock,
             return_value=[("Firefox", "100.0", "firefox", "101.0")],
         ):
-            results = async_check_brew_update_candidates(
-                [("Firefox", "100.0", "firefox")]
-            )
+            # Access the underlying async function without the sync wrapper
+            if hasattr(async_check_brew_update_candidates, "__wrapped__"):
+                results = await async_check_brew_update_candidates.__wrapped__(
+                    [("Firefox", "100.0", "firefox")]
+                )
+            else:
+                results = await async_check_brew_update_candidates(
+                    [("Firefox", "100.0", "firefox")]
+                )
 
             # Verify the results
             assert results == [("Firefox", "100.0", "firefox", "101.0")]
 
 
-def test_async_check_brew_update_candidates_no_homebrew():
+@pytest.mark.asyncio
+async def test_async_check_brew_update_candidates_no_homebrew():
     """Test checking brew update candidates when Homebrew is not available."""
     with patch(
         "versiontracker.async_homebrew.is_homebrew_available", return_value=False
     ):
-        results = async_check_brew_update_candidates([("Firefox", "100.0", "firefox")])
+        # Access the underlying async function without the sync wrapper
+        if hasattr(async_check_brew_update_candidates, "__wrapped__"):
+            results = await async_check_brew_update_candidates.__wrapped__(
+                [("Firefox", "100.0", "firefox")]
+            )
+        else:
+            results = await async_check_brew_update_candidates(
+                [("Firefox", "100.0", "firefox")]
+            )
 
         # Verify the results
         assert results == [("Firefox", "100.0", "firefox", None)]

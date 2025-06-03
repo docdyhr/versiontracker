@@ -289,7 +289,11 @@ async def async_check_brew_install_candidates(
         strict_match=strict_match,
     )
 
-    return processor.process_all(data)
+    # Access the underlying async method without the sync wrapper
+    if hasattr(processor.process_all, "__wrapped__"):
+        return await processor.process_all.__wrapped__(processor, data)
+    else:
+        return await processor.process_all(data)
 
 
 @async_to_sync
@@ -362,7 +366,13 @@ class HomebrewVersionChecker(
 
         try:
             # Get the latest version from Homebrew
-            latest_version = await async_get_cask_version(cask_name, self.use_cache)
+            # Access the underlying async function without the sync wrapper
+            if hasattr(async_get_cask_version, "__wrapped__"):
+                latest_version = await async_get_cask_version.__wrapped__(
+                    cask_name, self.use_cache
+                )
+            else:
+                latest_version = await async_get_cask_version(cask_name, self.use_cache)
             return (app_name, version, cask_name, latest_version)
 
         except (NetworkError, TimeoutError, HomebrewError) as e:
@@ -410,4 +420,8 @@ async def async_check_brew_update_candidates(
         rate_limit=rate_limit,
     )
 
-    return processor.process_all(data)
+    # Access the underlying async method without the sync wrapper
+    if hasattr(processor.process_all, "__wrapped__"):
+        return await processor.process_all.__wrapped__(processor, data)
+    else:
+        return await processor.process_all(data)

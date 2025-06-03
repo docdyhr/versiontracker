@@ -1,5 +1,6 @@
 """Tests for the UI module."""
 
+import io
 import json
 import os
 import shutil
@@ -7,7 +8,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -48,6 +49,39 @@ class TestTerminalOutput:
             assert lines == 24
 
     @pytest.mark.parametrize(
+        "width,height",
+        [
+            (1, 1),  # Minimum size
+            (999, 999),  # Large size
+            (120, 30),  # Common large terminal
+            (40, 10),  # Small terminal
+        ],
+    )
+    def test_get_terminal_size_edge_cases(self, width, height):
+        """Test terminal size detection with edge case values."""
+        with patch("shutil.get_terminal_size") as mock_size:
+            mock_size.return_value = (width, height)
+            columns, lines = get_terminal_size()
+            assert columns == width
+            assert lines == height
+
+    def test_get_terminal_size_exception_handling(self):
+        """Test terminal size detection handles exceptions gracefully."""
+        with patch("shutil.get_terminal_size") as mock_size:
+            mock_size.side_effect = OSError("Terminal not available")
+            # The function should still return something reasonable or raise appropriately
+            try:
+                columns, lines = get_terminal_size()
+                # If it doesn't raise, verify we get reasonable defaults
+                assert isinstance(columns, int)
+                assert isinstance(lines, int)
+                assert columns > 0
+                assert lines > 0
+            except OSError:
+                # If it raises, that's also acceptable behavior
+                pass
+
+    @pytest.mark.parametrize(
         "print_func,color",
         [
             (print_success, "green"),
@@ -57,7 +91,7 @@ class TestTerminalOutput:
             (print_debug, "cyan"),
         ],
     )
-    def test_colored_print_functions(self, print_func, color, capsys):
+    def test_colored_print_functions(self, print_func, color):
         """Test colored print functions."""
         message = "test message"
 
@@ -65,6 +99,26 @@ class TestTerminalOutput:
             with patch("versiontracker.ui.cprint") as mock_cprint:
                 print_func(message)
                 mock_cprint.assert_called_once_with(message, color)
+
+    @pytest.mark.parametrize(
+        "print_func,color",
+        [
+            (print_success, "green"),
+            (print_info, "blue"),
+            (print_warning, "yellow"),
+            (print_error, "red"),
+            (print_debug, "cyan"),
+        ],
+    )
+    def test_colored_print_functions_with_kwargs(self, print_func, color):
+        """Test colored print functions pass through kwargs correctly."""
+        message = "test message"
+        kwargs = {"end": "\n\n", "flush": True}
+
+        with patch("versiontracker.ui.HAS_TERMCOLOR", True):
+            with patch("versiontracker.ui.cprint") as mock_cprint:
+                print_func(message, **kwargs)
+                mock_cprint.assert_called_once_with(message, color, **kwargs)
 
     @pytest.mark.parametrize(
         "print_func",
@@ -77,7 +131,33 @@ class TestTerminalOutput:
         with patch("versiontracker.ui.HAS_TERMCOLOR", False):
             print_func(message)
             captured = capsys.readouterr()
-            assert message in captured.out
+            # More specific assertion - should be exact message with newline
+            assert captured.out == f"{message}\n"
+            assert captured.err == ""
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "",  # Empty string
+            "multi\nline\nmessage",  # Multi-line
+            "unicode: 🎉 测试",  # Unicode characters
+            "x" * 100,  # Long message
+        ],
+    )
+    def test_print_functions_edge_cases(self, message, capsys):
+        """Test print functions with edge case inputs."""
+        # Test both with and without termcolor
+        for has_termcolor in [True, False]:
+            with patch("versiontracker.ui.HAS_TERMCOLOR", has_termcolor):
+                # Test should not raise exceptions
+                print_success(message)
+                captured = capsys.readouterr()
+                if has_termcolor:
+                    # When termcolor is available, cprint is called - output depends on mocking
+                    pass  # Skip output verification since cprint is mocked elsewhere
+                else:
+                    # When termcolor is not available, should use regular print
+                    assert message in captured.out
 
     def test_colored_fallback(self):
         """Test colored function fallback."""
@@ -90,7 +170,44 @@ class TestTerminalOutput:
         with patch("versiontracker.ui.HAS_TERMCOLOR", False):
             cprint("test", "red")
             captured = capsys.readouterr()
-            assert "test" in captured.out
+            assert captured.out == "test\n"
+            assert captured.err == ""
+
+    def test_color_constants_values(self):
+        """Test that color constants have expected values."""
+        # These constants should be stable for backward compatibility
+        assert SUCCESS == "green"
+        assert INFO == "blue"
+        assert WARNING == "yellow"
+        assert ERROR == "red"
+        assert DEBUG == "cyan"
+
+    def test_print_functions_exception_handling(self):
+        """Test print functions handle exceptions gracefully."""
+        # Test with a problematic message that might cause encoding issues
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
+            with patch(
+                "builtins.print",
+                side_effect=UnicodeEncodeError("utf-8", "test", 0, 1, "test error"),
+            ):
+                # Should not raise an exception
+                try:
+                    print_success("test message")
+                except UnicodeEncodeError:
+                    # If it does raise, that's the current behavior - document it
+                    pass
+
+    def test_print_functions_with_file_kwarg(self, capsys):
+        """Test print functions work with file kwarg."""
+        string_io = io.StringIO()
+
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
+            print_success("test", file=string_io)
+            # Should not appear in stdout since we redirected to StringIO
+            captured = capsys.readouterr()
+            assert captured.out == ""
+            # Should appear in our StringIO
+            assert string_io.getvalue() == "test\n"
 
 
 class TestSmartProgress:

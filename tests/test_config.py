@@ -12,10 +12,20 @@ class TestConfig(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures, if any."""
-        # Clear any environment variables that might affect tests
-        for var in os.environ.keys():
-            if var.startswith("VERSIONTRACKER_"):
-                del os.environ[var]
+        # Store original environment variables and clear test-related ones
+        self.original_env = {}
+        env_vars_to_clear = [
+            var for var in os.environ.keys() if var.startswith("VERSIONTRACKER_")
+        ]
+        for var in env_vars_to_clear:
+            self.original_env[var] = os.environ[var]
+            del os.environ[var]
+
+    def tearDown(self):
+        """Clean up test fixtures."""
+        # Restore original environment variables
+        for var, value in self.original_env.items():
+            os.environ[var] = value
 
     def test_init_default_values(self):
         """Test that default values are set correctly."""
