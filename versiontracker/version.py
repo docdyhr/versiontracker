@@ -229,8 +229,10 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     prerelease_num = None
     
     # Look for pre-release indicators including Unicode
+    # But exclude patterns like "1.beta.0" which should be treated as mixed format
     prerelease_match = re.search(r'[-.](?P<type>alpha|beta|rc|final|[αβγδ])(?:\.(?P<suffix>\w+|\d+))?', cleaned, re.IGNORECASE)
-    if prerelease_match:
+    is_mixed_format = re.search(r'\d+\.[a-zA-Z]+\.\d+', version_str)
+    if prerelease_match and not is_mixed_format:
         has_prerelease = True
         suffix = prerelease_match.group('suffix')
         if suffix:
@@ -276,10 +278,11 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     
     # Special handling for build metadata in certain patterns
     if build_metadata is not None:
-        # Check for patterns like "v1.0 build 1234", "1.0 (1234)", "1.0-dev-1234"
+        # Check for patterns like "v1.0 build 1234", "1.0 (1234)", "1.0-dev-1234", "1.0+build.1"
         if (re.search(r'build\s+\d+', version_str, re.IGNORECASE) or
             re.search(r'\(\d+\)', version_str) or
-            re.search(r'-dev-\d+', version_str)):
+            re.search(r'-dev-\d+', version_str) or
+            re.search(r'\+.*?\d+', version_str)):
             # For these patterns, ensure we have 3 base components, then add build as 4th
             while len(parts) < 3:
                 parts.append(0)
@@ -291,7 +294,7 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     
     # Handle text components in the middle (like "1.beta.0")
     # Remove text components that got parsed as numbers due to mixed parsing
-    if ('beta' in original_str or 'alpha' in original_str or 'rc' in original_str) and len(parts) > 2:
+    if ('beta' in original_str or 'alpha' in original_str or 'rc' in original_str) and len(parts) >= 2:
         # If we have text in the version, check for patterns like "1.beta.0"
         if re.search(r'\d+\.[a-zA-Z]+\.\d+', version_str):
             # Extract first and last numbers, ignore middle text

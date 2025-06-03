@@ -114,8 +114,8 @@ def test_compare_versions_edge_cases(version1, version2, expected_result):
         ("", (0, 0, 0)),
         (None, (0, 0, 0)),
         # Malformed versions
-        ("not a version", (0, 0, 0)),
-        ("version without numbers", (0, 0, 0)),
+        ("not a version", None),
+        ("version without numbers", None),
         # Versions with text and whitespace
         ("version 1.0", (1, 0, 0)),
         ("version  1.0", (1, 0, 0)),  # Extra whitespace
