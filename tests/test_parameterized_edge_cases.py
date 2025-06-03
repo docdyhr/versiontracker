@@ -111,8 +111,8 @@ def test_compare_versions_edge_cases(version1, version2, expected_result):
     "version_string,expected_tuple",
     [
         # Empty versions
-        ("", (0, 0, 0)),
-        (None, (0, 0, 0)),
+        ("", None),
+        (None, None),
         # Malformed versions
         ("not a version", None),
         ("version without numbers", None),

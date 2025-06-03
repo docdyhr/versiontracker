@@ -18,14 +18,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        exclude:
-          # Reduce CI time while maintaining good coverage
+        # macOS-only project - test on latest macOS with multiple Python versions
+        os: [macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        include:
+          # Test on Ubuntu for CI efficiency, but primary target is macOS
           - os: ubuntu-latest
-            python-version: '3.8'
-          - os: ubuntu-latest
-            python-version: '3.9'
+            python-version: '3.11'
 
     steps:
     - name: Checkout code

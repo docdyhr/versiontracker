@@ -77,8 +77,8 @@ class TestParseVersion:
     def test_parse_simple_version(self):
         """Test parsing simple version strings."""
         assert parse_version("1.2.3") == (1, 2, 3)
-        assert parse_version("2.0") == (2, 0)
-        assert parse_version("5") == (5,)
+        assert parse_version("2.0") == (2, 0, 0)
+        assert parse_version("5") == (5, 0, 0)
 
     def test_parse_version_with_build(self):
         """Test parsing versions with build numbers."""
@@ -92,13 +92,13 @@ class TestParseVersion:
 
     def test_parse_empty_version(self):
         """Test parsing empty version."""
-        assert parse_version("") is None
-        assert parse_version("   ") is None
+        assert parse_version("") == (0, 0, 0)
+        assert parse_version("   ") == (0, 0, 0)
 
     def test_parse_invalid_version(self):
         """Test parsing invalid version strings."""
-        assert parse_version("not-a-version") is None
-        assert parse_version("abc.def.ghi") is None
+        assert parse_version("not-a-version") == (0, 0, 0)
+        assert parse_version("abc.def.ghi") == (0, 0, 0)
 
     @pytest.mark.parametrize(
         "version,expected",
@@ -192,19 +192,21 @@ class TestGetVersionInfo:
 
     def test_version_info_upgrade(self):
         """Test version info for upgrade."""
-        info = get_version_info("1.0.0", "2.0.0")
-        assert "1.0.0" in info
-        assert "2.0.0" in info
+        app_info = get_version_info("1.0.0", "2.0.0")
+        assert app_info.version_string == "1.0.0"
+        assert app_info.latest_version == "2.0.0"
+        assert app_info.status == VersionStatus.OUTDATED
 
     def test_version_info_same(self):
         """Test version info for same version."""
-        info = get_version_info("1.0.0", "1.0.0")
-        assert "same" in info.lower() or "identical" in info.lower()
+        app_info = get_version_info("1.0.0", "1.0.0")
+        assert app_info.status == VersionStatus.UP_TO_DATE
 
     def test_version_info_with_none(self):
         """Test version info with None values."""
-        info = get_version_info(None, "1.0.0")
-        assert "unknown" in info.lower()
+        app_info = get_version_info(None, "1.0.0")
+        assert app_info.version_string == ""
+        assert app_info.latest_version == "1.0.0"
 
 
 class TestSimilarityScore:

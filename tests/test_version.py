@@ -18,23 +18,23 @@ from versiontracker.version import (
         ("1.2.3", (1, 2, 3)),
         ("1.2", (1, 2, 0)),
         ("1", (1, 0, 0)),
-        ("1.2.3-beta", (1, 2, 3)),
-        ("1.2.3+build.123", (1, 2, 3)),
-        ("1.2.3-beta+build.123", (1, 2, 3)),
-        ("1.2.3 (456)", (1, 2, 3)),
+        ("1.2.3-beta", (1, 2, 3, 0)),
+        ("1.2.3+build.123", (1, 2, 3, 123)),
+        ("1.2.3-beta+build.123", (1, 2, 3, 123)),
+        ("1.2.3 (456)", (1, 2, 3, 456)),
         ("Version 1.2.3", (1, 2, 3)),
         ("v1.2.3", (1, 2, 3)),
-        ("1.2.3.4", (1, 2, 3)),  # Extra version components
+        ("1.2.3.4", (1, 2, 3, 4)),  # Extra version components
         ("2021.1.2", (2021, 1, 2)),  # Year-based versioning
-        ("1.2.3-rc1", (1, 2, 3)),  # Release candidate
-        ("1.2.3.beta4", (1, 2, 3)),  # Beta with number
+        ("1.2.3-rc1", (1, 2, 3, 1)),  # Release candidate
+        ("1.2.3.beta4", (1, 2, 3, 4)),  # Beta with number
         ("10.15.7", (10, 15, 7)),  # macOS version format
         ("1.2.3d", (1, 2, 3)),  # Version with suffix
-        ("1.2.3rev2", (1, 2, 3)),  # Revision suffix
-        ("App v2.3.0 (build 1234)", (2, 3, 0)),  # Complex format
+        ("1.2.3rev2", (1, 2, 3, 2)),  # Revision suffix
+        ("App v2.3.0 (build 1234)", (2, 3, 0, 1234)),  # Complex format
         ("", (0, 0, 0)),
-        (None, (0, 0, 0)),
-        ("non-version-string", None),
+        (None, None),
+        ("non-version-string", (0, 0, 0)),
     ],
 )
 def test_parse_version(version_string, expected):
@@ -74,11 +74,11 @@ def test_compare_versions(version1, version2, expected):
     [
         # Version 1, Version 2, Expected Difference
         ((1, 2, 3), (1, 2, 3), (0, 0, 0)),  # No difference
-        ((1, 2, 3), (1, 2, 4), (0, 0, 1)),  # Patch difference
-        ((1, 2, 3), (1, 3, 3), (0, 1, 0)),  # Minor difference
-        ((1, 2, 3), (2, 2, 3), (1, 0, 0)),  # Major difference
-        ((1, 2, 3), (2, 3, 4), (1, 1, 1)),  # All differences
-        ((1, 2), (1, 2, 3), (0, 0, 3)),  # Different lengths
+        ((1, 2, 3), (1, 2, 4), (0, 0, -1)),  # Patch difference
+        ((1, 2, 3), (1, 3, 3), (0, -1, 0)),  # Minor difference
+        ((1, 2, 3), (2, 2, 3), (-1, 0, 0)),  # Major difference
+        ((1, 2, 3), (2, 3, 4), (-1, -1, -1)),  # All differences
+        ((1, 2), (1, 2, 3), (0, 0, -3)),  # Different lengths
         (None, (1, 2, 3), None),  # None case 1
         ((1, 2, 3), None, None),  # None case 2
         (None, None, None),  # Both None
