@@ -20,10 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Technical Debt Cleanup**:
-  - Refactored version.py to fix import conflicts between rapidfuzz and fuzzywuzzy libraries
+- **Major Technical Debt Cleanup**:
+  - Fixed dependency mismatches between pyproject.toml and requirements.txt
+  - Removed redundant setup.py file in favor of modern pyproject.toml build system
+  - Resolved all ruff linting errors including import ordering issues (E402)
+  - Fixed mypy type checking errors including unreachable code and type mismatches
+  - Removed duplicate FallbackTqdm class definition causing naming conflicts
+  - Fixed function signatures in UI fallback implementations for consistency
+  - Cleaned up dead code identified by vulture analysis
+  - Added proper type annotations to resolve type checking issues
+  - Fixed import conflicts between rapidfuzz and fuzzywuzzy libraries
   - Reduced cyclomatic complexity in check_outdated_apps function by extracting helper functions
-  - Fixed improper import ordering and moved all imports to top of file (E402 linting errors)
   - Removed unused imports (Union, cast) to reduce code clutter
   - Fixed import sorting issues in test files
   - Removed unused variables in test_apps_coverage.py

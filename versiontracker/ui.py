@@ -95,6 +95,7 @@ except ImportError:
 
         def __exit__(self, exc_type, exc_val, exc_tb):
             """Context manager exit."""
+            _ = exc_type, exc_val, exc_tb
             self.close()
 
         def set_postfix_str(self, s):
@@ -111,7 +112,7 @@ except ImportError:
     HAS_TERMCOLOR = False
 
     # Fallback implementation if termcolor is not available
-    def colored(text, color=None, on_color=None, attrs=None):
+    def colored(text: object, color=None, on_color=None, attrs=None, *, no_color=None, force_color=None) -> str:
         """Fallback implementation of colored.
 
         Returns the text unmodified since color formatting is not available.
@@ -121,13 +122,16 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
+            no_color: Disable color (ignored in fallback)
+            force_color: Force color (ignored in fallback)
 
         Returns:
             str: The unmodified text
         """
-        return text
+        _ = color, on_color, attrs, no_color, force_color
+        return str(text)
 
-    def cprint(text, color=None, on_color=None, attrs=None, **kwargs):
+    def cprint(text: object, color=None, on_color=None, attrs=None, *, no_color=None, force_color=None, **kwargs) -> None:
         """Fallback implementation of cprint.
 
         Simply prints the text without color formatting.
@@ -137,8 +141,11 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
+            no_color: Disable color (ignored in fallback)
+            force_color: Force color (ignored in fallback)
             **kwargs: Additional arguments passed to print
         """
+        _ = color, on_color, attrs, no_color, force_color
         print(text, **kwargs)
 
 
@@ -399,14 +406,18 @@ class AdaptiveRateLimiter:
     def wait(self):
         """Wait for the appropriate amount of time."""
         current_time = time.time()
+        
+        # Skip wait on very first call (when last_call_time is still 0)
+        if self.last_call_time == 0.0:
+            self.last_call_time = current_time
+            return
+            
         time_since_last_call = current_time - self.last_call_time
+        rate_limit = self.get_current_limit()
 
-        if self.last_call_time > 0:  # Skip wait on first call
-            rate_limit = self.get_current_limit()
-
-            # If we haven't waited long enough, sleep for the remaining time
-            if time_since_last_call < rate_limit:
-                time.sleep(rate_limit - time_since_last_call)
+        # If we haven't waited long enough, sleep for the remaining time
+        if time_since_last_call < rate_limit:
+            time.sleep(rate_limit - time_since_last_call)
 
         # Update last call time
         self.last_call_time = time.time()
@@ -522,3 +533,7 @@ class QueryFilterManager:
         except Exception as e:
             print(f"Error deleting filter: {e}")
             return False
+
+
+# Make FallbackTqdm available for testing purposes when tqdm is available
+# This allows tests to import FallbackTqdm regardless of whether tqdm is installed
