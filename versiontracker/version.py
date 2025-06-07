@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Internal imports (imported after optional libraries are set up below)
 # These will be imported conditionally after the fuzzy library setup
@@ -87,8 +87,8 @@ if not USE_RAPIDFUZZ and not USE_FUZZYWUZZY:
 
             return (best_match, best_score) if best_match else (choices[0], 0)
 
-    fuzz = MinimalFuzz()
-    fuzz_process = MinimalProcess()
+    fuzz = MinimalFuzz()  # type: ignore
+    fuzz_process = MinimalProcess()  # type: ignore
 
 # Internal imports
 from versiontracker.config import get_config  # noqa: E402

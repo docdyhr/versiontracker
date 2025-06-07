@@ -716,7 +716,7 @@ class AdvancedCache:
         # Try to get from cache
         cached_value = self.get(key, level, ttl)
         if cached_value is not None:
-            return cached_value
+            return cached_value  # type: ignore
 
         # Not in cache, call getter function and store it
         value = getter_func()
