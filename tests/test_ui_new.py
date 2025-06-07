@@ -478,7 +478,7 @@ class TestFallbackFunctionality(unittest.TestCase):
 
     @patch("versiontracker.ui.HAS_TERMCOLOR", False)
     @patch("builtins.print")
-    def test_print_functions_fallback(self, mock_print):
+    def test_print_functions_termcolor_fallback(self, mock_print):
         """Test print functions fallback when termcolor is not available."""
         print_success("Success without color")
         mock_print.assert_called_with("Success without color")
