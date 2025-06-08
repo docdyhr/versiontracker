@@ -116,7 +116,7 @@ except ImportError:
     HAS_TERMCOLOR = False
 
     # Fallback implementation if termcolor is not available
-    def colored(
+    def colored(  # type: ignore[misc]
         text: object,
         color: Union[str, Tuple[int, int, int], None] = None,
         on_color: Union[str, Tuple[int, int, int], None] = None,
@@ -143,7 +143,7 @@ except ImportError:
         _ = color, on_color, attrs, no_color, force_color
         return str(text)
 
-    def cprint(
+    def cprint(  # type: ignore[misc]
         text: object,
         color: Union[str, Tuple[int, int, int], None] = None,
         on_color: Union[str, Tuple[int, int, int], None] = None,
@@ -324,6 +324,7 @@ class SmartProgress(Generic[T]):
             self.last_update_time = time.time()
         except Exception:
             # If we can't get resource information, just continue without it
+            # This is non-critical functionality
             pass
 
 

@@ -69,13 +69,20 @@ MAX_ERRORS = 3  # Maximum number of consecutive errors before giving up
 class RateLimiter(Protocol):
     """Protocol defining the interface for rate limiters."""
 
-    def wait(self) -> None: ...
+    def wait(self) -> None:
+        """Wait according to rate limiting rules."""
+        ...
 
 
 class SimpleRateLimiter:
     """A simple rate limiter for API calls."""
 
     def __init__(self, delay: float):
+        """Initialize the rate limiter with specified delay.
+
+        Args:
+            delay: Minimum delay between API calls in seconds.
+        """
         self._delay = max(0.1, float(delay))
         self._last_time = 0.0
         self._lock = threading.Lock()

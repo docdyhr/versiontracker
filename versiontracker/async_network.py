@@ -202,6 +202,8 @@ def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
             # Run the async function in the event loop
             return loop.run_until_complete(func(*args, **kwargs))
 
+    # Manually add __wrapped__ attribute for tests to access original function
+    wrapper.__wrapped__ = func
     return wrapper
 
 
