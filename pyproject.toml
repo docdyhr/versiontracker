@@ -52,8 +52,8 @@ versiontracker = "versiontracker.__main__:main"
 
 [tool.ruff]
 # Define the target Python version.
-# We support Python 3.8 and later.
-target-version = "py38"
+# We support Python 3.9 and later.
+target-version = "py39"
 
 # Exclude the venv directory.
 exclude = [

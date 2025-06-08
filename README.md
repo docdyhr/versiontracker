@@ -72,7 +72,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ## Requirements
 
 * macOS (tested on 10.15 Catalina and later)
-* Python 3.7 or later
+* Python 3.9 or later
 * Homebrew package manager
 
 ## Installation
@@ -416,7 +416,8 @@ be managed through Homebrew.
 
 ## Project Status
 
-VersionTracker is currently undergoing significant enhancements following the roadmap in [ROADMAP.md](ROADMAP.md). Key recent improvements include:
+VersionTracker is currently undergoing significant enhancements following the roadmap in
+[ROADMAP.md](ROADMAP.md). Key recent improvements include:
 
 * Refactored the codebase to follow the command pattern with dedicated handlers
 * Improved project structure with better module separation
