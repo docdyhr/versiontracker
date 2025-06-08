@@ -36,7 +36,7 @@ def setup_logging(*args, **kwargs):
 
 @profile_function("versiontracker_main")
 def versiontracker_main() -> int:
-    """Main entry point for VersionTracker.
+    """Execute the main VersionTracker functionality.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
@@ -114,7 +114,7 @@ def versiontracker_main() -> int:
 
 
 def main() -> int:
-    """Main entry point function for console script.
+    """Execute the console script entry point.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)

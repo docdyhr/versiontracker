@@ -23,7 +23,7 @@ except ImportError:
     def tabulate(  # type: ignore[misc]
         tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any
     ) -> str:
-        """Simple tabulate fallback."""
+        """Format tabular data into a string representation."""
         result = []
         if headers:  # Ensure headers is iterable and items are stringifiable
             header_line = " | ".join(str(h) for h in headers)

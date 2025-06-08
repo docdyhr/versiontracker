@@ -210,7 +210,7 @@ except ImportError:
         monitor_resources: bool = True,
         **kwargs: Any,
     ) -> Iterator[T]:
-        """Simple fallback for environments without smart_progress."""
+        """Provide a fallback for environments without smart_progress."""
         if iterable is None:
             return iter([])
         return iter(iterable)

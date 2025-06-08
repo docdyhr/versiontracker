@@ -83,7 +83,7 @@ class PerformanceProfiler:
     def time_function(
         self, func_name: Optional[str] = None
     ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-        """Decorator to time a function.
+        """Create a timing decorator for a function.
 
         Args:
             func_name: The name to use for this function in timing reports.
@@ -269,7 +269,7 @@ def disable_profiling() -> None:
 def profile_function(
     func_name: Optional[str] = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    """Decorator to profile a function.
+    """Create a profiling decorator for a function.
 
     Args:
         func_name: Optional name for the function in profile reports

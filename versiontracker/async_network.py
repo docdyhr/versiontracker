@@ -172,7 +172,7 @@ async def batch_fetch_json(
 
 
 def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Decorator to convert an async function to a synchronous one.
+    """Convert an async function to a synchronous one.
 
     Args:
         func: Async function to convert
@@ -183,7 +183,7 @@ def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        """Synchronous wrapper for async function."""
+        """Run the async function synchronously."""
         # Check if we're already in an async context
         try:
             loop = asyncio.get_running_loop()
