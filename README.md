@@ -1,6 +1,6 @@
 # Versiontracker Update tool for macOS
 
-![Logo](images/logo.png)
+![Logo](assets/images/logo.png)
 
 <!-- Build Status -->
 [![CI Pipeline](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
