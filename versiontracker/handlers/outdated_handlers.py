@@ -20,27 +20,29 @@ try:
     from tabulate import tabulate
 except ImportError:
     # Fallback if tabulate is not installed
-    def tabulate(tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any) -> str:
-        """Simple tabulate fallback."""
+    def tabulate(  # type: ignore[misc]
+        tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any
+    ) -> str:
+        """Format tabular data into a string representation."""
         result = []
         if headers:  # Ensure headers is iterable and items are stringifiable
             header_line = " | ".join(str(h) for h in headers)
             if header_line:  # Only add header and separator if header_line is not empty
                 result.append(header_line)
                 result.append("-" * len(header_line))
-        
+
         # Ensure tabular_data is iterable and its rows are iterable (if possible)
-        if hasattr(tabular_data, '__iter__'):
+        if hasattr(tabular_data, "__iter__"):
             for row in tabular_data:
-                if hasattr(row, '__iter__'):
+                if hasattr(row, "__iter__"):
                     result.append(" | ".join(str(cell) for cell in row))
                 else:
                     # If a row is not iterable, convert it to string (simple fallback behavior)
                     result.append(str(row))
         elif tabular_data is not None:
-             # If tabular_data itself is not iterable but not None, convert it to string
+            # If tabular_data itself is not iterable but not None, convert it to string
             result.append(str(tabular_data))
-            
+
         return "\n".join(result)
 
 
@@ -307,8 +309,9 @@ def _export_data(
         options.output_file if hasattr(options, "output_file") else None,
     )
 
-    if not options.output_file and isinstance(export_result, str):
-        print(export_result)
+    if not hasattr(options, "output_file") or not options.output_file:
+        if isinstance(export_result, str):
+            print(export_result)
 
     return 0
 

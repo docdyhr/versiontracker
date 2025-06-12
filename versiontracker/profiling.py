@@ -20,7 +20,7 @@ try:
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
-    psutil = None  # Define to avoid unbound variable errors
+    psutil = None
 
 # Type variable for generic function decorator
 T = TypeVar("T")
@@ -83,7 +83,7 @@ class PerformanceProfiler:
     def time_function(
         self, func_name: Optional[str] = None
     ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-        """Decorator to time a function.
+        """Create a timing decorator for a function.
 
         Args:
             func_name: The name to use for this function in timing reports.
@@ -114,7 +114,8 @@ class PerformanceProfiler:
 
                 # Only measure memory for outermost calls to avoid skewed measurements
                 if is_outermost_call and HAS_PSUTIL:
-                    assert psutil is not None  # Ensure psutil is not None for type checker
+                    if psutil is None:
+                        raise RuntimeError("psutil module is not available")
                     process = psutil.Process()
                     memory_before = process.memory_info().rss / 1024 / 1024  # MB
                 else:
@@ -134,7 +135,8 @@ class PerformanceProfiler:
 
                         # Get final memory usage
                         if HAS_PSUTIL:
-                            assert psutil is not None  # Ensure psutil is not None for type checker
+                            if psutil is None:
+                                raise RuntimeError("psutil module is not available")
                             process = psutil.Process()
                             memory_after = process.memory_info().rss / 1024 / 1024  # MB
                             memory_diff = memory_after - memory_before
@@ -267,7 +269,7 @@ def disable_profiling() -> None:
 def profile_function(
     func_name: Optional[str] = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    """Decorator to profile a function.
+    """Create a profiling decorator for a function.
 
     Args:
         func_name: Optional name for the function in profile reports

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuite errors="0" failures="1" name="mypy" skips="0" tests="1" time="1.690">
+  <testcase classname="mypy" file="mypy" line="1" name="mypy-py3_8-darwin" time="1.690">
+    <failure message="mypy produced messages">/Users/thomas/Programming/versiontracker/versiontracker/advanced_cache.py: note: In member "get_or_set" of class "AdvancedCache":
+/Users/thomas/Programming/versiontracker/versiontracker/advanced_cache.py:719:13: error:
+Statement is unreachable  [unreachable]
+                return cached_value
+                ^~~~~~~~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/profiling.py:23:14: error:
+Incompatible types in assignment (expression has type "None", variable has type
+Module)  [assignment]
+        psutil = None
+                 ^~~~
+/Users/thomas/Programming/versiontracker/versiontracker/version.py:90:12: error:
+Incompatible types in assignment (expression has type "MinimalFuzz", variable
+has type "Optional[Module]")  [assignment]
+        fuzz = MinimalFuzz()
+               ^~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/version.py:91:20: error:
+Incompatible types in assignment (expression has type "MinimalProcess", variable
+has type "Optional[Module]")  [assignment]
+        fuzz_process = MinimalProcess()
+                       ^~~~~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/config.py: note: In member "_normalize_config_keys" of class "Config":
+/Users/thomas/Programming/versiontracker/versiontracker/config.py:481:13: error:
+Statement is unreachable  [unreachable]
+                return config
+                ^~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/config.py: note: In member "set" of class "Config":
+/Users/thomas/Programming/versiontracker/versiontracker/config.py:803:13: error:
+Statement is unreachable  [unreachable]
+                current = self._config
+                ^~~~~~~~~~~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/apps.py: note: In function "is_brew_cask_installable":
+/Users/thomas/Programming/versiontracker/versiontracker/apps.py:583:9: error:
+Statement is unreachable  [unreachable]
+            if any(
+            ^
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py: note: In function "get_all_homebrew_casks":
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py:121:9: error:
+Statement is unreachable  [unreachable]
+            return cached_casks
+            ^~~~~~~~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py: note: In function "get_cask_info":
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py:192:9: error:
+Statement is unreachable  [unreachable]
+            return cached_info
+            ^~~~~~~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py: note: In function "search_casks":
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py:262:9: error:
+Statement is unreachable  [unreachable]
+            return cached_results
+            ^~~~~~~~~~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py: note: In function "batch_get_cask_info":
+/Users/thomas/Programming/versiontracker/versiontracker/homebrew.py:332:13: error:
+Statement is unreachable  [unreachable]
+                result[cask_name] = cached_info
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/export.py: note: In function "_export_to_json":
+/Users/thomas/Programming/versiontracker/versiontracker/export.py:111:51: error:
+Subclass of "Dict[str, str]" and "Tuple[Any, ...]" cannot exist: would have
+incompatible method signatures  [unreachable]
+    ...                       str(app[0]) if isinstance(app, tuple) and len(a...
+                                                        ^~~
+/Users/thomas/Programming/versiontracker/versiontracker/export.py:111:67: error:
+Right operand of "and" is never evaluated  [unreachable]
+    ...        str(app[0]) if isinstance(app, tuple) and len(app) &gt; 0 else ""
+                                                         ^~~~~~~~~~~~
+/Users/thomas/Programming/versiontracker/versiontracker/handlers/outdated_handlers.py: note: In function "tabulate":
+/Users/thomas/Programming/versiontracker/versiontracker/handlers/outdated_handlers.py:23:5: error:
+All conditional function variants must have identical signatures  [misc]
+        def tabulate(
+        ^
+/Users/thomas/Programming/versiontracker/versiontracker/handlers/outdated_handlers.py:23:5: note: Original:
+/Users/thomas/Programming/versiontracker/versiontracker/handlers/outdated_handlers.py:23:5: note:     def tabulate(tabular_data: Union[Mapping[Any, Iterable[Any]], Iterable[Iterable[Any]]], headers: Union[str, Dict[str, str], Sequence[str]] = ..., tablefmt: Union[str, TableFormat] = ..., floatfmt: Union[str, Iterable[str]] = ..., intfmt: Union[str, Iterable[str]] = ..., numalign: Optional[str] = ..., stralign: Optional[str] = ..., missingval: Union[str, Iterable[str]] = ..., showindex: Union[str, bool, Iterable[Any]] = ..., disable_numparse: Union[bool, Iterable[int]] = ..., colalign: Optional[Iterable[Optional[str]]] = ..., maxcolwidths: Union[int, Iterable[Optional[int]], None] = ..., rowalign: Union[str, Iterable[str], None] = ..., maxheadercolwidths: Union[int, Iterable[int], None] = ...) -&gt; str
+/Users/thomas/Programming/versiontracker/versiontracker/handlers/outdated_handlers.py:23:5: note: Redefinition:
+/Users/thomas/Programming/versiontracker/versiontracker/handlers/outdated_handlers.py:23:5: note:     def tabulate(tabular_data: Any, headers: Any = ..., tablefmt: Any = ..., **kwargs: Any) -&gt; str</failure>
+  </testcase>
+</testsuite>

@@ -204,7 +204,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
 
 
 def analyze_directory(
-    directory: Path, exclude_dirs: List[str] = None
+    directory: Path, exclude_dirs: Optional[List[str]] = None
 ) -> Dict[Path, List[DocstringInfo]]:
     """Analyze all Python files in a directory.
 

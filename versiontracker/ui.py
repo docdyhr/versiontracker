@@ -11,18 +11,21 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Tuple,
     TypeVar,
+    Union,
 )
 
 try:
-    import psutil  # type: ignore
+    import psutil
+
     HAS_PSUTIL = True
 except Exception:  # pragma: no cover - optional dependency
     HAS_PSUTIL = False
 
     class _PsutilFallback:
         @staticmethod
-        def cpu_percent(interval: float | None = None) -> float:
+        def cpu_percent(interval: Optional[float] = None) -> float:
             return 0.0
 
         class _VM:
@@ -32,93 +35,96 @@ except Exception:  # pragma: no cover - optional dependency
         def virtual_memory() -> "_PsutilFallback._VM":
             return _PsutilFallback._VM()
 
-    psutil = _PsutilFallback()  # type: ignore
+    psutil = _PsutilFallback()
 
 # Initialize progress bar handling
 HAS_TQDM = False
 TQDM_CLASS: Any = None  # Will hold the tqdm class
 
+
+# Define a simple fallback class for tqdm (always available for testing)
+class FallbackTqdm:
+    """Fallback implementation for tqdm progress bar.
+
+    This class provides a minimal implementation of the tqdm interface
+    for use when the tqdm package is not available.
+    """
+
+    def __init__(self, iterable=None, desc=None, total=None, **kwargs):
+        """Initialize the fallback progress bar.
+
+        Args:
+            iterable: Iterable to wrap
+            desc: Description to display
+            total: Total number of items (optional)
+            **kwargs: Additional arguments (ignored)
+        """
+        self.iterable = iterable
+        self.desc = desc
+        self.total = total
+        self.n = 0
+
+        # Print initial message
+        if desc:
+            print(f"{desc}: started")
+
+    def __iter__(self):
+        """Iterate over the wrapped iterable."""
+        if self.iterable is None:
+            return iter([])
+
+        # Print start
+        count = 0
+        for item in self.iterable:
+            count += 1
+            self.n = count
+            yield item
+
+        # Print completion
+        if self.desc:
+            print(f"{self.desc}: completed ({count} items)")
+
+    def update(self, n=1):
+        """Update progress by n items."""
+        self.n += n
+
+    def set_description(self, desc=None):
+        """Set the description of the progress bar."""
+        if desc:
+            self.desc = desc
+            print(f"Progress: {desc}")
+
+    def refresh(self):
+        """Refresh the display (no-op in fallback)."""
+        pass
+
+    def close(self):
+        """Close the progress bar."""
+        pass
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        _ = exc_type, exc_val, exc_tb
+        self.close()
+
+    def set_postfix_str(self, s):
+        """Set postfix string (no-op for fallback)."""
+        # No-op for fallback
+        pass
+
+
+# Try to import tqdm, use fallback if not available
 try:
     from tqdm import tqdm
 
     HAS_TQDM = True
     TQDM_CLASS = tqdm
 except ImportError:
-    # If tqdm is not available, create a simple fallback
     HAS_TQDM = False
-
-    # Define a simple fallback class for tqdm
-    class FallbackTqdm:
-        """Fallback implementation for tqdm progress bar.
-
-        This class provides a minimal implementation of the tqdm interface
-        for use when the tqdm package is not available.
-        """
-
-        def __init__(self, iterable=None, desc=None, total=None, **kwargs):
-            """Initialize the fallback progress bar.
-
-            Args:
-                iterable: Iterable to wrap
-                desc: Description to display
-                total: Total number of items (optional)
-                **kwargs: Additional arguments (ignored)
-            """
-            self.iterable = iterable
-            self.desc = desc
-            self.total = total
-            self.n = 0
-
-            # Print initial message
-            if desc:
-                print(f"{desc}: started")
-
-        def __iter__(self):
-            """Iterate over the wrapped iterable."""
-            if self.iterable is None:
-                return iter([])
-
-            # Print start
-            count = 0
-            for item in self.iterable:
-                count += 1
-                self.n = count
-                yield item
-
-            # Print completion
-            if self.desc:
-                print(f"{self.desc}: completed ({count} items)")
-
-        def update(self, n=1):
-            """Update progress by n items."""
-            self.n += n
-
-        def set_description(self, desc=None):
-            """Set the description of the progress bar."""
-            if desc:
-                self.desc = desc
-                print(f"Progress: {desc}")
-
-        def refresh(self):
-            """Refresh the display (no-op in fallback)."""
-            pass
-
-        def close(self):
-            """Close the progress bar."""
-            pass
-
-        def __enter__(self):
-            """Context manager entry."""
-            return self
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            """Context manager exit."""
-            self.close()
-
-        def set_postfix_str(self, s):
-            # No-op for fallback
-            pass
-
     TQDM_CLASS = FallbackTqdm
 
 try:
@@ -129,7 +135,15 @@ except ImportError:
     HAS_TERMCOLOR = False
 
     # Fallback implementation if termcolor is not available
-    def colored(text, color=None, on_color=None, attrs=None):
+    def colored(  # type: ignore[misc]
+        text: object,
+        color: Union[str, Tuple[int, int, int], None] = None,
+        on_color: Union[str, Tuple[int, int, int], None] = None,
+        attrs: Optional[Iterable[str]] = None,
+        *,
+        no_color: Optional[bool] = None,
+        force_color: Optional[bool] = None,
+    ) -> str:
         """Fallback implementation of colored.
 
         Returns the text unmodified since color formatting is not available.
@@ -139,13 +153,25 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
+            no_color: Whether to disable color (ignored in fallback)
+            force_color: Whether to force color (ignored in fallback)
 
         Returns:
             str: The unmodified text
         """
-        return text
+        _ = color, on_color, attrs, no_color, force_color
+        return str(text)
 
-    def cprint(text, color=None, on_color=None, attrs=None, **kwargs):
+    def cprint(  # type: ignore[misc]
+        text: object,
+        color: Union[str, Tuple[int, int, int], None] = None,
+        on_color: Union[str, Tuple[int, int, int], None] = None,
+        attrs: Optional[Iterable[str]] = None,
+        *,
+        no_color: Optional[bool] = None,
+        force_color: Optional[bool] = None,
+        **kwargs: Any,
+    ) -> None:
         """Fallback implementation of cprint.
 
         Simply prints the text without color formatting.
@@ -155,9 +181,12 @@ except ImportError:
             color: Foreground color (ignored in fallback)
             on_color: Background color (ignored in fallback)
             attrs: Text attributes (ignored in fallback)
+            no_color: Whether to disable color (ignored in fallback)
+            force_color: Whether to force color (ignored in fallback)
             **kwargs: Additional arguments passed to print
         """
-        print(text, **kwargs)
+        _ = color, on_color, attrs, no_color, force_color
+        print(str(text), **kwargs)
 
 
 # Constants for terminal output
@@ -314,6 +343,7 @@ class SmartProgress(Generic[T]):
             self.last_update_time = time.time()
         except Exception:
             # If we can't get resource information, just continue without it
+            # This is non-critical functionality
             pass
 
 
@@ -417,14 +447,18 @@ class AdaptiveRateLimiter:
     def wait(self):
         """Wait for the appropriate amount of time."""
         current_time = time.time()
+
+        # Skip wait on very first call (when last_call_time is still 0)
+        if self.last_call_time == 0.0:
+            self.last_call_time = current_time
+            return
+
         time_since_last_call = current_time - self.last_call_time
+        rate_limit = self.get_current_limit()
 
-        if self.last_call_time > 0:  # Skip wait on first call
-            rate_limit = self.get_current_limit()
-
-            # If we haven't waited long enough, sleep for the remaining time
-            if time_since_last_call < rate_limit:
-                time.sleep(rate_limit - time_since_last_call)
+        # If we haven't waited long enough, sleep for the remaining time
+        if time_since_last_call < rate_limit:
+            time.sleep(rate_limit - time_since_last_call)
 
         # Update last call time
         self.last_call_time = time.time()
@@ -540,3 +574,7 @@ class QueryFilterManager:
         except Exception as e:
             print(f"Error deleting filter: {e}")
             return False
+
+
+# Make FallbackTqdm available for testing purposes when tqdm is available
+# This allows tests to import FallbackTqdm regardless of whether tqdm is installed

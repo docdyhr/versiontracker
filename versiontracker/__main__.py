@@ -3,7 +3,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from versiontracker.cli import get_arguments
 from versiontracker.handlers import (
@@ -26,7 +26,7 @@ from versiontracker.profiling import (
 )
 from versiontracker.ui import QueryFilterManager, create_progress_bar
 
-# Logging functions have been moved to versiontracker.handlers.setup_handlers
+# Logging, configuration, and filter management functions have been moved to handlers modules
 
 
 def setup_logging(*args, **kwargs):
@@ -34,41 +34,9 @@ def setup_logging(*args, **kwargs):
     pass
 
 
-def determine_command(options: Any) -> Optional[str]:
-    """Determine which command to execute based on the options.
-
-    Args:
-        options: Command line options
-
-    Returns:
-        str: The command to execute, or None if no command is specified
-    """
-    if hasattr(options, "apps") and options.apps:
-        return "list"
-    elif hasattr(options, "brews") and options.brews:
-        return "brewfilter"
-    elif hasattr(options, "recom") and options.recom:
-        return "homebrew"
-    elif hasattr(options, "strict_recom") and options.strict_recom:
-        return "homebrew"
-    elif hasattr(options, "check_outdated") and options.check_outdated:
-        return "outdated"
-    elif hasattr(options, "version") and options.version:
-        return "version"
-    else:
-        return None
-
-
-# Configuration functions have been moved to versiontracker.handlers.setup_handlers
-# Configuration functions have been moved to versiontracker.handlers.setup_handlers
-
-
-# Filter management functions have been moved to versiontracker.handlers.filter_handlers
-
-
 @profile_function("versiontracker_main")
 def versiontracker_main() -> int:
-    """Main entry point for VersionTracker.
+    """Execute the main VersionTracker functionality.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)
@@ -146,7 +114,7 @@ def versiontracker_main() -> int:
 
 
 def main() -> int:
-    """Main entry point function for console script.
+    """Execute the console script entry point.
 
     Returns:
         int: Exit code (0 for success, non-zero for failure)

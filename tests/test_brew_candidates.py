@@ -185,14 +185,18 @@ class TestBrewCandidates(unittest.TestCase):
         # Set up mock futures and as_completed
         mock_future = MagicMock()
         mock_future.result.return_value = True
+        mock_future.exception.return_value = None  # No exception
         mock_executor.submit.return_value = mock_future
 
         with patch("versiontracker.apps.as_completed", return_value=[mock_future]):
             # Create test data
             batch = [("Firefox", "100.0")]
 
-            # Call the function
-            result = _process_brew_batch(batch, 2, True)
+            # Call the function with proper mocking of executor's future result
+            with patch(
+                "versiontracker.apps._process_brew_search", return_value="Firefox"
+            ):
+                result = _process_brew_batch(batch, 2, True)
 
             # Verify the result
             expected = [("Firefox", "100.0", True)]

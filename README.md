@@ -16,10 +16,11 @@
 
 <!-- Quality & Coverage -->
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white)](https://codecov.io/gh/docdyhr/versiontracker)
+[![Test Coverage](https://img.shields.io/badge/coverage-60%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
+[![Type Checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg?logo=python&logoColor=white)](http://mypy-lang.org/)
 [![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg?logo=python&logoColor=white)](https://bandit.readthedocs.io/en/latest/)
 [![Code Quality](https://img.shields.io/github/languages/code-size/docdyhr/versiontracker?logo=github&logoColor=white&label=code%20size)](https://github.com/docdyhr/versiontracker)
-[![Language Grade](https://img.shields.io/badge/language-Python-blue?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker)
 
 <!-- Repository Stats -->
 [![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/issues)
@@ -30,7 +31,7 @@
 
 <!-- Platform & Tools -->
 [![macOS](https://img.shields.io/badge/platform-macOS-blue.svg?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Homebrew Compatible](https://img.shields.io/badge/homebrew-compatible-orange.svg?logo=homebrew&logoColor=white)](https://brew.sh/)
 [![CLI Tool](https://img.shields.io/badge/tool-CLI-brightgreen?logo=terminal&logoColor=white)](https://github.com/docdyhr/versiontracker)
 [![GitHub Repo Size](https://img.shields.io/github/repo-size/docdyhr/versiontracker?logo=github&logoColor=white&label=repo%20size)](https://github.com/docdyhr/versiontracker)
@@ -44,7 +45,8 @@
 
 ## Overview
 
-Versiontracker is a command-line tool for macOS that helps you manage applications installed outside of the App Store.
+Versiontracker is a command-line tool for macOS that helps you manage applications
+installed outside of the App Store.
 It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed
 using Homebrew casks, making it easier to keep your applications up to date.
 
@@ -70,7 +72,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ## Requirements
 
 * macOS (tested on 10.15 Catalina and later)
-* Python 3.7 or later
+* Python 3.9 or later
 * Homebrew package manager
 
 ## Installation
@@ -383,6 +385,7 @@ pytest --cov=versiontracker --cov-report=term-missing
 ```
 
 The test suite includes:
+
 * Standard unit tests for core functionality
 * Parameterized tests for efficient testing of version comparison
 * Mock server for network operation testing
@@ -413,7 +416,8 @@ be managed through Homebrew.
 
 ## Project Status
 
-VersionTracker is currently undergoing significant enhancements following the roadmap in [ROADMAP.md](ROADMAP.md). Key recent improvements include:
+VersionTracker is currently undergoing significant enhancements following the roadmap in
+[ROADMAP.md](ROADMAP.md). Key recent improvements include:
 
 * Refactored the codebase to follow the command pattern with dedicated handlers
 * Improved project structure with better module separation

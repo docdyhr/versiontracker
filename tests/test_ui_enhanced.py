@@ -122,17 +122,18 @@ class TestTerminalUI(unittest.TestCase):
         # Create a long message that should wrap
         long_message = "This is a very long message that should wrap in the terminal"
 
-        with capture_stdout() as output:
-            # Use print directly to test terminal wrapping
-            progress = create_progress_bar()
-            color_func = progress.color("blue")
-            print(color_func(long_message))
+        # Use a direct approach to verify the colored output is created properly
+        progress = create_progress_bar()
+        color_func = progress.color("blue")
+        colored_output = color_func(long_message)
 
-            # Just verify output was produced, actual wrapping is hard to test
-            output_text = output.getvalue()
-            self.assertIn(
-                long_message, output_text.replace("\033[34m", "").replace("\033[0m", "")
-            )
+        # Verify the colored output contains the original message
+        cleaned_text = (
+            colored_output.replace("\033[34m", "").replace("\033[0m", "").strip()
+        )
+
+        # Just verify output was produced, actual wrapping is hard to test
+        self.assertIn(long_message, cleaned_text)
 
     @patch("versiontracker.ui.TQDM_CLASS")
     def test_progress_bar_status_updates(self, mock_tqdm_class):

@@ -107,5 +107,6 @@ def handle_setup_logging(options: Any) -> int:
             logging.basicConfig(level=logging.WARNING)
             logging.error(f"Error setting up logging: {e}")
         except Exception:
-            pass  # Last resort if even basic logging fails
+            # Last resort if even basic logging fails - suppress to avoid crash
+            pass
         return 1

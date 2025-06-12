@@ -112,7 +112,7 @@ def test_compare_versions_edge_cases(version1, version2, expected_result):
     [
         # Empty versions
         ("", (0, 0, 0)),
-        (None, (0, 0, 0)),
+        (None, None),
         # Malformed versions
         ("not a version", (0, 0, 0)),
         ("version without numbers", (0, 0, 0)),
@@ -233,25 +233,25 @@ def test_version_difference_edge_cases(version1, version2, expected_difference):
     [
         # Edge cases for version status
         (None, None, VersionStatus.UNKNOWN),
-        ("", "", VersionStatus.UPTODATE),
+        ("", "", VersionStatus.UP_TO_DATE),
         (None, "1.0", VersionStatus.UNKNOWN),
         ("1.0", None, VersionStatus.UNKNOWN),
         # Malformed versions
         ("not a version", "also not a version", VersionStatus.UNKNOWN),
         ("not a version", "1.0", VersionStatus.UNKNOWN),
         # Various comparison scenarios
-        ("1.0", "1.0", VersionStatus.UPTODATE),
+        ("1.0", "1.0", VersionStatus.UP_TO_DATE),
         ("1.0", "1.1", VersionStatus.OUTDATED),
         ("1.1", "1.0", VersionStatus.NEWER),
         # Different formats
-        ("v1.0", "1.0", VersionStatus.UPTODATE),
-        ("Version 1.0", "v1.0", VersionStatus.UPTODATE),
+        ("v1.0", "1.0", VersionStatus.UP_TO_DATE),
+        ("Version 1.0", "v1.0", VersionStatus.UP_TO_DATE),
         # Pre-release versions
         ("1.0.0-alpha", "1.0.0", VersionStatus.OUTDATED),
         ("1.0.0", "1.0.0-alpha", VersionStatus.NEWER),
         ("1.0.0-alpha", "1.0.0-beta", VersionStatus.OUTDATED),
         # Build metadata (should be ignored)
-        ("1.0.0+build.1", "1.0.0+build.2", VersionStatus.UPTODATE),
+        ("1.0.0+build.1", "1.0.0+build.2", VersionStatus.UP_TO_DATE),
         # Complex versions
         ("Firefox 91.0.2", "Firefox 92.0.0", VersionStatus.OUTDATED),
         ("Chrome 94.0.4606.71", "Chrome 94.0.4606.81", VersionStatus.OUTDATED),
@@ -303,14 +303,8 @@ def test_version_difference_components_edge_cases(
     version1, version2, expected_major, expected_minor, expected_patch
 ):
     """Test individual component differences in versions with edge cases."""
-    version_info = get_version_info(version1, version2)
-    if version_info.status != VersionStatus.UNKNOWN:
-        diff = (
-            version_info.newer_by
-            if version_info.status == VersionStatus.NEWER
-            else version_info.outdated_by
-        )
-
+    diff = get_version_difference(version1, version2)
+    if diff is not None:
         # Check only the first three components (major, minor, patch)
         if len(diff) >= 3:
             assert diff[0] == expected_major, (

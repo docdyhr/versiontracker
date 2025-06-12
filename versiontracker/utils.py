@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Utility functions for VersionTracker."""
 
 import functools
@@ -53,24 +52,41 @@ def setup_logging(debug: bool = False) -> None:
 
     # Create log directory in user's Library folder
     log_dir = Path.home() / "Library" / "Logs" / "Versiontracker"
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    log_file = log_dir / "versiontracker.log"
+    log_file = None
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "versiontracker.log"
+    except OSError as e:
+        logging.error(f"Failed to create log directory {log_dir}: {e}")
+        # Continue without file logging if directory creation fails
 
     # Python 3.9+ supports encoding parameter
-    if sys.version_info >= (3, 9):
+    try:
+        if log_file and sys.version_info >= (3, 9):
+            logging.basicConfig(
+                filename=log_file,
+                format="%(asctime)s %(levelname)s %(name)s %(message)s",
+                encoding="utf-8",
+                filemode="w",
+                level=log_level,
+            )
+        elif log_file:
+            logging.basicConfig(
+                filename=log_file,
+                format="%(asctime)s %(levelname)s %(name)s %(message)s",
+                filemode="w",
+                level=log_level,
+            )
+        else:
+            # Fallback to console logging if file logging fails
+            logging.basicConfig(
+                format="%(asctime)s %(levelname)s %(name)s %(message)s",
+                level=log_level,
+            )
+    except (OSError, PermissionError) as e:
+        # Fallback to console logging if file logging fails
         logging.basicConfig(
-            filename=log_file,
             format="%(asctime)s %(levelname)s %(name)s %(message)s",
-            encoding="utf-8",
-            filemode="w",
-            level=log_level,
-        )
-    else:
-        logging.basicConfig(
-            filename=log_file,
-            format="%(asctime)s %(levelname)s %(name)s %(message)s",
-            filemode="w",
             level=log_level,
         )
 
@@ -93,8 +109,12 @@ def normalise_name(name: str) -> str:
 
 def _ensure_cache_dir() -> None:
     """Ensure the cache directory exists."""
-    cache_dir = os.path.dirname(APP_CACHE_FILE)
-    os.makedirs(cache_dir, exist_ok=True)
+    try:
+        cache_dir = os.path.dirname(APP_CACHE_FILE)
+        os.makedirs(cache_dir, exist_ok=True)
+    except OSError as e:
+        logging.warning(f"Could not create cache directory: {e}")
+        # Continue without caching if directory creation fails
 
 
 def _read_cache_file() -> Dict[str, Any]:
@@ -108,8 +128,11 @@ def _read_cache_file() -> Dict[str, Any]:
             with open(APP_CACHE_FILE, "r") as f:
                 cache_data = json.load(f)
 
-            # Check if cache is still valid
-            if time.time() - cache_data.get("timestamp", 0) <= APP_CACHE_TTL:
+            # Check if cache has timestamp and is still valid
+            if (
+                "timestamp" in cache_data
+                and time.time() - cache_data["timestamp"] <= APP_CACHE_TTL
+            ):
                 return cast(Dict[str, Any], cache_data)
 
             logging.info("Cache expired, will refresh application data")
@@ -192,9 +215,10 @@ def get_json_data(command: str) -> Dict[str, Any]:
     except subprocess.CalledProcessError as e:
         logging.error(f"Command '{command}' failed with error code {e.returncode}")
         # Check for specific error patterns in the output
-        if "command not found" in str(e):
+        error_output = str(e.output) if e.output else str(e)
+        if "command not found" in error_output.lower():
             raise FileNotFoundError(f"Command not found: {command}") from e
-        elif "permission denied" in str(e).lower():
+        elif "permission denied" in error_output.lower():
             raise PermissionError(f"Permission denied when running: {command}") from e
         else:
             raise DataParsingError(f"Command execution failed: {e}") from e
@@ -253,9 +277,12 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
     except PermissionError:
         logging.error(f"Permission denied: {cmd}")
         raise
+    except DataParsingError:
+        # Re-raise DataParsingError as-is
+        raise
     except Exception as e:
         logging.error(f"Error getting JSON data: {e}")
-        raise Exception(f"Failed to get JSON data: {e}")
+        raise DataParsingError(f"Failed to get JSON data: {e}") from e
 
 
 def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
@@ -483,7 +510,7 @@ class RateLimiter:
 
             # Remove timestamps older than the period
             self.timestamps = [
-                t for t in self.timestamps if current_time - t < self.period
+                t for t in self.timestamps if current_time - t <= self.period
             ]
 
             # If we've reached the limit, wait until we can make another call
@@ -501,6 +528,11 @@ class RateLimiter:
                         # Reacquire the lock after sleeping
                         self._lock.acquire()
                     current_time = time.time()  # Update current time after sleeping
+
+                    # Remove timestamps older than the period after sleeping
+                    self.timestamps = [
+                        t for t in self.timestamps if current_time - t <= self.period
+                    ]
 
             # Record the timestamp for this call
             self.timestamps.append(current_time)

@@ -77,7 +77,7 @@ def suppress_console_warnings() -> None:
     """
 
     def warning_filter(message, category, filename, lineno, file=None, line=None):
-        """Custom warning filter function.
+        """Filter warning messages based on defined criteria.
 
         Args:
             message: Warning message

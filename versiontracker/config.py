@@ -478,7 +478,7 @@ class Config:
             Dict[str, Any]: Normalized configuration dictionary
         """
         if not isinstance(config, dict):
-            return config
+            return config  # type: ignore
 
         normalized = {}
         for key, value in config.items():
@@ -800,7 +800,7 @@ class Config:
             raise ConfigError(error_msg)
 
             # Apply the value
-            current = self._config
+            current = self._config  # type: ignore
             for part in parts[:-1]:
                 if part not in current:
                     current[part] = {}

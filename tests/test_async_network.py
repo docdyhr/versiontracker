@@ -5,11 +5,12 @@ provided by the async_network.py module.
 """
 
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aiohttp import ClientResponseError, ClientSession
 
+from tests.mock_aiohttp_session import create_mock_session_factory, mock_aiohttp_session
 from versiontracker.async_network import (
     AsyncBatchProcessor,
     async_to_sync,
@@ -20,35 +21,31 @@ from versiontracker.async_network import (
 from versiontracker.exceptions import NetworkError, TimeoutError
 
 
-@pytest.fixture
-def mock_aiohttp_session():
-    """Create a mock aiohttp session."""
-    session = MagicMock(spec=ClientSession)
-    response = MagicMock()
-    session.get.return_value.__aenter__.return_value = response
-    response.raise_for_status = MagicMock()
-    response.json.return_value = asyncio.Future()
-    response.json.return_value.set_result({"key": "value"})
-    return session, response
-
-
 @pytest.mark.asyncio
-async def test_fetch_json_success(mock_aiohttp_session):
+async def test_fetch_json_success():
     """Test successful JSON fetching."""
-    session, response = mock_aiohttp_session
+    async with mock_aiohttp_session() as mock_session:
+        # Setup mock response
+        mock_session.add_response("https://example.com/api", json_data={"key": "value"})
 
-    with patch("aiohttp.ClientSession", return_value=session):
-        with patch("versiontracker.async_network.read_cache", return_value=None):
-            with patch("versiontracker.async_network.write_cache", return_value=True):
-                result = await fetch_json("https://example.com/api", use_cache=True)
+        # Create factory for ClientSession mock
+        session_factory = create_mock_session_factory(mock_session)
 
-                # Verify the result
-                assert result == {"key": "value"}
+        with patch("aiohttp.ClientSession", session_factory):
+            with patch("versiontracker.async_network.read_cache", return_value=None):
+                with patch(
+                    "versiontracker.async_network.write_cache", return_value=True
+                ):
+                    result = await fetch_json("https://example.com/api", use_cache=True)
 
-                # Verify the session was used correctly
-                session.get.assert_called_once()
-                response.raise_for_status.assert_called_once()
-                response.json.assert_called_once()
+                    # Verify the result
+                    assert result == {"key": "value"}
+
+                    # Verify the session was called correctly
+                    assert len(mock_session.call_history) == 1
+                    method, url, kwargs = mock_session.call_history[0]
+                    assert method == "GET"
+                    assert url == "https://example.com/api"
 
 
 @pytest.mark.asyncio
@@ -65,36 +62,41 @@ async def test_fetch_json_from_cache():
 
 
 @pytest.mark.asyncio
-async def test_fetch_json_network_error(mock_aiohttp_session):
+async def test_fetch_json_network_error():
     """Test handling of network errors."""
-    session, response = mock_aiohttp_session
+    async with mock_aiohttp_session() as mock_session:
+        # Setup mock response with error
+        mock_session.add_response(
+            "https://example.com/api",
+            raise_for_status_exception=ClientResponseError(
+                request_info=MagicMock(),
+                history=(),
+                status=404,
+                message="Not Found",
+            ),
+        )
 
-    # Make response.raise_for_status raise an error
-    response.raise_for_status.side_effect = ClientResponseError(
-        request_info=MagicMock(),
-        history=(),
-        status=404,
-        message="Not Found",
-    )
+        session_factory = create_mock_session_factory(mock_session)
 
-    with patch("aiohttp.ClientSession", return_value=session):
-        with patch("versiontracker.async_network.read_cache", return_value=None):
-            with pytest.raises(NetworkError):
-                await fetch_json("https://example.com/api")
+        with patch("aiohttp.ClientSession", session_factory):
+            with patch("versiontracker.async_network.read_cache", return_value=None):
+                with pytest.raises(NetworkError):
+                    await fetch_json("https://example.com/api")
 
 
 @pytest.mark.asyncio
-async def test_fetch_json_timeout(mock_aiohttp_session):
+async def test_fetch_json_timeout():
     """Test handling of timeouts."""
-    session, _ = mock_aiohttp_session
+    async with mock_aiohttp_session() as mock_session:
+        # Override the get method to raise timeout
+        mock_session.get = MagicMock(side_effect=asyncio.TimeoutError("Timeout"))
 
-    # Make session.get raise a timeout
-    session.get.side_effect = asyncio.TimeoutError("Timeout")
+        session_factory = create_mock_session_factory(mock_session)
 
-    with patch("aiohttp.ClientSession", return_value=session):
-        with patch("versiontracker.async_network.read_cache", return_value=None):
-            with pytest.raises(TimeoutError):
-                await fetch_json("https://example.com/api")
+        with patch("aiohttp.ClientSession", session_factory):
+            with patch("versiontracker.async_network.read_cache", return_value=None):
+                with pytest.raises(TimeoutError):
+                    await fetch_json("https://example.com/api")
 
 
 @pytest.mark.asyncio

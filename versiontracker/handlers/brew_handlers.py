@@ -274,6 +274,7 @@ def handle_brew_recommendations(options: Any) -> int:
             try:
                 any("unittest" in f.filename for f in inspect.stack())
             except Exception:
+                # Unable to inspect stack, continue normally
                 pass
 
             # If in a test, the check_brew_install_candidates function should already be mocked

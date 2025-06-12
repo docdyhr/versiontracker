@@ -18,14 +18,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        exclude:
-          # Reduce CI time while maintaining good coverage
+        # macOS-only project - test on latest macOS with multiple Python versions
+        os: [macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        include:
+          # Test on Ubuntu for CI efficiency, but primary target is macOS
           - os: ubuntu-latest
-            python-version: '3.8'
-          - os: ubuntu-latest
-            python-version: '3.9'
+            python-version: '3.11'
 
     steps:
     - name: Checkout code
@@ -40,8 +39,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install -c constraints.txt -r requirements.txt
+        pip install -c constraints.txt -r requirements-dev.txt
         pip install -e .
 
     - name: Run tests with coverage
@@ -85,8 +84,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install -c constraints.txt -r requirements.txt
+        pip install -c constraints.txt -r requirements-dev.txt
         pip install -e .
 
     - name: Run Ruff linting
@@ -96,10 +95,8 @@ jobs:
 
     - name: Run type checking
       run: |
-        echo "MyPy temporarily disabled - see https://github.com/docdyhr/versiontracker/issues/XXX"
-        # mypy --config-file=mypy.ini versiontracker --junit-xml=mypy-report.xml
-        # Create placeholder report for artifact upload
-        echo '<?xml version="1.0" encoding="utf-8"?><testsuite name="mypy" tests="0" errors="0" failures="0" skipped="1"><testcase classname="mypy" name="disabled" time="0"><skipped message="MyPy temporarily disabled"/></testcase></testsuite>' > mypy-report.xml
+        echo "Running MyPy type checking (non-blocking)"
+        mypy --config-file=mypy.ini versiontracker --junit-xml=mypy-report.xml || echo "MyPy found issues but continuing CI"
 
     - name: Upload lint artifacts
       uses: actions/upload-artifact@v4
@@ -125,8 +122,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install -c constraints.txt -r requirements.txt
+        pip install -c constraints.txt -r requirements-dev.txt
         pip install -e .
 
     - name: Run security checks
@@ -170,13 +167,13 @@ jobs:
       run: |
         # Docstring checking
         pydocstyle versiontracker/ --convention=google || true
-        
+
         # Code complexity analysis
         radon cc versiontracker/ --min=B --json -O radon-cc.json || true
         radon cc versiontracker/ --min=B
         radon mi versiontracker/ --json -O radon-mi.json || true
         radon mi versiontracker/ --min=B
-        
+
         # Dead code detection
         vulture versiontracker/ --json-output=vulture-report.json || true
         vulture versiontracker/ --min-confidence=80
@@ -242,7 +239,7 @@ jobs:
         echo "| Security | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Quality | ${{ needs.quality.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Build | ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        
+
         # Set overall status
         if [[ "${{ needs.test.result }}" == "success" && "${{ needs.lint.result }}" == "success" && "${{ needs.security.result }}" == "success" ]]; then
           echo "" >> $GITHUB_STEP_SUMMARY

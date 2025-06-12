@@ -1,3 +1,5 @@
+"""Export functionality for VersionTracker data formats."""
+
 import csv
 import json
 import logging
@@ -107,9 +109,10 @@ def _export_to_json(
                         else str(app[2]),
                     }
                 else:
-                    app_name = (
-                        str(app[0]) if isinstance(app, tuple) and len(app) > 0 else ""
-                    )
+                    if isinstance(app, tuple) and len(app) > 0:  # type: ignore
+                        app_name = str(app[0])  # type: ignore
+                    else:
+                        app_name = str(app) if app else ""
                     app_data = {
                         "name": app_name,
                         "installed_version": "",

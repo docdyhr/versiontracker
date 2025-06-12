@@ -79,7 +79,8 @@ async def search_casks(
         cached_data = read_cache(cache_key, CACHE_EXPIRY)
         if cached_data:
             logging.debug(f"Using cached search results for {query}")
-            return cached_data
+            # cached_data should be a list, but cache functions are typed for Dict only
+            return cached_data  # type: ignore[return-value]
 
     # Configure timeout
     timeout_obj = ClientTimeout(total=timeout)
@@ -98,7 +99,7 @@ async def search_casks(
 
                 # Cache the result
                 if use_cache:
-                    write_cache(cache_key, casks)
+                    write_cache(cache_key, casks)  # type: ignore[arg-type]
 
                 return casks
 
@@ -116,7 +117,9 @@ async def search_casks(
         raise NetworkError(f"Unexpected error: {str(e)}") from e
 
 
-class HomebrewBatchProcessor(AsyncBatchProcessor):
+class HomebrewBatchProcessor(
+    AsyncBatchProcessor[Tuple[str, str], Tuple[str, str, bool]]
+):
     """Process batches of applications to check for Homebrew installability."""
 
     def __init__(
@@ -286,7 +289,11 @@ async def async_check_brew_install_candidates(
         strict_match=strict_match,
     )
 
-    return processor.process_all(data)
+    # Access the underlying async method without the sync wrapper
+    if hasattr(processor.process_all, "__wrapped__"):
+        return await processor.process_all.__wrapped__(processor, data)
+    else:
+        return await processor.process_all(data)
 
 
 @async_to_sync
@@ -321,7 +328,9 @@ async def async_get_cask_version(
         raise HomebrewError(f"Error getting cask version: {e}") from e
 
 
-class HomebrewVersionChecker(AsyncBatchProcessor):
+class HomebrewVersionChecker(
+    AsyncBatchProcessor[Tuple[str, str, str], Tuple[str, str, str, Optional[str]]]
+):
     """Process batches of applications to check for updates via Homebrew."""
 
     def __init__(
@@ -357,7 +366,13 @@ class HomebrewVersionChecker(AsyncBatchProcessor):
 
         try:
             # Get the latest version from Homebrew
-            latest_version = await async_get_cask_version(cask_name, self.use_cache)
+            # Access the underlying async function without the sync wrapper
+            if hasattr(async_get_cask_version, "__wrapped__"):
+                latest_version = await async_get_cask_version.__wrapped__(
+                    cask_name, self.use_cache
+                )
+            else:
+                latest_version = await async_get_cask_version(cask_name, self.use_cache)
             return (app_name, version, cask_name, latest_version)
 
         except (NetworkError, TimeoutError, HomebrewError) as e:
@@ -405,4 +420,8 @@ async def async_check_brew_update_candidates(
         rate_limit=rate_limit,
     )
 
-    return processor.process_all(data)
+    # Access the underlying async method without the sync wrapper
+    if hasattr(processor.process_all, "__wrapped__"):
+        return await processor.process_all.__wrapped__(processor, data)
+    else:
+        return await processor.process_all(data)

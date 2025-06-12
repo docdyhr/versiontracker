@@ -32,7 +32,19 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Protocol, Tuple, TypeVar, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from versiontracker.cache import read_cache, write_cache
 from versiontracker.config import Config, get_config
@@ -57,13 +69,20 @@ MAX_ERRORS = 3  # Maximum number of consecutive errors before giving up
 class RateLimiter(Protocol):
     """Protocol defining the interface for rate limiters."""
 
-    def wait(self) -> None: ...
+    def wait(self) -> None:
+        """Wait according to rate limiting rules."""
+        ...
 
 
 class SimpleRateLimiter:
     """A simple rate limiter for API calls."""
 
     def __init__(self, delay: float):
+        """Initialize the rate limiter with specified delay.
+
+        Args:
+            delay: Minimum delay between API calls in seconds.
+        """
         self._delay = max(0.1, float(delay))
         self._last_time = 0.0
         self._lock = threading.Lock()
@@ -184,9 +203,17 @@ try:
 except ImportError:
     HAS_PROGRESS = False
 
-    def smart_progress(iterable: Any, **kwargs) -> Any:
-        """Simple fallback for environments without smart_progress."""
-        return iterable
+    def smart_progress(
+        iterable: Optional[Iterable[T]] = None,
+        desc: str = "",
+        total: Optional[int] = None,
+        monitor_resources: bool = True,
+        **kwargs: Any,
+    ) -> Iterator[T]:
+        """Provide a fallback for environments without smart_progress."""
+        if iterable is None:
+            return iter([])
+        return iter(iterable)
 
 
 # Command constants
@@ -440,7 +467,9 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
     try:
         # Fast path for non-homebrew systems
         if not is_homebrew_available():
-            raise HomebrewError(f"Homebrew is not available for checking cask: {cask_name}")
+            raise HomebrewError(
+                f"Homebrew is not available for checking cask: {cask_name}"
+            )
 
         # Check if cask is in cache
         cache_data = read_cache("brew_installable")
@@ -503,14 +532,27 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
 
         return False
     except BrewTimeoutError as e:
-        logging.warning("Timeout checking if %s is installable: %s", cask_name, e)
+        error_msg = (
+            str(e) if str(e).strip() else f"Timeout error of type {type(e).__name__}"
+        )
+        logging.warning(
+            "Timeout checking if %s is installable: %s", cask_name, error_msg
+        )
         raise
     except NetworkError as e:
-        logging.warning("Network error checking if %s is installable: %s", cask_name, e)
+        error_msg = (
+            str(e) if str(e).strip() else f"Network error of type {type(e).__name__}"
+        )
+        logging.warning(
+            "Network error checking if %s is installable: %s", cask_name, error_msg
+        )
         raise
     except HomebrewError as e:
+        error_msg = (
+            str(e) if str(e).strip() else f"Homebrew error of type {type(e).__name__}"
+        )
         logging.warning(
-            "Homebrew error checking if %s is installable: %s", cask_name, e
+            "Homebrew error checking if %s is installable: %s", cask_name, error_msg
         )
         raise
     except Exception as e:
@@ -521,28 +563,6 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
         logging.warning(
             "Error checking if %s is installable: %s", cask_name, error_details
         )
-
-        # Check for network-related errors in exception message
-        if any(
-            network_term in str(e).lower()
-            for network_term in [
-                "temporary failure in name resolution",
-                "network",
-                "socket",
-                "connection",
-                "host",
-                "resolve",
-                "timeout",
-            ]
-        ):
-            raise NetworkError(
-                f"Network unavailable when checking homebrew cask: {cask_name}"
-            ) from e
-
-        # Re-raise with improved error message
-        raise HomebrewError(
-            f"Error checking if {cask_name} is installable: {error_details}"
-        ) from e
 
         # Check for network-related errors in exception message
         if any(
@@ -830,21 +850,27 @@ def _handle_future_result(
     exception = future.exception()
     if exception:
         if isinstance(exception, BrewTimeoutError):
-            error_details = str(exception) if str(exception).strip() else "Unknown timeout error"
+            error_details = (
+                str(exception) if str(exception).strip() else "Unknown timeout error"
+            )
             logging.warning("Timeout checking %s: %s", name, error_details)
             timeout_error = BrewTimeoutError(
                 f"Operation timed out while checking {name}: {error_details}"
             )
             return (name, version, False), timeout_error
         elif isinstance(exception, NetworkError):
-            error_details = str(exception) if str(exception).strip() else "Unknown network error"
+            error_details = (
+                str(exception) if str(exception).strip() else "Unknown network error"
+            )
             logging.warning("Network error checking %s: %s", name, error_details)
             network_error = NetworkError(
                 f"Network error while checking {name}: {error_details}"
             )
             return (name, version, False), network_error
         elif isinstance(exception, HomebrewError):
-            error_details = str(exception) if str(exception).strip() else "Unknown Homebrew error"
+            error_details = (
+                str(exception) if str(exception).strip() else "Unknown Homebrew error"
+            )
             logging.warning("Homebrew error checking %s: %s", name, error_details)
             homebrew_error = HomebrewError(
                 f"Homebrew error while checking {name}: {error_details}"
@@ -862,7 +888,7 @@ def _handle_future_result(
                 )
                 logging.warning("Error checking %s: %s", name, error_details)
             return (name, version, False), None
-    
+
     # If no exception was present, get the result
     try:
         is_installable = future.result()
@@ -871,9 +897,7 @@ def _handle_future_result(
         # This should not normally happen since we already checked for exceptions
         # But handle it just in case
         error_details = (
-            str(e)
-            if str(e).strip()
-            else f"Unknown error of type {type(e).__name__}"
+            str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
         )
         logging.warning("Unexpected error checking %s: %s", name, error_details)
         return (name, version, False), e
@@ -926,11 +950,13 @@ def _process_brew_batch(
 
             for future in as_completed(future_to_app):
                 name, version = future_to_app[future]
-                
+
                 # Check if the future has an exception directly
                 if future.exception() is not None:
                     exception = future.exception()
-                    if isinstance(exception, (BrewTimeoutError, NetworkError, HomebrewError)):
+                    if isinstance(
+                        exception, (BrewTimeoutError, NetworkError, HomebrewError)
+                    ):
                         # Re-raise these specific exceptions for proper handling
                         raise exception
                     else:
@@ -943,7 +969,7 @@ def _process_brew_batch(
                         logging.warning("Error checking %s: %s", name, error_details)
                         batch_results.append((name, version, False))
                         continue
-                
+
                 # No exception, handle the result normally
                 result, exception = _handle_future_result(future, name, version)
                 batch_results.append(result)

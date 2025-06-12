@@ -1,10 +1,10 @@
 {
-    "python.linting.flake8Enabled": false,
-    "python.linting.pylintEnabled": false,
-    "python.linting.ruffEnabled": true,
-    "python.formatting.provider": "ruff",
-    "python.linting.enabled": true,
-    "code-runner.ignoreSelection": true,
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+  "code-runner.ignoreSelection": true,
+  "python.formatting.provider": "ruff",
+  "python.linting.enabled": true,
+  "python.linting.flake8Enabled": false,
+  "python.linting.pylintEnabled": false,
+  "python.linting.ruffEnabled": true,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false
 }

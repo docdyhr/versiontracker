@@ -9,7 +9,7 @@ import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, cast
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -151,7 +151,7 @@ async def batch_fetch_json(
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Process results, re-raising any exceptions
-    processed_results = []
+    processed_results: List[Dict[str, Any]] = []
     for i, result in enumerate(results):
         if isinstance(result, Exception):
             logging.error(f"Error fetching {urls[i]}: {result}")
@@ -165,13 +165,14 @@ async def batch_fetch_json(
                     f"Error fetching {urls[i]}: {str(result)}"
                 ) from result
         else:
-            processed_results.append(result)
+            # result is guaranteed to be Dict[str, Any] here since exceptions were handled above
+            processed_results.append(cast(Dict[str, Any], result))
 
     return processed_results
 
 
 def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Decorator to convert an async function to a synchronous one.
+    """Convert an async function to a synchronous one.
 
     Args:
         func: Async function to convert
@@ -182,17 +183,27 @@ def async_to_sync(func: Callable[..., Any]) -> Callable[..., Any]:
 
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        """Synchronous wrapper for async function."""
-        # Get event loop or create a new one
+        """Run the async function synchronously."""
+        # Check if we're already in an async context
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
+            # If we're already in a running loop, use a thread pool
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(asyncio.run, func(*args, **kwargs))
+                return future.result()
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # No running loop, so we can run normally
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
 
-        # Run the async function in the event loop
-        return loop.run_until_complete(func(*args, **kwargs))
+            # Run the async function in the event loop
+            return loop.run_until_complete(func(*args, **kwargs))
 
+    # Manually add __wrapped__ attribute for tests to access original function
+    wrapper.__wrapped__ = func
     return wrapper
 
 
@@ -212,7 +223,7 @@ def run_async_in_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> 
         return future.result()
 
 
-class AsyncBatchProcessor:
+class AsyncBatchProcessor(Generic[T, R]):
     """Process batches of data asynchronously with rate limiting."""
 
     def __init__(
@@ -285,14 +296,15 @@ class AsyncBatchProcessor:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Process results, logging any exceptions
-        processed_results = []
+        processed_results: List[R] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logging.error(f"Error processing item {batch[i]}: {result}")
                 # Handle the error in a subclass-specific way
                 processed_results.append(self.handle_error(batch[i], result))
             else:
-                processed_results.append(result)
+                # result is guaranteed to be R here since exceptions were handled above
+                processed_results.append(cast(R, result))
 
         return processed_results
 

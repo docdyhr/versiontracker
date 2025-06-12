@@ -118,7 +118,7 @@ def get_all_homebrew_casks() -> List[Dict[str, Any]]:
     # Try to get from cache first
     cached_casks = cache.get(CACHE_KEY_ALL_CASKS, ttl=CACHE_TTL_ALL_CASKS)
     if cached_casks is not None:
-        return cached_casks
+        return cached_casks  # type: ignore
 
     try:
         brew_path = get_brew_command()
@@ -189,7 +189,7 @@ def get_cask_info(cask_name: str) -> Dict[str, Any]:
     # Try to get from cache first
     cached_info = cache.get(cache_key, ttl=CACHE_TTL_CASK_INFO)
     if cached_info is not None:
-        return cached_info
+        return cached_info  # type: ignore
 
     try:
         brew_path = get_brew_command()
@@ -259,7 +259,7 @@ def search_casks(query: str) -> List[Dict[str, Any]]:
     # Try to get from cache first
     cached_results = cache.get(cache_key, ttl=CACHE_TTL_SEARCH)
     if cached_results is not None:
-        return cached_results
+        return cached_results  # type: ignore
 
     try:
         brew_path = get_brew_command()
@@ -329,7 +329,7 @@ def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
         cached_info = cache.get(cache_key, ttl=CACHE_TTL_CASK_INFO)
 
         if cached_info is not None:
-            result[cask_name] = cached_info
+            result[cask_name] = cached_info  # type: ignore
         else:
             casks_to_fetch.append(cask_name)
 

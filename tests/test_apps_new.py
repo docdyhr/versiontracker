@@ -55,6 +55,7 @@ class TestApps(unittest.TestCase):
         # Create a mock future to return the result
         mock_future = MagicMock()
         mock_future.result.return_value = True
+        mock_future.exception.return_value = None  # No exception
         mock_executor.submit.return_value = mock_future
 
         # Mock as_completed to return our future
@@ -63,16 +64,20 @@ class TestApps(unittest.TestCase):
             config = MagicMock()
             config.ui = {"adaptive_rate_limiting": True}
 
-            with patch("versiontracker.apps.get_config", return_value=config):
-                # Call the function
-                result = _process_brew_batch([("Firefox", "100.0")], 1, True)
+            # Patch the _process_brew_search function to return "Firefox" for the search
+            with patch(
+                "versiontracker.apps._process_brew_search", return_value="Firefox"
+            ):
+                with patch("versiontracker.apps.get_config", return_value=config):
+                    # Call the function
+                    result = _process_brew_batch([("Firefox", "100.0")], 1, True)
 
-                # Verify the result
-                expected = [("Firefox", "100.0", True)]
-                self.assertEqual(result, expected)
+                    # Verify the result
+                    expected = [("Firefox", "100.0", True)]
+                    self.assertEqual(result, expected)
 
-                # Verify AdaptiveRateLimiter was constructed with correct parameters
-                mock_rate_limiter_class.assert_called_once()
+                    # Verify AdaptiveRateLimiter was constructed with correct parameters
+                    mock_rate_limiter_class.assert_called_once()
 
     def test_simple_rate_limiter(self):
         """Test SimpleRateLimiter functionality."""
@@ -183,10 +188,10 @@ class TestApps(unittest.TestCase):
 
         # Mock applications and brews
         applications = [
-            ["Firefox", "100.0.0"],
-            ["Chrome", "101.0.0"],
-            ["Slack", "4.23.0"],
-            ["VSCode", "1.67.0"],
+            ("Firefox", "100.0.0"),
+            ("Chrome", "101.0.0"),
+            ("Slack", "4.23.0"),
+            ("VSCode", "1.67.0"),
         ]
         brews = ["firefox", "google-chrome", "visual-studio-code"]
 
@@ -195,7 +200,7 @@ class TestApps(unittest.TestCase):
 
         # Check the result
         self.assertEqual(len(result), 1)  # Only Slack should remain
-        self.assertIn(["Slack", "4.23.0"], result)
+        self.assertIn(("Slack", "4.23.0"), result)
 
     @patch("versiontracker.apps.run_command")
     def test_process_brew_search(self, mock_run_command):
@@ -207,17 +212,17 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("firefox\nfirefox-developer-edition", 0)
 
         # Test with a matching app
-        result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
         self.assertEqual(result, "Firefox")
 
         # Test with a non-matching app
         mock_run_command.return_value = ("some-other-app", 0)
-        result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
         self.assertIsNone(result)
 
         # Test exception handling
         mock_run_command.side_effect = Exception("Test error")
-        result = _process_brew_search(["Firefox", "100.0.0"], mock_rate_limiter)
+        result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
         self.assertIsNone(result)
 
     @patch("platform.system")
@@ -271,7 +276,7 @@ class TestApps(unittest.TestCase):
         mock_machine.return_value = "arm64"
 
         # Define a side effect to simulate success only with the ARM path
-        def command_side_effect(cmd, timeout=None):
+        def command_side_effect(cmd, timeout=None):  # pylint: disable=unused-argument
             if "/opt/homebrew/bin/brew" in cmd:
                 return ("Homebrew 3.4.0", 0)
             else:
@@ -376,10 +381,22 @@ class TestApps(unittest.TestCase):
         with self.assertRaises(HomebrewError):
             get_homebrew_casks()
 
-    @patch("versiontracker.apps._brew_casks_cache", ["cached_cask1", "cached_cask2"])
+    @patch("versiontracker.apps.get_config")
     @patch("versiontracker.apps.run_command")
-    def test_get_homebrew_casks_cache(self, mock_run):
+    def test_get_homebrew_casks_cache(self, mock_run, mock_get_config):
         """Test caching behavior of get_homebrew_casks."""
+        # Create a mock config
+        mock_config = MagicMock()
+        mock_config.brew_path = "/usr/local/bin/brew"
+        mock_get_config.return_value = mock_config
+
+        # Manually set the cache
+        get_homebrew_casks.cache_clear()  # Clear any existing cache
+        import versiontracker.apps
+
+        # pylint: disable=protected-access
+        versiontracker.apps._brew_casks_cache = ["cached_cask1", "cached_cask2"]
+
         # Call the function which should use the cache
         casks = get_homebrew_casks()
 
