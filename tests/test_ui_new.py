@@ -292,9 +292,10 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
             max_rate_limit_sec=2.0,  # max < base to test clamping
         )
 
-        with patch("psutil.cpu_percent", return_value=0.0), patch(
-            "psutil.virtual_memory"
-        ) as mock_memory:
+        with (
+            patch("psutil.cpu_percent", return_value=0.0),
+            patch("psutil.virtual_memory") as mock_memory,
+        ):
             mock_memory.return_value = MagicMock(percent=0.0)
 
             limit = limiter.get_current_limit()

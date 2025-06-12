@@ -58,8 +58,9 @@ class TestCache(unittest.TestCase):
         """Test _ensure_cache_dir when an error occurs."""
         # Mock os.path.exists to return False so makedirs is called
         # Mock os.makedirs to raise an exception
-        with patch("os.path.exists", return_value=False), patch(
-            "os.makedirs", side_effect=PermissionError("Permission denied")
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("os.makedirs", side_effect=PermissionError("Permission denied")),
         ):
             # Call the function and check it raises CacheError
             with self.assertRaises(CacheError):
