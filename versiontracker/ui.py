@@ -16,7 +16,26 @@ from typing import (
     Union,
 )
 
-import psutil
+try:
+    import psutil
+
+    HAS_PSUTIL = True
+except Exception:  # pragma: no cover - optional dependency
+    HAS_PSUTIL = False
+
+    class _PsutilFallback:
+        @staticmethod
+        def cpu_percent(interval: Optional[float] = None) -> float:
+            return 0.0
+
+        class _VM:
+            percent = 0.0
+
+        @staticmethod
+        def virtual_memory() -> "_PsutilFallback._VM":
+            return _PsutilFallback._VM()
+
+    psutil = _PsutilFallback()
 
 # Initialize progress bar handling
 HAS_TQDM = False

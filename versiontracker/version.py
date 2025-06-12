@@ -87,8 +87,8 @@ if not USE_RAPIDFUZZ and not USE_FUZZYWUZZY:
 
             return (best_match, best_score) if best_match else (choices[0], 0)
 
-    fuzz = MinimalFuzz()  # type: ignore
-    fuzz_process = MinimalProcess()  # type: ignore
+    fuzz = MinimalFuzz()
+    fuzz_process = MinimalProcess()
 
 # Internal imports
 from versiontracker.config import get_config  # noqa: E402
@@ -911,6 +911,8 @@ def _get_config_settings() -> Tuple[bool, int]:
         Tuple of (show_progress, max_workers)
     """
     try:
+        from versiontracker.config import get_config
+
         config = get_config()
         show_progress = getattr(getattr(config, "ui", None), "progress", True)
         max_workers = min(

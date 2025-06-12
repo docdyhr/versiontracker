@@ -29,11 +29,6 @@ For detailed usage instructions, see the README.md or run:
 
 __version__ = "0.6.4"
 
-# Define public exports for better usability when importing
-from versiontracker.apps import get_applications, get_homebrew_casks
-from versiontracker.config import Config, get_config
-from versiontracker.exceptions import VersionTrackerError
-
 # Explicitly define what should be imported with "from versiontracker import *"
 __all__ = [
     "__version__",
@@ -43,3 +38,31 @@ __all__ = [
     "get_config",
     "VersionTrackerError",
 ]
+
+
+def __getattr__(name: str):
+    """Lazily import heavy submodules on demand."""
+    if name in {"get_applications", "get_homebrew_casks"}:
+        from .apps import get_applications, get_homebrew_casks
+
+        globals().update(
+            {
+                "get_applications": get_applications,
+                "get_homebrew_casks": get_homebrew_casks,
+            }
+        )
+        return globals()[name]
+
+    if name in {"Config", "get_config"}:
+        from .config import Config, get_config
+
+        globals().update({"Config": Config, "get_config": get_config})
+        return globals()[name]
+
+    if name == "VersionTrackerError":
+        from .exceptions import VersionTrackerError
+
+        globals()["VersionTrackerError"] = VersionTrackerError
+        return VersionTrackerError
+
+    raise AttributeError(name)
