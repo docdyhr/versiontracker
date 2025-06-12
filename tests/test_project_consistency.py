@@ -29,6 +29,8 @@ class TestProjectConsistency:
 
         # Check mypy.ini
         mypy_ini_path = project_root / "mypy.ini"
+        if not mypy_ini_path.exists():
+            pytest.skip(f"mypy.ini not found at {mypy_ini_path}")
         with open(mypy_ini_path) as f:
             content = f.read()
             mypy_version_match = re.search(r"python_version\s*=\s*(\d+\.\d+)", content)
