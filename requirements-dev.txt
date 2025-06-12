@@ -4,6 +4,8 @@ pytest-cov>=4.1.0
 pytest-xdist>=3.3.0  # Parallel test execution
 pytest-timeout>=2.1.0  # Test timeout handling
 pytest-mock>=3.11.0  # Mocking utilities
+pytest-asyncio>=0.23.0  # Async test support
+anyio>=4.0.0  # Async framework support
 
 # Code quality and linting
 ruff>=0.4.0  # Replaces flake8, black, isort
