@@ -3,6 +3,7 @@
 import shutil
 import sys
 import time
+from types import ModuleType
 from typing import (
     Any,
     Dict,
@@ -20,6 +21,7 @@ try:
     import psutil
 
     HAS_PSUTIL = True
+    psutil_module: Union[ModuleType, "_PsutilFallback"] = psutil
 except Exception:  # pragma: no cover - optional dependency
     HAS_PSUTIL = False
 
@@ -35,7 +37,7 @@ except Exception:  # pragma: no cover - optional dependency
         def virtual_memory() -> "_PsutilFallback._VM":
             return _PsutilFallback._VM()
 
-    psutil = _PsutilFallback()
+    psutil_module = _PsutilFallback()
 
 # Initialize progress bar handling
 HAS_TQDM = False
@@ -331,8 +333,8 @@ class SmartProgress(Generic[T]):
 
         try:
             # Get current CPU and memory usage
-            self.cpu_usage = psutil.cpu_percent()
-            self.memory_usage = psutil.virtual_memory().percent
+            self.cpu_usage = psutil_module.cpu_percent()
+            self.memory_usage = psutil_module.virtual_memory().percent
 
             # Update the progress bar postfix with resource information
             if self.progress_bar is not None:
@@ -420,8 +422,8 @@ class AdaptiveRateLimiter:
         """
         try:
             # Get current CPU and memory usage
-            cpu_usage = psutil.cpu_percent(interval=0.1)
-            memory_usage = psutil.virtual_memory().percent
+            cpu_usage = psutil_module.cpu_percent(interval=0.1)
+            memory_usage = psutil_module.virtual_memory().percent
 
             # Calculate adjustment factor based on resource usage
             cpu_factor = min(1.0, max(0.0, cpu_usage / self.cpu_threshold))

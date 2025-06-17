@@ -43,7 +43,14 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          [types-PyYAML, types-tabulate, types-termcolor, types-requests]
+          [
+            types-PyYAML,
+            types-tabulate,
+            types-termcolor,
+            types-requests,
+            types-psutil,
+            types-tqdm,
+          ]
         args: [--config-file=mypy.ini, --platform=darwin]
         exclude: ^(tests/|docs/)
 

@@ -12,15 +12,17 @@ import logging
 import pstats
 import time
 from dataclasses import dataclass
+from types import ModuleType
 from typing import Any, Callable, Dict, Optional, Set, TypeVar
 
 try:
     import psutil
 
     HAS_PSUTIL = True
+    psutil_module: Optional[ModuleType] = psutil
 except ImportError:
     HAS_PSUTIL = False
-    psutil = None
+    psutil_module = None
 
 # Type variable for generic function decorator
 T = TypeVar("T")
@@ -113,10 +115,8 @@ class PerformanceProfiler:
                     self._nested_calls[name] = self._nested_calls.get(name, 0) + 1
 
                 # Only measure memory for outermost calls to avoid skewed measurements
-                if is_outermost_call and HAS_PSUTIL:
-                    if psutil is None:
-                        raise RuntimeError("psutil module is not available")
-                    process = psutil.Process()
+                if is_outermost_call and HAS_PSUTIL and psutil_module is not None:
+                    process = psutil_module.Process()
                     memory_before = process.memory_info().rss / 1024 / 1024  # MB
                 else:
                     memory_before = 0
@@ -134,10 +134,8 @@ class PerformanceProfiler:
                         elapsed = end_time - start_time
 
                         # Get final memory usage
-                        if HAS_PSUTIL:
-                            if psutil is None:
-                                raise RuntimeError("psutil module is not available")
-                            process = psutil.Process()
+                        if HAS_PSUTIL and psutil_module is not None:
+                            process = psutil_module.Process()
                             memory_after = process.memory_info().rss / 1024 / 1024  # MB
                             memory_diff = memory_after - memory_before
                         else:

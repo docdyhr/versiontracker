@@ -176,7 +176,9 @@ def _export_to_csv(
         elif isinstance(data, list):
             if data and isinstance(data[0], tuple):
                 for app in data:
-                    if len(app) >= 3 and isinstance(app[1], dict):
+                    app_length = len(app)
+                    # Check if we have full app data with version info
+                    if app_length >= 3 and isinstance(app[1], dict):
                         writer.writerow(
                             [
                                 str(app[0]),
@@ -191,9 +193,10 @@ def _export_to_csv(
                                 app[2].name if hasattr(app[2], "name") else str(app[2]),
                             ]
                         )
-                    elif len(app) > 0:
-                        # Handle minimal tuple case
+                    # Handle minimal tuple case (app name only or with non-dict version info)
+                    elif app_length >= 1:
                         writer.writerow([str(app[0]), "", "Unknown", ""])
+                    # Note: app_length == 0 would be an empty tuple, which we skip
 
         # For dictionary format with app info
         elif isinstance(data, dict):

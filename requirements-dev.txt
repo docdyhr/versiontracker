@@ -8,8 +8,8 @@ pytest-asyncio>=0.23.0  # Async test support
 anyio>=4.0.0  # Async framework support
 
 # Code quality and linting
-ruff>=0.4.0  # Replaces flake8, black, isort
-mypy>=1.2.0
+ruff==0.11.12  # Replaces flake8, black, isort
+mypy==1.16.0
 bandit[toml]>=1.7.5
 pydocstyle>=6.3.0
 radon>=6.0.1
@@ -38,3 +38,4 @@ types-tqdm>=4.67.0
 types-tabulate>=0.9.0
 types-PyYAML>=6.0.0
 types-requests>=2.32.0
+types-termcolor>=1.1.0
