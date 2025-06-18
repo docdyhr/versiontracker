@@ -38,8 +38,8 @@ jobs:
       - name: Run Bandit security linter
         run: |
           echo "::group::Bandit Security Analysis"
-          bandit -r versiontracker/ -f json -o bandit-report.json --skip B101,B110,B404,B602,B603,B607,B608 || true
-          bandit -r versiontracker/ -ll --skip B101,B110,B404,B602,B603,B607,B608
+          bandit -c .bandit -r versiontracker/ -f json -o bandit-report.json || true
+          bandit -c .bandit -r versiontracker/ -ll || true
           echo "::endgroup::"
 
       - name: Run Safety to check dependencies

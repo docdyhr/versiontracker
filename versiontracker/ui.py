@@ -29,6 +29,7 @@ except Exception:  # pragma: no cover - optional dependency
     class _PsutilFallback:
         @staticmethod
         def cpu_percent(interval: Optional[float] = None) -> float:
+            _ = interval  # Acknowledge unused parameter
             return 0.0
 
         class _VM:

@@ -24,6 +24,7 @@ except ImportError:
         tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any
     ) -> str:
         """Format tabular data into a string representation."""
+        _ = tablefmt, kwargs  # Acknowledge unused parameters
         result = []
         if headers:  # Ensure headers is iterable and items are stringifiable
             header_line = " | ".join(str(h) for h in headers)

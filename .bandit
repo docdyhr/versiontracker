@@ -1,0 +1,12 @@
+[bandit]
+exclude_dirs = tests,venv,.venv,__pycache__,.pytest_cache,.mypy_cache,node_modules,htmlcov
+skips = B101,B110,B404,B602,B603,B607,B608
+
+# Specific test exclusions:
+# B101: assert_used - Assert statements are used in tests and validation
+# B110: try_except_pass - Used for non-critical error handling where continuation is desired
+# B404: subprocess module import - Required for system command execution (homebrew commands)
+# B602: subprocess with shell=True - Intentional for homebrew command execution with controlled input
+# B603: subprocess without shell - Safe usage with controlled inputs for brew commands
+# B607: partial path - brew command is expected to be in PATH on macOS systems
+# B608: hardcoded_sql_expressions - False positive in cache error messages using f-strings

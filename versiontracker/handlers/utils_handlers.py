@@ -90,6 +90,7 @@ def suppress_console_warnings() -> None:
         Returns:
             bool: True if the warning should be shown, False if it should be suppressed
         """
+        _ = message, lineno, file, line  # Acknowledge unused parameters
         if filename and "versiontracker" in filename:
             # Don't suppress warnings from versiontracker code
             return True

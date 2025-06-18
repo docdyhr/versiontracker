@@ -799,13 +799,13 @@ class Config:
                     error_msg += f"\n  - {param}: {error}"
             raise ConfigError(error_msg)
 
-            # Apply the value
-            current = self._config  # type: ignore
-            for part in parts[:-1]:
-                if part not in current:
-                    current[part] = {}
-                current = current[part]
-            current[parts[-1]] = value
+        # Apply the value - only reached if validation passes
+        current = self._config  # type: ignore
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        current[parts[-1]] = value
         else:
             # Simple key - validate and set
             config_fragment[key] = value
