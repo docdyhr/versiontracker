@@ -17,7 +17,7 @@ import traceback
 from typing import Any, Dict, List, Tuple, Union, cast
 
 try:
-    from tabulate import tabulate
+    from tabulate import tabulate  # type: ignore[import]
 except ImportError:
     # Fallback if tabulate is not installed
     def tabulate(  # type: ignore[misc]

@@ -13,7 +13,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -132,7 +131,7 @@ except ImportError:
     TQDM_CLASS = FallbackTqdm
 
 try:
-    from termcolor import colored, cprint
+    from termcolor import colored, cprint  # type: ignore[import]
 
     HAS_TERMCOLOR = True
 except ImportError:
@@ -141,8 +140,8 @@ except ImportError:
     # Fallback implementation if termcolor is not available
     def colored(  # type: ignore[misc]
         text: object,
-        color: Union[str, Tuple[int, int, int], None] = None,
-        on_color: Union[str, Tuple[int, int, int], None] = None,
+        color: Optional[str] = None,
+        on_color: Optional[str] = None,
         attrs: Optional[Iterable[str]] = None,
         *,
         no_color: Optional[bool] = None,
