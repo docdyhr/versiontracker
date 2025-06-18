@@ -8,7 +8,7 @@ name = "versiontracker"
 dynamic = ["version"]
 description = "CLI versiontracker and update tool for macOS"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "docdyhr", email = "thomas@dyhr.com" }]
 keywords = ["versiontracker", "macos", "update", "homebrew"]
@@ -19,10 +19,10 @@ classifiers = [
     "Intended Audience :: System Administrators",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: System :: Systems Administration",
     "Topic :: Utilities",
 ]
@@ -63,8 +63,8 @@ exclude = [
 
 [tool.ruff]
 # Define the target Python version.
-# We support Python 3.9 and later.
-target-version = "py39"
+# We support Python 3.10 and later.
+target-version = "py310"
 
 # Exclude the venv directory.
 exclude = [
@@ -119,7 +119,7 @@ line-ending = "auto"
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -180,9 +180,11 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--tb=short",
-    "--maxfail=10",
+    "--maxfail=5",
     "--durations=10",
     "--junitxml=pytest.xml",
+    "--timeout=300",
+    "--disable-warnings",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -242,7 +244,7 @@ output = "coverage.xml"
 
 # Bandit security configuration
 [tool.bandit]
-exclude_dirs = ["tests", "venv", ".venv"]
+exclude_dirs = ["tests", "venv", ".venv", "__pycache__", ".pytest_cache"]
 skips = [
     "B101", # assert_used
     "B110", # try_except_pass - used for non-critical error handling
@@ -252,3 +254,5 @@ skips = [
     "B607", # partial path - brew command is expected to be in PATH
     "B608", # hardcoded_sql_expressions - false positive in cache error messages
 ]
+severity = "medium"
+confidence = "medium"

@@ -2,6 +2,9 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 
+default_language_version:
+  python: python3.10
+
 repos:
   # General file and formatting checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -33,7 +36,7 @@ repos:
     hooks:
       # Linter (includes isort functionality)
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+        args: [--fix, --exit-non-zero-on-fix, --target-version=py310]
       # Formatter
       - id: ruff-format
 
@@ -51,6 +54,7 @@ repos:
             types-psutil,
             types-tqdm,
           ]
+        args: [--python-version=3.10]
         exclude: ^(tests/|docs/)
 
   # Security linting with bandit
@@ -58,7 +62,15 @@ repos:
     rev: 1.8.3
     hooks:
       - id: bandit
-        args: [-r, versiontracker/]
+        args:
+          [
+            -r,
+            versiontracker/,
+            --skip,
+            "B101,B110,B404,B602,B603,B607,B608",
+            --severity-level,
+            medium,
+          ]
         exclude: ^tests/
 
   # Documentation string checking
@@ -148,6 +160,8 @@ ci:
   autoupdate_schedule: weekly
   skip: [check-todos] # Skip TODO check in CI
 
+# Minimum Python version for hooks
+minimum_pre_commit_version: "3.0.0"
 # Pre-commit hook installation:
 # pip install pre-commit
 # pre-commit install

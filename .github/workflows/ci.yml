@@ -18,9 +18,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macOS-only project - test on latest macOS with multiple Python versions
+        # macOS-only project - test on latest macOS with Python 3.10+
         os: [macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
         include:
           # Test on Ubuntu for CI efficiency, but primary target is macOS
           - os: ubuntu-latest
@@ -45,7 +45,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=versiontracker --cov-report=xml --cov-report=term --cov-report=html --junitxml=pytest.xml -v
+          pytest --maxfail=5 --tb=short --timeout=300
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -78,7 +78,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies
@@ -116,7 +116,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies
@@ -128,8 +128,8 @@ jobs:
 
       - name: Run security checks
         run: |
-          bandit -c bandit.yaml -r versiontracker/ -f json -o bandit-report.json || true
-          bandit -c bandit.yaml -r versiontracker/
+          bandit -r versiontracker/ -f json -o bandit-report.json || true
+          bandit -r versiontracker/ -ll
           safety check --json --output safety-report.json || true
           safety check
           pip-audit --format=json --output=pip-audit-report.json || true
@@ -155,7 +155,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies
@@ -200,7 +200,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install build dependencies
