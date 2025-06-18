@@ -112,7 +112,9 @@ jobs:
       - name: Run type checking
         run: |
           echo "::group::Type Checking"
-          mypy --config-file=mypy.ini versiontracker
+          pwd
+          ls -la mypy.ini
+          mypy --config-file=./mypy.ini versiontracker
           echo "::endgroup::"
 
       - name: Run security checks
