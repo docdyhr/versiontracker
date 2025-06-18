@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Badge Status Verification Script for VersionTracker
+"""Badge Status Verification Script for VersionTracker.
 
 This script verifies all GitHub badges are working correctly and provides
 a comprehensive status report for CI/CD pipeline health.
@@ -17,6 +16,7 @@ class BadgeVerifier:
     """Verifies GitHub badges and provides status reports."""
 
     def __init__(self):
+        """Initialize the badge verifier with session and results storage."""
         self.results = []
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "VersionTracker-Badge-Verifier/1.0"})
@@ -67,7 +67,6 @@ class BadgeVerifier:
 
     def verify_all_badges(self) -> List[Dict]:
         """Verify all badges defined in the project."""
-
         badges = [
             # GitHub Actions Badges (shields.io format)
             (

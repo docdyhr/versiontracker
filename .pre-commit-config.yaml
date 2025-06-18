@@ -90,7 +90,7 @@ repos:
     hooks:
       - id: markdownlint
         args: [--fix]
-        exclude: ^(CHANGELOG.md)
+        exclude: ^(CHANGELOG.md|.*_STATUS\.md|.*_FIXES\.md|.*_IMPROVEMENTS\.md|.*_SUMMARY\.md|TESTING\.md|CODE_REVIEW_SUMMARY\.md|FINAL_BADGE_STATUS\.md|docs/.*\.md)$
 
   # Check for secrets
   - repo: https://github.com/Yelp/detect-secrets

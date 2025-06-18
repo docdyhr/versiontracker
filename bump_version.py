@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Version bumping script for VersionTracker.
+"""Version bumping script for VersionTracker.
 
 Usage:
     python bump_version.py [major|minor|patch]

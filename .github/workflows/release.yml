@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., v1.0.0)'
+        description: "Version to release (e.g., v1.0.0)"
         required: true
         type: string
       prerelease:
-        description: 'Is this a pre-release?'
+        description: "Is this a pre-release?"
         required: false
         type: boolean
         default: false
@@ -27,123 +27,123 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       is-prerelease: ${{ steps.version.outputs.is-prerelease }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Validate version format
-      id: version
-      run: |
-        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          VERSION="${{ github.event.inputs.version }}"
-          IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
-        else
-          VERSION="${{ github.event.release.tag_name }}"
-          IS_PRERELEASE="${{ github.event.release.prerelease }}"
-        fi
+      - name: Validate version format
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+            IS_PRERELEASE="${{ github.event.release.prerelease }}"
+          fi
 
-        echo "Raw version: $VERSION"
+          echo "Raw version: $VERSION"
 
-        # Remove 'v' prefix if present
-        VERSION_NUMBER=$(echo "$VERSION" | sed 's/^v//')
-        echo "Cleaned version: $VERSION_NUMBER"
+          # Remove 'v' prefix if present
+          VERSION_NUMBER=$(echo "$VERSION" | sed 's/^v//')
+          echo "Cleaned version: $VERSION_NUMBER"
 
-        # Validate semantic versioning
-        if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
-          echo "❌ Invalid version format: $VERSION_NUMBER"
-          echo "Expected format: x.y.z or x.y.z-prerelease"
-          exit 1
-        fi
+          # Validate semantic versioning
+          if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION_NUMBER"
+            echo "Expected format: x.y.z or x.y.z-prerelease"
+            exit 1
+          fi
 
-        echo "✅ Version format is valid: $VERSION_NUMBER"
-        echo "version=$VERSION_NUMBER" >> $GITHUB_OUTPUT
-        echo "is-prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "✅ Version format is valid: $VERSION_NUMBER"
+          echo "version=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+          echo "is-prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
 
-    - name: Check changelog entry
-      run: |
-        if [ ! -f CHANGELOG.md ]; then
-          echo "⚠️ CHANGELOG.md not found, skipping changelog check"
-          exit 0
-        fi
+      - name: Check changelog entry
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "⚠️ CHANGELOG.md not found, skipping changelog check"
+            exit 0
+          fi
 
-        VERSION="${{ steps.version.outputs.version }}"
-        if grep -q "$VERSION" CHANGELOG.md; then
-          echo "✅ Found changelog entry for version $VERSION"
-        else
-          echo "⚠️ No changelog entry found for version $VERSION"
-          echo "Consider adding an entry to CHANGELOG.md"
-        fi
+          VERSION="${{ steps.version.outputs.version }}"
+          if grep -q "$VERSION" CHANGELOG.md; then
+            echo "✅ Found changelog entry for version $VERSION"
+          else
+            echo "⚠️ No changelog entry found for version $VERSION"
+            echo "Consider adding an entry to CHANGELOG.md"
+          fi
 
   pre-release-checks:
     name: Pre-Release Quality Checks
     runs-on: ubuntu-latest
     needs: validate-release
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -c constraints.txt -r requirements.txt
-        pip install -c constraints.txt -r requirements-dev.txt
-        pip install -e .
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -c constraints.txt -r requirements.txt
+          pip install -c constraints.txt -r requirements-dev.txt
+          pip install -e .
 
-    - name: Run comprehensive tests
-      run: |
-        echo "::group::Running Tests"
-        pytest -c pytest-ci.ini --cov=versiontracker --cov-report=xml --cov-report=term -v
-        echo "::endgroup::"
+      - name: Run comprehensive tests
+        run: |
+          echo "::group::Running Tests"
+          pytest -c pytest-ci.ini --cov=versiontracker --cov-report=xml --cov-report=term -v
+          echo "::endgroup::"
 
-    - name: Run linting checks
-      run: |
-        echo "::group::Code Linting"
-        ruff check .
-        ruff format --check .
-        echo "::endgroup::"
+      - name: Run linting checks
+        run: |
+          echo "::group::Code Linting"
+          ruff check .
+          ruff format --check .
+          echo "::endgroup::"
 
-    - name: Run type checking
-      run: |
-        echo "::group::Type Checking"
-        mypy --config-file=mypy.ini versiontracker || echo "MyPy found issues but continuing release validation"
-        echo "::endgroup::"
+      - name: Run type checking
+        run: |
+          echo "::group::Type Checking"
+          mypy --config-file=mypy.ini versiontracker
+          echo "::endgroup::"
 
-    - name: Run security checks
-      run: |
-        echo "::group::Security Analysis"
-        bandit -c bandit.yaml -r versiontracker/
-        safety check
-        pip-audit
-        echo "::endgroup::"
+      - name: Run security checks
+        run: |
+          echo "::group::Security Analysis"
+          bandit -c bandit.yaml -r versiontracker/
+          safety check
+          pip-audit
+          echo "::endgroup::"
 
-    - name: Check package metadata
-      run: |
-        echo "::group::Package Metadata Check"
-        python -c "
-        import versiontracker
-        import sys
+      - name: Check package metadata
+        run: |
+          echo "::group::Package Metadata Check"
+          python -c "
+          import versiontracker
+          import sys
 
-        expected_version = '${{ needs.validate-release.outputs.version }}'
-        actual_version = versiontracker.__version__
+          expected_version = '${{ needs.validate-release.outputs.version }}'
+          actual_version = versiontracker.__version__
 
-        print(f'Expected version: {expected_version}')
-        print(f'Actual version: {actual_version}')
+          print(f'Expected version: {expected_version}')
+          print(f'Actual version: {actual_version}')
 
-        if actual_version != expected_version:
-            print('❌ Version mismatch!')
-            print('Please update versiontracker/__init__.py with the correct version')
-            sys.exit(1)
-        else:
-            print('✅ Version matches!')
-        "
-        echo "::endgroup::"
+          if actual_version != expected_version:
+              print('❌ Version mismatch!')
+              print('Please update versiontracker/__init__.py with the correct version')
+              sys.exit(1)
+          else:
+              print('✅ Version matches!')
+          "
+          echo "::endgroup::"
 
   build-and-test:
     name: Build and Test Package
@@ -152,46 +152,46 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ['3.9', '3.11', '3.12']
+        python-version: ["3.9", "3.11", "3.12"]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build wheel twine
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel twine
 
-    - name: Build package
-      run: |
-        python -m build
+      - name: Build package
+        run: |
+          python -m build
 
-    - name: Test package installation
-      run: |
-        # Install from wheel
-        pip install dist/*.whl
+      - name: Test package installation
+        run: |
+          # Install from wheel
+          pip install dist/*.whl
 
-        # Test basic functionality
-        python -c "
-        import versiontracker
-        print(f'Successfully imported versiontracker v{versiontracker.__version__}')
-        "
+          # Test basic functionality
+          python -c "
+          import versiontracker
+          print(f'Successfully imported versiontracker v{versiontracker.__version__}')
+          "
 
-        # Test CLI
-        versiontracker --version
+          # Test CLI
+          versiontracker --version
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-      with:
-        name: dist-packages
-        path: dist/
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        with:
+          name: dist-packages
+          path: dist/
 
   publish-package:
     name: Publish to PyPI
@@ -205,62 +205,62 @@ jobs:
       name: release
       url: https://pypi.org/project/versiontracker/
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build wheel twine
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel twine
 
-    - name: Build package
-      run: |
-        python -m build
+      - name: Build package
+        run: |
+          python -m build
 
-    - name: Verify package integrity
-      run: |
-        echo "::group::Package Verification"
-        twine check dist/*
+      - name: Verify package integrity
+        run: |
+          echo "::group::Package Verification"
+          twine check dist/*
 
-        # Show package contents
-        echo "📦 Package contents:"
-        python -m tarfile -l dist/*.tar.gz
+          # Show package contents
+          echo "📦 Package contents:"
+          python -m tarfile -l dist/*.tar.gz
 
-        if ls dist/*.whl 1> /dev/null 2>&1; then
-          python -c "
-          import zipfile
-          import glob
-          whl_files = glob.glob('dist/*.whl')
-          if whl_files:
-              with zipfile.ZipFile(whl_files[0], 'r') as z:
-                  print('🎯 Wheel contents:')
-                  for name in z.namelist():
-                      print(f'  {name}')
-          "
-        fi
-        echo "::endgroup::"
+          if ls dist/*.whl 1> /dev/null 2>&1; then
+            python -c "
+            import zipfile
+            import glob
+            whl_files = glob.glob('dist/*.whl')
+            if whl_files:
+                with zipfile.ZipFile(whl_files[0], 'r') as z:
+                    print('🎯 Wheel contents:')
+                    for name in z.namelist():
+                        print(f'  {name}')
+            "
+          fi
+          echo "::endgroup::"
 
-    - name: Publish to Test PyPI
-      if: needs.validate-release.outputs.is-prerelease == 'true'
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository-url: https://test.pypi.org/legacy/
-        skip-existing: true
+      - name: Publish to Test PyPI
+        if: needs.validate-release.outputs.is-prerelease == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
 
-    - name: Publish to PyPI
-      if: needs.validate-release.outputs.is-prerelease == 'false'
-      uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish to PyPI
+        if: needs.validate-release.outputs.is-prerelease == 'false'
+        uses: pypa/gh-action-pypi-publish@release/v1
 
-    - name: Wait for package availability
-      run: |
-        echo "⏳ Waiting for package to be available on PyPI..."
-        sleep 60
+      - name: Wait for package availability
+        run: |
+          echo "⏳ Waiting for package to be available on PyPI..."
+          sleep 60
 
   verify-release:
     name: Verify Release
@@ -268,73 +268,80 @@ jobs:
     needs: [validate-release, publish-package]
     if: always() && needs.publish-package.result == 'success'
     steps:
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Test installation from PyPI
-      run: |
-        VERSION="${{ needs.validate-release.outputs.version }}"
+      - name: Test installation from PyPI
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
 
-        echo "🔍 Testing installation of versiontracker==$VERSION from PyPI..."
+          echo "🔍 Testing installation of versiontracker==$VERSION from PyPI..."
 
-        # Try installing the specific version
-        pip install --no-cache-dir "versiontracker==$VERSION"
+          # Try installing the specific version
+          pip install --no-cache-dir "versiontracker==$VERSION"
 
-        # Verify version
-        python -c "
-        import versiontracker
-        import sys
+          # Verify version
+          python -c "
+          import versiontracker
+          import sys
 
-        expected = '$VERSION'
-        actual = versiontracker.__version__
+          expected = '$VERSION'
+          actual = versiontracker.__version__
 
-        print(f'Expected version: {expected}')
-        print(f'Installed version: {actual}')
+          print(f'Expected version: {expected}')
+          print(f'Installed version: {actual}')
 
-        if actual != expected:
-            print('❌ Version mismatch!')
-            sys.exit(1)
-        else:
-            print('✅ Version verified!')
-        "
+          if actual != expected:
+              print('❌ Version mismatch!')
+              sys.exit(1)
+          else:
+              print('✅ Version verified!')
+          "
 
-        # Test CLI functionality
-        echo "🧪 Testing CLI functionality..."
-        versiontracker --version
-        echo "✅ CLI test passed!"
+          # Test CLI functionality
+          echo "🧪 Testing CLI functionality..."
+          versiontracker --version
+          echo "✅ CLI test passed!"
 
   release-summary:
     name: Release Summary
     runs-on: ubuntu-latest
     if: always()
-    needs: [validate-release, pre-release-checks, build-and-test, publish-package, verify-release]
+    needs:
+      [
+        validate-release,
+        pre-release-checks,
+        build-and-test,
+        publish-package,
+        verify-release,
+      ]
     steps:
-    - name: Generate release summary
-      run: |
-        echo "## 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Version**: ${{ needs.validate-release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Pre-release**: ${{ needs.validate-release.outputs.is-prerelease }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Pipeline Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Validation | ${{ needs.validate-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Quality Checks | ${{ needs.pre-release-checks.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Build & Test | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Publish | ${{ needs.publish-package.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Verification | ${{ needs.verify-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-
-        if [[ "${{ needs.publish-package.result }}" == "success" && "${{ needs.verify-release.result }}" == "success" ]]; then
-          echo "🎉 **Release completed successfully!**" >> $GITHUB_STEP_SUMMARY
+      - name: Generate release summary
+        run: |
+          echo "## 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The package is now available on PyPI:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Install**: \`pip install versiontracker==${{ needs.validate-release.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **PyPI**: https://pypi.org/project/versiontracker/${{ needs.validate-release.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "⚠️ **Release encountered issues. Please check the failed stages above.**" >> $GITHUB_STEP_SUMMARY
-        fi
+          echo "**Version**: ${{ needs.validate-release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release**: ${{ needs.validate-release.outputs.is-prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Checks | ${{ needs.pre-release-checks.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build & Test | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Publish | ${{ needs.publish-package.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Verification | ${{ needs.verify-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.publish-package.result }}" == "success" && "${{ needs.verify-release.result }}" == "success" ]]; then
+            echo "🎉 **Release completed successfully!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The package is now available on PyPI:" >> $GITHUB_STEP_SUMMARY
+            echo "- **Install**: \`pip install versiontracker==${{ needs.validate-release.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **PyPI**: https://pypi.org/project/versiontracker/${{ needs.validate-release.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Release encountered issues. Please check the failed stages above.**" >> $GITHUB_STEP_SUMMARY
+          fi

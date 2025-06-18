@@ -2,9 +2,9 @@ name: Lint
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 env:
@@ -16,43 +16,43 @@ jobs:
     name: Code Linting and Formatting
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -c constraints.txt -r requirements.txt
-        pip install -c constraints.txt -r requirements-dev.txt
-        pip install -e .
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -c constraints.txt -r requirements.txt
+          pip install -c constraints.txt -r requirements-dev.txt
+          pip install -e .
 
-    - name: Run Ruff linting
-      run: |
-        echo "::group::Ruff Check"
-        ruff check . --output-format=github
-        echo "::endgroup::"
+      - name: Run Ruff linting
+        run: |
+          echo "::group::Ruff Check"
+          ruff check . --output-format=github
+          echo "::endgroup::"
 
-        echo "::group::Ruff Format Check"
-        ruff format --check .
-        echo "::endgroup::"
+          echo "::group::Ruff Format Check"
+          ruff format --check .
+          echo "::endgroup::"
 
-    - name: Run type checking
-      run: |
-        echo "::group::MyPy Type Checking"
-        echo "Running MyPy type checking (non-blocking)"
-        mypy --config-file=mypy.ini versiontracker --junit-xml=mypy-report.xml || echo "MyPy found issues but continuing CI"
-        echo "::endgroup::"
+      - name: Run type checking
+        run: |
+          echo "::group::MyPy Type Checking"
+          echo "Running MyPy type checking (strict mode)"
+          mypy --config-file=mypy.ini versiontracker --junit-xml=mypy-report.xml
+          echo "::endgroup::"
 
-    - name: Upload lint reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: lint-reports
-        path: |
-          mypy-report.xml
+      - name: Upload lint reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-reports
+          path: |
+            mypy-report.xml

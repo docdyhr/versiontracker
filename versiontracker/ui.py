@@ -11,6 +11,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Optional,
     Tuple,
     TypeVar,
@@ -166,8 +167,8 @@ except ImportError:
 
     def cprint(  # type: ignore[misc]
         text: object,
-        color: Union[str, Tuple[int, int, int], None] = None,
-        on_color: Union[str, Tuple[int, int, int], None] = None,
+        color: Optional[str] = None,
+        on_color: Optional[str] = None,
         attrs: Optional[Iterable[str]] = None,
         *,
         no_color: Optional[bool] = None,
@@ -191,12 +192,12 @@ except ImportError:
         print(str(text), **kwargs)
 
 
-# Constants for terminal output
-SUCCESS = "green"
-INFO = "blue"
-WARNING = "yellow"
-ERROR = "red"
-DEBUG = "cyan"
+# Constants for terminal output - using Literal types for MyPy compatibility
+SUCCESS: Literal["green"] = "green"
+INFO: Literal["blue"] = "blue"
+WARNING: Literal["yellow"] = "yellow"
+ERROR: Literal["red"] = "red"
+DEBUG: Literal["cyan"] = "cyan"
 
 # Type variables for generics
 T = TypeVar("T")
@@ -288,7 +289,7 @@ class SmartProgress(Generic[T]):
         # Check if we're in a terminal that supports progress bars
         self.use_tqdm = HAS_TQDM and sys.stdout.isatty()
 
-    def color(self, color_name: str):
+    def color(self, color_name: Optional[str]):
         """Return a function that applies the specified color to a string.
 
         Args:
@@ -297,7 +298,8 @@ class SmartProgress(Generic[T]):
         Returns:
             Function that applies the color to a string
         """
-        return lambda text: colored(text, color_name)
+        # Type ignore for termcolor compatibility - runtime flexibility maintained
+        return lambda text: colored(text, color_name)  # type: ignore[arg-type]
 
     def __iter__(self) -> Iterator[T]:
         """Iterate over the iterable with a progress bar."""

@@ -22,8 +22,8 @@ HAS_VERSION_PROGRESS = False
 # Fuzzy matching library imports with fallbacks
 USE_RAPIDFUZZ = False
 USE_FUZZYWUZZY = False
-fuzz = None
-fuzz_process = None
+fuzz: Any = None
+fuzz_process: Any = None
 
 try:
     import rapidfuzz.fuzz as rapidfuzz_fuzz

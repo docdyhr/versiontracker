@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Debug script for analyzing differences in VersionTracker functionality."""
 
 import os
 import sys
