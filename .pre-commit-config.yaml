@@ -51,7 +51,6 @@ repos:
             types-psutil,
             types-tqdm,
           ]
-        args: [--config-file=mypy.ini, --platform=darwin]
         exclude: ^(tests/|docs/)
 
   # Security linting with bandit
@@ -59,7 +58,7 @@ repos:
     rev: 1.8.3
     hooks:
       - id: bandit
-        args: [-c, bandit.yaml, -r, versiontracker/]
+        args: [-r, versiontracker/]
         exclude: ^tests/
 
   # Documentation string checking

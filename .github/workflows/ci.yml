@@ -96,9 +96,7 @@ jobs:
       - name: Run type checking
         run: |
           echo "Running MyPy type checking (strict mode)"
-          pwd
-          ls -la mypy.ini
-          mypy --config-file=./mypy.ini versiontracker --junit-xml=mypy-report.xml
+          mypy versiontracker --junit-xml=mypy-report.xml
 
       - name: Upload lint artifacts
         uses: actions/upload-artifact@v4

@@ -91,7 +91,6 @@ if not USE_RAPIDFUZZ and not USE_FUZZYWUZZY:
     fuzz_process = MinimalProcess()
 
 # Internal imports
-from versiontracker.config import get_config  # noqa: E402
 from versiontracker.exceptions import NetworkError  # noqa: E402
 from versiontracker.exceptions import TimeoutError as VTTimeoutError  # noqa: E402
 from versiontracker.ui import smart_progress  # noqa: E402

@@ -10,9 +10,7 @@ description = "CLI versiontracker and update tool for macOS"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
-authors = [
-    {name = "docdyhr", email = "thomas@dyhr.com"}
-]
+authors = [{ name = "docdyhr", email = "thomas@dyhr.com" }]
 keywords = ["versiontracker", "macos", "update", "homebrew"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -52,7 +50,16 @@ versiontracker = "versiontracker.__main__:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["versiontracker*"]
-exclude = ["images*", "tmp_test*", "tests*", "docs*", "htmlcov*", "tools*", "handlers*", "node_modules*"]
+exclude = [
+    "images*",
+    "tmp_test*",
+    "tests*",
+    "docs*",
+    "htmlcov*",
+    "tools*",
+    "handlers*",
+    "node_modules*",
+]
 
 [tool.ruff]
 # Define the target Python version.
@@ -109,3 +116,139 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+show_error_context = true
+color_output = true
+error_summary = true
+pretty = true
+follow_imports = "silent"
+namespace_packages = true
+explicit_package_bases = true
+ignore_missing_imports = true
+cache_dir = ".mypy_cache"
+show_column_numbers = true
+
+[[tool.mypy.overrides]]
+module = [
+    "fuzzywuzzy.*",
+    "Levenshtein.*",
+    "rapidfuzz.*",
+    "tqdm.*",
+    "yaml.*",
+    "tabulate.*",
+    "termcolor.*",
+    "psutil.*",
+    "aiohttp.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--cov=versiontracker",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-report=html",
+    "--cov-branch",
+    "--cov-fail-under=60",
+    "--strict-markers",
+    "--strict-config",
+    "--tb=short",
+    "--maxfail=10",
+    "--durations=10",
+    "--junitxml=pytest.xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "network: marks tests that require network access",
+    "asyncio: marks tests that use asyncio",
+    "unit: marks tests as unit tests",
+    "smoke: marks tests as smoke tests for basic functionality",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::FutureWarning",
+    "ignore::UserWarning:fuzzywuzzy.*",
+    "ignore::UserWarning:requests.*",
+    "error::UserWarning:versiontracker.*",
+]
+minversion = "7.0"
+timeout = 300
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["versiontracker"]
+omit = [
+    "versiontracker/__main__.py",
+    "versiontracker/test_*.py",
+    "*/tests/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/virtualenv/*",
+    "*/.pytest_cache/*",
+]
+branch = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstract",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+# Bandit security configuration
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv"]
+skips = [
+    "B101", # assert_used
+    "B110", # try_except_pass - used for non-critical error handling
+    "B404", # subprocess module import - required for system command execution
+    "B602", # subprocess with shell=True - intentional for homebrew command execution
+    "B603", # subprocess without shell - safe usage with controlled inputs
+    "B607", # partial path - brew command is expected to be in PATH
+    "B608", # hardcoded_sql_expressions - false positive in cache error messages
+]
