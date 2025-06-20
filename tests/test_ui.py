@@ -177,6 +177,7 @@ class TestTerminalOutput:
 
     def test_cprint_fallback(self, capsys, monkeypatch):
         """Test cprint function fallback."""
+        import versiontracker.ui as ui
 
         # Mock the module's cprint to use the fallback implementation
         def fallback_cprint(text, color=None, **kwargs):
@@ -186,10 +187,8 @@ class TestTerminalOutput:
         monkeypatch.setattr("versiontracker.ui.HAS_TERMCOLOR", False)
         monkeypatch.setattr("versiontracker.ui.cprint", fallback_cprint)
 
-        # Import after monkeypatch to get the patched version
-        from versiontracker.ui import cprint
-
-        cprint("test", "red")
+        # Use the patched version from the module
+        ui.cprint("test", "red")
         captured = capsys.readouterr()
         assert captured.out == "test\n"
         assert captured.err == ""
@@ -220,12 +219,13 @@ class TestTerminalOutput:
 
     def test_print_functions_with_file_kwarg(self, capsys, monkeypatch):
         """Test print functions work with file kwarg."""
+        import versiontracker.ui as ui
         string_io = io.StringIO()
 
         monkeypatch.setattr("versiontracker.ui.HAS_TERMCOLOR", False)
         monkeypatch.setattr("versiontracker.ui.cprint", print)
 
-        print_success("test", file=string_io)
+        ui.print_success("test", file=string_io)
         # Should not appear in stdout since we redirected to StringIO
         captured = capsys.readouterr()
         assert captured.out == ""
