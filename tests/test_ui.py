@@ -220,6 +220,7 @@ class TestTerminalOutput:
     def test_print_functions_with_file_kwarg(self, capsys, monkeypatch):
         """Test print functions work with file kwarg."""
         import versiontracker.ui as ui
+
         string_io = io.StringIO()
 
         monkeypatch.setattr("versiontracker.ui.HAS_TERMCOLOR", False)

@@ -27,7 +27,7 @@ For detailed usage instructions, see the README.md or run:
     versiontracker --help
 """
 
-__version__ = "0.6.4"
+__version__ = "0.6.5"
 
 # Explicitly define what should be imported with "from versiontracker import *"
 __all__ = [

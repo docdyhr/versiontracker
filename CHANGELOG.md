@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2025-01-14
+
 ### Fixed
+- **CI/CD Pipeline Improvements**:
+  - Added Python 3.13 to CI test matrix to match supported versions in pyproject.toml
+  - Resolved failing `test_ci_python_versions` in project consistency tests
+  - Fixed UI test failures (`test_cprint_fallback` and `test_print_functions_with_file_kwarg`) by improving monkey-patching approach
+  - Tests now use module attribute access instead of re-importing to prevent module caching issues
+  - All 988 tests now pass consistently in both isolation and full test runs
 - Critical syntax errors in `config.py` causing compilation failures (misplaced else clause and indentation issues)
 - Type annotation compatibility issues in `ui.py` with termcolor library imports
 - Type conflicts in `outdated_handlers.py` with tabulate import

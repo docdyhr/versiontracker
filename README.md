@@ -37,7 +37,7 @@
 [![GitHub Repo Size](https://img.shields.io/github/repo-size/docdyhr/versiontracker?logo=github&logoColor=white&label=repo%20size)](https://github.com/docdyhr/versiontracker)
 
 * Name: Versiontracker
-* Version: 0.6.4
+* Version: 0.6.5
 * Programming language: Python 3
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
