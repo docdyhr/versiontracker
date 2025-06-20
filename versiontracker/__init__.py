@@ -25,23 +25,45 @@ Main components:
 
 For detailed usage instructions, see the README.md or run:
     versiontracker --help
+
+Note: This module uses lazy loading via __getattr__ to avoid importing heavy
+submodules until they are actually needed. All exports listed in __all__ are
+available but loaded on-demand.
 """
+
+from typing import Any
 
 __version__ = "0.6.5"
 
 # Explicitly define what should be imported with "from versiontracker import *"
+# Note: Items marked with lazy loading are imported on-demand via __getattr__
+# The following items are available through lazy loading but trigger false positive warnings
 __all__ = [
     "__version__",
-    "get_applications",
-    "get_homebrew_casks",
-    "Config",
-    "get_config",
-    "VersionTrackerError",
+    "get_applications",      # type: ignore[attr-defined]  # Lazy loaded from .apps
+    "get_homebrew_casks",    # type: ignore[attr-defined]  # Lazy loaded from .apps
+    "Config",                # type: ignore[attr-defined]  # Lazy loaded from .config
+    "get_config",            # type: ignore[attr-defined]  # Lazy loaded from .config
+    "VersionTrackerError",   # type: ignore[attr-defined]  # Lazy loaded from .exceptions
 ]
 
 
-def __getattr__(name: str):
-    """Lazily import heavy submodules on demand."""
+def __getattr__(name: str) -> Any:
+    """Lazily import heavy submodules on demand.
+
+    This function is called when an attribute is not found in the module's
+    namespace. It allows us to defer imports of heavy modules (like apps.py)
+    until they are actually needed, improving startup time.
+
+    Args:
+        name: The name of the attribute being accessed
+
+    Returns:
+        The requested attribute/function/class
+
+    Raises:
+        AttributeError: If the requested attribute is not available
+    """
     if name in {"get_applications", "get_homebrew_casks"}:
         from .apps import get_applications, get_homebrew_casks
 
@@ -65,4 +87,4 @@ def __getattr__(name: str):
         globals()["VersionTrackerError"] = VersionTrackerError
         return VersionTrackerError
 
-    raise AttributeError(name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

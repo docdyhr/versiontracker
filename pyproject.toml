@@ -163,6 +163,11 @@ ignore_missing_imports = true
 module = "tests.*"
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = "versiontracker.__init__"
+# Suppress warnings about __all__ items not being present due to lazy loading
+disable_error_code = ["attr-defined", "name-defined"]
+
 # Pytest configuration
 [tool.pytest.ini_options]
 testpaths = ["tests"]

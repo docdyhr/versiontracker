@@ -218,6 +218,7 @@ cover/
 .coverage.*
 .coverage
 coverage.xml
+pytest.xml
 htmlcov/
 
 # Translations

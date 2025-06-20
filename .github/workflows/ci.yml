@@ -20,11 +20,15 @@ jobs:
       matrix:
         # macOS-only project - test on latest macOS with Python 3.10+
         os: [macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12"]
         include:
           # Test on Ubuntu for CI efficiency, but primary target is macOS
           - os: ubuntu-latest
             python-version: "3.11"
+          # Add Python 3.13 conditionally - may not be available on all runners
+          - os: ubuntu-latest
+            python-version: "3.13"
+            experimental: true
 
     steps:
       - name: Checkout code

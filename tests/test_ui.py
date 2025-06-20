@@ -4,10 +4,7 @@ import io
 import json
 import os
 import shutil
-import sys
 import tempfile
-import time
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -25,7 +22,6 @@ from versiontracker.ui import (  # noqa: E402
     QueryFilterManager,
     SmartProgress,
     colored,
-    cprint,
     create_progress_bar,
     get_terminal_size,
     print_debug,
