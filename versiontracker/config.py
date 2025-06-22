@@ -120,6 +120,144 @@ class ConfigValidator:
         return isinstance(value, (int, float)) and 0 <= value <= 100
 
     @staticmethod
+    def _get_validation_rules():
+        """Get all validation rules organized by section."""
+        return {
+            "top_level": {
+                "api_rate_limit": [
+                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (
+                        lambda v: ConfigValidator.validate_float_range(float(v), 0, 60),
+                        "Must be between 0 and 60 seconds",
+                    ),
+                ],
+                "max_workers": [
+                    (lambda v: isinstance(v, int), "Must be an integer"),
+                    (
+                        lambda v: ConfigValidator.validate_int_range(v, 1, 100),
+                        "Must be between 1 and 100",
+                    ),
+                ],
+                "similarity_threshold": [
+                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (
+                        lambda v: ConfigValidator.validate_percentage(v),
+                        "Must be between 0 and 100",
+                    ),
+                ],
+                "additional_app_dirs": [
+                    (lambda v: isinstance(v, list), "Must be a list"),
+                    (
+                        lambda v: ConfigValidator.validate_path_list(v),
+                        "Must be a list of directory paths",
+                    ),
+                ],
+                "blacklist": [
+                    (lambda v: isinstance(v, list), "Must be a list"),
+                    (
+                        lambda v: ConfigValidator.validate_string_list(v),
+                        "Must be a list of application names",
+                    ),
+                ],
+                "log_level": [
+                    (lambda v: isinstance(v, int), "Must be an integer"),
+                    (
+                        lambda v: v
+                        in [
+                            logging.DEBUG,
+                            logging.INFO,
+                            logging.WARNING,
+                            logging.ERROR,
+                            logging.CRITICAL,
+                        ],
+                        "Must be a valid logging level",
+                    ),
+                ],
+                "show_progress": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+            },
+            "ui": {
+                "use_color": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+                "monitor_resources": [
+                    (lambda v: isinstance(v, bool), "Must be a boolean")
+                ],
+                "adaptive_rate_limiting": [
+                    (lambda v: isinstance(v, bool), "Must be a boolean")
+                ],
+                "enhanced_progress": [
+                    (lambda v: isinstance(v, bool), "Must be a boolean")
+                ],
+            },
+            "version_comparison": {
+                "rate_limit": [
+                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (
+                        lambda v: ConfigValidator.validate_float_range(float(v), 0, 60),
+                        "Must be between 0 and 60 seconds",
+                    ),
+                ],
+                "cache_ttl": [
+                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (lambda v: v > 0, "Must be greater than 0"),
+                ],
+                "similarity_threshold": [
+                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (
+                        lambda v: ConfigValidator.validate_percentage(v),
+                        "Must be between 0 and 100",
+                    ),
+                ],
+                "include_beta_versions": [
+                    (lambda v: isinstance(v, bool), "Must be a boolean")
+                ],
+                "sort_by_outdated": [
+                    (lambda v: isinstance(v, bool), "Must be a boolean")
+                ],
+            },
+            "outdated_detection": {
+                "enabled": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+                "min_version_diff": [
+                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (lambda v: v >= 0, "Must be non-negative"),
+                ],
+                "include_pre_releases": [
+                    (lambda v: isinstance(v, bool), "Must be a boolean")
+                ],
+            },
+        }
+
+    @staticmethod
+    def _validate_rules_for_config(
+        config: Dict[str, Any],
+        rules: Dict[str, List],
+        errors: Dict[str, List[str]],
+        prefix: str = "",
+    ) -> None:
+        """Apply validation rules to a configuration section."""
+        for key, rule_list in rules.items():
+            if key in config:
+                value = config[key]
+                error_key = f"{prefix}.{key}" if prefix else key
+                for rule, error_msg in rule_list:
+                    if not rule(value):
+                        errors.setdefault(error_key, []).append(error_msg)
+
+    @staticmethod
+    def _validate_nested_section(
+        config: Dict[str, Any],
+        section_name: str,
+        rules: Dict[str, List],
+        errors: Dict[str, List[str]],
+    ) -> None:
+        """Validate a nested configuration section."""
+        if section_name in config:
+            if not isinstance(config[section_name], dict):
+                errors.setdefault(section_name, []).append("Must be a dictionary")
+            else:
+                ConfigValidator._validate_rules_for_config(
+                    config[section_name], rules, errors, section_name
+                )
+
+    @staticmethod
     def validate_config(config: Dict[str, Any]) -> Dict[str, List[str]]:
         """Validate configuration values against rules.
 
@@ -130,163 +268,19 @@ class ConfigValidator:
             Dict[str, List[str]]: Dictionary of validation errors by parameter
         """
         errors: Dict[str, List[str]] = {}
-
-        # Define validation rules as (validation_function, error_message, [transform_func])
-        validation_rules = {
-            "api_rate_limit": [
-                (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                (
-                    lambda v: ConfigValidator.validate_float_range(float(v), 0, 60),
-                    "Must be between 0 and 60 seconds",
-                ),
-            ],
-            "max_workers": [
-                (lambda v: isinstance(v, int), "Must be an integer"),
-                (
-                    lambda v: ConfigValidator.validate_int_range(v, 1, 100),
-                    "Must be between 1 and 100",
-                ),
-            ],
-            "similarity_threshold": [
-                (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                (
-                    lambda v: ConfigValidator.validate_percentage(v),
-                    "Must be between 0 and 100",
-                ),
-            ],
-            "additional_app_dirs": [
-                (lambda v: isinstance(v, list), "Must be a list"),
-                (
-                    lambda v: ConfigValidator.validate_path_list(v),
-                    "Must be a list of directory paths",
-                ),
-            ],
-            "blacklist": [
-                (lambda v: isinstance(v, list), "Must be a list"),
-                (
-                    lambda v: ConfigValidator.validate_string_list(v),
-                    "Must be a list of application names",
-                ),
-            ],
-            "log_level": [
-                (lambda v: isinstance(v, int), "Must be an integer"),
-                (
-                    lambda v: v
-                    in [
-                        logging.DEBUG,
-                        logging.INFO,
-                        logging.WARNING,
-                        logging.ERROR,
-                        logging.CRITICAL,
-                    ],
-                    "Must be a valid logging level",
-                ),
-            ],
-            "show_progress": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-        }
-
-        # UI-specific validation rules
-        ui_validation_rules = {
-            "use_color": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-            "monitor_resources": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-            "adaptive_rate_limiting": [
-                (lambda v: isinstance(v, bool), "Must be a boolean")
-            ],
-            "enhanced_progress": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-        }
-
-        # Version comparison validation rules
-        version_validation_rules = {
-            "rate_limit": [
-                (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                (
-                    lambda v: ConfigValidator.validate_float_range(float(v), 0, 60),
-                    "Must be between 0 and 60 seconds",
-                ),
-            ],
-            "cache_ttl": [
-                (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                (lambda v: v > 0, "Must be greater than 0"),
-            ],
-            "similarity_threshold": [
-                (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                (
-                    lambda v: ConfigValidator.validate_percentage(v),
-                    "Must be between 0 and 100",
-                ),
-            ],
-            "include_beta_versions": [
-                (lambda v: isinstance(v, bool), "Must be a boolean")
-            ],
-            "sort_by_outdated": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-        }
-
-        # Outdated detection validation rules
-        outdated_validation_rules = {
-            "enabled": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-            "min_version_diff": [
-                (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                (lambda v: v >= 0, "Must be non-negative"),
-            ],
-            "include_pre_releases": [
-                (lambda v: isinstance(v, bool), "Must be a boolean")
-            ],
-        }
+        validation_rules = ConfigValidator._get_validation_rules()
 
         # Apply top-level validation rules
-        for key, rules in validation_rules.items():
-            if key in config:
-                value = config[key]
-                for rule, error_msg in rules:
-                    if not rule(value):
-                        errors.setdefault(key, []).append(error_msg)
+        ConfigValidator._validate_rules_for_config(
+            config, validation_rules["top_level"], errors
+        )
 
-        # Validate UI settings
-        if "ui" in config:
-            if not isinstance(config["ui"], dict):
-                errors.setdefault("ui", []).append("Must be a dictionary")
-            else:
-                ui_config = config["ui"]
-                for key, rules in ui_validation_rules.items():
-                    if key in ui_config:
-                        value = ui_config[key]
-                        for rule, error_msg in rules:
-                            if not rule(value):
-                                errors.setdefault(f"ui.{key}", []).append(error_msg)
-
-        # Validate version comparison settings
-        if "version_comparison" in config:
-            if not isinstance(config["version_comparison"], dict):
-                errors.setdefault("version_comparison", []).append(
-                    "Must be a dictionary"
+        # Validate nested sections
+        for section_name in ["ui", "version_comparison", "outdated_detection"]:
+            if section_name in validation_rules:
+                ConfigValidator._validate_nested_section(
+                    config, section_name, validation_rules[section_name], errors
                 )
-            else:
-                version_config = config["version_comparison"]
-                for key, rules in version_validation_rules.items():
-                    if key in version_config:
-                        value = version_config[key]
-                        for rule, error_msg in rules:
-                            if not rule(value):
-                                errors.setdefault(
-                                    f"version_comparison.{key}", []
-                                ).append(error_msg)
-
-        # Validate outdated detection settings
-        if "outdated_detection" in config:
-            if not isinstance(config["outdated_detection"], dict):
-                errors.setdefault("outdated_detection", []).append(
-                    "Must be a dictionary"
-                )
-            else:
-                outdated_config = config["outdated_detection"]
-                for key, rules in outdated_validation_rules.items():
-                    if key in outdated_config:
-                        value = outdated_config[key]
-                        for rule, error_msg in rules:
-                            if not rule(value):
-                                errors.setdefault(
-                                    f"outdated_detection.{key}", []
-                                ).append(error_msg)
 
         return errors
 
@@ -512,7 +506,11 @@ class Config:
                 logging.warning("Invalid %s: %s", config_key, os.environ[env_var])
 
     def _load_boolean_env_var(
-        self, env_var: str, config_key: str, env_config: dict, nested_key: Optional[str] = None
+        self,
+        env_var: str,
+        config_key: str,
+        env_config: dict,
+        nested_key: Optional[str] = None,
     ) -> None:
         """Load and validate a boolean environment variable."""
         if os.environ.get(env_var, "").lower() in ("0", "false", "no"):

@@ -421,6 +421,9 @@ def _is_version_malformed(version: Union[str, Tuple[int, ...], None]) -> bool:
     if isinstance(version, tuple):
         return False
     v_str = str(version).strip()
+    # Empty strings are not malformed, they're just empty
+    if not v_str:
+        return False
     # If no digits found at all, it's malformed
     return not re.search(r"\d", v_str)
 
@@ -459,7 +462,10 @@ def _has_application_build_pattern(version_str: str) -> bool:
 
 
 def _handle_semver_build_metadata(
-    v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]
+    v1_str: str,
+    v2_str: str,
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
 ) -> Optional[int]:
     """Handle semantic versioning build metadata (+build.X)."""
     v1_has_semver_build = isinstance(version1, str) and "+" in version1
@@ -480,7 +486,10 @@ def _handle_semver_build_metadata(
 
 
 def _compare_application_builds(
-    v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]
+    v1_str: str,
+    v2_str: str,
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
 ) -> Optional[int]:
     """Compare versions with application-specific build patterns."""
     v1_has_app_build = isinstance(version1, str) and _has_application_build_pattern(
@@ -777,33 +786,76 @@ def _compare_prerelease(
         return _compare_prerelease_suffixes(v1_suffix, v2_suffix)
 
 
-def _compare_prerelease_suffixes(
-    suffix1: Union[int, str, None], suffix2: Union[int, str, None]
-) -> int:
-    """Compare pre-release suffixes (numbers, strings, or None)."""
-    # Handle Unicode Greek letters
+def _get_unicode_priority(suffix: Union[int, str, None]) -> Optional[int]:
+    """Get priority value for Unicode Greek letters."""
     unicode_priority = {"α": 1, "β": 2, "γ": 3, "δ": 4}
+    return unicode_priority.get(str(suffix)) if suffix is not None else None
 
-    # If both are Unicode characters, compare by priority
-    if str(suffix1) in unicode_priority and str(suffix2) in unicode_priority:
-        p1 = unicode_priority[str(suffix1)]
-        p2 = unicode_priority[str(suffix2)]
+
+def _compare_unicode_suffixes(
+    suffix1: Union[int, str, None], suffix2: Union[int, str, None]
+) -> Optional[int]:
+    """Compare Unicode Greek letter suffixes. Returns None if not applicable."""
+    p1 = _get_unicode_priority(suffix1)
+    p2 = _get_unicode_priority(suffix2)
+
+    # Both are Unicode characters
+    if p1 is not None and p2 is not None:
         return -1 if p1 < p2 else (1 if p1 > p2 else 0)
 
-    # If one is Unicode and one is not, Unicode comes first (lower priority)
-    if str(suffix1) in unicode_priority and str(suffix2) not in unicode_priority:
+    # One is Unicode and one is not
+    if p1 is not None and p2 is None:
         return -1
-    if str(suffix2) in unicode_priority and str(suffix1) not in unicode_priority:
+    if p2 is not None and p1 is None:
         return 1
 
-    # Handle None (no suffix) vs numeric/string suffixes
-    # None means no suffix, which should be lower than any numeric suffix
+    return None  # Neither is Unicode
+
+
+def _compare_none_suffixes(
+    suffix1: Union[int, str, None], suffix2: Union[int, str, None]
+) -> Optional[int]:
+    """Compare None values. Returns None if not applicable."""
     if suffix1 is None and suffix2 is not None:
         return -1
     if suffix2 is None and suffix1 is not None:
         return 1
     if suffix1 is None and suffix2 is None:
         return 0
+    return None  # Neither is None
+
+
+def _compare_string_suffixes(suffix1: str, suffix2: str) -> int:
+    """Compare string suffixes, handling numeric strings."""
+    try:
+        num1 = int(suffix1)
+        try:
+            num2 = int(suffix2)
+            return -1 if num1 < num2 else (1 if num1 > num2 else 0)
+        except ValueError:
+            return -1  # number < text
+    except ValueError:
+        try:
+            int(suffix2)
+            return 1  # text > number
+        except ValueError:
+            # Both are text, do lexical comparison
+            return -1 if suffix1 < suffix2 else (1 if suffix1 > suffix2 else 0)
+
+
+def _compare_prerelease_suffixes(
+    suffix1: Union[int, str, None], suffix2: Union[int, str, None]
+) -> int:
+    """Compare pre-release suffixes (numbers, strings, or None)."""
+    # Handle Unicode Greek letters
+    unicode_result = _compare_unicode_suffixes(suffix1, suffix2)
+    if unicode_result is not None:
+        return unicode_result
+
+    # Handle None values
+    none_result = _compare_none_suffixes(suffix1, suffix2)
+    if none_result is not None:
+        return none_result
 
     # Both are numbers
     if isinstance(suffix1, int) and isinstance(suffix2, int):
@@ -811,21 +863,7 @@ def _compare_prerelease_suffixes(
 
     # Both are strings (not Unicode)
     if isinstance(suffix1, str) and isinstance(suffix2, str):
-        # Numbers in string format vs text: numbers come first
-        try:
-            num1 = int(suffix1)
-            try:
-                num2 = int(suffix2)
-                return -1 if num1 < num2 else (1 if num1 > num2 else 0)
-            except ValueError:
-                return -1  # number < text
-        except ValueError:
-            try:
-                int(suffix2)
-                return 1  # text > number
-            except ValueError:
-                # Both are text, do lexical comparison
-                return -1 if suffix1 < suffix2 else (1 if suffix1 > suffix2 else 0)
+        return _compare_string_suffixes(suffix1, suffix2)
 
     # Mixed types: numbers come before strings
     if isinstance(suffix1, int) and isinstance(suffix2, str):
@@ -1313,38 +1351,17 @@ def get_partial_ratio_scorer():
         return fallback_scorer
 
 
-def get_version_difference(
+def _handle_empty_and_malformed_versions(
     version1: Union[str, Tuple[int, ...], None],
     version2: Union[str, Tuple[int, ...], None],
 ) -> Optional[Tuple[int, ...]]:
-    """Get the signed difference between two versions (v1 - v2).
-
-    Args:
-        version1: First version string or tuple
-        version2: Second version string or tuple
-
-    Returns:
-        Tuple containing signed version difference (v1 - v2), or None if either version is None or malformed
-    """
+    """Handle empty and malformed version cases. Returns None if should continue processing."""
     # Handle None cases
     if version1 is None or version2 is None:
         return None
 
-    # Check for malformed versions
-    def is_malformed(v):
-        if isinstance(v, tuple):
-            return False
-        v_str = str(v).strip()
-        # Empty strings are not malformed, they're just empty
-        if not v_str:
-            return False
-        # If no digits found at all, it's malformed
-        if not re.search(r"\d", v_str):
-            return True
-        return False
-
-    v1_malformed = is_malformed(version1)
-    v2_malformed = is_malformed(version2)
+    v1_malformed = _is_version_malformed(version1)
+    v2_malformed = _is_version_malformed(version2)
 
     # Handle empty strings specially - they should be treated as (0, 0, 0)
     v1_empty = isinstance(version1, str) and not version1.strip()
@@ -1362,11 +1379,21 @@ def get_version_difference(
     if v1_malformed or v2_malformed:
         return None
 
-    # Convert to tuples if needed
+    # Continue with normal processing
+    return None
+
+
+def _convert_versions_to_tuples(
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
+) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    """Convert versions to tuples for comparison."""
     if isinstance(version1, str):
         v1_tuple = parse_version(version1)
         if v1_tuple is None:
             v1_tuple = (0, 0, 0)
+    elif version1 is None:
+        v1_tuple = (0, 0, 0)
     else:
         v1_tuple = version1
 
@@ -1374,38 +1401,92 @@ def get_version_difference(
         v2_tuple = parse_version(version2)
         if v2_tuple is None:
             v2_tuple = (0, 0, 0)
+    elif version2 is None:
+        v2_tuple = (0, 0, 0)
     else:
         v2_tuple = version2
+
+    return v1_tuple, v2_tuple
+
+
+def _check_version_metadata(
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
+) -> Tuple[bool, bool]:
+    """Check if versions have build metadata or prerelease patterns."""
+    v1_has_build_metadata = isinstance(version1, str) and (
+        "+build." in version1 or bool(re.search(r"\+.*\d+", version1))
+    )
+    v2_has_build_metadata = isinstance(version2, str) and (
+        "+build." in version2 or bool(re.search(r"\+.*\d+", version2))
+    )
+
+    v1_has_prerelease = isinstance(version1, str) and _is_prerelease(version1)
+    v2_has_prerelease = isinstance(version2, str) and _is_prerelease(version2)
+
+    return (
+        v1_has_build_metadata and v2_has_build_metadata,
+        v1_has_prerelease and v2_has_prerelease,
+    )
+
+
+def _apply_version_truncation(
+    v1_padded: Tuple[int, ...],
+    v2_padded: Tuple[int, ...],
+    max_len: int,
+    both_have_build_metadata: bool,
+    both_have_prerelease: bool,
+) -> Tuple[Tuple[int, ...], Tuple[int, ...], int]:
+    """Apply truncation rules for build metadata and prerelease versions."""
+    # If both versions have build metadata, compare only first 3 components
+    if both_have_build_metadata:
+        max_len = min(max_len, 3)
+        v1_padded = v1_padded[:3]
+        v2_padded = v2_padded[:3]
+    # If both versions have pre-release tags, ignore pre-release components
+    elif both_have_prerelease:
+        max_len = min(max_len, 3)
+        v1_padded = v1_padded[:3]
+        v2_padded = v2_padded[:3]
+
+    return v1_padded, v2_padded, max_len
+
+
+def get_version_difference(
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
+) -> Optional[Tuple[int, ...]]:
+    """Get the signed difference between two versions (v1 - v2).
+
+    Args:
+        version1: First version string or tuple
+        version2: Second version string or tuple
+
+    Returns:
+        Tuple containing signed version difference (v1 - v2), or None if either version is None or malformed
+    """
+    # Handle empty and malformed versions
+    early_result = _handle_empty_and_malformed_versions(version1, version2)
+    if early_result is not None:
+        return early_result
+
+    # Convert to tuples
+    v1_tuple, v2_tuple = _convert_versions_to_tuples(version1, version2)
 
     # Pad to same length
     max_len = max(len(v1_tuple), len(v2_tuple))
     v1_padded = v1_tuple + (0,) * (max_len - len(v1_tuple))
     v2_padded = v2_tuple + (0,) * (max_len - len(v2_tuple))
 
-    # For build metadata versions (semver +build.X), ignore 4th+ components
-    # Check if the original versions contain build metadata patterns
-    v1_has_build_metadata = isinstance(version1, str) and (
-        "+build." in version1 or re.search(r"\+.*\d+", version1)
-    )
-    v2_has_build_metadata = isinstance(version2, str) and (
-        "+build." in version2 or re.search(r"\+.*\d+", version2)
+    # Check for metadata patterns
+    both_have_build_metadata, both_have_prerelease = _check_version_metadata(
+        version1, version2
     )
 
-    # Check if the original versions contain pre-release patterns
-    v1_has_prerelease = isinstance(version1, str) and _is_prerelease(version1)
-    v2_has_prerelease = isinstance(version2, str) and _is_prerelease(version2)
-
-    # If both versions have build metadata, compare only first 3 components
-    if v1_has_build_metadata and v2_has_build_metadata:
-        max_len = min(max_len, 3)
-        v1_padded = v1_padded[:3]
-        v2_padded = v2_padded[:3]
-
-    # If both versions have pre-release tags, ignore pre-release components (compare only base version)
-    elif v1_has_prerelease and v2_has_prerelease:
-        max_len = min(max_len, 3)
-        v1_padded = v1_padded[:3]
-        v2_padded = v2_padded[:3]
+    # Apply truncation rules
+    v1_padded, v2_padded, max_len = _apply_version_truncation(
+        v1_padded, v2_padded, max_len, both_have_build_metadata, both_have_prerelease
+    )
 
     # Calculate signed differences (v1 - v2)
     differences = tuple(v1_padded[i] - v2_padded[i] for i in range(max_len))

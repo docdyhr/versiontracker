@@ -447,6 +447,70 @@ def is_app_in_app_store(app_name: str, use_cache: bool = True) -> bool:
         return False
 
 
+def _check_cache_for_cask(cask_name: str, cache_data: Optional[dict]) -> Optional[bool]:
+    """Check if cask is in cache. Returns None if not found."""
+    if not cache_data:
+        return None
+
+    # Handle both structures: dict with "installable" key or direct key-value pairs
+    if "installable" in cache_data:
+        installable_casks = cache_data.get("installable", [])
+        return cask_name in installable_casks
+    elif cask_name in cache_data:
+        return cache_data[cask_name]
+
+    return None
+
+
+def _execute_brew_search(cask_name: str) -> Tuple[str, int]:
+    """Execute brew search command and return output and return code."""
+    brew_command = getattr(get_config(), "brew_path", "brew")
+    cmd = '%s search --cask "%s"' % (brew_command, cask_name)
+    return run_command(cmd, timeout=30)
+
+
+def _handle_brew_search_result(output: str, returncode: int, cask_name: str) -> bool:
+    """Handle the result of brew search command."""
+    if returncode != 0:
+        if "No formulae or casks found" in output:
+            return False
+        else:
+            error_msg = (
+                output.strip()
+                if output.strip()
+                else f"Command failed with exit code {returncode}"
+            )
+            logging.warning(
+                "Error checking if %s is installable: %s", cask_name, error_msg
+            )
+            return False
+
+    # Check if exact match exists in output
+    lines = output.strip().split("\n")
+    for line in lines:
+        if line and line.strip() == cask_name:
+            return True
+
+    return False
+
+
+def _update_cache_with_installable(cask_name: str, cache_data: Optional[dict]) -> None:
+    """Update cache with installable cask."""
+    if not cache_data:
+        cache_data = {"installable": []}
+    cache_data["installable"] = cache_data.get("installable", []) + [cask_name]
+    write_cache("brew_installable", cache_data)
+
+
+def _get_error_message(error: Exception) -> str:
+    """Get a descriptive error message from an exception."""
+    return (
+        str(error)
+        if str(error).strip()
+        else f"Unknown error of type {type(error).__name__}"
+    )
+
+
 def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
     """Check if a Homebrew cask is installable.
 
@@ -462,8 +526,8 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
         BrewTimeoutError: If the brew search command times out
         NetworkError: If there's a network issue during search
     """
-    # Log debug info about which cask we're checking
     logging.debug("Checking if %s is installable", cask_name)
+
     try:
         # Fast path for non-homebrew systems
         if not is_homebrew_available():
@@ -471,112 +535,57 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
                 f"Homebrew is not available for checking cask: {cask_name}"
             )
 
-        # Check if cask is in cache
+        # Check cache first
         cache_data = read_cache("brew_installable")
-        if use_cache and cache_data:
-            # Handle both structures: dict with "installable" key or direct key-value pairs
-            if "installable" in cache_data:
-                installable_casks = cache_data.get("installable", [])
-                if cask_name in installable_casks:
-                    return True
-            elif cask_name in cache_data:
-                return cache_data[cask_name]
+        if use_cache:
+            cached_result = _check_cache_for_cask(cask_name, cache_data)
+            if cached_result is not None:
+                return cached_result
 
-        # Check if cask is installable
-        brew_command = getattr(get_config(), "brew_path", "brew")
-        # Use quotes around the cask name to handle special characters and spaces
-        cmd = '%s search --cask "%s"' % (brew_command, cask_name)
+        # Execute brew search
         try:
-            output, returncode = run_command(cmd, timeout=30)
+            output, returncode = _execute_brew_search(cask_name)
+            is_installable = _handle_brew_search_result(output, returncode, cask_name)
 
-            # Brew search returns exit code 1 for "No formulae or casks found"
-            # This isn't actually an error, it just means the cask isn't installable
-            if returncode != 0:
-                if "No formulae or casks found" in output:
-                    # This is an expected case, return False quietly
-                    return False
-                else:
-                    # Log only for unexpected errors with better error information
-                    error_msg = (
-                        output.strip()
-                        if output.strip()
-                        else f"Command failed with exit code {returncode}"
-                    )
-                    logging.warning(
-                        "Error checking if %s is installable: %s", cask_name, error_msg
-                    )
-                    return False
+            # Update cache if installable
+            if is_installable:
+                _update_cache_with_installable(cask_name, cache_data)
+
+            return is_installable
+
         except Exception as e:
-            # Provide more detailed error information with fallback for empty exceptions
-            error_details = (
-                str(e)
-                if str(e).strip()
-                else f"Unknown error of type {type(e).__name__}"
-            )
+            error_details = _get_error_message(e)
             logging.warning(
                 "Exception checking if %s is installable: %s", cask_name, error_details
             )
             return False
 
-        lines = output.strip().split("\n")
-        for line in lines:
-            if line and line.strip() == cask_name:
-                # Update cache
-                if not cache_data:
-                    cache_data = {"installable": []}
-                cache_data["installable"] = cache_data.get("installable", []) + [
-                    cask_name
-                ]
-                write_cache("brew_installable", cache_data)
-                return True
-
-        return False
     except BrewTimeoutError as e:
-        error_msg = (
-            str(e) if str(e).strip() else f"Timeout error of type {type(e).__name__}"
-        )
+        error_msg = _get_error_message(e)
         logging.warning(
             "Timeout checking if %s is installable: %s", cask_name, error_msg
         )
         raise
     except NetworkError as e:
-        error_msg = (
-            str(e) if str(e).strip() else f"Network error of type {type(e).__name__}"
-        )
+        error_msg = _get_error_message(e)
         logging.warning(
             "Network error checking if %s is installable: %s", cask_name, error_msg
         )
         raise
     except HomebrewError as e:
-        error_msg = (
-            str(e) if str(e).strip() else f"Homebrew error of type {type(e).__name__}"
-        )
+        error_msg = _get_error_message(e)
         logging.warning(
             "Homebrew error checking if %s is installable: %s", cask_name, error_msg
         )
         raise
     except Exception as e:
-        # Provide better error details with fallback for empty exception messages
-        error_details = (
-            str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
-        )
+        error_details = _get_error_message(e)
         logging.warning(
-            "Error checking if %s is installable: %s", cask_name, error_details
+            "Exception checking if %s is installable: %s", cask_name, error_details
         )
 
-        # Check for network-related errors in exception message
-        if any(
-            network_term in str(e).lower()
-            for network_term in [
-                "temporary failure in name resolution",
-                "network",
-                "socket",
-                "connection",
-                "host",
-                "resolve",
-                "timeout",
-            ]
-        ):
+        # Check if it's a network-related exception
+        if "network" in str(e).lower() or "connection" in str(e).lower():
             raise NetworkError(
                 f"Network unavailable when checking homebrew cask: {cask_name}"
             ) from e

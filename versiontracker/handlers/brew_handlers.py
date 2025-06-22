@@ -122,6 +122,223 @@ class RecommendOptions(TypedDict, total=False):
     output_file: Optional[str]
 
 
+def _setup_options_compatibility(options: Any) -> bool:
+    """Set up backward compatibility attributes for options."""
+    # Set attribute for backward compatibility with tests
+    if not hasattr(options, "recommend"):
+        setattr(options, "recommend", True)
+
+    if hasattr(options, "strict_recommend"):
+        setattr(options, "strict_recom", options.strict_recommend)
+
+    return _determine_strict_mode(options)
+
+
+def _determine_strict_mode(options: Any) -> bool:
+    """Determine if we're in strict mode based on options."""
+    # Check if we're in strict mode
+    if hasattr(options, "strict_recom") and options.strict_recom:
+        return True
+
+    # Detect if we're being run in a test
+    if len(sys.argv) <= 1 and (
+        hasattr(options, "strict_recommend") or hasattr(options, "recommend")
+    ):
+        options.mock_test = True
+        return False
+
+    if hasattr(options, "strict_recommend") and options.strict_recommend:
+        return True
+
+    return False
+
+
+def _get_application_data() -> List[Tuple[str, str]]:
+    """Get and filter application data."""
+    print(create_progress_bar().color("green")("Getting application data..."))
+    raw_data = get_json_data(
+        getattr(
+            get_config(),
+            "system_profiler_cmd",
+            "system_profiler -json SPApplicationsDataType",
+        )
+    )
+    apps_folder = get_applications(raw_data)
+
+    # Apply blacklist filtering
+    filtered_apps: List[Tuple[str, str]] = [
+        (item[0], item[1])
+        for item in apps_folder
+        if not get_config().is_blacklisted(item[0])
+    ]
+
+    return filtered_apps
+
+
+def _get_homebrew_casks() -> List[str]:
+    """Get installed Homebrew casks with error handling."""
+    print(create_progress_bar().color("green")("Getting installed Homebrew casks..."))
+
+    try:
+        homebrew_casks = get_homebrew_casks()
+        return homebrew_casks
+    except HomebrewError as e:
+        print(create_progress_bar().color("red")(f"Error getting Homebrew casks: {e}"))
+        print(
+            create_progress_bar().color("yellow")(
+                "Proceeding without Homebrew cask filtering."
+            )
+        )
+        return []
+    except Exception as e:
+        print(
+            create_progress_bar().color("red")(
+                f"Unexpected error getting Homebrew casks: {e}"
+            )
+        )
+        print(
+            create_progress_bar().color("yellow")(
+                "Proceeding without Homebrew cask filtering."
+            )
+        )
+        return []
+
+
+def _log_debug_info(
+    options: Any,
+    filtered_apps: List[Tuple[str, str]],
+    apps_homebrew: List[str],
+    search_list: List[Tuple[str, str]],
+) -> None:
+    """Log debug information if requested."""
+    if not options.debug:
+        return
+
+    logging.debug("\n*** Applications not managed by App Store ***")
+    for app, ver in filtered_apps:
+        logging.debug("\tapp: %s", app)
+
+    logging.debug("\n*** Installed homebrew casks ***")
+    for brew in apps_homebrew:
+        logging.debug("\tbrew cask: %s", brew)
+
+    logging.debug("\n*** Candidates for search (not found as brew casks) ***")
+    for candidate in search_list:
+        logging.debug("\tcandidate: %s", candidate)
+
+
+def _get_rate_limit(options: Any) -> int:
+    """Get rate limit from options or config."""
+    rate_limit_int: int = 10  # Default value
+
+    if hasattr(options, "rate_limit") and options.rate_limit is not None:
+        rate_limit_int = int(options.rate_limit)
+    elif hasattr(get_config(), "get"):
+        try:
+            rate_limit_int = int(get_config().get("rate_limit", 10))
+        except (ValueError, TypeError, AttributeError):
+            rate_limit_int = 10
+
+    return rate_limit_int
+
+
+def _search_brew_candidates(
+    search_list: List[Tuple[str, str]], rate_limit_int: int, strict_mode: bool
+) -> List[str]:
+    """Search for Homebrew installation candidates."""
+    print(
+        create_progress_bar().color("green")(
+            f"\nSearching for {len(search_list)} applications in Homebrew repository..."
+        )
+    )
+    print(
+        create_progress_bar().color("green")(
+            f"Using rate limit of {rate_limit_int} seconds between API calls"
+        )
+    )
+    print(
+        create_progress_bar().color("green")(
+            "This process may take some time, please be patient..."
+        )
+    )
+
+    # Special case for testing - detect if we're in a test environment
+    import inspect
+
+    try:
+        any("unittest" in f.filename for f in inspect.stack())
+    except Exception:
+        # Unable to inspect stack, continue normally
+        pass
+
+    brew_candidates = check_brew_install_candidates(
+        search_list, rate_limit_int, strict_mode
+    )
+
+    # Extract installable app names from the results
+    installables = [app for app, _, installable in brew_candidates if installable]
+
+    return installables
+
+
+def _display_results(
+    search_list: List[Tuple[str, str]],
+    installables: List[str],
+    elapsed_time: float,
+    options: Any,
+) -> None:
+    """Display search results."""
+    if options.export_format:
+        return
+
+    print("")
+    print(
+        create_progress_bar().color("green")(
+            f"✓ Processed {len(search_list)} applications in {elapsed_time:.1f} seconds"
+        )
+    )
+    print(
+        create_progress_bar().color("green")(
+            f"Found {len(installables)} applications installable with Homebrew"
+        )
+    )
+    print("")
+
+    if installables:
+        for i, installable in enumerate(installables, 1):
+            install_name = (
+                installable if isinstance(installable, str) else str(installable)
+            )
+            print(
+                f"{i:2d}. {create_progress_bar().color('green')(install_name)} "
+                "(installable with Homebrew)"
+            )
+    else:
+        print(
+            create_progress_bar().color("yellow")(
+                "No applications found that can be installed with Homebrew."
+            )
+        )
+
+
+def _handle_export_output(installables: List[str], options: Any) -> None:
+    """Handle export output if requested."""
+    if not options.export_format:
+        return
+
+    export_data_dict: Dict[str, Any] = {
+        "installable_with_homebrew": installables,
+        "total_installable": len(installables),
+    }
+    export_result = handle_export(
+        export_data_dict,
+        options.export_format,
+        options.output_file,
+    )
+    if not options.output_file:
+        print(export_result)
+
+
 def handle_brew_recommendations(options: Any) -> int:
     """Handle Homebrew installation recommendations.
 
@@ -142,151 +359,34 @@ def handle_brew_recommendations(options: Any) -> int:
         TimeoutError: If operations time out
         Exception: For other unexpected errors
     """
-    # Set attribute for backward compatibility with tests
-    setattr(options, "recommend", True) if not hasattr(options, "recommend") else None
-    (
-        setattr(options, "strict_recom", options.strict_recommend)
-        if hasattr(options, "strict_recommend")
-        else None
-    )
     try:
-        # Check if we're in strict mode - ensure it's set correctly for tests
-        # First, check if strict_recom exists and is true
-        strict_mode = False
-        if hasattr(options, "strict_recom") and options.strict_recom:
-            strict_mode = True
-        # Next, check if strict_recommend exists and is true (alternative attribute name)
+        strict_mode = _setup_options_compatibility(options)
 
-        # Detect if we're being run in a test
-        if (
-            len(sys.argv) <= 1
-            and hasattr(options, "strict_recommend")
-            or hasattr(options, "recommend")
-        ):
-            # This is likely being invoked from a test with mocked options
-            options.mock_test = True
-        elif hasattr(options, "strict_recommend") and options.strict_recommend:
-            strict_mode = True
+        # Get application data
+        filtered_apps = _get_application_data()
 
-        print(create_progress_bar().color("green")("Getting application data..."))
-        raw_data = get_json_data(
-            getattr(
-                get_config(),
-                "system_profiler_cmd",
-                "system_profiler -json SPApplicationsDataType",
-            )
-        )
-        apps_folder = get_applications(raw_data)
-
-        print(
-            create_progress_bar().color("green")("Getting installed Homebrew casks...")
-        )
-        try:
-            homebrew_casks = get_homebrew_casks()
-            apps_homebrew = homebrew_casks
-        except HomebrewError as e:
-            print(
-                create_progress_bar().color("red")(f"Error getting Homebrew casks: {e}")
-            )
-            print(
-                create_progress_bar().color("yellow")(
-                    "Proceeding without Homebrew cask filtering."
-                )
-            )
-            apps_homebrew = []
-        except Exception as e:
-            print(
-                create_progress_bar().color("red")(
-                    f"Unexpected error getting Homebrew casks: {e}"
-                )
-            )
-            print(
-                create_progress_bar().color("yellow")(
-                    "Proceeding without Homebrew cask filtering."
-                )
-            )
-            apps_homebrew = []
-
-        # Apply blacklist filtering
-        filtered_apps: List[Tuple[str, str]] = [
-            (item[0], item[1])
-            for item in apps_folder
-            if not get_config().is_blacklisted(item[0])
-        ]
-
-        # Debug output if requested
-        if options.debug:
-            logging.debug("\n*** Applications not managed by App Store ***")
-            for app, ver in filtered_apps:
-                logging.debug("\tapp: %s", app)
-
-            logging.debug("\n*** Installed homebrew casks ***")
-            for brew in apps_homebrew:
-                logging.debug("\tbrew cask: %s", brew)
+        # Get Homebrew casks
+        apps_homebrew = _get_homebrew_casks()
 
         # Get installable candidates
         search_list: List[Tuple[str, str]] = filter_out_brews(
             filtered_apps, apps_homebrew, strict_mode
         )
 
-        if options.debug:
-            logging.debug("\n*** Candidates for search (not found as brew casks) ***")
-            for candidate in search_list:
-                logging.debug("\tcandidate: %s", candidate)
+        # Log debug information
+        _log_debug_info(options, filtered_apps, apps_homebrew, search_list)
 
-        # Rate limit if specified - always convert to integer for consistency
-        # If options.rate_limit is specified, use that, otherwise get from config or default to 10
-        rate_limit_int: int = 10  # Default value
-        if hasattr(options, "rate_limit") and options.rate_limit is not None:
-            rate_limit_int = int(options.rate_limit)
-        elif hasattr(get_config(), "get"):
-            try:
-                # Try to get from config.get
-                rate_limit_int = int(get_config().get("rate_limit", 10))
-            except (ValueError, TypeError, AttributeError):
-                # If any conversion fails, use default
-                rate_limit_int = 10
+        # Get rate limit
+        rate_limit_int = _get_rate_limit(options)
 
-        # Start time for tracking
+        # Start timing
         start_time = time.time()
 
-        # Get Homebrew installation recommendations - always use integer
-        print(
-            create_progress_bar().color("green")(
-                f"\nSearching for {len(search_list)} applications in Homebrew repository..."
-            )
-        )
-        print(
-            create_progress_bar().color("green")(
-                f"Using rate limit of {rate_limit_int} seconds between API calls"
-            )
-        )
-        print(
-            create_progress_bar().color("green")(
-                "This process may take some time, please be patient..."
-            )
-        )
-
         try:
-            # Special case for testing - detect if we're in a test environment
-            import inspect
-
-            try:
-                any("unittest" in f.filename for f in inspect.stack())
-            except Exception:
-                # Unable to inspect stack, continue normally
-                pass
-
-            # If in a test, the check_brew_install_candidates function should already be mocked
-            # Use rate_limit_int for the API rate limit
-            brew_candidates = check_brew_install_candidates(
+            # Search for brew candidates
+            installables = _search_brew_candidates(
                 search_list, rate_limit_int, strict_mode
             )
-
-            # Extract installable app names from the results (app, version, installable)
-            installables = [
-                app for app, _, installable in brew_candidates if installable
-            ]
         except HomebrewError as e:
             print(
                 create_progress_bar().color("red")(
@@ -311,56 +411,15 @@ def handle_brew_recommendations(options: Any) -> int:
             )
             return 1
 
-        # End time and calculation
+        # Calculate elapsed time
         elapsed_time: float = time.time() - start_time
 
         # Display results
-        if not options.export_format:
-            # Print summary information about processing
-            print("")
-            print(
-                create_progress_bar().color("green")(
-                    f"✓ Processed {len(search_list)} applications in {elapsed_time:.1f} seconds"
-                )
-            )
-            print(
-                create_progress_bar().color("green")(
-                    f"Found {len(installables)} applications installable with Homebrew"
-                )
-            )
-            print("")
+        _display_results(search_list, installables, elapsed_time, options)
 
-            # If we found installable applications, list them in a nice format
-            if installables:
-                for i, installable in enumerate(installables, 1):
-                    install_name = (
-                        installable
-                        if isinstance(installable, str)
-                        else str(installable)
-                    )
-                    print(
-                        f"{i:2d}. {create_progress_bar().color('green')(install_name)} (installable with Homebrew)"
-                    )
-            else:
-                print(
-                    create_progress_bar().color("yellow")(
-                        "No applications found that can be installed with Homebrew."
-                    )
-                )
+        # Handle export
+        _handle_export_output(installables, options)
 
-        # Handle export if requested
-        if options.export_format:
-            export_data_dict: Dict[str, Any] = {
-                "installable_with_homebrew": installables,
-                "total_installable": len(installables),
-            }
-            export_result = handle_export(
-                export_data_dict,
-                options.export_format,
-                options.output_file,
-            )
-            if not options.output_file:
-                print(export_result)
         return 0
     except Exception as e:
         logging.error(f"Error in brew recommendations: {e}")
