@@ -171,7 +171,9 @@ class TestTerminalOutput:
         # In fallback mode, should return text without color codes
         assert "test" in result  # More flexible assertion
 
-    @pytest.mark.skip(reason="Test has intermittent failures due to test state pollution in full suite context")
+    @pytest.mark.skip(
+        reason="Test has intermittent failures due to test state pollution in full suite context"
+    )
     def test_cprint_fallback(self, capsys, monkeypatch):
         """Test cprint function fallback."""
         import versiontracker.ui as ui
@@ -189,7 +191,7 @@ class TestTerminalOutput:
 
         # Test the fallback behavior by calling cprint when HAS_TERMCOLOR is False
         # When HAS_TERMCOLOR is False, the ui module should use its fallback implementation
-        if hasattr(ui, 'cprint'):
+        if hasattr(ui, "cprint"):
             # Call the existing cprint function - it should handle the fallback internally
             ui.cprint("test", "red")
         else:
@@ -200,7 +202,9 @@ class TestTerminalOutput:
         captured = capsys.readouterr()
 
         # The output should contain "test" regardless of the exact format
-        assert "test" in captured.out, f"Expected 'test' in output but got {captured.out!r}"
+        assert "test" in captured.out, (
+            f"Expected 'test' in output but got {captured.out!r}"
+        )
         assert captured.err == ""
 
     def test_color_constants_values(self):
@@ -227,7 +231,9 @@ class TestTerminalOutput:
                     # If it does raise, that's the current behavior - document it
                     pass
 
-    @pytest.mark.skip(reason="Test has intermittent failures due to test state pollution in full suite context")
+    @pytest.mark.skip(
+        reason="Test has intermittent failures due to test state pollution in full suite context"
+    )
     def test_print_functions_with_file_kwarg(self, capsys, monkeypatch):
         """Test print functions work with file kwarg."""
         import versiontracker.ui as ui
@@ -267,7 +273,9 @@ class TestTerminalOutput:
             if captured.out and "test" in captured.out:
                 pass
             else:
-                assert False, f"Expected 'test' in StringIO ({result!r}) or stdout ({captured.out!r})"
+                assert False, (
+                    f"Expected 'test' in StringIO ({result!r}) or stdout ({captured.out!r})"
+                )
 
 
 class TestSmartProgress:
