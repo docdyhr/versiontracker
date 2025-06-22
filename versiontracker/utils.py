@@ -290,17 +290,17 @@ def run_command_secure(
     command_parts: List[str], timeout: Optional[int] = None
 ) -> Tuple[str, int]:
     """Run a command securely without shell=True.
-    
+
     This function executes commands without using shell=True, which eliminates
     shell injection vulnerabilities. Commands are passed as a list of arguments.
-    
+
     Args:
         command_parts: List of command arguments (e.g., ['brew', 'list', '--cask'])
         timeout: Optional timeout in seconds
-        
+
     Returns:
         Tuple[str, int]: Command output and return code
-        
+
     Raises:
         TimeoutError: If the command execution exceeds the specified timeout
         PermissionError: If there's insufficient permissions to run the command
@@ -317,12 +317,12 @@ def run_command_secure(
             shell=False,  # Security: No shell interpretation
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
-        
+
         # Wait for the command to complete with timeout
         stdout, stderr = process.communicate(timeout=timeout)
-        
+
         # Check return code
         if process.returncode != 0:
             # Check for expected "failures" that shouldn't be logged as warnings
@@ -334,27 +334,31 @@ def run_command_secure(
                 logging.warning(
                     f"Command {' '.join(command_parts)} failed with return code {process.returncode}: {stderr}"
                 )
-        
+
         return stdout, process.returncode
-        
+
     except subprocess.TimeoutExpired:
         if process:
             process.kill()
             process.wait()
-        error_msg = f"Command {' '.join(command_parts)} timed out after {timeout} seconds"
+        error_msg = (
+            f"Command {' '.join(command_parts)} timed out after {timeout} seconds"
+        )
         logging.error(error_msg)
         raise TimeoutError(error_msg)
-        
+
     except FileNotFoundError as e:
-        error_msg = f"Command not found: {command_parts[0] if command_parts else 'unknown'}"
+        error_msg = (
+            f"Command not found: {command_parts[0] if command_parts else 'unknown'}"
+        )
         logging.error(error_msg)
         raise FileNotFoundError(error_msg) from e
-        
+
     except PermissionError as e:
         error_msg = f"Permission denied executing command: {' '.join(command_parts)}"
         logging.error(error_msg)
         raise PermissionError(error_msg) from e
-        
+
     except Exception as e:
         # Check if this looks like a network error
         error_str = str(e).lower()
@@ -368,23 +372,27 @@ def run_command_secure(
                 "timeout",
             ]
         ):
-            raise NetworkError(f"Network error running command: {' '.join(command_parts)}") from e
+            raise NetworkError(
+                f"Network error running command: {' '.join(command_parts)}"
+            ) from e
         # Re-raise with more context
-        raise Exception(f"Error executing command {' '.join(command_parts)}: {e}") from e
+        raise Exception(
+            f"Error executing command {' '.join(command_parts)}: {e}"
+        ) from e
 
 
 def shell_command_to_args(cmd: str) -> List[str]:
     """Convert a shell command string to a secure argument list.
-    
+
     This function uses shlex.split() to properly parse shell commands into
     individual arguments, which can then be used with subprocess without shell=True.
-    
+
     Args:
         cmd: Shell command string to convert
-        
+
     Returns:
         List[str]: Command arguments that can be used with subprocess
-        
+
     Example:
         >>> shell_command_to_args('brew search --cask "Google Chrome"')
         ['brew', 'search', '--cask', 'Google Chrome']

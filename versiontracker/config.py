@@ -501,7 +501,9 @@ class Config:
 
         return normalized
 
-    def _load_integer_env_var(self, env_var: str, config_key: str, env_config: dict) -> None:
+    def _load_integer_env_var(
+        self, env_var: str, config_key: str, env_config: dict
+    ) -> None:
         """Load and validate an integer environment variable."""
         if os.environ.get(env_var):
             try:
@@ -509,7 +511,9 @@ class Config:
             except ValueError:
                 logging.warning("Invalid %s: %s", config_key, os.environ[env_var])
 
-    def _load_boolean_env_var(self, env_var: str, config_key: str, env_config: dict, nested_key: str = None) -> None:
+    def _load_boolean_env_var(
+        self, env_var: str, config_key: str, env_config: dict, nested_key: Optional[str] = None
+    ) -> None:
         """Load and validate a boolean environment variable."""
         if os.environ.get(env_var, "").lower() in ("0", "false", "no"):
             if nested_key:
@@ -526,9 +530,15 @@ class Config:
             self._config["log_level"] = logging.DEBUG
 
         # Integer configurations
-        self._load_integer_env_var("VERSIONTRACKER_API_RATE_LIMIT", "api_rate_limit", env_config)
-        self._load_integer_env_var("VERSIONTRACKER_MAX_WORKERS", "max_workers", env_config)
-        self._load_integer_env_var("VERSIONTRACKER_SIMILARITY_THRESHOLD", "similarity_threshold", env_config)
+        self._load_integer_env_var(
+            "VERSIONTRACKER_API_RATE_LIMIT", "api_rate_limit", env_config
+        )
+        self._load_integer_env_var(
+            "VERSIONTRACKER_MAX_WORKERS", "max_workers", env_config
+        )
+        self._load_integer_env_var(
+            "VERSIONTRACKER_SIMILARITY_THRESHOLD", "similarity_threshold", env_config
+        )
 
         # Additional app directories
         if os.environ.get("VERSIONTRACKER_ADDITIONAL_APP_DIRS"):
@@ -542,7 +552,9 @@ class Config:
     def _load_ui_env_vars(self, env_config: dict) -> None:
         """Load UI-related environment variables."""
         # Progress bars
-        self._load_boolean_env_var("VERSIONTRACKER_PROGRESS_BARS", "show_progress", env_config)
+        self._load_boolean_env_var(
+            "VERSIONTRACKER_PROGRESS_BARS", "show_progress", env_config
+        )
 
         # UI options
         ui_vars = [
@@ -564,10 +576,14 @@ class Config:
         if validation_errors:
             self._handle_validation_errors(validation_errors, env_config)
         else:
-            logging.debug(f"Applying all environment variables: {list(env_config.keys())}")
+            logging.debug(
+                f"Applying all environment variables: {list(env_config.keys())}"
+            )
             self._config.update(env_config)
 
-    def _handle_validation_errors(self, validation_errors: dict, env_config: dict) -> None:
+    def _handle_validation_errors(
+        self, validation_errors: dict, env_config: dict
+    ) -> None:
         """Handle validation errors for environment configuration."""
         error_msg = "Environment configuration validation failed:"
         for param, errors in validation_errors.items():
@@ -581,11 +597,15 @@ class Config:
             if key not in validation_errors:
                 valid_env_config[key] = value
             else:
-                logging.warning(f"Ignoring invalid environment configuration for '{key}'")
+                logging.warning(
+                    f"Ignoring invalid environment configuration for '{key}'"
+                )
 
         # Update configuration with valid values only
         if valid_env_config:
-            logging.debug(f"Applying valid environment variables: {list(valid_env_config.keys())}")
+            logging.debug(
+                f"Applying valid environment variables: {list(valid_env_config.keys())}"
+            )
             self._config.update(valid_env_config)
 
     def _load_version_comparison_env_vars(self) -> None:
@@ -683,7 +703,7 @@ class Config:
         Environment variables are in the format VERSIONTRACKER_UPPER_SNAKE_CASE,
         which maps to the configuration keys in lower_snake_case.
         """
-        env_config = {}
+        env_config: Dict[str, Any] = {}
 
         # Load different categories of environment variables
         self._load_basic_env_vars(env_config)

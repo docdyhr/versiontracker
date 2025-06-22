@@ -211,7 +211,9 @@ def _handle_special_beta_format(version_str: str) -> Optional[Tuple[int, ...]]:
     return None
 
 
-def _extract_prerelease_info(cleaned: str, version_str: str) -> Tuple[bool, Optional[int], bool, str]:
+def _extract_prerelease_info(
+    cleaned: str, version_str: str
+) -> Tuple[bool, Optional[int], bool, str]:
     """Extract prerelease information from version string."""
     has_prerelease = False
     prerelease_num = None
@@ -293,7 +295,9 @@ def _build_final_version_tuple(
         return tuple(parts[:3]) + (build_metadata,)
 
     # Handle mixed format like "1.beta.0"
-    if ("beta" in original_str or "alpha" in original_str or "rc" in original_str) and len(parts) >= 2:
+    if (
+        "beta" in original_str or "alpha" in original_str or "rc" in original_str
+    ) and len(parts) >= 2:
         if re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str):
             return (parts[0], 0, parts[-1])
 
@@ -361,14 +365,21 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     build_metadata, cleaned = _extract_build_metadata(cleaned)
 
     # Step 4: Extract prerelease information
-    has_prerelease, prerelease_num, has_text_suffix, cleaned = _extract_prerelease_info(cleaned, version_str)
+    has_prerelease, prerelease_num, has_text_suffix, cleaned = _extract_prerelease_info(
+        cleaned, version_str
+    )
 
     # Step 5: Parse numeric parts
     parts = _parse_numeric_parts(cleaned)
 
     # Step 6: Build final version tuple
     return _build_final_version_tuple(
-        parts, has_prerelease, prerelease_num, has_text_suffix, build_metadata, version_str
+        parts,
+        has_prerelease,
+        prerelease_num,
+        has_text_suffix,
+        build_metadata,
+        version_str,
     )
 
 
@@ -447,7 +458,9 @@ def _has_application_build_pattern(version_str: str) -> bool:
     )
 
 
-def _handle_semver_build_metadata(v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]) -> Optional[int]:
+def _handle_semver_build_metadata(
+    v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]
+) -> Optional[int]:
     """Handle semantic versioning build metadata (+build.X)."""
     v1_has_semver_build = isinstance(version1, str) and "+" in version1
     v2_has_semver_build = isinstance(version2, str) and "+" in version2
@@ -466,10 +479,16 @@ def _handle_semver_build_metadata(v1_str: str, v2_str: str, version1: Union[str,
     return compare_versions(v1_base, v2_base)
 
 
-def _compare_application_builds(v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]) -> Optional[int]:
+def _compare_application_builds(
+    v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]
+) -> Optional[int]:
     """Compare versions with application-specific build patterns."""
-    v1_has_app_build = isinstance(version1, str) and _has_application_build_pattern(version1)
-    v2_has_app_build = isinstance(version2, str) and _has_application_build_pattern(version2)
+    v1_has_app_build = isinstance(version1, str) and _has_application_build_pattern(
+        version1
+    )
+    v2_has_app_build = isinstance(version2, str) and _has_application_build_pattern(
+        version2
+    )
 
     if not (v1_has_app_build and v2_has_app_build):
         return None
@@ -489,14 +508,10 @@ def _compare_application_builds(v1_str: str, v2_str: str, version1: Union[str, T
 
     # Compare base versions first
     v1_base_tuple = (
-        v1_tuple[:3]
-        if len(v1_tuple) >= 3
-        else v1_tuple + (0,) * (3 - len(v1_tuple))
+        v1_tuple[:3] if len(v1_tuple) >= 3 else v1_tuple + (0,) * (3 - len(v1_tuple))
     )
     v2_base_tuple = (
-        v2_tuple[:3]
-        if len(v2_tuple) >= 3
-        else v2_tuple + (0,) * (3 - len(v2_tuple))
+        v2_tuple[:3] if len(v2_tuple) >= 3 else v2_tuple + (0,) * (3 - len(v2_tuple))
     )
 
     if v1_base_tuple < v2_base_tuple:
@@ -536,15 +551,11 @@ def _handle_application_prefixes(v1_str: str, v2_str: str) -> Optional[int]:
     """Handle versions with application name prefixes."""
     # Only apply app name prefix logic if the versions actually contain application names
     has_app_name_v1 = bool(
-        re.search(
-            r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v1_str, re.IGNORECASE
-        )
+        re.search(r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v1_str, re.IGNORECASE)
         or re.search(r"^[a-zA-Z]+\s+(?=\d)", v1_str)
     )
     has_app_name_v2 = bool(
-        re.search(
-            r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v2_str, re.IGNORECASE
-        )
+        re.search(r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v2_str, re.IGNORECASE)
         or re.search(r"^[a-zA-Z]+\s+(?=\d)", v2_str)
     )
 
@@ -556,17 +567,13 @@ def _handle_application_prefixes(v1_str: str, v2_str: str) -> Optional[int]:
 
     # If one version is a prefix of another (e.g., "Google Chrome 94" vs "Google Chrome 94.0.4606.81")
     # But exclude pre-release versions from this logic (they should be compared semantically)
-    if v1_norm != v2_norm and not (
-        _is_prerelease(v1_str) or _is_prerelease(v2_str)
-    ):
+    if v1_norm != v2_norm and not (_is_prerelease(v1_str) or _is_prerelease(v2_str)):
         v1_parts = v1_norm.split(".")
         v2_parts = v2_norm.split(".")
 
         # Check if one is a prefix of the other
         min_len = min(len(v1_parts), len(v2_parts))
-        if v1_parts[:min_len] == v2_parts[:min_len] and len(v1_parts) != len(
-            v2_parts
-        ):
+        if v1_parts[:min_len] == v2_parts[:min_len] and len(v1_parts) != len(v2_parts):
             # The shorter version is considered equal (both point to same app)
             return 0
 
@@ -584,14 +591,14 @@ def _convert_to_version_tuples(
         if v1_tuple is None:
             v1_tuple = (0, 0, 0)
     else:  # isinstance(version1, tuple) - since None was handled earlier
-        v1_tuple = version1
+        v1_tuple = version1 or (0, 0, 0)
 
     if isinstance(version2, str):
         v2_tuple = parse_version(version2)
         if v2_tuple is None:
             v2_tuple = (0, 0, 0)
     else:  # isinstance(version2, tuple) - since None was handled earlier
-        v2_tuple = version2
+        v2_tuple = version2 or (0, 0, 0)
 
     return v1_tuple, v2_tuple
 
@@ -829,7 +836,9 @@ def _compare_prerelease_suffixes(
     return 0
 
 
-def _extract_prerelease_type_and_suffix(version_str: str) -> Tuple[str, Union[int, str, None]]:
+def _extract_prerelease_type_and_suffix(
+    version_str: str,
+) -> Tuple[str, Union[int, str, None]]:
     """Extract pre-release type and number/suffix from version string."""
     # Look for alpha, beta, rc, final with optional number or suffix, including Unicode
     match = re.search(
