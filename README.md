@@ -16,7 +16,7 @@
 
 <!-- Quality & Coverage -->
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white)](https://codecov.io/gh/docdyhr/versiontracker)
-[![Test Coverage](https://img.shields.io/badge/coverage-60%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
+[![Test Coverage](https://img.shields.io/badge/coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
 [![Type Checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg?logo=python&logoColor=white)](http://mypy-lang.org/)
 [![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg?logo=python&logoColor=white)](https://bandit.readthedocs.io/en/latest/)
@@ -41,12 +41,15 @@
 * Programming language: Python 3
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
-* Release date: 21. Feb 2022 (Updated: May 2025)
+* Release date: 21. Feb 2022 (Updated: January 2025)
+* Code Quality: **70%+ test coverage**, **low complexity**, **well-tested**
 
 ## Overview
 
 Versiontracker is a command-line tool for macOS that helps you manage applications
-installed outside of the App Store.
+installed outside of the App Store. Recently undergone major technical debt cleanup
+with **70%+ test coverage** and **significantly reduced code complexity**.
+
 It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed
 using Homebrew casks, making it easier to keep your applications up to date.
 

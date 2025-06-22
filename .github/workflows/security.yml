@@ -1,6 +1,7 @@
+---
 name: Security
 
-on:
+"on":
   push:
     branches: [main, master]
   pull_request:
@@ -38,7 +39,8 @@ jobs:
       - name: Run Bandit security linter
         run: |
           echo "::group::Bandit Security Analysis"
-          bandit -c .bandit -r versiontracker/ -f json -o bandit-report.json || true
+          bandit -c .bandit -r versiontracker/ \
+            -f json -o bandit-report.json || true
           bandit -c .bandit -r versiontracker/ -ll || true
           echo "::endgroup::"
 
@@ -82,19 +84,25 @@ jobs:
 
           # Count findings if reports exist
           if [ -f bandit-report.json ]; then
-            BANDIT_ISSUES=$(jq '.results | length' bandit-report.json 2>/dev/null || echo "0")
+            BANDIT_ISSUES=$(jq '.results | length' bandit-report.json \
+              2>/dev/null || echo "0")
             echo "- **Bandit Issues**: $BANDIT_ISSUES" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ -f safety-report.json ]; then
-            SAFETY_ISSUES=$(jq '.vulnerabilities | length' safety-report.json 2>/dev/null || echo "0")
-            echo "- **Safety Vulnerabilities**: $SAFETY_ISSUES" >> $GITHUB_STEP_SUMMARY
+            SAFETY_ISSUES=$(jq '.vulnerabilities | length' \
+              safety-report.json 2>/dev/null || echo "0")
+            echo "- **Safety Vulnerabilities**: $SAFETY_ISSUES" \
+              >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ -f pip-audit-report.json ]; then
-            AUDIT_ISSUES=$(jq '.vulnerabilities | length' pip-audit-report.json 2>/dev/null || echo "0")
-            echo "- **Pip-Audit Vulnerabilities**: $AUDIT_ISSUES" >> $GITHUB_STEP_SUMMARY
+            AUDIT_ISSUES=$(jq '.vulnerabilities | length' \
+              pip-audit-report.json 2>/dev/null || echo "0")
+            echo "- **Pip-Audit Vulnerabilities**: $AUDIT_ISSUES" \
+              >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 Security scan completed. Check the uploaded artifacts for detailed reports." >> $GITHUB_STEP_SUMMARY
+          echo "📊 Security scan completed. Check the uploaded artifacts \
+            for detailed reports." >> $GITHUB_STEP_SUMMARY

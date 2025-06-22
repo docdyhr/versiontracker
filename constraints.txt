@@ -4,6 +4,10 @@
 
 # Core dependencies
 aiohttp>=3.8.0,<4.0.0
+
+# Security-critical indirect dependencies
+requests>=2.32.4,<3.0.0
+urllib3>=2.5.0,<3.0.0
 anyio>=4.0.0,<5.0.0
 termcolor>=2.0.1,<4.0.0
 pyyaml>=6.0,<7.0

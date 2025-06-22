@@ -501,135 +501,95 @@ class Config:
 
         return normalized
 
-    def _load_from_env(self) -> None:
-        """Load configuration from environment variables.
+    def _load_integer_env_var(self, env_var: str, config_key: str, env_config: dict) -> None:
+        """Load and validate an integer environment variable."""
+        if os.environ.get(env_var):
+            try:
+                env_config[config_key] = int(os.environ[env_var])
+            except ValueError:
+                logging.warning("Invalid %s: %s", config_key, os.environ[env_var])
 
-        Validates and applies configuration values from environment variables.
-        Environment variables take precedence over file configuration.
+    def _load_boolean_env_var(self, env_var: str, config_key: str, env_config: dict, nested_key: str = None) -> None:
+        """Load and validate a boolean environment variable."""
+        if os.environ.get(env_var, "").lower() in ("0", "false", "no"):
+            if nested_key:
+                if nested_key not in env_config:
+                    env_config[nested_key] = {}
+                env_config[nested_key][config_key] = False
+            else:
+                env_config[config_key] = False
 
-        Environment variables are in the format VERSIONTRACKER_UPPER_SNAKE_CASE,
-        which maps to the configuration keys in lower_snake_case.
-        """
-        env_config = {}
-
+    def _load_basic_env_vars(self, env_config: dict) -> None:
+        """Load basic environment variables."""
         # Debug mode
         if os.environ.get("VERSIONTRACKER_DEBUG", "").lower() in ("1", "true", "yes"):
             self._config["log_level"] = logging.DEBUG
 
-        # API rate limit
-        if os.environ.get("VERSIONTRACKER_API_RATE_LIMIT"):
-            try:
-                env_config["api_rate_limit"] = int(
-                    os.environ["VERSIONTRACKER_API_RATE_LIMIT"]
-                )
-            except ValueError:
-                logging.warning(
-                    "Invalid API rate limit: %s",
-                    os.environ["VERSIONTRACKER_API_RATE_LIMIT"],
-                )
-
-        # Max workers
-        if os.environ.get("VERSIONTRACKER_MAX_WORKERS"):
-            try:
-                env_config["max_workers"] = int(
-                    os.environ["VERSIONTRACKER_MAX_WORKERS"]
-                )
-            except ValueError:
-                logging.warning(
-                    "Invalid max workers: %s", os.environ["VERSIONTRACKER_MAX_WORKERS"]
-                )
-
-        # Similarity threshold
-        if os.environ.get("VERSIONTRACKER_SIMILARITY_THRESHOLD"):
-            try:
-                env_config["similarity_threshold"] = int(
-                    os.environ["VERSIONTRACKER_SIMILARITY_THRESHOLD"]
-                )
-            except ValueError:
-                logging.warning(
-                    "Invalid similarity threshold: %s",
-                    os.environ["VERSIONTRACKER_SIMILARITY_THRESHOLD"],
-                )
+        # Integer configurations
+        self._load_integer_env_var("VERSIONTRACKER_API_RATE_LIMIT", "api_rate_limit", env_config)
+        self._load_integer_env_var("VERSIONTRACKER_MAX_WORKERS", "max_workers", env_config)
+        self._load_integer_env_var("VERSIONTRACKER_SIMILARITY_THRESHOLD", "similarity_threshold", env_config)
 
         # Additional app directories
         if os.environ.get("VERSIONTRACKER_ADDITIONAL_APP_DIRS"):
             dirs = os.environ["VERSIONTRACKER_ADDITIONAL_APP_DIRS"].split(":")
-            env_config["additional_app_dirs"] = [d for d in dirs if os.path.isdir(d)]  # type: ignore
+            env_config["additional_app_dirs"] = [d for d in dirs if os.path.isdir(d)]
 
         # Blacklist
         if os.environ.get("VERSIONTRACKER_BLACKLIST"):
-            env_config["blacklist"] = os.environ["VERSIONTRACKER_BLACKLIST"].split(",")  # type: ignore
+            env_config["blacklist"] = os.environ["VERSIONTRACKER_BLACKLIST"].split(",")
 
+    def _load_ui_env_vars(self, env_config: dict) -> None:
+        """Load UI-related environment variables."""
         # Progress bars
-        if os.environ.get("VERSIONTRACKER_PROGRESS_BARS", "").lower() in (
-            "0",
-            "false",
-            "no",
-        ):
-            env_config["show_progress"] = False
+        self._load_boolean_env_var("VERSIONTRACKER_PROGRESS_BARS", "show_progress", env_config)
 
         # UI options
-        if "ui" not in env_config:
-            env_config["ui"] = {}  # type: ignore
+        ui_vars = [
+            ("VERSIONTRACKER_UI_USE_COLOR", "use_color"),
+            ("VERSIONTRACKER_UI_MONITOR_RESOURCES", "monitor_resources"),
+            ("VERSIONTRACKER_UI_ADAPTIVE_RATE_LIMITING", "adaptive_rate_limiting"),
+            ("VERSIONTRACKER_UI_ENHANCED_PROGRESS", "enhanced_progress"),
+        ]
 
-        if os.environ.get("VERSIONTRACKER_UI_USE_COLOR", "").lower() in (
-            "0",
-            "false",
-            "no",
-        ):
-            env_config["ui"]["use_color"] = False  # type: ignore
-        if os.environ.get("VERSIONTRACKER_UI_MONITOR_RESOURCES", "").lower() in (
-            "0",
-            "false",
-            "no",
-        ):
-            env_config["ui"]["monitor_resources"] = False  # type: ignore
-        if os.environ.get("VERSIONTRACKER_UI_ADAPTIVE_RATE_LIMITING", "").lower() in (
-            "0",
-            "false",
-            "no",
-        ):
-            env_config["ui"]["adaptive_rate_limiting"] = False  # type: ignore
-        if os.environ.get("VERSIONTRACKER_UI_ENHANCED_PROGRESS", "").lower() in (
-            "0",
-            "false",
-            "no",
-        ):
-            env_config["ui"]["enhanced_progress"] = False  # type: ignore
+        for env_var, config_key in ui_vars:
+            self._load_boolean_env_var(env_var, config_key, env_config, "ui")
 
-        # Validate environment configuration
-        if env_config:
-            validation_errors = ConfigValidator.validate_config(env_config)
-            if validation_errors:
-                error_msg = "Environment configuration validation failed:"
-                for param, errors in validation_errors.items():
-                    for error in errors:
-                        error_msg += f"\n  - {param}: {error}"
-                logging.warning(error_msg)
+    def _validate_and_apply_env_config(self, env_config: dict) -> None:
+        """Validate and apply environment configuration."""
+        if not env_config:
+            return
 
-                # Filter out invalid configuration values
-                valid_env_config = {}
-                for key, value in env_config.items():
-                    if key not in validation_errors:
-                        valid_env_config[key] = value
-                    else:
-                        logging.warning(
-                            f"Ignoring invalid environment configuration for '{key}'"
-                        )
+        validation_errors = ConfigValidator.validate_config(env_config)
+        if validation_errors:
+            self._handle_validation_errors(validation_errors, env_config)
+        else:
+            logging.debug(f"Applying all environment variables: {list(env_config.keys())}")
+            self._config.update(env_config)
 
-                # Update configuration with valid values only
-                if valid_env_config:
-                    logging.debug(
-                        f"Applying valid environment variables: {list(valid_env_config.keys())}"
-                    )
-                    self._config.update(valid_env_config)
+    def _handle_validation_errors(self, validation_errors: dict, env_config: dict) -> None:
+        """Handle validation errors for environment configuration."""
+        error_msg = "Environment configuration validation failed:"
+        for param, errors in validation_errors.items():
+            for error in errors:
+                error_msg += f"\n  - {param}: {error}"
+        logging.warning(error_msg)
+
+        # Filter out invalid configuration values
+        valid_env_config = {}
+        for key, value in env_config.items():
+            if key not in validation_errors:
+                valid_env_config[key] = value
             else:
-                # Update configuration with all validated values
-                logging.debug(
-                    f"Applying all environment variables: {list(env_config.keys())}"
-                )
-                self._config.update(env_config)
+                logging.warning(f"Ignoring invalid environment configuration for '{key}'")
 
+        # Update configuration with valid values only
+        if valid_env_config:
+            logging.debug(f"Applying valid environment variables: {list(valid_env_config.keys())}")
+            self._config.update(valid_env_config)
+
+    def _load_version_comparison_env_vars(self) -> None:
+        """Load version comparison specific environment variables."""
         # Version comparison rate limit
         if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"):
             try:
@@ -713,6 +673,27 @@ class Config:
             "yes",
         ):
             self._config["outdated_detection"]["include_pre_releases"] = True
+
+    def _load_from_env(self) -> None:
+        """Load configuration from environment variables.
+
+        Validates and applies configuration values from environment variables.
+        Environment variables take precedence over file configuration.
+
+        Environment variables are in the format VERSIONTRACKER_UPPER_SNAKE_CASE,
+        which maps to the configuration keys in lower_snake_case.
+        """
+        env_config = {}
+
+        # Load different categories of environment variables
+        self._load_basic_env_vars(env_config)
+        self._load_ui_env_vars(env_config)
+
+        # Validate and apply standard environment configuration
+        self._validate_and_apply_env_config(env_config)
+
+        # Load version comparison specific variables (these update config directly)
+        self._load_version_comparison_env_vars()
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value.

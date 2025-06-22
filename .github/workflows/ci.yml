@@ -1,6 +1,7 @@
+---
 name: CI
 
-on:
+"on":
   push:
     branches: [main, master]
   pull_request:
@@ -20,15 +21,11 @@ jobs:
       matrix:
         # macOS-only project - test on latest macOS with Python 3.10+
         os: [macos-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
         include:
           # Test on Ubuntu for CI efficiency, but primary target is macOS
           - os: ubuntu-latest
             python-version: "3.11"
-          # Add Python 3.13 conditionally - may not be available on all runners
-          - os: ubuntu-latest
-            python-version: "3.13"
-            experimental: true
 
     steps:
       - name: Checkout code
@@ -50,6 +47,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           pytest --maxfail=5 --tb=short --timeout=300
+        continue-on-error: ${{ matrix.experimental || false }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -132,7 +130,8 @@ jobs:
 
       - name: Run security checks
         run: |
-          bandit --ini .bandit -r versiontracker/ -f json -o bandit-report.json || true
+          bandit --ini .bandit -r versiontracker/ \
+            -f json -o bandit-report.json || true
           bandit --ini .bandit -r versiontracker/ -ll || true
           safety check --json --output safety-report.json || true
           safety check
@@ -196,7 +195,12 @@ jobs:
     name: Build Package
     runs-on: ubuntu-latest
     needs: [test, lint, security]
-    if: always() && (needs.test.result == 'success' && needs.lint.result == 'success' && needs.security.result == 'success')
+    if: |
+      always() && (
+        needs.test.result == 'success' &&
+        needs.lint.result == 'success' &&
+        needs.security.result == 'success'
+      )
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -238,19 +242,27 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Tests | ${{ needs.test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Quality | ${{ needs.quality.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.test.result == 'success' && \
+            '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result == 'success' && \
+            '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result == 'success' && \
+            '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality | ${{ needs.quality.result == 'success' && \
+            '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && \
+            '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
 
           # Set overall status
-          if [[ "${{ needs.test.result }}" == "success" && "${{ needs.lint.result }}" == "success" && "${{ needs.security.result }}" == "success" ]]; then
+          if [[ "${{ needs.test.result }}" == "success" && \
+               "${{ needs.lint.result }}" == "success" && \
+               "${{ needs.security.result }}" == "success" ]]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "🎉 **All critical checks passed!**" >> $GITHUB_STEP_SUMMARY
             exit 0
           else
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ **Some checks failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Some checks failed. Please review the results above.**" \
+              >> $GITHUB_STEP_SUMMARY
             exit 1
           fi

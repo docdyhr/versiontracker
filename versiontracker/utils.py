@@ -6,6 +6,7 @@ import logging
 import os
 import platform
 import re
+import shlex
 import subprocess
 import sys
 import threading
@@ -285,8 +286,124 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
         raise DataParsingError(f"Failed to get JSON data: {e}") from e
 
 
+def run_command_secure(
+    command_parts: List[str], timeout: Optional[int] = None
+) -> Tuple[str, int]:
+    """Run a command securely without shell=True.
+    
+    This function executes commands without using shell=True, which eliminates
+    shell injection vulnerabilities. Commands are passed as a list of arguments.
+    
+    Args:
+        command_parts: List of command arguments (e.g., ['brew', 'list', '--cask'])
+        timeout: Optional timeout in seconds
+        
+    Returns:
+        Tuple[str, int]: Command output and return code
+        
+    Raises:
+        TimeoutError: If the command execution exceeds the specified timeout
+        PermissionError: If there's insufficient permissions to run the command
+        FileNotFoundError: If the command executable cannot be found
+        NetworkError: If a network-related error occurs during execution
+        subprocess.SubprocessError: For other subprocess-related errors
+    """
+    process = None
+    try:
+        # Run the command without shell=True for security
+        logging.debug(f"Running secure command: {' '.join(command_parts)}")
+        process = subprocess.Popen(
+            command_parts,
+            shell=False,  # Security: No shell interpretation
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Wait for the command to complete with timeout
+        stdout, stderr = process.communicate(timeout=timeout)
+        
+        # Check return code
+        if process.returncode != 0:
+            # Check for expected "failures" that shouldn't be logged as warnings
+            if "Error: No formulae or casks found" in stderr:
+                # This is an expected case for non-existent brews, don't log it as a warning
+                pass
+            else:
+                # Log other failures as warnings
+                logging.warning(
+                    f"Command {' '.join(command_parts)} failed with return code {process.returncode}: {stderr}"
+                )
+        
+        return stdout, process.returncode
+        
+    except subprocess.TimeoutExpired:
+        if process:
+            process.kill()
+            process.wait()
+        error_msg = f"Command {' '.join(command_parts)} timed out after {timeout} seconds"
+        logging.error(error_msg)
+        raise TimeoutError(error_msg)
+        
+    except FileNotFoundError as e:
+        error_msg = f"Command not found: {command_parts[0] if command_parts else 'unknown'}"
+        logging.error(error_msg)
+        raise FileNotFoundError(error_msg) from e
+        
+    except PermissionError as e:
+        error_msg = f"Permission denied executing command: {' '.join(command_parts)}"
+        logging.error(error_msg)
+        raise PermissionError(error_msg) from e
+        
+    except Exception as e:
+        # Check if this looks like a network error
+        error_str = str(e).lower()
+        if any(
+            keyword in error_str
+            for keyword in [
+                "network",
+                "connection",
+                "host",
+                "resolve",
+                "timeout",
+            ]
+        ):
+            raise NetworkError(f"Network error running command: {' '.join(command_parts)}") from e
+        # Re-raise with more context
+        raise Exception(f"Error executing command {' '.join(command_parts)}: {e}") from e
+
+
+def shell_command_to_args(cmd: str) -> List[str]:
+    """Convert a shell command string to a secure argument list.
+    
+    This function uses shlex.split() to properly parse shell commands into
+    individual arguments, which can then be used with subprocess without shell=True.
+    
+    Args:
+        cmd: Shell command string to convert
+        
+    Returns:
+        List[str]: Command arguments that can be used with subprocess
+        
+    Example:
+        >>> shell_command_to_args('brew search --cask "Google Chrome"')
+        ['brew', 'search', '--cask', 'Google Chrome']
+    """
+    try:
+        return shlex.split(cmd)
+    except ValueError as e:
+        # If shlex.split fails due to unmatched quotes or other issues,
+        # fall back to simple split but log a warning
+        logging.warning(f"Failed to parse command with shlex.split: {cmd}. Error: {e}")
+        return cmd.split()
+
+
 def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
     """Run a command and return the output.
+
+    ⚠️  SECURITY WARNING: This function uses shell=True which can be vulnerable
+    to command injection if user input is not properly sanitized. Consider using
+    run_command_secure() instead for better security.
 
     Executes a shell command and captures its output and return code.
     Handles various error conditions including timeouts, permission issues,
@@ -400,6 +517,10 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
 
 def run_command_original(command: str, timeout: int = 30) -> List[str]:
     """Execute a command and return the output as a list of lines.
+
+    ⚠️  SECURITY WARNING: This function uses shell=True which can be vulnerable
+    to command injection if user input is not properly sanitized. Consider using
+    run_command_secure() instead for better security.
 
     Args:
         command (str): The command to execute

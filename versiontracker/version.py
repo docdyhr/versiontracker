@@ -155,6 +155,173 @@ VERSION_PATTERN_DICT = {
 }
 
 
+def _clean_version_string(version_str: str) -> str:
+    """Clean version string by removing prefixes and app names."""
+    # Remove common prefixes like "v" or "Version "
+    cleaned = re.sub(r"^[vV]ersion\s+", "", version_str)
+    cleaned = re.sub(r"^[vV](?:er\.?\s*)?", "", cleaned)
+
+    # Handle application names at the beginning
+    cleaned = re.sub(
+        r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", "", cleaned, flags=re.IGNORECASE
+    )
+    cleaned = re.sub(r"^[a-zA-Z]+\s+(?=\d)", "", cleaned)
+
+    return cleaned
+
+
+def _extract_build_metadata(cleaned: str) -> Tuple[Optional[int], str]:
+    """Extract build metadata from version string."""
+    build_metadata = None
+
+    # Look for various build patterns
+    build_match = re.search(r"\+.*?(\d+)", cleaned)
+    if build_match:
+        try:
+            build_metadata = int(build_match.group(1))
+        except ValueError:
+            pass
+
+    # Search for other build patterns if not found
+    if build_metadata is None:
+        other_build_patterns = [r"build\s+(\d+)", r"\((\d+)\)", r"-dev-(\d+)"]
+        for pattern in other_build_patterns:
+            match = re.search(pattern, cleaned, re.IGNORECASE)
+            if match:
+                try:
+                    build_metadata = int(match.group(1))
+                    cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
+                    break
+                except ValueError:
+                    pass
+
+    # Remove semver build metadata
+    cleaned = re.sub(r"\+.*$", "", cleaned)
+    return build_metadata, cleaned
+
+
+def _handle_special_beta_format(version_str: str) -> Optional[Tuple[int, ...]]:
+    """Handle special format like '1.2.3.beta4'."""
+    special_beta_format = re.search(r"\d+\.\d+\.\d+\.[a-zA-Z]+\d+", version_str)
+    if special_beta_format:
+        all_numbers = re.findall(r"\d+", version_str)
+        if len(all_numbers) >= 4:
+            parts = [int(num) for num in all_numbers[:4]]
+            return tuple(parts)
+    return None
+
+
+def _extract_prerelease_info(cleaned: str, version_str: str) -> Tuple[bool, Optional[int], bool, str]:
+    """Extract prerelease information from version string."""
+    has_prerelease = False
+    prerelease_num = None
+    has_text_suffix = False
+
+    prerelease_match = re.search(
+        r"[-.](?P<type>alpha|beta|rc|final|[αβγδ])(?:\.?(?P<suffix>\w*\d*))?$",
+        cleaned,
+        re.IGNORECASE,
+    )
+    is_mixed_format = re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str)
+
+    if prerelease_match and not is_mixed_format:
+        has_prerelease = True
+        prerelease_type = prerelease_match.group("type")
+        suffix = prerelease_match.group("suffix")
+
+        if prerelease_type in ["α", "β", "γ", "δ"]:
+            has_text_suffix = True
+        elif suffix and suffix.strip():
+            try:
+                prerelease_num = int(suffix)
+            except ValueError:
+                has_text_suffix = True
+        else:
+            has_text_suffix = False
+
+        # Remove prerelease part for main version parsing
+        cleaned = re.sub(
+            r"[-.](?:alpha|beta|rc|final|[αβγδ])(?:\.\w+|\.\d+)?.*$",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+
+    return has_prerelease, prerelease_num, has_text_suffix, cleaned
+
+
+def _parse_numeric_parts(cleaned: str) -> List[int]:
+    """Parse numeric parts from cleaned version string."""
+    cleaned = re.sub(r"[-_/]", ".", cleaned)
+    all_numbers = re.findall(r"\d+", cleaned)
+
+    if not all_numbers:
+        return []
+
+    parts = []
+    for num_str in all_numbers:
+        try:
+            parts.append(int(num_str))
+        except ValueError:
+            continue
+
+    return parts
+
+
+def _build_final_version_tuple(
+    parts: List[int],
+    has_prerelease: bool,
+    prerelease_num: Optional[int],
+    has_text_suffix: bool,
+    build_metadata: Optional[int],
+    version_str: str,
+) -> Tuple[int, ...]:
+    """Build the final version tuple based on all extracted information."""
+    if not parts:
+        return (0, 0, 0)
+
+    original_str = version_str.lower()
+
+    # Handle 4+ component versions
+    if len(parts) >= 4 and not has_prerelease and build_metadata is None:
+        return tuple(parts)
+
+    # Handle build metadata
+    if build_metadata is not None:
+        while len(parts) < 3:
+            parts.append(0)
+        return tuple(parts[:3]) + (build_metadata,)
+
+    # Handle mixed format like "1.beta.0"
+    if ("beta" in original_str or "alpha" in original_str or "rc" in original_str) and len(parts) >= 2:
+        if re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str):
+            return (parts[0], 0, parts[-1])
+
+    # Handle prerelease versions
+    if has_prerelease:
+        while len(parts) < 3:
+            parts.append(0)
+
+        if prerelease_num is not None:
+            return tuple(parts[:3]) + (prerelease_num,)
+        elif has_text_suffix:
+            return tuple(parts[:3])
+        else:
+            original_components = len(
+                re.findall(r"\d+", version_str.split("-")[0].split("+")[0])
+            )
+            if original_components >= 3:
+                return tuple(parts[:3]) + (0,)
+            else:
+                return tuple(parts[:3])
+
+    # For normal versions, ensure 3 components
+    while len(parts) < 3:
+        parts.append(0)
+
+    return tuple(parts[:3])
+
+
 def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
     """Parse a version string into a tuple of integers for comparison.
 
@@ -174,213 +341,45 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
         >>> parse_version("")
         (0, 0, 0)
     """
-    # Handle None input
+    # Handle None and empty inputs
     if version_string is None:
         return None
-
-    # Handle empty strings - return (0, 0, 0) for some test compatibility
     if not version_string.strip():
         return (0, 0, 0)
 
-    # Convert to string if not already
     version_str = str(version_string).strip()
 
-    # Remove common prefixes like "v" or "Version "
-    cleaned = re.sub(r"^[vV]ersion\s+", "", version_str)
-    cleaned = re.sub(r"^[vV](?:er\.?\s*)?", "", cleaned)
+    # Step 1: Clean the version string
+    cleaned = _clean_version_string(version_str)
 
-    # Handle application names at the beginning (Chrome, Firefox, Google Chrome, etc.)
-    cleaned = re.sub(
-        r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", "", cleaned, flags=re.IGNORECASE
+    # Step 2: Handle special beta format early
+    special_result = _handle_special_beta_format(version_str)
+    if special_result is not None:
+        return special_result
+
+    # Step 3: Extract build metadata
+    build_metadata, cleaned = _extract_build_metadata(cleaned)
+
+    # Step 4: Extract prerelease information
+    has_prerelease, prerelease_num, has_text_suffix, cleaned = _extract_prerelease_info(cleaned, version_str)
+
+    # Step 5: Parse numeric parts
+    parts = _parse_numeric_parts(cleaned)
+
+    # Step 6: Build final version tuple
+    return _build_final_version_tuple(
+        parts, has_prerelease, prerelease_num, has_text_suffix, build_metadata, version_str
     )
-    cleaned = re.sub(
-        r"^[a-zA-Z]+\s+(?=\d)", "", cleaned
-    )  # Remove other app names before numbers
-
-    # Check for build metadata first (before removing pre-release info)
-    build_metadata = None
-
-    # Look for various build patterns
-    build_match = re.search(r"\+.*?(\d+)", cleaned)
-    if build_match:
-        try:
-            build_metadata = int(build_match.group(1))
-        except ValueError:
-            pass
-
-    # Search for build patterns: "build NNNN", "(NNNN)", and "-dev-NNNN"
-    if build_metadata is None:
-        other_build_patterns = [r"build\s+(\d+)", r"\((\d+)\)", r"-dev-(\d+)"]
-        for pattern in other_build_patterns:
-            match = re.search(pattern, cleaned, re.IGNORECASE)
-            if match:
-                try:
-                    build_metadata = int(match.group(1))
-                    # Remove the build metadata from the string to prevent double-parsing
-                    cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
-                    break
-                except ValueError:
-                    pass
-
-    # Handle build metadata - remove everything after + (according to semver)
-    cleaned = re.sub(r"\+.*$", "", cleaned)
-
-    # Check for special format "1.2.3.beta4" early
-    special_beta_format = re.search(r"\d+\.\d+\.\d+\.[a-zA-Z]+\d+", version_str)
-    if special_beta_format:
-        # For "1.2.3.beta4" format, extract all numbers directly
-        all_numbers = re.findall(r"\d+", version_str)
-        if len(all_numbers) >= 4:
-            parts = [int(num) for num in all_numbers[:4]]
-            return tuple(parts)
-
-    # Check for pre-release versions (alpha, beta, rc, final, Unicode)
-    has_prerelease = False
-    prerelease_num = None
-    has_text_suffix = False
-
-    # Look for pre-release indicators including Unicode
-    # But exclude patterns like "1.beta.0" which should be treated as mixed format
-    prerelease_match = re.search(
-        r"[-.](?P<type>alpha|beta|rc|final|[αβγδ])(?:\.?(?P<suffix>\w*\d*))?$",
-        cleaned,
-        re.IGNORECASE,
-    )
-    is_mixed_format = re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str)
-    if prerelease_match and not is_mixed_format and not special_beta_format:
-        has_prerelease = True
-        prerelease_type = prerelease_match.group("type")
-        suffix = prerelease_match.group("suffix")
-
-        # Check if the type itself is a Unicode character (treat as text suffix)
-        if prerelease_type in ["α", "β", "γ", "δ"]:
-            has_text_suffix = True
-        elif suffix and suffix.strip():
-            try:
-                prerelease_num = int(suffix)
-            except ValueError:
-                # For text suffixes like "beta", set a flag to not add number
-                has_text_suffix = True
-        else:
-            # Empty suffix
-            has_text_suffix = False
-        # Remove the prerelease part from version for parsing main version
-        cleaned = re.sub(
-            r"[-.](?:alpha|beta|rc|final|[αβγδ])(?:\.\w+|\.\d+)?.*$",
-            "",
-            cleaned,
-            flags=re.IGNORECASE,
-        )
-
-    # Replace alternative separators with dots for main version parsing
-    cleaned = re.sub(r"[-_/]", ".", cleaned)
-
-    # Find all numeric components in the main version
-    number_pattern = r"\d+"
-    all_numbers = re.findall(number_pattern, cleaned)
-
-    if not all_numbers:
-        return (
-            0,
-            0,
-            0,
-        )  # Return (0, 0, 0) for malformed versions for test compatibility
-
-    parts = []
-    for num_str in all_numbers:
-        try:
-            # Handle leading zeros by converting to int
-            parts.append(int(num_str))
-        except ValueError:
-            continue
-
-    if not parts:
-        return (
-            0,
-            0,
-            0,
-        )  # Return (0, 0, 0) for malformed versions for test compatibility
-
-    # Handle different version formats
-    original_str = version_str.lower()
-
-    # Handle specific 4-component versions like "1.0.0.1234" or Chrome-style versions
-    if len(parts) == 4 and not has_prerelease and build_metadata is None:
-        # For versions like "1.0.0.1234", return all 4 components for test compatibility
-        return tuple(parts)
-
-    # For very long versions like "1.2.3.4.5" - return all components for proper comparison
-    if len(parts) > 4 and not has_prerelease and build_metadata is None:
-        return tuple(parts)
-
-    # Special handling for build metadata in certain patterns
-    if build_metadata is not None:
-        # Include build metadata in parsed tuple for consistency with tests
-        while len(parts) < 3:
-            parts.append(0)
-        return tuple(parts[:3]) + (build_metadata,)
-
-    # Handle text components in the middle (like "1.beta.0")
-    if (
-        "beta" in original_str or "alpha" in original_str or "rc" in original_str
-    ) and len(parts) >= 2:
-        # Check for patterns like "1.beta.0"
-        if re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str):
-            # Extract first and last numbers, ignore middle text
-            return (parts[0], 0, parts[-1])
-
-    # If it's a pre-release version, include the pre-release number
-    if has_prerelease:
-        # Add pre-release number as 4th component
-        if prerelease_num is not None:
-            # Ensure at least 3 components before adding pre-release number
-            while len(parts) < 3:
-                parts.append(0)
-            return tuple(parts[:3]) + (prerelease_num,)
-        else:
-            # For pre-release without number or with text suffix
-            if has_text_suffix:
-                # Text suffixes like "alpha.beta" don't get number component
-                while len(parts) < 3:
-                    parts.append(0)
-                return tuple(parts[:3])
-            else:
-                # For pre-release without number, add 0 only if original had 3+ components
-                original_components = len(
-                    re.findall(r"\d+", version_str.split("-")[0].split("+")[0])
-                )
-                if original_components >= 3:
-                    while len(parts) < 3:
-                        parts.append(0)
-                    return tuple(parts[:3]) + (0,)
-                else:
-                    # Don't add 0 for shorter versions like "1.0-alpha"
-                    while len(parts) < 3:
-                        parts.append(0)
-                    return tuple(parts[:3])
-
-    # For normal versions, ensure at least 3 components for consistency
-    while len(parts) < 3:
-        parts.append(0)
-
-    # Return exactly 3 components for consistency with tests
-    return tuple(parts[:3])
 
 
-def compare_versions(
+def _handle_none_and_empty_versions(
     version1: Union[str, Tuple[int, ...], None],
     version2: Union[str, Tuple[int, ...], None],
-) -> int:
-    """Compare two version strings or tuples.
-
-    Args:
-        version1: First version string or tuple
-        version2: Second version string or tuple
+) -> Optional[int]:
+    """Handle None and empty version cases.
 
     Returns:
-        -1 if version1 < version2
-         0 if version1 == version2
-         1 if version1 > version2
+        Comparison result if handled, None if further processing needed
     """
     # Handle None cases
     if version1 is None and version2 is None:
@@ -403,18 +402,29 @@ def compare_versions(
     if version2 == "":
         return 1
 
-    # Check for malformed versions (non-numeric, non-version strings)
-    def is_malformed(v):
-        if isinstance(v, tuple):
-            return False
-        v_str = str(v).strip()
-        # If no digits found at all, it's malformed
-        if not re.search(r"\d", v_str):
-            return True
-        return False
+    return None
 
-    v1_malformed = is_malformed(version1)
-    v2_malformed = is_malformed(version2)
+
+def _is_version_malformed(version: Union[str, Tuple[int, ...], None]) -> bool:
+    """Check if a version is malformed (no digits found)."""
+    if isinstance(version, tuple):
+        return False
+    v_str = str(version).strip()
+    # If no digits found at all, it's malformed
+    return not re.search(r"\d", v_str)
+
+
+def _handle_malformed_versions(
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
+) -> Optional[int]:
+    """Handle malformed version comparisons.
+
+    Returns:
+        Comparison result if handled, None if further processing needed
+    """
+    v1_malformed = _is_version_malformed(version1)
+    v2_malformed = _is_version_malformed(version2)
 
     # If both are malformed, they're equal
     if v1_malformed and v2_malformed:
@@ -425,94 +435,149 @@ def compare_versions(
     if v2_malformed:
         return 1
 
-    # Handle build metadata: if both versions have build metadata (+build.X),
-    # compare them ignoring the build metadata (according to semver)
-    v1_str = (
-        str(version1)
-        if not isinstance(version1, tuple)
-        else ".".join(map(str, version1))
-    )
-    v2_str = (
-        str(version2)
-        if not isinstance(version2, tuple)
-        else ".".join(map(str, version2))
+    return None
+
+
+def _has_application_build_pattern(version_str: str) -> bool:
+    """Check if version string has application-specific build patterns."""
+    return bool(
+        re.search(r"build\s+\d+", version_str, re.IGNORECASE)
+        or re.search(r"\(\d+\)", version_str)
+        or re.search(r"-dev-\d+", version_str)
     )
 
-    # Check for semver build metadata (with +)
+
+def _handle_semver_build_metadata(v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]) -> Optional[int]:
+    """Handle semantic versioning build metadata (+build.X)."""
     v1_has_semver_build = isinstance(version1, str) and "+" in version1
     v2_has_semver_build = isinstance(version2, str) and "+" in version2
 
-    # Check for application-specific build patterns that should be compared
-    v1_has_app_build = isinstance(version1, str) and (
-        re.search(r"build\s+\d+", version1, re.IGNORECASE)
-        or re.search(r"\(\d+\)", version1)
-        or re.search(r"-dev-\d+", version1)
+    if not (v1_has_semver_build or v2_has_semver_build):
+        return None
+
+    v1_base = re.sub(r"\+.*$", "", v1_str) if v1_has_semver_build else v1_str
+    v2_base = re.sub(r"\+.*$", "", v2_str) if v2_has_semver_build else v2_str
+
+    # If the base versions are the same, build metadata is ignored (semver rule)
+    if v1_base == v2_base:
+        return 0
+
+    # Otherwise compare the base versions
+    return compare_versions(v1_base, v2_base)
+
+
+def _compare_application_builds(v1_str: str, v2_str: str, version1: Union[str, Tuple], version2: Union[str, Tuple]) -> Optional[int]:
+    """Compare versions with application-specific build patterns."""
+    v1_has_app_build = isinstance(version1, str) and _has_application_build_pattern(version1)
+    v2_has_app_build = isinstance(version2, str) and _has_application_build_pattern(version2)
+
+    if not (v1_has_app_build and v2_has_app_build):
+        return None
+
+    # Both have application build patterns, parse including build numbers
+    v1_tuple = parse_version(str(version1) if isinstance(version1, str) else None)
+    v2_tuple = parse_version(str(version2) if isinstance(version2, str) else None)
+
+    if v1_tuple is None:
+        v1_tuple = (0, 0, 0)
+    if v2_tuple is None:
+        v2_tuple = (0, 0, 0)
+
+    # For app builds, we need to extract and compare build numbers
+    v1_build = _extract_build_number(v1_str)
+    v2_build = _extract_build_number(v2_str)
+
+    # Compare base versions first
+    v1_base_tuple = (
+        v1_tuple[:3]
+        if len(v1_tuple) >= 3
+        else v1_tuple + (0,) * (3 - len(v1_tuple))
     )
-    v2_has_app_build = isinstance(version2, str) and (
-        re.search(r"build\s+\d+", version2, re.IGNORECASE)
-        or re.search(r"\(\d+\)", version2)
-        or re.search(r"-dev-\d+", version2)
+    v2_base_tuple = (
+        v2_tuple[:3]
+        if len(v2_tuple) >= 3
+        else v2_tuple + (0,) * (3 - len(v2_tuple))
     )
 
-    # Handle semver build metadata (should be ignored if base versions are same)
-    if v1_has_semver_build or v2_has_semver_build:
-        v1_base = re.sub(r"\+.*$", "", v1_str) if v1_has_semver_build else v1_str
-        v2_base = re.sub(r"\+.*$", "", v2_str) if v2_has_semver_build else v2_str
+    if v1_base_tuple < v2_base_tuple:
+        return -1
+    elif v1_base_tuple > v2_base_tuple:
+        return 1
+    else:
+        # Base versions are equal, compare build numbers
+        if v1_build is not None and v2_build is not None:
+            if v1_build < v2_build:
+                return -1
+            elif v1_build > v2_build:
+                return 1
+            else:
+                return 0
+        elif v1_build is not None:
+            return 1  # v1 has build number, v2 doesn't
+        elif v2_build is not None:
+            return -1  # v2 has build number, v1 doesn't
+        else:
+            return 0  # Neither has build number
 
-        # If the base versions are the same, build metadata is ignored (semver rule)
-        if v1_base == v2_base:
+
+def _normalize_app_version_string(v_str: str) -> str:
+    """Remove application names but keep version info."""
+    cleaned = re.sub(
+        r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+",
+        "",
+        v_str,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"^[a-zA-Z]+\s+(?=\d)", "", cleaned)
+    return cleaned.strip()
+
+
+def _handle_application_prefixes(v1_str: str, v2_str: str) -> Optional[int]:
+    """Handle versions with application name prefixes."""
+    # Only apply app name prefix logic if the versions actually contain application names
+    has_app_name_v1 = bool(
+        re.search(
+            r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v1_str, re.IGNORECASE
+        )
+        or re.search(r"^[a-zA-Z]+\s+(?=\d)", v1_str)
+    )
+    has_app_name_v2 = bool(
+        re.search(
+            r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v2_str, re.IGNORECASE
+        )
+        or re.search(r"^[a-zA-Z]+\s+(?=\d)", v2_str)
+    )
+
+    if not (has_app_name_v1 or has_app_name_v2):
+        return None
+
+    v1_norm = _normalize_app_version_string(v1_str)
+    v2_norm = _normalize_app_version_string(v2_str)
+
+    # If one version is a prefix of another (e.g., "Google Chrome 94" vs "Google Chrome 94.0.4606.81")
+    # But exclude pre-release versions from this logic (they should be compared semantically)
+    if v1_norm != v2_norm and not (
+        _is_prerelease(v1_str) or _is_prerelease(v2_str)
+    ):
+        v1_parts = v1_norm.split(".")
+        v2_parts = v2_norm.split(".")
+
+        # Check if one is a prefix of the other
+        min_len = min(len(v1_parts), len(v2_parts))
+        if v1_parts[:min_len] == v2_parts[:min_len] and len(v1_parts) != len(
+            v2_parts
+        ):
+            # The shorter version is considered equal (both point to same app)
             return 0
 
-        # Otherwise compare the base versions
-        return compare_versions(v1_base, v2_base)
+    return None
 
-    # Handle application-specific build patterns (should be compared)
-    if v1_has_app_build and v2_has_app_build:
-        # Both have application build patterns, parse including build numbers
-        v1_tuple = parse_version(str(version1) if isinstance(version1, str) else None)
-        v2_tuple = parse_version(str(version2) if isinstance(version2, str) else None)
 
-        if v1_tuple is None:
-            v1_tuple = (0, 0, 0)
-        if v2_tuple is None:
-            v2_tuple = (0, 0, 0)
-
-        # For app builds, we need to extract and compare build numbers
-        v1_build = _extract_build_number(v1_str)
-        v2_build = _extract_build_number(v2_str)
-
-        # Compare base versions first
-        v1_base_tuple = (
-            v1_tuple[:3]
-            if len(v1_tuple) >= 3
-            else v1_tuple + (0,) * (3 - len(v1_tuple))
-        )
-        v2_base_tuple = (
-            v2_tuple[:3]
-            if len(v2_tuple) >= 3
-            else v2_tuple + (0,) * (3 - len(v2_tuple))
-        )
-
-        if v1_base_tuple < v2_base_tuple:
-            return -1
-        elif v1_base_tuple > v2_base_tuple:
-            return 1
-        else:
-            # Base versions are equal, compare build numbers
-            if v1_build is not None and v2_build is not None:
-                if v1_build < v2_build:
-                    return -1
-                elif v1_build > v2_build:
-                    return 1
-                else:
-                    return 0
-            elif v1_build is not None:
-                return 1  # v1 has build number, v2 doesn't
-            elif v2_build is not None:
-                return -1  # v2 has build number, v1 doesn't
-            else:
-                return 0  # Neither has build number
-
+def _convert_to_version_tuples(
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
+) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    """Convert versions to tuples for comparison."""
     # Convert to tuples if needed
     if isinstance(version1, str):
         v1_tuple = parse_version(version1)
@@ -528,54 +593,16 @@ def compare_versions(
     else:  # isinstance(version2, tuple) - since None was handled earlier
         v2_tuple = version2
 
-    # Handle special application formats (only if they contain app names)
-    if isinstance(version1, str) and isinstance(version2, str):
-        # Only apply app name prefix logic if the versions actually contain application names
-        has_app_name_v1 = bool(
-            re.search(
-                r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v1_str, re.IGNORECASE
-            )
-            or re.search(r"^[a-zA-Z]+\s+(?=\d)", v1_str)
-        )
-        has_app_name_v2 = bool(
-            re.search(
-                r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+", v2_str, re.IGNORECASE
-            )
-            or re.search(r"^[a-zA-Z]+\s+(?=\d)", v2_str)
-        )
+    return v1_tuple, v2_tuple
 
-        if has_app_name_v1 or has_app_name_v2:
-            # Normalize application names for comparison
-            def normalize_app_version(v_str):
-                # Remove application names but keep version info
-                cleaned = re.sub(
-                    r"^(?:Google\s+)?(?:Chrome|Firefox|Safari)\s+",
-                    "",
-                    v_str,
-                    flags=re.IGNORECASE,
-                )
-                cleaned = re.sub(r"^[a-zA-Z]+\s+(?=\d)", "", cleaned)
-                return cleaned.strip()
 
-            v1_norm = normalize_app_version(v1_str)
-            v2_norm = normalize_app_version(v2_str)
-
-            # If one version is a prefix of another (e.g., "Google Chrome 94" vs "Google Chrome 94.0.4606.81")
-            # But exclude pre-release versions from this logic (they should be compared semantically)
-            if v1_norm != v2_norm and not (
-                _is_prerelease(v1_str) or _is_prerelease(v2_str)
-            ):
-                v1_parts = v1_norm.split(".")
-                v2_parts = v2_norm.split(".")
-
-                # Check if one is a prefix of the other
-                min_len = min(len(v1_parts), len(v2_parts))
-                if v1_parts[:min_len] == v2_parts[:min_len] and len(v1_parts) != len(
-                    v2_parts
-                ):
-                    # The shorter version is considered equal (both point to same app)
-                    return 0
-
+def _compare_base_and_prerelease_versions(
+    v1_tuple: Tuple[int, ...],
+    v2_tuple: Tuple[int, ...],
+    v1_str: str,
+    v2_str: str,
+) -> int:
+    """Compare base versions and handle prerelease logic."""
     # Normalize tuples to same length for comparison
     max_len = max(len(v1_tuple), len(v2_tuple))
     v1_padded = v1_tuple + (0,) * (max_len - len(v1_tuple))
@@ -587,8 +614,7 @@ def compare_versions(
 
     # For pre-release vs pre-release comparisons, use special logic
     if v1_prerelease and v2_prerelease:
-        result = _compare_prerelease(v1_str, v2_str)
-        return result
+        return _compare_prerelease(v1_str, v2_str)
 
     # Compare base versions (first 3 components for consistency with most apps)
     v1_base_tuple = (
@@ -625,6 +651,66 @@ def compare_versions(
                 return 1
 
         return 0
+
+
+def compare_versions(
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
+) -> int:
+    """Compare two version strings or tuples.
+
+    Args:
+        version1: First version string or tuple
+        version2: Second version string or tuple
+
+    Returns:
+        -1 if version1 < version2
+         0 if version1 == version2
+         1 if version1 > version2
+    """
+    # Handle None and empty cases first
+    none_result = _handle_none_and_empty_versions(version1, version2)
+    if none_result is not None:
+        return none_result
+
+    # Handle malformed versions
+    malformed_result = _handle_malformed_versions(version1, version2)
+    if malformed_result is not None:
+        return malformed_result
+
+    # Convert to string representations for further processing
+    v1_str = (
+        str(version1)
+        if not isinstance(version1, tuple)
+        else ".".join(map(str, version1))
+    )
+    v2_str = (
+        str(version2)
+        if not isinstance(version2, tuple)
+        else ".".join(map(str, version2))
+    )
+
+    # Handle semver build metadata
+    semver_result = _handle_semver_build_metadata(v1_str, v2_str, version1, version2)
+    if semver_result is not None:
+        return semver_result
+
+    # Handle application-specific build patterns
+    app_build_result = _compare_application_builds(v1_str, v2_str, version1, version2)
+    if app_build_result is not None:
+        return app_build_result
+
+    # Convert to tuples for comparison
+    v1_tuple, v2_tuple = _convert_to_version_tuples(version1, version2)
+
+    # Handle special application formats
+    if isinstance(version1, str) and isinstance(version2, str):
+        app_prefix_result = _handle_application_prefixes(v1_str, v2_str)
+        if app_prefix_result is not None:
+            return app_prefix_result
+
+    # Final comparison of base versions and prerelease logic
+    return _compare_base_and_prerelease_versions(v1_tuple, v2_tuple, v1_str, v2_str)
 
 
 def _extract_build_number(version_str: str) -> Optional[int]:
@@ -666,8 +752,8 @@ def _compare_prerelease(
     v2_str = str(version2) if not isinstance(version2, str) else version2
 
     # Extract pre-release type and number/suffix
-    v1_type, v1_suffix = _extract_prerelease_info(v1_str)
-    v2_type, v2_suffix = _extract_prerelease_info(v2_str)
+    v1_type, v1_suffix = _extract_prerelease_type_and_suffix(v1_str)
+    v2_type, v2_suffix = _extract_prerelease_type_and_suffix(v2_str)
 
     # Pre-release type priority: alpha < beta < rc < final
     type_priority = {"alpha": 1, "beta": 2, "rc": 3, "final": 4}
@@ -743,7 +829,7 @@ def _compare_prerelease_suffixes(
     return 0
 
 
-def _extract_prerelease_info(version_str: str) -> Tuple[str, Union[int, str, None]]:
+def _extract_prerelease_type_and_suffix(version_str: str) -> Tuple[str, Union[int, str, None]]:
     """Extract pre-release type and number/suffix from version string."""
     # Look for alpha, beta, rc, final with optional number or suffix, including Unicode
     match = re.search(
