@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, NoReturn, Optional, Tuple, cast
 
 from versiontracker import __version__
 from versiontracker.exceptions import (
@@ -84,7 +84,7 @@ def setup_logging(debug: bool = False) -> None:
                 format="%(asctime)s %(levelname)s %(name)s %(message)s",
                 level=log_level,
             )
-    except (OSError, PermissionError) as e:
+    except (OSError, PermissionError):
         # Fallback to console logging if file logging fails
         logging.basicConfig(
             format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -164,6 +164,54 @@ def _write_cache_file(data: Dict[str, Any]) -> None:
 
 
 @functools.lru_cache(maxsize=4)
+def _check_system_profiler_cache(command: str) -> Optional[Dict[str, Any]]:
+    """Check if system_profiler data is cached and return it if valid."""
+    if SYSTEM_PROFILER_CMD in command:
+        cache = _read_cache_file()
+        if cache and "data" in cache:
+            logging.info("Using cached application data")
+            return cast(Dict[str, Any], cache["data"])
+    return None
+
+
+def _parse_json_output(stdout: str, command: str) -> Dict[str, Any]:
+    """Parse JSON output from command stdout."""
+    if not stdout:
+        raise DataParsingError(f"Command '{command}' produced no output")
+
+    try:
+        return json.loads(stdout)
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to parse JSON output from '{command}': {e}")
+        raise DataParsingError(f"Failed to parse JSON from command output: {e}") from e
+
+
+def _handle_command_execution_error(
+    e: subprocess.CalledProcessError, command: str
+) -> NoReturn:
+    """Handle errors from command execution and raise appropriate exceptions."""
+    logging.error(f"Command '{command}' failed with error code {e.returncode}")
+    error_output = str(e.output) if e.output else str(e)
+
+    if "command not found" in error_output.lower():
+        raise FileNotFoundError(f"Command not found: {command}") from e
+    elif "permission denied" in error_output.lower():
+        raise PermissionError(f"Permission denied when running: {command}") from e
+    else:
+        raise DataParsingError(f"Command execution failed: {e}") from e
+
+
+def _handle_unexpected_error(e: Exception, command: str) -> NoReturn:
+    """Handle unexpected errors and categorize them appropriately."""
+    logging.error(f"Unexpected error executing command '{command}': {e}")
+
+    # Check for network-related terms in the error message
+    if any(term in str(e).lower() for term in ["network", "connection", "timeout"]):
+        raise NetworkError(f"Network error executing command: {command}") from e
+    # Fallback to DataParsingError for other cases
+    raise DataParsingError(f"Error processing command output: {e}") from e
+
+
 def get_json_data(command: str) -> Dict[str, Any]:
     """Execute a command and return the JSON output, with caching.
 
@@ -183,46 +231,29 @@ def get_json_data(command: str) -> Dict[str, Any]:
         TimeoutError: If the command execution times out
         NetworkError: If a network-related error occurs during execution
     """
-    # For system_profiler, check the cache first
-    if SYSTEM_PROFILER_CMD in command:
-        cache = _read_cache_file()
-        if cache and "data" in cache:
-            logging.info("Using cached application data")
-            return cast(Dict[str, Any], cache["data"])
+    # Check cache first for system_profiler commands
+    cached_data = _check_system_profiler_cache(command)
+    if cached_data is not None:
+        return cached_data
 
     try:
-        # For secure command execution, use run_command instead of directly calling subprocess
+        # Execute command securely
         stdout, return_code = run_command(command, timeout=60)
 
         if return_code != 0:
             raise subprocess.CalledProcessError(return_code, command, stdout)
 
-        if not stdout:
-            raise DataParsingError(f"Command '{command}' produced no output")
-
-        try:
-            parsed_data = json.loads(stdout)
-        except json.JSONDecodeError as e:
-            logging.error(f"Failed to parse JSON output from '{command}': {e}")
-            raise DataParsingError(
-                f"Failed to parse JSON from command output: {e}"
-            ) from e
+        # Parse JSON output
+        parsed_data = _parse_json_output(stdout, command)
 
         # Cache system_profiler results
         if SYSTEM_PROFILER_CMD in command:
             _write_cache_file(parsed_data)
 
-        return cast(Dict[str, Any], parsed_data)
+        return parsed_data
+
     except subprocess.CalledProcessError as e:
-        logging.error(f"Command '{command}' failed with error code {e.returncode}")
-        # Check for specific error patterns in the output
-        error_output = str(e.output) if e.output else str(e)
-        if "command not found" in error_output.lower():
-            raise FileNotFoundError(f"Command not found: {command}") from e
-        elif "permission denied" in error_output.lower():
-            raise PermissionError(f"Permission denied when running: {command}") from e
-        else:
-            raise DataParsingError(f"Command execution failed: {e}") from e
+        _handle_command_execution_error(e, command)
     except (
         FileNotFoundError,
         PermissionError,
@@ -233,12 +264,7 @@ def get_json_data(command: str) -> Dict[str, Any]:
         # Re-raise specific exceptions for consistent error handling
         raise
     except Exception as e:
-        logging.error(f"Unexpected error executing command '{command}': {e}")
-        # Check for network-related terms in the error message
-        if any(term in str(e).lower() for term in ["network", "connection", "timeout"]):
-            raise NetworkError(f"Network error executing command: {command}") from e
-        # Fallback to DataParsingError for other cases
-        raise DataParsingError(f"Error processing command output: {e}") from e
+        _handle_unexpected_error(e, command)
 
 
 def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
@@ -406,6 +432,95 @@ def shell_command_to_args(cmd: str) -> List[str]:
         return cmd.split()
 
 
+def _execute_subprocess(
+    cmd_list: List[str], timeout: Optional[int]
+) -> subprocess.Popen:
+    """Execute subprocess and return the process object."""
+    return subprocess.Popen(
+        cmd_list,
+        shell=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
+def _is_expected_homebrew_failure(stderr: str) -> bool:
+    """Check if stderr contains expected Homebrew failure messages."""
+    return "Error: No formulae or casks found" in stderr
+
+
+def _classify_command_error(stderr: str, cmd: str) -> None:
+    """Classify and raise appropriate exception based on stderr content."""
+    if "command not found" in stderr:
+        raise FileNotFoundError(f"Command not found: {cmd}")
+    elif "permission denied" in stderr.lower():
+        raise PermissionError(f"Permission denied: {cmd}")
+    elif any(
+        network_err in stderr.lower()
+        for network_err in [
+            "network is unreachable",
+            "no route to host",
+            "connection refused",
+            "temporary failure in name resolution",
+        ]
+    ):
+        raise NetworkError(f"Network error: {stderr}")
+
+
+def _handle_process_output(
+    stdout: str, stderr: str, return_code: int, cmd: str
+) -> Tuple[str, int]:
+    """Handle process output and return appropriate result."""
+    if return_code != 0:
+        if _is_expected_homebrew_failure(stderr):
+            # This is an expected case for non-existent brews, don't log it as a warning
+            pass
+        else:
+            # Log other failures as warnings
+            logging.warning(f"Command failed with return code {return_code}: {stderr}")
+            # Check for specific errors that should raise exceptions
+            _classify_command_error(stderr, cmd)
+
+        # Return appropriate output based on content
+        if not stdout.strip() and stderr.strip():
+            if "No formulae or casks found" in stderr:
+                return "No formulae or casks found", return_code
+            return stderr, return_code
+
+    return stdout, return_code
+
+
+def _handle_timeout_error(
+    process: Optional[subprocess.Popen], timeout: Optional[int], cmd: str
+) -> NoReturn:
+    """Handle timeout errors and cleanup process."""
+    if process:
+        try:
+            process.kill()
+        except Exception as kill_error:
+            logging.debug(f"Error killing timed out process: {kill_error}")
+
+    logging.error(f"Command timed out after {timeout} seconds: {cmd}")
+    raise TimeoutError(f"Command timed out after {timeout} seconds: {cmd}")
+
+
+def _handle_network_error_check(e: Exception, cmd: str) -> None:
+    """Check if exception indicates network error and raise NetworkError if so."""
+    if any(
+        network_term in str(e).lower()
+        for network_term in [
+            "network",
+            "socket",
+            "connection",
+            "host",
+            "resolve",
+            "timeout",
+        ]
+    ):
+        raise NetworkError(f"Network error running command: {cmd}") from e
+
+
 def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
     """Run a command and return the output.
 
@@ -437,71 +552,16 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
         logging.debug(f"Running command: {cmd}")
         # Parse command safely to avoid shell injection
         cmd_list = shlex.split(cmd)
-
-        process = subprocess.Popen(
-            cmd_list,
-            shell=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
+        process = _execute_subprocess(cmd_list, timeout)
 
         # Wait for the command to complete with timeout
         stdout, stderr = process.communicate(timeout=timeout)
 
-        # Check return code
-        if process.returncode != 0:
-            # Check for expected "failures" that shouldn't be logged as warnings
-            # This is especially important for Homebrew searches that don't find anything
-            if "Error: No formulae or casks found" in stderr:
-                # This is an expected case for non-existent brews, don't log it as a warning
-                pass
-            else:
-                # Log other failures as warnings
-                logging.warning(
-                    f"Command failed with return code {process.returncode}: {stderr}"
-                )
+        # Handle the output based on return code and content
+        return _handle_process_output(stdout, stderr, process.returncode, cmd)
 
-                # Check for common errors in order of specificity
-                if "command not found" in stderr:
-                    raise FileNotFoundError(f"Command not found: {cmd}")
-                elif "permission denied" in stderr.lower():
-                    raise PermissionError(f"Permission denied: {cmd}")
-                elif any(
-                    network_err in stderr.lower()
-                    for network_err in [
-                        "network is unreachable",
-                        "no route to host",
-                        "connection refused",
-                        "temporary failure in name resolution",
-                    ]
-                ):
-                    raise NetworkError(f"Network error: {stderr}")
-
-            # For error conditions with empty stdout, return stderr to ensure error messages are visible
-            if process.returncode != 0 and not stdout.strip() and stderr.strip():
-                return stderr, process.returncode
-            # For special case with "No formulae or casks found" in stderr but nothing in stdout
-            elif (
-                process.returncode != 0
-                and "No formulae or casks found" in stderr
-                and not stdout.strip()
-            ):
-                return "No formulae or casks found", process.returncode
-            else:
-                return stdout, process.returncode
-        else:
-            return stdout, process.returncode
-    except subprocess.TimeoutExpired as e:
-        # Kill the process if it timed out
-        if process:
-            try:
-                process.kill()
-            except Exception as kill_error:
-                logging.debug(f"Error killing timed out process: {kill_error}")
-
-        logging.error(f"Command timed out after {timeout} seconds: {cmd}")
-        raise TimeoutError(f"Command timed out after {timeout} seconds: {cmd}") from e
+    except subprocess.TimeoutExpired:
+        _handle_timeout_error(process, timeout, cmd)
     except FileNotFoundError as e:
         logging.error(f"Command not found: {cmd}")
         raise FileNotFoundError(f"Command not found: {cmd}") from e
@@ -514,18 +574,7 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
     except Exception as e:
         logging.error(f"Error running command '{cmd}': {e}")
         # Check for network-related errors in the exception message
-        if any(
-            network_term in str(e).lower()
-            for network_term in [
-                "network",
-                "socket",
-                "connection",
-                "host",
-                "resolve",
-                "timeout",
-            ]
-        ):
-            raise NetworkError(f"Network error running command: {cmd}") from e
+        _handle_network_error_check(e, cmd)
         # Re-raise with more context
         raise Exception(f"Error executing command '{cmd}': {e}") from e
 

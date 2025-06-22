@@ -234,11 +234,15 @@ class TestGetJsonData:
 
     def setup_method(self):
         """Clear the lru_cache before each test."""
-        get_json_data.cache_clear()
+        from versiontracker.utils import _check_system_profiler_cache
+
+        _check_system_profiler_cache.cache_clear()
 
     def teardown_method(self):
         """Clear the lru_cache after each test."""
-        get_json_data.cache_clear()
+        from versiontracker.utils import _check_system_profiler_cache
+
+        _check_system_profiler_cache.cache_clear()
 
     @patch("versiontracker.utils._write_cache_file")
     @patch("versiontracker.utils._read_cache_file")

@@ -21,7 +21,6 @@ from versiontracker.ui import (  # noqa: E402
     AdaptiveRateLimiter,
     QueryFilterManager,
     SmartProgress,
-    colored,
     create_progress_bar,
     get_terminal_size,
     print_debug,
@@ -167,7 +166,9 @@ class TestTerminalOutput:
     def test_colored_fallback(self):
         """Test colored function fallback."""
         # This test is environment-dependent and can vary between local and CI
-        result = colored("test", "red")
+        import versiontracker.ui as ui
+
+        result = ui.colored("test", "red")
         # In fallback mode, should return text without color codes
         assert "test" in result  # More flexible assertion
 
@@ -250,7 +251,7 @@ class TestTerminalOutput:
         # When HAS_TERMCOLOR is False, print_success should use built-in print()
         try:
             ui.print_success("test", file=string_io)
-        except Exception as e:
+        except Exception:
             # If there's an issue with the UI function, fall back to direct test
             print("test", file=string_io)
 
