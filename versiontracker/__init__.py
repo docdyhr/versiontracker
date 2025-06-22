@@ -40,11 +40,11 @@ __version__ = "0.6.5"
 # The following items are available through lazy loading but trigger false positive warnings
 __all__ = [
     "__version__",
-    "get_applications",      # type: ignore[attr-defined]  # Lazy loaded from .apps
-    "get_homebrew_casks",    # type: ignore[attr-defined]  # Lazy loaded from .apps
-    "Config",                # type: ignore[attr-defined]  # Lazy loaded from .config
-    "get_config",            # type: ignore[attr-defined]  # Lazy loaded from .config
-    "VersionTrackerError",   # type: ignore[attr-defined]  # Lazy loaded from .exceptions
+    "get_applications",  # type: ignore[attr-defined]  # Lazy loaded from .apps
+    "get_homebrew_casks",  # type: ignore[attr-defined]  # Lazy loaded from .apps
+    "Config",  # type: ignore[attr-defined]  # Lazy loaded from .config
+    "get_config",  # type: ignore[attr-defined]  # Lazy loaded from .config
+    "VersionTrackerError",  # type: ignore[attr-defined]  # Lazy loaded from .exceptions
 ]
 
 

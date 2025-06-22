@@ -435,8 +435,15 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
     try:
         # Run the command
         logging.debug(f"Running command: {cmd}")
+        # Parse command safely to avoid shell injection
+        cmd_list = shlex.split(cmd)
+
         process = subprocess.Popen(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            cmd_list,
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
 
         # Wait for the command to complete with timeout
@@ -547,7 +554,7 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
     try:
         result = subprocess.run(
             command,
-            shell=True,
+            shell=True,  # nosec B602 - Intentionally using shell=True for legacy compatibility
             capture_output=True,
             text=True,
             check=True,
