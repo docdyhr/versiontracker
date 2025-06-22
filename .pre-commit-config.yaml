@@ -64,14 +64,13 @@ repos:
       - id: bandit
         args:
           [
-            -r,
-            versiontracker/,
             --skip,
             "B101,B110,B404,B602,B603,B607,B608",
             --severity-level,
             medium,
           ]
         exclude: ^tests/
+        files: ^versiontracker/
 
   # Documentation string checking
   - repo: https://github.com/pycqa/pydocstyle
