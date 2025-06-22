@@ -1284,61 +1284,111 @@ def check_brew_update_candidates(
     if not data:
         return {}
 
-    # Get installed casks for checking against strict filtering
+    # Setup processing components
     existing_brews = _get_existing_brews()
-
-    # Create rate limiter
     rate_limiter = _create_rate_limiter(rate_limit)
-
-    # Create batches for parallel processing
     batches = _create_batches(data, batch_size=5)
-    max_workers = min(4, len(batches))  # Don't create too many workers
+    max_workers = min(4, len(batches))
 
-    # Set to track installable apps (avoid duplicates)
+    # Process batches and collect results
+    installers = _process_brew_search_batches(
+        batches, rate_limiter, max_workers, existing_brews
+    )
+
+    # Get versions for installable casks
+    _populate_cask_versions(installers)
+
+    return installers
+
+
+def _process_brew_search_batches(
+    batches: List[List[Tuple[str, str]]],
+    rate_limiter: Any,
+    max_workers: int,
+    existing_brews: List[str],
+) -> Dict[str, Dict[str, Union[str, float]]]:
+    """Process brew search batches in parallel.
+
+    Args:
+        batches: List of batches to process
+        rate_limiter: Rate limiter instance
+        max_workers: Maximum number of worker threads
+        existing_brews: List of existing brew casks
+
+    Returns:
+        Dictionary of installable casks
+    """
     installers: Dict[str, Dict[str, Union[str, float]]] = {}
+    show_progress = _should_show_progress()
 
-    # Check if progress bars should be shown
-    show_progress = getattr(get_config(), "show_progress", True)
-    if hasattr(get_config(), "no_progress") and get_config().no_progress:
-        show_progress = False
-
-    # Process batches
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_batch = {
             executor.submit(_batch_process_brew_search, batch, rate_limiter): batch
             for batch in batches
         }
 
-        # Process results as they complete
         if HAS_PROGRESS and show_progress:
-            # Use progress bar
-            for future in smart_progress(
-                concurrent.futures.as_completed(future_to_batch),
-                total=len(future_to_batch),
-                desc="Searching for Homebrew casks",
-                unit="batch",
-                monitor_resources=True,
-                ncols=80,
-            ):
-                try:
-                    batch_results = future.result()
-                    for result in batch_results:
-                        if result and result.lower() not in existing_brews:
-                            installers[result] = {"version": "", "similarity": 0.0}
-                except Exception as e:
-                    logging.error("Error processing batch: %s", e)
+            _process_with_progress_bar(future_to_batch, installers, existing_brews)
         else:
-            # Process without progress bar
-            for future in concurrent.futures.as_completed(future_to_batch):
-                try:
-                    batch_results = future.result()
-                    for result in batch_results:
-                        if result and result.lower() not in existing_brews:
-                            installers[result] = {"version": "", "similarity": 0.0}
-                except Exception as e:
-                    logging.error("Error processing batch: %s", e)
+            _process_without_progress_bar(future_to_batch, installers, existing_brews)
 
-    # Get versions for installable casks
+    return installers
+
+
+def _should_show_progress() -> bool:
+    """Determine if progress bars should be shown."""
+    show_progress = getattr(get_config(), "show_progress", True)
+    if hasattr(get_config(), "no_progress") and get_config().no_progress:
+        show_progress = False
+    return show_progress
+
+
+def _process_with_progress_bar(
+    future_to_batch: Dict[Any, Any],
+    installers: Dict[str, Dict[str, Union[str, float]]],
+    existing_brews: List[str],
+) -> None:
+    """Process futures with progress bar."""
+    for future in smart_progress(
+        concurrent.futures.as_completed(future_to_batch),
+        total=len(future_to_batch),
+        desc="Searching for Homebrew casks",
+        unit="batch",
+        monitor_resources=True,
+        ncols=80,
+    ):
+        _process_batch_result(future, installers, existing_brews)
+
+
+def _process_without_progress_bar(
+    future_to_batch: Dict[Any, Any],
+    installers: Dict[str, Dict[str, Union[str, float]]],
+    existing_brews: List[str],
+) -> None:
+    """Process futures without progress bar."""
+    for future in concurrent.futures.as_completed(future_to_batch):
+        _process_batch_result(future, installers, existing_brews)
+
+
+def _process_batch_result(
+    future: Any,
+    installers: Dict[str, Dict[str, Union[str, float]]],
+    existing_brews: List[str],
+) -> None:
+    """Process the result of a batch future."""
+    try:
+        batch_results = future.result()
+        for result in batch_results:
+            if result and result.lower() not in existing_brews:
+                installers[result] = {"version": "", "similarity": 0.0}
+    except Exception as e:
+        logging.error("Error processing batch: %s", e)
+
+
+def _populate_cask_versions(
+    installers: Dict[str, Dict[str, Union[str, float]]],
+) -> None:
+    """Populate version information for installable casks."""
     for cask in installers:
         try:
             version = get_cask_version(cask)
@@ -1346,8 +1396,6 @@ def check_brew_update_candidates(
                 installers[cask]["version"] = version
         except Exception as e:
             logging.error("Error getting version for %s: %s", cask, e)
-
-    return installers
 
 
 def get_cask_version(cask_name: str) -> Optional[str]:

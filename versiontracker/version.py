@@ -1351,14 +1351,20 @@ def get_partial_ratio_scorer():
         return fallback_scorer
 
 
+class _EarlyReturn:
+    """Sentinel class to indicate early return with None."""
+
+    pass
+
+
 def _handle_empty_and_malformed_versions(
     version1: Union[str, Tuple[int, ...], None],
     version2: Union[str, Tuple[int, ...], None],
-) -> Optional[Tuple[int, ...]]:
-    """Handle empty and malformed version cases. Returns None if should continue processing."""
-    # Handle None cases
+) -> Union[Tuple[int, ...], _EarlyReturn, None]:
+    """Handle empty and malformed version cases. Returns _EarlyReturn() if should return None, None if should continue processing."""
+    # Handle None cases - should return None from get_version_difference
     if version1 is None or version2 is None:
-        return None
+        return _EarlyReturn()
 
     v1_malformed = _is_version_malformed(version1)
     v2_malformed = _is_version_malformed(version2)
@@ -1375,9 +1381,9 @@ def _handle_empty_and_malformed_versions(
     if v1_malformed and v2_malformed:
         return (0, 0, 0)
 
-    # If either version is malformed (but not empty), return None
+    # If either version is malformed (but not empty), return None from get_version_difference
     if v1_malformed or v2_malformed:
-        return None
+        return _EarlyReturn()
 
     # Continue with normal processing
     return None
@@ -1467,7 +1473,9 @@ def get_version_difference(
     """
     # Handle empty and malformed versions
     early_result = _handle_empty_and_malformed_versions(version1, version2)
-    if early_result is not None:
+    if isinstance(early_result, _EarlyReturn):
+        return None
+    elif early_result is not None:
         return early_result
 
     # Convert to tuples
@@ -1522,56 +1530,94 @@ def get_version_info(
     if latest_version is None:
         # Single version analysis - just return basic info
         return app_info
-    else:
-        # Two version comparison
-        latest_parsed = parse_version(latest_version)
-        if latest_parsed is None:
-            latest_parsed = (0, 0, 0)
 
-        app_info.latest_version = latest_version
-        app_info.latest_parsed = latest_parsed
+    # Two version comparison
+    return _perform_version_comparison(app_info, current_version, latest_version)
 
-        # latest_version is guaranteed not to be None here due to early return above
-        # current_version is already handled and converted from None to "" above
 
-        # Both empty strings should be considered equal
-        if current_version == "" and latest_version == "":
-            app_info.status = VersionStatus.UP_TO_DATE
-            return app_info
+def _perform_version_comparison(
+    app_info: ApplicationInfo, current_version: str, latest_version: str
+) -> ApplicationInfo:
+    """Perform comparison between current and latest versions.
 
-        # One empty string but not both - return UNKNOWN
-        if current_version == "" or latest_version == "":
-            app_info.status = VersionStatus.UNKNOWN
-            return app_info
+    Args:
+        app_info: Base ApplicationInfo object to update
+        current_version: Current version string (already normalized from None to "")
+        latest_version: Latest version string
 
-        # Check for malformed versions (no digits found)
-        def is_malformed(v):
-            if isinstance(v, str):
-                v_str = str(v).strip()
-                if not re.search(r"\d", v_str):
-                    return True
-            return False
+    Returns:
+        Updated ApplicationInfo object with comparison results
+    """
+    latest_parsed = parse_version(latest_version)
+    if latest_parsed is None:
+        latest_parsed = (0, 0, 0)
 
-        if is_malformed(current_version) or is_malformed(latest_version):
-            app_info.status = VersionStatus.UNKNOWN
-            return app_info
+    app_info.latest_version = latest_version
+    app_info.latest_parsed = latest_parsed
 
-        # Compare versions
-        comparison = compare_versions(current_version, latest_version)
-        if comparison == 0:
-            app_info.status = VersionStatus.UP_TO_DATE
-        elif comparison < 0:
-            app_info.status = VersionStatus.OUTDATED
-            diff = get_version_difference(current_version, latest_version)
-            if diff is not None:
-                app_info.outdated_by = tuple(abs(x) for x in diff)
-        else:
-            app_info.status = VersionStatus.NEWER
-            diff = get_version_difference(latest_version, current_version)
-            if diff is not None:
-                app_info.newer_by = tuple(abs(x) for x in diff)
-
+    # Check for empty string cases
+    status = _handle_empty_version_cases(current_version, latest_version)
+    if status is not None:
+        app_info.status = status
         return app_info
+
+    # Check for malformed versions
+    if _is_version_malformed(current_version) or _is_version_malformed(latest_version):
+        app_info.status = VersionStatus.UNKNOWN
+        return app_info
+
+    # Perform version comparison and set status
+    _set_version_comparison_status(app_info, current_version, latest_version)
+    return app_info
+
+
+def _handle_empty_version_cases(
+    current_version: str, latest_version: str
+) -> Optional[VersionStatus]:
+    """Handle cases where one or both versions are empty strings.
+
+    Args:
+        current_version: Current version string
+        latest_version: Latest version string
+
+    Returns:
+        VersionStatus if a special case is detected, None otherwise
+    """
+    # Both empty strings should be considered equal
+    if current_version == "" and latest_version == "":
+        return VersionStatus.UP_TO_DATE
+
+    # One empty string but not both - return UNKNOWN
+    if current_version == "" or latest_version == "":
+        return VersionStatus.UNKNOWN
+
+    return None
+
+
+def _set_version_comparison_status(
+    app_info: ApplicationInfo, current_version: str, latest_version: str
+) -> None:
+    """Set the version comparison status and difference information.
+
+    Args:
+        app_info: ApplicationInfo object to update
+        current_version: Current version string
+        latest_version: Latest version string
+    """
+    comparison = compare_versions(current_version, latest_version)
+
+    if comparison == 0:
+        app_info.status = VersionStatus.UP_TO_DATE
+    elif comparison < 0:
+        app_info.status = VersionStatus.OUTDATED
+        diff = get_version_difference(current_version, latest_version)
+        if diff is not None:
+            app_info.outdated_by = tuple(abs(x) for x in diff)
+    else:
+        app_info.status = VersionStatus.NEWER
+        diff = get_version_difference(latest_version, current_version)
+        if diff is not None:
+            app_info.newer_by = tuple(abs(x) for x in diff)
 
 
 def check_latest_version(app_name: str) -> Optional[str]:

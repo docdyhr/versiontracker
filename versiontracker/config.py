@@ -608,89 +608,91 @@ class Config:
 
     def _load_version_comparison_env_vars(self) -> None:
         """Load version comparison specific environment variables."""
-        # Version comparison rate limit
-        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"):
+        # Load integer configuration values
+        self._load_version_comparison_int_vars()
+
+        # Load boolean configuration values
+        self._load_version_comparison_bool_vars()
+
+        # Load outdated detection configuration
+        self._load_outdated_detection_vars()
+
+    def _load_version_comparison_int_vars(self) -> None:
+        """Load integer-based version comparison environment variables."""
+        int_var_mappings = [
+            (
+                "VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT",
+                "version_comparison",
+                "rate_limit",
+            ),
+            (
+                "VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL",
+                "version_comparison",
+                "cache_ttl",
+            ),
+            (
+                "VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD",
+                "version_comparison",
+                "similarity_threshold",
+            ),
+            (
+                "VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF",
+                "outdated_detection",
+                "min_version_diff",
+            ),
+        ]
+
+        for env_var, section, config_key in int_var_mappings:
+            self._load_int_env_var(env_var, section, config_key)
+
+    def _load_version_comparison_bool_vars(self) -> None:
+        """Load boolean-based version comparison environment variables."""
+        bool_var_mappings = [
+            (
+                "VERSIONTRACKER_VERSION_COMPARISON_INCLUDE_BETA_VERSIONS",
+                "version_comparison",
+                "include_beta_versions",
+            ),
+            (
+                "VERSIONTRACKER_VERSION_COMPARISON_SORT_BY_OUTDATED",
+                "version_comparison",
+                "sort_by_outdated",
+            ),
+        ]
+
+        for env_var, section, config_key in bool_var_mappings:
+            self._load_bool_env_var(env_var, section, config_key)
+
+    def _load_outdated_detection_vars(self) -> None:
+        """Load outdated detection specific environment variables."""
+        bool_var_mappings = [
+            (
+                "VERSIONTRACKER_OUTDATED_DETECTION_ENABLED",
+                "outdated_detection",
+                "enabled",
+            ),
+            (
+                "VERSIONTRACKER_OUTDATED_DETECTION_INCLUDE_PRE_RELEASES",
+                "outdated_detection",
+                "include_pre_releases",
+            ),
+        ]
+
+        for env_var, section, config_key in bool_var_mappings:
+            self._load_bool_env_var(env_var, section, config_key)
+
+    def _load_int_env_var(self, env_var: str, section: str, config_key: str) -> None:
+        """Load and validate an integer environment variable."""
+        if os.environ.get(env_var):
             try:
-                self._config["version_comparison"]["rate_limit"] = int(
-                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"]
-                )
+                self._config[section][config_key] = int(os.environ[env_var])
             except ValueError:
-                logging.warning(
-                    "Invalid version comparison rate limit: %s",
-                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT"],
-                )
+                logging.warning("Invalid %s: %s", env_var, os.environ[env_var])
 
-        # Version comparison cache TTL
-        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL"):
-            try:
-                self._config["version_comparison"]["cache_ttl"] = int(
-                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL"]
-                )
-            except ValueError:
-                logging.warning(
-                    "Invalid version comparison cache TTL: %s",
-                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL"],
-                )
-
-        # Version comparison similarity threshold
-        if os.environ.get("VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD"):
-            try:
-                self._config["version_comparison"]["similarity_threshold"] = int(
-                    os.environ["VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD"]
-                )
-            except ValueError:
-                logging.warning(
-                    "Invalid version comparison similarity threshold: %s",
-                    os.environ[
-                        "VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD"
-                    ],
-                )
-
-        # Version comparison include beta versions
-        if os.environ.get(
-            "VERSIONTRACKER_VERSION_COMPARISON_INCLUDE_BETA_VERSIONS", ""
-        ).lower() in ("1", "true", "yes"):
-            self._config["version_comparison"]["include_beta_versions"] = True
-
-        # Version comparison sort by outdated status
-        if os.environ.get(
-            "VERSIONTRACKER_VERSION_COMPARISON_SORT_BY_OUTDATED", ""
-        ).lower() in (
-            "1",
-            "true",
-            "yes",
-        ):
-            self._config["version_comparison"]["sort_by_outdated"] = True
-
-        # Outdated detection enabled
-        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_ENABLED", "").lower() in (
-            "1",
-            "true",
-            "yes",
-        ):
-            self._config["outdated_detection"]["enabled"] = True
-
-        # Outdated detection minimum version difference
-        if os.environ.get("VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF"):
-            try:
-                self._config["outdated_detection"]["min_version_diff"] = int(
-                    os.environ["VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF"]
-                )
-            except ValueError:
-                logging.warning(
-                    "Invalid outdated detection minimum version difference: %s",
-                    os.environ["VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF"],
-                )
-
-        # Outdated detection include pre-releases
-        if os.environ.get(
-            "VERSIONTRACKER_OUTDATED_DETECTION_INCLUDE_PRE_RELEASES", ""
-        ).lower() in (
-            "1",
-            "true",
-            "yes",
-        ):
-            self._config["outdated_detection"]["include_pre_releases"] = True
+    def _load_bool_env_var(self, env_var: str, section: str, config_key: str) -> None:
+        """Load and validate a boolean environment variable."""
+        if os.environ.get(env_var, "").lower() in ("1", "true", "yes"):
+            self._config[section][config_key] = True
 
     def _load_from_env(self) -> None:
         """Load configuration from environment variables.
