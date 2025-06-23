@@ -11,15 +11,25 @@ class TestBrewCaskInstallability(unittest.TestCase):
     """Test cases for brew cask installability functions."""
 
     @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps.get_homebrew_cask_name")
+    @patch("versiontracker.apps._execute_brew_search")
+    @patch("versiontracker.apps._handle_brew_search_result")
+    @patch("versiontracker.apps.read_cache")
     def test_is_brew_cask_installable_found(
-        self, mock_get_brew_cask_name, mock_is_homebrew_available
+        self,
+        mock_read_cache,
+        mock_handle_result,
+        mock_execute_search,
+        mock_is_homebrew_available,
     ):
         """Test is_brew_cask_installable when cask is found."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
-        # Mock get_brew_cask_name to return a valid cask name
-        mock_get_brew_cask_name.return_value = "firefox"
+        # Mock cache to return None (cache miss)
+        mock_read_cache.return_value = None
+        # Mock execute_brew_search to return success
+        mock_execute_search.return_value = ("firefox", 0)
+        # Mock handle_brew_search_result to return True
+        mock_handle_result.return_value = True
 
         # Call the function
         result = is_brew_cask_installable("firefox")
@@ -28,15 +38,25 @@ class TestBrewCaskInstallability(unittest.TestCase):
         self.assertTrue(result)
 
     @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps.get_homebrew_cask_name")
+    @patch("versiontracker.apps._execute_brew_search")
+    @patch("versiontracker.apps._handle_brew_search_result")
+    @patch("versiontracker.apps.read_cache")
     def test_is_brew_cask_installable_not_found(
-        self, mock_get_brew_cask_name, mock_is_homebrew_available
+        self,
+        mock_read_cache,
+        mock_handle_result,
+        mock_execute_search,
+        mock_is_homebrew_available,
     ):
         """Test is_brew_cask_installable when cask is not found."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
-        # Mock get_brew_cask_name to return None (not found)
-        mock_get_brew_cask_name.return_value = None
+        # Mock cache to return None (cache miss)
+        mock_read_cache.return_value = None
+        # Mock execute_brew_search to return not found
+        mock_execute_search.return_value = ("Error: No formulae or casks found", 1)
+        # Mock handle_brew_search_result to return False
+        mock_handle_result.return_value = False
 
         # Call the function
         result = is_brew_cask_installable("non-existent-app")
@@ -45,15 +65,18 @@ class TestBrewCaskInstallability(unittest.TestCase):
         self.assertFalse(result)
 
     @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps.get_homebrew_cask_name")
+    @patch("versiontracker.apps._execute_brew_search")
+    @patch("versiontracker.apps.read_cache")
     def test_is_brew_cask_installable_error(
-        self, mock_get_brew_cask_name, mock_is_homebrew_available
+        self, mock_read_cache, mock_execute_search, mock_is_homebrew_available
     ):
         """Test is_brew_cask_installable error handling."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
-        # Mock get_brew_cask_name to raise an exception
-        mock_get_brew_cask_name.side_effect = Exception("Some error")
+        # Mock cache to return None (cache miss)
+        mock_read_cache.return_value = None
+        # Mock execute_brew_search to raise an exception
+        mock_execute_search.side_effect = Exception("Some error")
 
         # Call the function
         result = is_brew_cask_installable("problematic-app")
