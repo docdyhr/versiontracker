@@ -235,6 +235,7 @@ class TestIntegration(unittest.TestCase):
             self.assertEqual(mock_response.status_code, 200)
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.apps.is_homebrew_available", return_value=True)
     @patch("versiontracker.handlers.app_handlers.get_applications")
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.brew_handlers.filter_out_brews")
@@ -249,6 +250,7 @@ class TestIntegration(unittest.TestCase):
         mock_filter_brews,
         mock_get_casks,
         mock_get_apps,
+        mock_is_homebrew_available,
         mock_check_deps,
     ):
         """Test end-to-end workflow that simulates typical user operations."""
@@ -639,11 +641,17 @@ class TestIntegration(unittest.TestCase):
                             self.fail(f"Export format {fmt} failed unexpectedly: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.apps.is_homebrew_available", return_value=True)
     @patch("versiontracker.handlers.app_handlers.get_applications")
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.brew_handlers.filter_out_brews")
     def test_blacklist_functionality(
-        self, mock_filter_brews, mock_get_casks, mock_get_apps, mock_check_deps
+        self,
+        mock_filter_brews,
+        mock_get_casks,
+        mock_get_apps,
+        mock_is_homebrew_available,
+        mock_check_deps,
     ):
         """Test blacklist functionality across different operations."""
         # Mock data

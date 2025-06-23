@@ -10,9 +10,14 @@ from versiontracker.apps import is_brew_cask_installable
 class TestBrewCaskInstallability(unittest.TestCase):
     """Test cases for brew cask installability functions."""
 
+    @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_cask_name")
-    def test_is_brew_cask_installable_found(self, mock_get_brew_cask_name):
+    def test_is_brew_cask_installable_found(
+        self, mock_get_brew_cask_name, mock_is_homebrew_available
+    ):
         """Test is_brew_cask_installable when cask is found."""
+        # Mock is_homebrew_available to return True
+        mock_is_homebrew_available.return_value = True
         # Mock get_brew_cask_name to return a valid cask name
         mock_get_brew_cask_name.return_value = "firefox"
 
@@ -22,9 +27,14 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is True when cask is found
         self.assertTrue(result)
 
+    @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_cask_name")
-    def test_is_brew_cask_installable_not_found(self, mock_get_brew_cask_name):
+    def test_is_brew_cask_installable_not_found(
+        self, mock_get_brew_cask_name, mock_is_homebrew_available
+    ):
         """Test is_brew_cask_installable when cask is not found."""
+        # Mock is_homebrew_available to return True
+        mock_is_homebrew_available.return_value = True
         # Mock get_brew_cask_name to return None (not found)
         mock_get_brew_cask_name.return_value = None
 
@@ -34,9 +44,14 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is False when cask is not found
         self.assertFalse(result)
 
+    @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_cask_name")
-    def test_is_brew_cask_installable_error(self, mock_get_brew_cask_name):
+    def test_is_brew_cask_installable_error(
+        self, mock_get_brew_cask_name, mock_is_homebrew_available
+    ):
         """Test is_brew_cask_installable error handling."""
+        # Mock is_homebrew_available to return True
+        mock_is_homebrew_available.return_value = True
         # Mock get_brew_cask_name to raise an exception
         mock_get_brew_cask_name.side_effect = Exception("Some error")
 
