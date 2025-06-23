@@ -375,6 +375,15 @@ class Config:
         Returns:
             str: The path to the brew executable
         """
+        # Skip brew detection in CI environments or when explicitly disabled
+        if (
+            os.environ.get("CI")
+            or os.environ.get("GITHUB_ACTIONS")
+            or os.environ.get("VERSIONTRACKER_SKIP_BREW_DETECTION")
+        ):
+            logging.debug("Skipping brew detection in CI/test environment")
+            return "/usr/local/bin/brew"
+
         # Define all possible Homebrew paths
         paths = [
             "/opt/homebrew/bin/brew",  # Apple Silicon default
@@ -392,12 +401,23 @@ class Config:
 
         for path in prioritized_paths:
             try:
+                # Skip if path doesn't exist (except for bare "brew" command)
+                if path != "brew" and not os.path.exists(path):
+                    logging.debug("Homebrew path does not exist: %s", path)
+                    continue
+
                 cmd = f"{path} --version"
                 _, returncode = run_command(cmd, timeout=2)
                 if returncode == 0:
                     logging.debug("Found working Homebrew at: %s", path)
                     return path
-            except (FileNotFoundError, PermissionError, TimeoutError, Exception) as e:
+            except (
+                FileNotFoundError,
+                PermissionError,
+                TimeoutError,
+                OSError,
+                Exception,
+            ) as e:
                 logging.debug("Failed to check Homebrew at %s: %s", path, e)
                 continue
 
