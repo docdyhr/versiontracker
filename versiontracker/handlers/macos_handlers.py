@@ -38,7 +38,7 @@ def handle_install_service(options: Namespace) -> int:
             )
             return 1
 
-        print("Installing VersionTracker scheduled checker service...")
+        print("Installing VersionTracker scheduled checker service...")  # type: ignore[unreachable]
 
         # Get interval from options
         interval_hours = getattr(options, "service_interval", 24)
@@ -94,7 +94,7 @@ def handle_uninstall_service(options: Namespace) -> int:
             )
             return 1
 
-        print("Uninstalling VersionTracker scheduled checker service...")
+        print("Uninstalling VersionTracker scheduled checker service...")  # type: ignore[unreachable]
 
         # Uninstall the service
         success = uninstall_scheduled_checker()
@@ -142,7 +142,7 @@ def handle_service_status(options: Namespace) -> int:
             )
             return 1
 
-        print("VersionTracker Service Status:")
+        print("VersionTracker Service Status:")  # type: ignore[unreachable]
         print("=" * 40)
 
         # Get service status
@@ -222,7 +222,7 @@ def handle_test_notification(options: Namespace) -> int:
             )
             return 1
 
-        print("Sending test notification...")
+        print("Sending test notification...")  # type: ignore[unreachable]
 
         # Send test notification
         success = MacOSNotifications.send_notification(
@@ -265,7 +265,7 @@ def handle_menubar_app(options: Namespace) -> int:
             )
             return 1
 
-        print("Launching VersionTracker menubar application...")
+        print("Launching VersionTracker menubar application...")  # type: ignore[unreachable]
 
         # Import and start the menubar app
         from versiontracker.menubar_app import MenubarApp

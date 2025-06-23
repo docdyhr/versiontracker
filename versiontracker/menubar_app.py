@@ -189,7 +189,7 @@ print("Quit | quit=true")
             print("VersionTracker menubar app is only available on macOS")
             return
 
-        print("Starting VersionTracker menubar application...")
+        print("Starting VersionTracker menubar application...")  # type: ignore[unreachable]
         print("Click the menu to access VersionTracker features.")
 
         self.running = True

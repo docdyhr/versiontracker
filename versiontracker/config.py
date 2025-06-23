@@ -397,7 +397,7 @@ class Config:
                 if returncode == 0:
                     logging.debug("Found working Homebrew at: %s", path)
                     return path
-            except (FileNotFoundError, PermissionError, TimeoutError) as e:
+            except (FileNotFoundError, PermissionError, TimeoutError, Exception) as e:
                 logging.debug("Failed to check Homebrew at %s: %s", path, e)
                 continue
 

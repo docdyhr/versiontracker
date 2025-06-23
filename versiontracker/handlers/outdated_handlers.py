@@ -328,7 +328,7 @@ def _send_notification_if_available(
         )
         return
 
-    try:
+    try:  # type: ignore[unreachable]
         # Prepare list of outdated applications for notification
         outdated_apps = []
         for app_name, version_info, status in outdated_info:
