@@ -14,9 +14,15 @@ from versiontracker.exceptions import BrewTimeoutError, NetworkError
 class TestAdditionalAppsFunctions(unittest.TestCase):
     """Test cases for additional functions in the apps module."""
 
+    @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list(self, mock_get_homebrew_casks):
+    def test_get_homebrew_casks_list(
+        self, mock_get_homebrew_casks, mock_is_homebrew_available
+    ):
         """Test get_homebrew_casks_list function."""
+        # Mock is_homebrew_available to return True
+        mock_is_homebrew_available.return_value = True
+
         # Mock get_homebrew_casks to return a list of casks
         mock_get_homebrew_casks.return_value = [
             "firefox",
