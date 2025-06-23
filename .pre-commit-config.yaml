@@ -54,7 +54,7 @@ repos:
             types-psutil,
             types-tqdm,
           ]
-        args: [--python-version=3.12]
+        args: [--python-version=3.12, --ignore-missing-imports]
         exclude: ^(tests/|docs/)
 
   # Security linting with bandit

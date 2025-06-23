@@ -414,15 +414,25 @@ class EnhancedMatcher:
             if hasattr(fuzz, "partial_ratio"):
                 scores_dict["partial_ratio"] = float(fuzz.partial_ratio(norm1, norm2))
             if hasattr(fuzz, "token_sort_ratio"):
-                scores_dict["token_sort_ratio"] = float(fuzz.token_sort_ratio(norm1, norm2))
+                scores_dict["token_sort_ratio"] = float(
+                    fuzz.token_sort_ratio(norm1, norm2)
+                )
             if hasattr(fuzz, "token_set_ratio"):
-                scores_dict["token_set_ratio"] = float(fuzz.token_set_ratio(norm1, norm2))
+                scores_dict["token_set_ratio"] = float(
+                    fuzz.token_set_ratio(norm1, norm2)
+                )
 
         # Token similarity
-        tokens1_list = list(result["tokens1"]) if isinstance(result["tokens1"], list) else []
-        tokens2_list = list(result["tokens2"]) if isinstance(result["tokens2"], list) else []
-        scores_dict["token_similarity"] = self.calculate_token_similarity(tokens1_list, tokens2_list)
-        
+        tokens1_list = (
+            list(result["tokens1"]) if isinstance(result["tokens1"], list) else []
+        )
+        tokens2_list = (
+            list(result["tokens2"]) if isinstance(result["tokens2"], list) else []
+        )
+        scores_dict["token_similarity"] = self.calculate_token_similarity(
+            tokens1_list, tokens2_list
+        )
+
         result["scores"] = scores_dict
 
         # Final score

@@ -4,7 +4,9 @@ This directory contains modules that implement command handlers for the VersionT
 
 ## Purpose
 
-The handlers package was created as part of the refactoring of the `__main__.py` file, breaking down the monolithic design into smaller, more maintainable modules. Each handler module is responsible for a specific subset of the CLI's functionality.
+The handlers package was created as part of the refactoring of the `__main__.py` file, breaking down the
+monolithic design into smaller, more maintainable modules. Each handler module is responsible for a specific subset
+of the CLI's functionality.
 
 ## Structure
 
@@ -26,7 +28,8 @@ These modules follow a command pattern approach, where each handler:
 
 ## Usage
 
-Handler functions are imported and called from the main entry point in `__main__.py`. They should not be called directly by other parts of the application.
+Handler functions are imported and called from the main entry point in `__main__.py`. They should not be called
+directly by other parts of the application.
 
 Example:
 
@@ -43,4 +46,5 @@ Each handler module should have corresponding test files in the `tests/handlers/
 
 ## Future Development
 
-When adding new CLI commands, create appropriate handler functions in these modules or add new modules as needed. Keep handler functions focused on a single responsibility.
+When adding new CLI commands, create appropriate handler functions in these modules or add new modules as needed.
+Keep handler functions focused on a single responsibility.

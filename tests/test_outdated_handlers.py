@@ -251,7 +251,9 @@ class TestCheckOutdatedApps:
         result = _check_outdated_apps(apps)
 
         assert result == expected
-        mock_check.assert_called_once_with(apps, batch_size=50)
+        mock_check.assert_called_once_with(
+            apps, batch_size=50, use_enhanced_matching=True
+        )
 
     @patch("versiontracker.handlers.outdated_handlers.check_outdated_apps")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
@@ -267,7 +269,9 @@ class TestCheckOutdatedApps:
         result = _check_outdated_apps(apps)
 
         assert result == expected
-        mock_check.assert_called_once_with(apps, batch_size=50)
+        mock_check.assert_called_once_with(
+            apps, batch_size=50, use_enhanced_matching=True
+        )
 
     @patch("versiontracker.handlers.outdated_handlers.check_outdated_apps")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
@@ -592,7 +596,7 @@ class TestHandleOutdatedCheck:
         mock_filter.assert_called_once_with(
             [("App1", "1.0"), ("App2", "2.0")], ["cask1", "cask2"], False
         )
-        mock_check.assert_called_once_with([("App1", "1.0"), ("App2", "2.0")])
+        mock_check.assert_called_once_with([("App1", "1.0"), ("App2", "2.0")], True)
         mock_process.assert_called_once()
         mock_display.assert_called_once()
         mock_export.assert_not_called()

@@ -232,25 +232,22 @@ class TestGlobalFunctions(unittest.TestCase):
         self.assertEqual(status["status"], "loaded")
         self.assertTrue(status["installed"])
 
-    @patch("versiontracker.macos_integration.get_apps_not_in_app_store")
-    @patch("versiontracker.macos_integration.get_installed_casks")
-    @patch("versiontracker.macos_integration.check_cask_versions")
+    @patch("versiontracker.apps.get_applications")
+    @patch("versiontracker.version.check_outdated_apps")
     @patch("versiontracker.macos_integration.MacOSNotifications")
-    def test_check_and_notify(
-        self, mock_notifications, mock_check_versions, mock_casks, mock_apps
-    ):
+    def test_check_and_notify(self, mock_notifications, mock_check_apps, mock_get_apps):
         """Test check and notify function."""
-        mock_apps.return_value = [("App1", "1.0")]
-        mock_casks.return_value = ["app1"]
-        mock_check_versions.return_value = [{"name": "App1", "status": "outdated"}]
+        mock_get_apps.return_value = [("App1", "1.0")]
+        mock_check_apps.return_value = [
+            ("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")
+        ]
         mock_notifications.notify_outdated_apps.return_value = True
 
         # Should not raise an exception
         check_and_notify()
 
-        mock_apps.assert_called_once()
-        mock_casks.assert_called_once()
-        mock_check_versions.assert_called_once()
+        mock_get_apps.assert_called_once()
+        mock_check_apps.assert_called_once()
         mock_notifications.notify_outdated_apps.assert_called_once()
 
 

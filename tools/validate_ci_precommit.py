@@ -16,13 +16,13 @@ from typing import List
 import yaml
 
 try:
-    import tomllib
+    import tomllib  # Python 3.11+
 except ImportError:
     try:
-        import tomli as tomllib
+        import tomli as tomllib  # type: ignore[no-redef]
     except ImportError:
         # Fallback for older Python versions without tomli
-        import toml as tomllib
+        import toml as tomllib  # type: ignore[no-redef]
 
 
 class ValidationError(Exception):

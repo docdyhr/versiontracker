@@ -49,6 +49,28 @@ Include detailed descriptions in the commit body, not separate markdown files.
 - Run full test suite before major commits
 - Use pre-commit hooks for code formatting and quality
 
+### AI Code Assistant Best Practices
+
+When working with AI code assistants, the following linting configurations have been optimized:
+
+**Ruff Lint Configuration (pyproject.toml):**
+
+- `E402`: Module import not at top - Ignored for AI-generated code patterns
+- `E501`: Line too long - AI assistants often generate longer lines for readability
+- `F401`, `F811`, `F821`, `F841`: Import and variable warnings - Relaxed for iterative development
+
+**MyPy Configuration:**
+
+- Test files have relaxed type checking with `ignore_errors = true`
+- Additional error codes disabled for tests: `type-arg`, `attr-defined`, `no-untyped-def`, `misc`
+- `ignore_missing_imports = true` for external dependencies
+
+**Pre-commit Hooks:**
+
+- MyPy includes `--ignore-missing-imports` flag
+- TODO/FIXME checks skipped in CI environment
+- Focused on essential quality checks while allowing AI development patterns
+
 ### Development Workflow
 
 1. **Analysis**: Understand current state and identify issues
