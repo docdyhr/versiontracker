@@ -101,6 +101,12 @@ def get_arguments():
         type=int,
         help="Similarity threshold for matching (0-100, default: 75)",
     )
+    filter_group.add_argument(
+        "--no-enhanced-matching",
+        dest="no_enhanced_matching",
+        action="store_true",
+        help="Disable enhanced fuzzy matching (use basic matching instead)",
+    )
 
     # Filter management
     filter_management_group = parser.add_argument_group("Filter management")

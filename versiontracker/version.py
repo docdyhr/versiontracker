@@ -984,11 +984,14 @@ def is_version_newer(current: str, latest: str) -> bool:
 
 
 @lru_cache(maxsize=128)
-def get_homebrew_cask_info(app_name: str) -> Optional[Dict[str, str]]:
+def get_homebrew_cask_info(
+    app_name: str, use_enhanced: bool = True
+) -> Optional[Dict[str, str]]:
     """Get Homebrew cask information for an application.
 
     Args:
         app_name: Name of the application
+        use_enhanced: Whether to use enhanced matching (default: True)
 
     Returns:
         Dictionary with cask information or None if not found
@@ -1019,7 +1022,7 @@ def get_homebrew_cask_info(app_name: str) -> Optional[Dict[str, str]]:
                 logger.warning("Failed to parse JSON for cask %s", app_name)
 
         # If exact match fails, try fuzzy search
-        return _search_homebrew_casks(app_name)
+        return _search_homebrew_casks(app_name, use_enhanced)
 
     except subprocess.TimeoutExpired:
         logger.warning("Timeout while checking Homebrew cask for %s", app_name)
@@ -1029,11 +1032,14 @@ def get_homebrew_cask_info(app_name: str) -> Optional[Dict[str, str]]:
         return None
 
 
-def _search_homebrew_casks(app_name: str) -> Optional[Dict[str, str]]:
+def _search_homebrew_casks(
+    app_name: str, use_enhanced: bool = True
+) -> Optional[Dict[str, str]]:
     """Search for Homebrew casks using fuzzy matching.
 
     Args:
         app_name: Name of the application to search for
+        use_enhanced: Whether to use enhanced matching (default: True)
 
     Returns:
         Dictionary with cask information or None if not found
@@ -1057,9 +1063,24 @@ def _search_homebrew_casks(app_name: str) -> Optional[Dict[str, str]]:
         if not casks:
             return None
 
-        # Use fuzzy matching to find the best match
+        # Use enhanced matching if available and enabled
+        if use_enhanced:
+            try:
+                from versiontracker.enhanced_matching import find_best_enhanced_match
+
+                match_result = find_best_enhanced_match(app_name, casks, threshold=70)
+                if match_result:
+                    best_match = match_result[0]
+                    # Get detailed info for the best match
+                    return get_homebrew_cask_info(best_match)
+            except ImportError:
+                logger.debug(
+                    "Enhanced matching not available, falling back to basic matching"
+                )
+
+        # Fallback to basic fuzzy matching
         normalized_app_name = normalise_name(app_name)
-        best_match = None
+        fallback_best_match: Optional[str] = None
         best_score = 0
 
         for cask in casks:
@@ -1070,11 +1091,11 @@ def _search_homebrew_casks(app_name: str) -> Optional[Dict[str, str]]:
                 score = fuzz.ratio(normalized_app_name, normalized_cask)
                 if score > best_score and score > 70:  # Minimum threshold
                     best_score = score
-                    best_match = cask
+                    fallback_best_match = cask
 
-        if best_match:
+        if fallback_best_match:
             # Get detailed info for the best match
-            return get_homebrew_cask_info(best_match)
+            return get_homebrew_cask_info(fallback_best_match)
 
         return None
 
@@ -1107,11 +1128,14 @@ def _get_config_settings() -> Tuple[bool, int]:
         return True, min(4, multiprocessing.cpu_count())
 
 
-def _process_single_app(app_info: Tuple[str, str]) -> ApplicationInfo:
+def _process_single_app(
+    app_info: Tuple[str, str], use_enhanced_matching: bool = True
+) -> ApplicationInfo:
     """Process a single application to check its version status.
 
     Args:
         app_info: Tuple of (app_name, current_version)
+        use_enhanced_matching: Whether to use enhanced fuzzy matching
 
     Returns:
         ApplicationInfo object with version status
@@ -1120,7 +1144,7 @@ def _process_single_app(app_info: Tuple[str, str]) -> ApplicationInfo:
 
     try:
         # Get Homebrew cask information
-        homebrew_info = get_homebrew_cask_info(app_name)
+        homebrew_info = get_homebrew_cask_info(app_name, use_enhanced_matching)
 
         if not homebrew_info:
             return ApplicationInfo(
@@ -1168,16 +1192,19 @@ def _process_single_app(app_info: Tuple[str, str]) -> ApplicationInfo:
         )
 
 
-def _process_app_batch(apps: List[Tuple[str, str]]) -> List[ApplicationInfo]:
+def _process_app_batch(
+    apps: List[Tuple[str, str]], use_enhanced_matching: bool = True
+) -> List[ApplicationInfo]:
     """Process a batch of applications.
 
     Args:
         apps: List of application tuples (name, version)
+        use_enhanced_matching: Whether to use enhanced fuzzy matching
 
     Returns:
         List of ApplicationInfo objects
     """
-    return [_process_single_app(app) for app in apps]
+    return [_process_single_app(app, use_enhanced_matching) for app in apps]
 
 
 def _create_app_batches(
@@ -1225,13 +1252,16 @@ def _handle_batch_result(
 
 
 def check_outdated_apps(
-    apps: List[Tuple[str, str]], batch_size: int = 50
+    apps: List[Tuple[str, str]],
+    batch_size: int = 50,
+    use_enhanced_matching: bool = True,
 ) -> List[Tuple[str, Dict[str, str], VersionStatus]]:
     """Check which applications are outdated compared to their Homebrew versions.
 
     Args:
         apps: List of applications with name and version
         batch_size: How many applications to check in one batch
+        use_enhanced_matching: Whether to use enhanced fuzzy matching
 
     Returns:
         List of tuples with application name, version info and status
@@ -1257,7 +1287,10 @@ def check_outdated_apps(
     # Use ThreadPoolExecutor for parallel processing
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit batch processing tasks
-        futures = [executor.submit(_process_app_batch, batch) for batch in batches]
+        futures = [
+            executor.submit(_process_app_batch, batch, use_enhanced_matching)
+            for batch in batches
+        ]
 
         # Process results as they complete with progress bar
         if HAS_VERSION_PROGRESS and show_progress:
@@ -1685,12 +1718,15 @@ def check_latest_version(app_name: str) -> Optional[str]:
     return None
 
 
-def find_matching_cask(app_name: str, threshold: int = 70) -> Optional[str]:
+def find_matching_cask(
+    app_name: str, threshold: int = 70, use_enhanced: bool = True
+) -> Optional[str]:
     """Find a matching Homebrew cask for an application.
 
     Args:
         app_name: Name of the application
         threshold: Minimum similarity threshold (0-100)
+        use_enhanced: Whether to use enhanced matching (default: True)
 
     Returns:
         Name of matching cask or None if not found
@@ -1714,9 +1750,22 @@ def find_matching_cask(app_name: str, threshold: int = 70) -> Optional[str]:
         if not casks:
             return None
 
-        # Use fuzzy matching to find the best match
+        # Use enhanced matching if available and enabled
+        if use_enhanced:
+            try:
+                from versiontracker.enhanced_matching import find_best_enhanced_match
+
+                match_result = find_best_enhanced_match(app_name, casks, threshold)
+                if match_result:
+                    return match_result[0]
+            except ImportError:
+                logger.debug(
+                    "Enhanced matching not available, falling back to basic matching"
+                )
+
+        # Fallback to basic fuzzy matching
         normalized_app_name = normalise_name(app_name)
-        best_match = None
+        fallback_best_match: Optional[str] = None
         best_score = 0
 
         for cask in casks:
@@ -1727,9 +1776,9 @@ def find_matching_cask(app_name: str, threshold: int = 70) -> Optional[str]:
                 score = fuzz.ratio(normalized_app_name, normalized_cask)
                 if score > best_score and score >= threshold:
                     best_score = score
-                    best_match = cask
+                    fallback_best_match = cask
 
-        return best_match
+        return fallback_best_match
 
     except (OSError, subprocess.SubprocessError, AttributeError) as e:
         logger.error("Error finding matching cask for %s: %s", app_name, e)

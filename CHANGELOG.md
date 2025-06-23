@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Enhanced Fuzzy Matching** (June 2025):
+  - Implemented advanced fuzzy matching algorithm with multiple scoring strategies
+  - Added known application alias mappings (e.g., vscode → visual studio code, chrome → google chrome)
+  - Improved name normalization with version number removal and suffix handling
+  - Token-based similarity scoring for better application name matching
+  - CLI option to disable enhanced matching (--no-enhanced-matching) for compatibility
+  - Comprehensive test suite with 22 test cases covering real-world scenarios
+
 - **macOS System Integration** (June 2025):
   - Added launchd service for scheduled application checking with configurable intervals
   - Implemented native macOS notifications for update alerts and system status

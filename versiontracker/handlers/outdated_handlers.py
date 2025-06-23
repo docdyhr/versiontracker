@@ -159,12 +159,13 @@ def _filter_applications(
 
 
 def _check_outdated_apps(
-    apps: List[Tuple[str, str]],
+    apps: List[Tuple[str, str]], use_enhanced_matching: bool = True
 ) -> List[Tuple[str, Dict[str, str], Any]]:
     """Check which applications are outdated.
 
     Args:
         apps: List of (app_name, version) tuples
+        use_enhanced_matching: Whether to use enhanced fuzzy matching
 
     Returns:
         List of (app_name, version_info, status) tuples
@@ -178,7 +179,9 @@ def _check_outdated_apps(
     # Use cast to handle the return type properly
     return cast(
         List[Tuple[str, Dict[str, str], Any]],
-        check_outdated_apps(apps, batch_size=batch_size),
+        check_outdated_apps(
+            apps, batch_size=batch_size, use_enhanced_matching=use_enhanced_matching
+        ),
     )
 
 
@@ -499,7 +502,9 @@ def handle_outdated_check(options: Any) -> int:
 
         # Check outdated status
         try:
-            outdated_info = _check_outdated_apps(apps)
+            # Determine if enhanced matching should be used
+            use_enhanced_matching = not getattr(options, "no_enhanced_matching", False)
+            outdated_info = _check_outdated_apps(apps, use_enhanced_matching)
         except TimeoutError:
             print(
                 create_progress_bar().color("red")(

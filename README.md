@@ -62,7 +62,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * Identify applications that need updating and show version differences
 * Export results in machine-readable formats (JSON and CSV)
 * YAML configuration file support for persistent settings
-* Fuzzy matching to identify applications across different naming conventions
+* **Enhanced fuzzy matching** with alias recognition and advanced normalization for accurate application identification
 * **Asynchronous network operations** for improved performance and reliability
 * **Advanced multi-tier caching system** with automatic expiration and compression
 * **Performance profiling and monitoring** with detailed timing and memory usage metrics
@@ -147,6 +147,8 @@ Filtering options:
                         Colon-separated list of additional directories to scan for applications
   --similarity SIMILARITY
                         Similarity threshold for matching (0-100, default: 75)
+  --no-enhanced-matching
+                        Disable enhanced fuzzy matching (use basic matching instead)
 
 Export options:
   --export {json,csv}   Export results in specified format (json or csv)
