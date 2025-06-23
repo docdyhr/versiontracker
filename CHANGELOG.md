@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Developer Experience Enhancements** (June 2025):
+  - Enhanced Dependabot configuration with detailed scheduling, reviewers, and automated dependency updates
+  - Comprehensive performance regression testing workflow with automated benchmarking
+  - Updated README.md with latest async features, advanced caching, and performance monitoring examples
+  - Created comprehensive CONTRIBUTING.md with development guidelines, coding standards, and PR process
+  - Added detailed ARCHITECTURE.md documentation for new contributors covering module organization and design patterns
+
 ### Fixed
 - **Repository Cleanup & Organization** (June 2025):
   - Cleaned up repository following GitHub best practices

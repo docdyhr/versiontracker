@@ -63,6 +63,9 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * Export results in machine-readable formats (JSON and CSV)
 * YAML configuration file support for persistent settings
 * Fuzzy matching to identify applications across different naming conventions
+* **Asynchronous network operations** for improved performance and reliability
+* **Advanced multi-tier caching system** with automatic expiration and compression
+* **Performance profiling and monitoring** with detailed timing and memory usage metrics
 * Parallel processing for faster operation
 * Configurable blacklist to exclude specific applications
 * Support for scanning additional application directories
@@ -231,6 +234,13 @@ python3 versiontracker-cli.py --generate-config --config-path ~/custom_config.ya
 python3 versiontracker-cli.py --debug --recommend
 ```
 
+### Enable performance profiling for optimization
+
+```shell
+# Enable profiling and get detailed performance report
+VERSIONTRACKER_PROFILE=true python -m versiontracker --apps
+```
+
 ## List applications based on your preferences
 
 ```shell
@@ -273,11 +283,22 @@ This ensures optimal performance regardless of system load.
 
 VersionTracker implements a sophisticated caching system for Homebrew queries:
 
-1. Tiered caching (memory and disk) for optimal performance
-2. Automatic expiry based on access patterns
-3. Cache compression for large responses
-4. Thread-safe batch operations
-5. Detailed cache statistics and monitoring
+1. **Multi-tier caching** with memory, disk, and compressed storage layers
+2. **Automatic expiry** based on access patterns and data freshness
+3. **Cache compression** for large responses to save disk space
+4. **Thread-safe batch operations** for concurrent access
+5. **Detailed cache statistics** and monitoring with usage metrics
+6. **Smart cache invalidation** to ensure data consistency
+
+### Performance Monitoring
+
+Built-in performance profiling and monitoring capabilities:
+
+1. **Function-level timing** with min/max/average execution times
+2. **Memory usage tracking** per operation with peak memory detection
+3. **Detailed performance reports** with call counts and resource usage
+4. **Configurable profiling** that can be enabled for debugging or optimization
+5. **cProfile integration** for deep performance analysis
 
 ### Query Filter Management
 

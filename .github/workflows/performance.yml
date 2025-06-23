@@ -1,0 +1,302 @@
+---
+name: Performance Testing
+
+"on":
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Run performance tests weekly on Sunday at 23:00 UTC
+    - cron: "0 23 * * 0"
+  workflow_dispatch:
+    inputs:
+      benchmark_target:
+        description: "Target to benchmark (apps, brews, recommend, outdated, all)"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - apps
+          - brews
+          - recommend
+          - outdated
+          - all
+
+env:
+  PYTHONUNBUFFERED: 1
+  FORCE_COLOR: 1
+
+jobs:
+  performance-test:
+    name: Performance Testing on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+        python-version: ["3.11"]  # Use stable version for consistent results
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for performance comparison
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install Homebrew (if not present)
+        if: runner.os == 'macOS'
+        run: |
+          if ! command -v brew &> /dev/null; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -c constraints.txt -r requirements.txt
+          pip install -c constraints.txt -r requirements-dev.txt
+          pip install -e .
+
+      - name: Create performance test script
+        run: |
+          cat > performance_test.py << 'EOF'
+          #!/usr/bin/env python3
+          """Performance regression testing script."""
+
+          import json
+          import os
+          import sys
+          import time
+          from pathlib import Path
+          from typing import Dict, Any
+
+          from versiontracker.profiling import (
+              enable_profiling,
+              disable_profiling,
+              generate_report,
+              get_profiler
+          )
+          from versiontracker.cli import main as cli_main
+
+
+          def run_benchmark(command: str, iterations: int = 3) -> Dict[str, Any]:
+              """Run a benchmark for a specific command."""
+              print(f"Benchmarking: {command}")
+
+              times = []
+              memory_peaks = []
+
+              for i in range(iterations):
+                  print(f"  Iteration {i+1}/{iterations}")
+
+                  # Reset profiler
+                  profiler = get_profiler()
+                  profiler.function_timings.clear()
+
+                  # Enable profiling
+                  enable_profiling()
+
+                  start_time = time.time()
+
+                  # Mock sys.argv for the command
+                  original_argv = sys.argv
+                  sys.argv = ['versiontracker'] + command.split()
+
+                  try:
+                      # Run the command with profiling
+                      cli_main()
+                  except SystemExit:
+                      pass  # Expected for help/version commands
+                  except Exception as e:
+                      print(f"    Error: {e}")
+                      continue
+                  finally:
+                      sys.argv = original_argv
+
+                  end_time = time.time()
+
+                  # Stop profiling and get results
+                  disable_profiling()
+                  report = generate_report()
+
+                  execution_time = end_time - start_time
+                  times.append(execution_time)
+
+                  # Extract memory usage from profiling data
+                  max_memory = 0
+                  if 'timings' in report:
+                      for func_data in report['timings'].values():
+                          if 'memory_diff_mb' in func_data:
+                              max_memory = max(max_memory, func_data['memory_diff_mb'])
+                  memory_peaks.append(max_memory)
+
+              if not times:
+                  return {"error": "No successful runs"}
+
+              return {
+                  "command": command,
+                  "iterations": len(times),
+                  "avg_time": sum(times) / len(times),
+                  "min_time": min(times),
+                  "max_time": max(times),
+                  "avg_memory_mb": sum(memory_peaks) / len(memory_peaks) if memory_peaks else 0,
+                  "max_memory_mb": max(memory_peaks) if memory_peaks else 0,
+              }
+
+
+          def main():
+              """Main performance testing function."""
+              target = os.environ.get('BENCHMARK_TARGET', 'all')
+
+              # Define commands to benchmark
+              commands = {
+                  'apps': '--apps --no-progress',
+                  'brews': '--brews --no-progress',
+                  'recommend': '--recommend --no-progress',
+                  'outdated': '--outdated --no-progress',
+              }
+
+              if target != 'all':
+                  commands = {target: commands.get(target, '--help')}
+
+              results = {}
+
+              for name, command in commands.items():
+                  print(f"\n=== Benchmarking {name} ===")
+                  result = run_benchmark(command)
+                  results[name] = result
+
+                  if "error" not in result:
+                      print(f"  Average time: {result['avg_time']:.2f}s")
+                      print(f"  Memory usage: {result['avg_memory_mb']:.2f}MB")
+
+              # Save results
+              results_file = Path("performance_results.json")
+              with open(results_file, 'w') as f:
+                  json.dump({
+                      "timestamp": time.time(),
+                      "python_version": sys.version,
+                      "results": results
+                  }, f, indent=2)
+
+              print(f"\nResults saved to {results_file}")
+
+              # Print summary
+              print("\n=== Performance Summary ===")
+              for name, result in results.items():
+                  if "error" not in result:
+                      print(f"{name:12} | {result['avg_time']:6.2f}s | {result['avg_memory_mb']:6.2f}MB")
+
+
+          if __name__ == "__main__":
+              main()
+          EOF
+
+      - name: Run performance benchmarks
+        env:
+          BENCHMARK_TARGET: ${{ github.event.inputs.benchmark_target || 'all' }}
+        run: |
+          python performance_test.py
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results-${{ matrix.os }}
+          path: performance_results.json
+
+      - name: Compare with previous results (if available)
+        run: |
+          # Create comparison script
+          cat > compare_performance.py << 'EOF'
+          #!/usr/bin/env python3
+          """Compare current performance with previous results."""
+
+          import json
+          import os
+          from pathlib import Path
+
+
+          def compare_results():
+              """Compare current results with baseline."""
+              current_file = Path("performance_results.json")
+              if not current_file.exists():
+                  print("No current results found")
+                  return
+
+              with open(current_file) as f:
+                  current = json.load(f)
+
+              print("=== Performance Comparison ===")
+              print("Note: This is the current run's performance metrics.")
+              print("Future runs will show comparison with previous results.\n")
+
+              for name, result in current["results"].items():
+                  if "error" not in result:
+                      print(f"{name:12} | {result['avg_time']:6.2f}s | {result['avg_memory_mb']:6.2f}MB")
+
+                      # Set performance thresholds (for future CI gates)
+                      time_threshold = 30.0  # 30 seconds max for any operation
+                      memory_threshold = 500.0  # 500MB max memory usage
+
+                      if result['avg_time'] > time_threshold:
+                          print(f"  ⚠️  {name} execution time exceeds threshold ({time_threshold}s)")
+
+                      if result['avg_memory_mb'] > memory_threshold:
+                          print(f"  ⚠️  {name} memory usage exceeds threshold ({memory_threshold}MB)")
+
+
+          if __name__ == "__main__":
+              compare_results()
+          EOF
+
+          python compare_performance.py
+
+      - name: Create performance summary
+        run: |
+          echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Command | Avg Time (s) | Memory (MB) |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------------|-------------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f performance_results.json ]; then
+            python -c "
+          import json
+          with open('performance_results.json') as f:
+              data = json.load(f)
+          for name, result in data['results'].items():
+              if 'error' not in result:
+                  print(f'| {name} | {result[\"avg_time\"]:.2f} | {result[\"avg_memory_mb\"]:.2f} |')
+          " >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| N/A | N/A | N/A |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  performance-analysis:
+    name: Performance Analysis
+    runs-on: ubuntu-latest
+    needs: performance-test
+    if: always()
+
+    steps:
+      - name: Download performance results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: performance-results-*
+          merge-multiple: true
+
+      - name: Analyze performance trends
+        run: |
+          echo "=== Performance Analysis ==="
+
+          # List all result files
+          ls -la *.json || echo "No performance result files found"
+
+          # Create trend analysis (placeholder for future enhancement)
+          echo "Future enhancement: Trend analysis across multiple runs"
+          echo "This job will track performance over time and detect regressions"
