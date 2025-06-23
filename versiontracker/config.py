@@ -777,30 +777,53 @@ class Config:
         Raises:
             ConfigError: If validation fails for the key/value
         """
-        # Prepare a config fragment for validation
+        # Create validation fragment
+        config_fragment = self._create_validation_fragment(key, value)
+
+        # Validate the configuration
+        self._validate_and_raise(config_fragment, key)
+
+        # Apply the validated value
+        self._apply_value(key, value)
+
+    def _create_validation_fragment(self, key: str, value: Any) -> Dict[str, Any]:
+        """Create a config fragment for validation."""
         config_fragment: Dict[str, Any] = {}
 
-        # Handle nested keys with dot notation
         if "." in key:
+            # Build nested structure for validation
             parts = key.split(".")
-
-            # Create nested structure for validation
             current = config_fragment
-            for i, part in enumerate(parts[:-1]):
+            for part in parts[:-1]:
                 current[part] = {}
                 current = current[part]
             current[parts[-1]] = value
+        else:
+            config_fragment[key] = value
 
-            # Validate the fragment
-            validation_errors = ConfigValidator.validate_config(config_fragment)
-            if validation_errors:
-                error_msg = f"Configuration validation failed for '{key}':"
-                for param, errors in validation_errors.items():
-                    for error in errors:
-                        error_msg += f"\n  - {param}: {error}"
-                raise ConfigError(error_msg)
+        return config_fragment
 
-            # Apply the value - only reached if validation passes
+    def _validate_and_raise(self, config_fragment: Dict[str, Any], key: str) -> None:
+        """Validate config fragment and raise error if invalid."""
+        validation_errors = ConfigValidator.validate_config(config_fragment)
+        if validation_errors:
+            error_msg = self._format_validation_errors(key, validation_errors)
+            raise ConfigError(error_msg)
+
+    def _format_validation_errors(
+        self, key: str, validation_errors: Dict[str, List[str]]
+    ) -> str:
+        """Format validation errors into readable message."""
+        error_msg = f"Configuration validation failed for '{key}':"
+        for param, errors in validation_errors.items():
+            for error in errors:
+                error_msg += f"\n  - {param}: {error}"
+        return error_msg
+
+    def _apply_value(self, key: str, value: Any) -> None:
+        """Apply the validated value to config."""
+        if "." in key:
+            parts = key.split(".")
             current = self._config  # type: ignore
             for part in parts[:-1]:
                 if part not in current:
@@ -808,17 +831,6 @@ class Config:
                 current = current[part]
             current[parts[-1]] = value
         else:
-            # Simple key - validate and set
-            config_fragment[key] = value
-            validation_errors = ConfigValidator.validate_config(config_fragment)
-            if validation_errors:
-                error_msg = f"Invalid configuration value for '{key}':"
-                for param, errors in validation_errors.items():
-                    for error in errors:
-                        error_msg += f"\n  - {param}: {error}"
-                raise ConfigError(error_msg)
-
-            # Set the value
             self._config[key] = value
 
     def get_blacklist(self) -> List[str]:

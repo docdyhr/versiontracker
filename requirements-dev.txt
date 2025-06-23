@@ -5,32 +5,20 @@ pytest-xdist>=3.3.0  # Parallel test execution
 pytest-timeout>=2.1.0  # Test timeout handling
 pytest-mock>=3.11.0  # Mocking utilities
 pytest-asyncio>=0.23.0  # Async test support
-anyio>=4.0.0  # Async framework support
 
 # Code quality and linting
 ruff==0.11.12  # Replaces flake8, black, isort
 mypy==1.16.0
 bandit[toml]>=1.7.5
 pydocstyle>=6.3.0
-radon>=6.0.1
-vulture>=2.9.1
-
-# Security scanning
-safety>=2.3.0
-pip-audit>=2.6.0
 
 # Build and distribution
 build>=0.10.0
 twine>=4.0.2
 wheel>=0.40.0
 
-# Documentation
-sphinx>=7.0.0
-sphinx-rtd-theme>=1.3.0
-
 # Development utilities
 pre-commit>=3.0.0
-tox>=4.0.0
 
 # Type stubs for CI/mypy
 types-psutil>=5.9.0

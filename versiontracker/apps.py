@@ -30,7 +30,7 @@ import logging
 import platform
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from functools import lru_cache
 from typing import (
     Any,
@@ -1003,10 +1003,8 @@ def _process_brew_batch(
         error_details = (
             str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
         )
-        logging.error("Error processing brew batch: %s", error_details)
-        raise HomebrewError(
-            f"Error checking Homebrew installability: {error_details}"
-        ) from e
+        logging.error("Unexpected error processing brew batch: %s", error_details)
+        raise HomebrewError(f"Error processing brew batch: {error_details}") from e
 
 
 def filter_out_brews(

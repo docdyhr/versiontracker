@@ -282,48 +282,80 @@ def _build_final_version_tuple(
     if not parts:
         return (0, 0, 0)
 
-    original_str = version_str.lower()
-
-    # Handle 4+ component versions
-    if len(parts) >= 4 and not has_prerelease and build_metadata is None:
+    # Handle special version formats
+    if _is_multi_component_version(parts, has_prerelease, build_metadata):
         return tuple(parts)
 
-    # Handle build metadata
     if build_metadata is not None:
-        while len(parts) < 3:
-            parts.append(0)
-        return tuple(parts[:3]) + (build_metadata,)
+        return _build_with_metadata(parts, build_metadata)
 
-    # Handle mixed format like "1.beta.0"
-    if (
-        "beta" in original_str or "alpha" in original_str or "rc" in original_str
-    ) and len(parts) >= 2:
-        if re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str):
-            return (parts[0], 0, parts[-1])
+    if _is_mixed_format(version_str, parts):
+        return _handle_mixed_format(parts)
 
-    # Handle prerelease versions
     if has_prerelease:
-        while len(parts) < 3:
-            parts.append(0)
-
-        if prerelease_num is not None:
-            return tuple(parts[:3]) + (prerelease_num,)
-        elif has_text_suffix:
-            return tuple(parts[:3])
-        else:
-            original_components = len(
-                re.findall(r"\d+", version_str.split("-")[0].split("+")[0])
-            )
-            if original_components >= 3:
-                return tuple(parts[:3]) + (0,)
-            else:
-                return tuple(parts[:3])
+        return _build_prerelease_tuple(
+            parts, prerelease_num, has_text_suffix, version_str
+        )
 
     # For normal versions, ensure 3 components
-    while len(parts) < 3:
-        parts.append(0)
+    return _normalize_to_three_components(parts)
 
-    return tuple(parts[:3])
+
+def _is_multi_component_version(
+    parts: List[int], has_prerelease: bool, build_metadata: Optional[int]
+) -> bool:
+    """Check if this is a 4+ component version without special suffixes."""
+    return len(parts) >= 4 and not has_prerelease and build_metadata is None
+
+
+def _build_with_metadata(parts: List[int], build_metadata: int) -> Tuple[int, ...]:
+    """Build version tuple with build metadata."""
+    padded_parts = _normalize_to_three_components(parts)
+    return padded_parts[:3] + (build_metadata,)
+
+
+def _is_mixed_format(version_str: str, parts: List[int]) -> bool:
+    """Check if version uses mixed format like '1.beta.0'."""
+    original_str = version_str.lower()
+    has_keywords = any(k in original_str for k in ["beta", "alpha", "rc"])
+    has_pattern = re.search(r"\d+\.[a-zA-Z]+\.\d+", version_str)
+    return has_keywords and len(parts) >= 2 and has_pattern is not None
+
+
+def _handle_mixed_format(parts: List[int]) -> Tuple[int, ...]:
+    """Handle mixed format versions."""
+    return (parts[0], 0, parts[-1])
+
+
+def _build_prerelease_tuple(
+    parts: List[int],
+    prerelease_num: Optional[int],
+    has_text_suffix: bool,
+    version_str: str,
+) -> Tuple[int, ...]:
+    """Build version tuple for prerelease versions."""
+    padded_parts = _normalize_to_three_components(parts)
+
+    if prerelease_num is not None:
+        return padded_parts[:3] + (prerelease_num,)
+    elif has_text_suffix:
+        return padded_parts[:3]
+    else:
+        # Check original component count
+        clean_version = version_str.split("-")[0].split("+")[0]
+        original_components = len(re.findall(r"\d+", clean_version))
+
+        if original_components >= 3:
+            return padded_parts[:3] + (0,)
+        return padded_parts[:3]
+
+
+def _normalize_to_three_components(parts: List[int]) -> Tuple[int, ...]:
+    """Ensure version has at least 3 components."""
+    result = parts.copy()
+    while len(result) < 3:
+        result.append(0)
+    return tuple(result)
 
 
 def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
@@ -492,56 +524,74 @@ def _compare_application_builds(
     version2: Union[str, Tuple[int, ...], None],
 ) -> Optional[int]:
     """Compare versions with application-specific build patterns."""
-    v1_has_app_build = isinstance(version1, str) and _has_application_build_pattern(
-        version1
-    )
-    v2_has_app_build = isinstance(version2, str) and _has_application_build_pattern(
-        version2
-    )
-
-    if not (v1_has_app_build and v2_has_app_build):
+    # Check if both versions have application build patterns
+    if not _both_have_app_builds(version1, version2):
         return None
 
-    # Both have application build patterns, parse including build numbers
-    v1_tuple = parse_version(str(version1) if isinstance(version1, str) else None)
-    v2_tuple = parse_version(str(version2) if isinstance(version2, str) else None)
+    # Parse version tuples
+    v1_tuple = _parse_or_default(version1)
+    v2_tuple = _parse_or_default(version2)
 
-    if v1_tuple is None:
-        v1_tuple = (0, 0, 0)
-    if v2_tuple is None:
-        v2_tuple = (0, 0, 0)
-
-    # For app builds, we need to extract and compare build numbers
+    # Extract build numbers
     v1_build = _extract_build_number(v1_str)
     v2_build = _extract_build_number(v2_str)
 
-    # Compare base versions first
-    v1_base_tuple = (
+    # Compare base versions
+    base_comparison = _compare_base_versions(v1_tuple, v2_tuple)
+    if base_comparison != 0:
+        return base_comparison
+
+    # Base versions are equal, compare build numbers
+    return _compare_build_numbers(v1_build, v2_build)
+
+
+def _both_have_app_builds(
+    version1: Union[str, Tuple[int, ...], None],
+    version2: Union[str, Tuple[int, ...], None],
+) -> bool:
+    """Check if both versions have application build patterns."""
+    v1_has = isinstance(version1, str) and _has_application_build_pattern(version1)
+    v2_has = isinstance(version2, str) and _has_application_build_pattern(version2)
+    return v1_has and v2_has
+
+
+def _parse_or_default(version: Union[str, Tuple[int, ...], None]) -> Tuple[int, ...]:
+    """Parse version string or return default tuple."""
+    if isinstance(version, str):
+        parsed = parse_version(version)
+        return parsed if parsed is not None else (0, 0, 0)
+    return (0, 0, 0)
+
+
+def _compare_base_versions(v1_tuple: Tuple[int, ...], v2_tuple: Tuple[int, ...]) -> int:
+    """Compare base version tuples (first 3 components)."""
+    v1_base = (
         v1_tuple[:3] if len(v1_tuple) >= 3 else v1_tuple + (0,) * (3 - len(v1_tuple))
     )
-    v2_base_tuple = (
+    v2_base = (
         v2_tuple[:3] if len(v2_tuple) >= 3 else v2_tuple + (0,) * (3 - len(v2_tuple))
     )
 
-    if v1_base_tuple < v2_base_tuple:
+    if v1_base < v2_base:
         return -1
-    elif v1_base_tuple > v2_base_tuple:
+    elif v1_base > v2_base:
         return 1
-    else:
-        # Base versions are equal, compare build numbers
-        if v1_build is not None and v2_build is not None:
-            if v1_build < v2_build:
-                return -1
-            elif v1_build > v2_build:
-                return 1
-            else:
-                return 0
-        elif v1_build is not None:
-            return 1  # v1 has build number, v2 doesn't
-        elif v2_build is not None:
-            return -1  # v2 has build number, v1 doesn't
-        else:
-            return 0  # Neither has build number
+    return 0
+
+
+def _compare_build_numbers(v1_build: Optional[int], v2_build: Optional[int]) -> int:
+    """Compare build numbers, handling None values."""
+    if v1_build is not None and v2_build is not None:
+        if v1_build < v2_build:
+            return -1
+        elif v1_build > v2_build:
+            return 1
+        return 0
+    elif v1_build is not None:
+        return 1  # v1 has build number, v2 doesn't
+    elif v2_build is not None:
+        return -1  # v2 has build number, v1 doesn't
+    return 0  # Neither has build number
 
 
 def _normalize_app_version_string(v_str: str) -> str:

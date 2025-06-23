@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Technical Debt Reduction & Code Quality Improvements** (June 2025):
+  - Removed 7 unused dependencies from requirements-dev.txt (anyio, radon, vulture, safety, pip-audit, sphinx, sphinx-rtd-theme, tox)
+  - Refactored 3 high-complexity functions for better maintainability:
+    - Config.set() method: broken into 4 helper functions for validation and value application
+    - _compare_application_builds(): decomposed into 5 focused functions for better readability
+    - _build_final_version_tuple(): split into 6 helper functions for version tuple construction
+  - Added comprehensive test coverage for advanced_cache.py module (0% → 38%+ coverage)
+  - Enhanced project structure with 25 new test cases covering cache operations, metadata, and thread safety
+  - All refactored functions maintain 100% backward compatibility while improving code clarity
 - **All High & Medium-Priority Complexity Functions Completed**:
   - Refactored `run_command()` function in utils.py: reduced complexity from 18 to <15 (17% reduction)
   - Split into 6 focused helper functions for subprocess execution, error handling, and output processing
