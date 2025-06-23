@@ -12,6 +12,7 @@ Returns:
 """
 
 import logging
+import sys
 import time
 import traceback
 from typing import Any, Dict, List, Tuple, Union, cast
@@ -59,6 +60,16 @@ from versiontracker.handlers.ui_handlers import get_status_color, get_status_ico
 from versiontracker.ui import create_progress_bar
 from versiontracker.utils import get_json_data
 from versiontracker.version import check_outdated_apps
+
+# Import macOS notifications if available
+try:
+    from versiontracker.macos_integration import MacOSNotifications
+
+    _MACOS_NOTIFICATIONS_AVAILABLE = True
+except ImportError:
+    _MACOS_NOTIFICATIONS_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 def _update_config_from_options(options: Any) -> None:
@@ -289,6 +300,67 @@ def _display_results(
         )
 
 
+def _send_notification_if_available(
+    outdated_info: List[Tuple[str, Dict[str, str], str]], status_counts: Dict[str, int]
+) -> None:
+    """Send notification about outdated applications if macOS notifications are available.
+
+    Args:
+        outdated_info: List of (app_name, version_info, status) tuples
+        status_counts: Dictionary with counts of different status types
+    """
+    if not _MACOS_NOTIFICATIONS_AVAILABLE:
+        print(
+            create_progress_bar().color("yellow")(
+                "macOS notifications not available on this platform"
+            )
+        )
+        return
+
+    if sys.platform != "darwin":
+        print(
+            create_progress_bar().color("yellow")(
+                "macOS notifications only available on macOS"
+            )
+        )
+        return
+
+    try:
+        # Prepare list of outdated applications for notification
+        outdated_apps = []
+        for app_name, version_info, status in outdated_info:
+            if status == "outdated":
+                outdated_apps.append(
+                    {
+                        "name": app_name,
+                        "installed": version_info.get("installed", "Unknown"),
+                        "latest": version_info.get("latest", "Unknown"),
+                    }
+                )
+
+        # Send notification
+        success = MacOSNotifications.notify_outdated_apps(outdated_apps)
+
+        if success:
+            print(
+                create_progress_bar().color("green")(
+                    "✅ Notification sent successfully"
+                )
+            )
+        else:
+            print(
+                create_progress_bar().color("yellow")("⚠️  Failed to send notification")
+            )
+
+    except Exception as e:
+        logger.error(f"Error sending notification: {e}")
+        print(
+            create_progress_bar().color("yellow")(
+                f"Warning: Failed to send notification: {e}"
+            )
+        )
+
+
 def _export_data(
     outdated_info: List[Tuple[str, Dict[str, str], str]], options: Any
 ) -> int:
@@ -466,6 +538,10 @@ def handle_outdated_check(options: Any) -> int:
         # Process results and display
         table, status_counts = _process_outdated_info(outdated_info)
         _display_results(table, status_counts, len(apps), elapsed_time)
+
+        # Send notification if requested
+        if hasattr(options, "notify") and options.notify:
+            _send_notification_if_available(outdated_info, status_counts)
 
         # Export if requested
         if hasattr(options, "export_format") and options.export_format:

@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **macOS System Integration** (June 2025):
+  - Added launchd service for scheduled application checking with configurable intervals
+  - Implemented native macOS notifications for update alerts and system status
+  - Created menubar application for quick access to VersionTracker features
+  - Added CLI commands for service management (--install-service, --uninstall-service, --service-status)
+  - Integrated notification support into outdated check command (--notify flag)
+  - Added comprehensive test coverage for macOS integration features
+
 - **Developer Experience Enhancements** (June 2025):
   - Enhanced Dependabot configuration with detailed scheduling, reviewers, and automated dependency updates
   - Comprehensive performance regression testing workflow with automated benchmarking

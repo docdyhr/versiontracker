@@ -17,6 +17,20 @@ from versiontracker.handlers import (
     handle_save_filter,
     handle_setup_logging,
 )
+
+# Import macOS handlers if available
+try:
+    from versiontracker.handlers import (
+        handle_install_service,
+        handle_menubar_app,
+        handle_service_status,
+        handle_test_notification,
+        handle_uninstall_service,
+    )
+
+    _MACOS_HANDLERS_AVAILABLE = True
+except ImportError:
+    _MACOS_HANDLERS_AVAILABLE = False
 from versiontracker.profiling import (
     disable_profiling,
     enable_profiling,
@@ -82,6 +96,36 @@ def versiontracker_main() -> int:
             result = handle_brew_recommendations(options)
         elif hasattr(options, "check_outdated") and options.check_outdated:
             result = handle_outdated_check(options)
+        elif hasattr(options, "install_service") and options.install_service:
+            if _MACOS_HANDLERS_AVAILABLE:
+                result = handle_install_service(options)
+            else:
+                print("macOS integration not available on this platform")
+                return 1
+        elif hasattr(options, "uninstall_service") and options.uninstall_service:
+            if _MACOS_HANDLERS_AVAILABLE:
+                result = handle_uninstall_service(options)
+            else:
+                print("macOS integration not available on this platform")
+                return 1
+        elif hasattr(options, "service_status") and options.service_status:
+            if _MACOS_HANDLERS_AVAILABLE:
+                result = handle_service_status(options)
+            else:
+                print("macOS integration not available on this platform")
+                return 1
+        elif hasattr(options, "test_notification") and options.test_notification:
+            if _MACOS_HANDLERS_AVAILABLE:
+                result = handle_test_notification(options)
+            else:
+                print("macOS integration not available on this platform")
+                return 1
+        elif hasattr(options, "menubar") and options.menubar:
+            if _MACOS_HANDLERS_AVAILABLE:
+                result = handle_menubar_app(options)
+            else:
+                print("macOS integration not available on this platform")
+                return 1
         else:
             # No valid option selected
             print("No valid action specified. Use -h for help.")

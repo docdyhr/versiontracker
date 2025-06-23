@@ -31,6 +31,20 @@ from versiontracker.handlers.setup_handlers import (
 )
 from versiontracker.handlers.ui_handlers import get_status_color, get_status_icon
 
+# Import macOS handlers only if available
+try:
+    from versiontracker.handlers.macos_handlers import (
+        handle_install_service,
+        handle_menubar_app,
+        handle_service_status,
+        handle_test_notification,
+        handle_uninstall_service,
+    )
+
+    _MACOS_HANDLERS_AVAILABLE = True
+except ImportError:
+    _MACOS_HANDLERS_AVAILABLE = False
+
 __all__ = [
     "handle_list_apps",
     "handle_list_brews",
@@ -46,3 +60,15 @@ __all__ = [
     "get_status_icon",
     "get_status_color",
 ]
+
+# Add macOS handlers to __all__ if available
+if _MACOS_HANDLERS_AVAILABLE:
+    __all__.extend(
+        [
+            "handle_install_service",
+            "handle_uninstall_service",
+            "handle_service_status",
+            "handle_test_notification",
+            "handle_menubar_app",
+        ]
+    )

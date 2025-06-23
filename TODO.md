@@ -45,10 +45,10 @@ This document outlines planned enhancements and future development for the Versi
 
 ### System Integration
 
-- [ ] **macOS Integration**
-  - [ ] Add launchd service for scheduled application checking
-  - [ ] Implement macOS notifications for update alerts
-  - [ ] Create menubar application for quick access
+- [x] **macOS Integration**
+  - [x] Add launchd service for scheduled application checking
+  - [x] Implement macOS notifications for update alerts
+  - [x] Create menubar application for quick access
 
 ## 🔮 Long-term Goals
 

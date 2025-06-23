@@ -66,6 +66,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * **Asynchronous network operations** for improved performance and reliability
 * **Advanced multi-tier caching system** with automatic expiration and compression
 * **Performance profiling and monitoring** with detailed timing and memory usage metrics
+* **macOS system integration** with scheduled checks, native notifications, and menubar access
 * Parallel processing for faster operation
 * Configurable blacklist to exclude specific applications
 * Support for scanning additional application directories
@@ -239,6 +240,28 @@ python3 versiontracker-cli.py --debug --recommend
 ```shell
 # Enable profiling and get detailed performance report
 VERSIONTRACKER_PROFILE=true python -m versiontracker --apps
+```
+
+### macOS System Integration
+
+```shell
+# Install scheduled checker service (runs every 24 hours by default)
+python -m versiontracker --install-service
+
+# Check service status
+python -m versiontracker --service-status
+
+# Send notification with outdated app results
+python -m versiontracker --outdated --notify
+
+# Launch menubar application for quick access
+python -m versiontracker --menubar
+
+# Test notifications
+python -m versiontracker --test-notification
+
+# Uninstall the service
+python -m versiontracker --uninstall-service
 ```
 
 ## List applications based on your preferences

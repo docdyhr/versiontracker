@@ -160,6 +160,19 @@ def get_arguments():
             "file location when running the application)"
         ),
     )
+    config_group.add_argument(
+        "--service-interval",
+        dest="service_interval",
+        type=int,
+        default=24,
+        help="Interval in hours for scheduled service (default: 24)",
+    )
+    config_group.add_argument(
+        "--notify",
+        dest="notify",
+        action="store_true",
+        help="Send macOS notification with results",
+    )
 
     # Main command group (mutually exclusive)
     group = parser.add_mutually_exclusive_group()
@@ -199,6 +212,36 @@ def get_arguments():
         action="store_true",
         dest="check_outdated",
         help="check for outdated applications compared to Homebrew versions",
+    )
+    group.add_argument(
+        "--install-service",
+        action="store_true",
+        dest="install_service",
+        help="Install macOS scheduled checker service (launchd)",
+    )
+    group.add_argument(
+        "--uninstall-service",
+        action="store_true",
+        dest="uninstall_service",
+        help="Uninstall macOS scheduled checker service",
+    )
+    group.add_argument(
+        "--service-status",
+        action="store_true",
+        dest="service_status",
+        help="Show status of macOS scheduled checker service",
+    )
+    group.add_argument(
+        "--test-notification",
+        action="store_true",
+        dest="test_notification",
+        help="Send a test macOS notification",
+    )
+    group.add_argument(
+        "--menubar",
+        action="store_true",
+        dest="menubar",
+        help="Launch macOS menubar application",
     )
     group.add_argument(
         "-V", "--version", action="version", version=f"%(prog)s {__version__}"
