@@ -412,6 +412,16 @@ tmp_test/*.yaml
 # AI assistant configuration files
 CLAUDE.md
 .github/copilot-instructions.md
+.cursor-tutor
+.aider*
+.anthropic/
+.openai/
+assistant-*
+claude-*
+gpt-*
+ai-session-*
+.ai-context
+.assistant-state
 
 # Temporary files
 .!*
