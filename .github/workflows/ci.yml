@@ -130,9 +130,9 @@ jobs:
 
       - name: Run security checks
         run: |
-          bandit --ini .bandit -r versiontracker/ \
+          bandit -c .bandit -r versiontracker/ \
             -f json -o bandit-report.json || true
-          bandit --ini .bandit -r versiontracker/ -ll || true
+          bandit -c .bandit -r versiontracker/ -ll || true
           safety check --json --output safety-report.json || true
           safety check
           pip-audit --format=json --output=pip-audit-report.json || true

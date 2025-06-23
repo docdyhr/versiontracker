@@ -120,7 +120,7 @@ jobs:
       - name: Run security checks
         run: |
           echo "::group::Security Analysis"
-          bandit -c bandit.yaml -r versiontracker/
+          bandit -c .bandit -r versiontracker/
           safety check
           pip-audit
           echo "::endgroup::"
