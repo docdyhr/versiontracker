@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Script to analyze docstrings in Python files and identify standardization needs.
+"""Script to analyze docstrings in Python files for standardization.
 
-This script scans Python files in the specified directory and checks docstrings for
-compliance with the Google docstring style guide. It identifies functions, methods,
-and classes that need docstring improvements.
+This script scans Python files in a specified directory and checks docstrings
+for compliance with the Google docstring style guide. It identifies functions,
+methods, and classes that need docstring improvements.
 """
 
 import argparse
@@ -37,9 +37,7 @@ def extract_docstring(node: ast.AST) -> Optional[str]:
     Returns:
         The docstring if it exists, None otherwise
     """
-    if isinstance(
-        node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)
-    ):
+    if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)):
         docstring = ast.get_docstring(node)
         return docstring
     return None
@@ -83,13 +81,18 @@ def check_raises_needed(node: ast.AST) -> bool:
     """
 
     class RaiseVisitor(ast.NodeVisitor):
-        def __init__(self):
+        """A visitor to check for `raise` statements in an AST node."""
+
+        def __init__(self) -> None:
+            """Initialize the visitor."""
             self.has_raise = False
 
-        def visit_Raise(self, node):
+        def visit_Raise(self, node: ast.Raise) -> None:  # noqa: W0613
+            """Visit a Raise node and set the flag."""
             self.has_raise = True
 
-        def visit_Try(self, node):
+        def visit_Try(self, node: ast.Try) -> None:
+            """Visit a Try node and check for raises within it."""
             # Visit try block
             for stmt in node.body:
                 self.visit(stmt)
@@ -126,7 +129,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
         print(f"Syntax error in {file_path}: {e}")
         return []
 
-    results = []
+    results: List[DocstringInfo] = []
 
     # Check module docstring
     module_docstring = ast.get_docstring(tree)
@@ -160,7 +163,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
     # Visit all nodes
     for node in ast.walk(tree):
         # Check functions and methods
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             docstring = extract_docstring(node)
             needs_raises = check_raises_needed(node)
 
@@ -169,15 +172,9 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
                     name=node.name,
                     lineno=node.lineno,
                     has_docstring=docstring is not None,
-                    has_args_section=has_section(docstring, "Args")
-                    if docstring
-                    else False,
-                    has_returns_section=has_section(docstring, "Returns")
-                    if docstring
-                    else False,
-                    has_raises_section=has_section(docstring, "Raises")
-                    if docstring
-                    else False,
+                    has_args_section=has_section(docstring, "Args") if docstring else False,
+                    has_returns_section=has_section(docstring, "Returns") if docstring else False,
+                    has_raises_section=has_section(docstring, "Raises") if docstring else False,
                     needs_raises=needs_raises,
                     docstring=docstring,
                 )
@@ -194,7 +191,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
                     has_docstring=docstring is not None,
                     has_args_section=False,  # Classes usually don't need Args
                     has_returns_section=False,  # Classes don't need Returns
-                    has_raises_section=False,  # Classes might need Raises but hard to detect
+                    has_raises_section=False,  # Classes might need Raises
                     needs_raises=False,
                     docstring=docstring,
                 )
@@ -203,9 +200,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
     return results
 
 
-def analyze_directory(
-    directory: Path, exclude_dirs: Optional[List[str]] = None
-) -> Dict[Path, List[DocstringInfo]]:
+def analyze_directory(directory: Path, exclude_dirs: Optional[List[str]] = None) -> Dict[Path, List[DocstringInfo]]:
     """Analyze all Python files in a directory.
 
     Args:
@@ -216,9 +211,17 @@ def analyze_directory(
         Dictionary mapping file paths to their analysis results
     """
     if exclude_dirs is None:
-        exclude_dirs = ["__pycache__", ".git", ".github", "venv", ".venv", "env"]
+        exclude_dirs = [
+            "__pycache__",
+            ".git",
+            ".github",
+            "venv",
+            ".venv",
+            "env",
+            "node_modules",
+        ]
 
-    results = {}
+    results: Dict[Path, List[DocstringInfo]] = {}
 
     for root, dirs, files in os.walk(directory):
         # Skip excluded directories
@@ -235,9 +238,7 @@ def analyze_directory(
     return results
 
 
-def format_results(
-    results: Dict[Path, List[DocstringInfo]], show_all: bool = False
-) -> str:
+def format_results(results: Dict[Path, List[DocstringInfo]], show_all: bool = False) -> str:
     """Format analysis results into a readable report.
 
     Args:
@@ -247,22 +248,23 @@ def format_results(
     Returns:
         Formatted report as a string
     """
-    report_lines = []
+    report_lines: List[str] = []
     file_count = 0
     problem_count = 0
 
     for file_path, file_results in sorted(results.items()):
         file_problems = False
-        file_lines = []
+        file_lines: List[str] = []
 
         for result in file_results:
-            problems = []
+            problems: List[str] = []
 
             if not result.has_docstring:
                 problems.append("Missing docstring")
             elif len(result.name) > 1:  # Skip module docstring here
                 if result.name.startswith("__") and result.name.endswith("__"):
-                    # Special methods like __init__ don't always need all sections
+                    # Special methods like __init__ don't always need all
+                    # sections
                     continue
 
                 # For normal functions
@@ -283,9 +285,8 @@ def format_results(
                     problems.append("Using :return: instead of Returns")
 
             if problems or show_all:
-                file_lines.append(
-                    f"  Line {result.lineno}: {result.name}: {', '.join(problems) if problems else 'OK'}"
-                )
+                problem_str = ", ".join(problems) if problems else "OK"
+                file_lines.append(f"  Line {result.lineno}: {result.name}: {problem_str}")
 
             if problems:
                 file_problems = True
@@ -307,23 +308,40 @@ def format_results(
     return "\n".join(report_lines)
 
 
-def main():
+def main() -> None:
     """Main entry point for the script."""
     parser = argparse.ArgumentParser(description="Analyze docstrings in Python files")
     parser.add_argument("path", help="Path to directory to analyze")
     parser.add_argument(
-        "--all", action="store_true", help="Show all results, not just problems"
+        "--all",
+        action="store_true",
+        help="Show all results, not just problems",
     )
     parser.add_argument(
-        "--exclude", nargs="+", default=[], help="Additional directories to exclude"
+        "--exclude",
+        nargs="+",
+        default=[],
+        help="Additional directories to exclude",
     )
     args = parser.parse_args()
 
-    directory = Path(args.path)
-    if not directory.exists() or not directory.is_dir():
-        print(f"Error: {args.path} is not a valid directory")
-        return 1
+    directory_path = Path(args.path)
 
+    # Security: Prevent path traversal.
+    # Resolve the path and ensure it's within the current working directory.
+    try:
+        resolved_path = directory_path.resolve(strict=True)
+        if not resolved_path.is_dir():
+            print(f"Error: '{resolved_path}' is not a directory.")
+            sys.exit(1)
+    except FileNotFoundError:
+        print(f"Error: Directory '{directory_path}' not found.")
+        sys.exit(1)
+    except (IOError, OSError) as e:
+        print(f"Error resolving path: {e}")
+        sys.exit(1)
+
+    # Default exclude directories
     exclude_dirs = [
         "__pycache__",
         ".git",
@@ -331,13 +349,15 @@ def main():
         "venv",
         ".venv",
         "env",
-    ] + args.exclude
-    results = analyze_directory(directory, exclude_dirs)
-    report = format_results(results, args.all)
+        "node_modules",
+    ]
+    if args.exclude:
+        exclude_dirs.extend(args.exclude)
 
+    analysis_results = analyze_directory(resolved_path, exclude_dirs)
+    report = format_results(analysis_results, args.all)
     print(report)
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

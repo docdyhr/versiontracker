@@ -64,6 +64,7 @@ exclude = [
 # Define the target Python version.
 # We support Python 3.10 and later.
 target-version = "py310"
+line-length = 120
 
 # Exclude the venv directory.
 exclude = [
@@ -92,13 +93,12 @@ exclude = [
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 # E203: whitespace before ':' (handled by black)
-# E501: line too long (AI assistants often generate longer lines for readability)
 # E402: module level import not at top (common in test files with conditional imports)
 # F401: unused import (keeping old config)
 # F811: redefinition of unused name (keeping old config)
 # F821: undefined name (keeping old config)
 # F841: assigned but unused variable (keeping old config)
-ignore = ["E203", "E501", "E402", "F401", "F811", "F821", "F841"]
+ignore = ["E203", "E402", "F401", "F811", "F821", "F841"]
 
 # Allow autofix for all enabled rules (when --fix)
 fixable = ["ALL"]
