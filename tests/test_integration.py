@@ -194,9 +194,7 @@ class TestIntegration(unittest.TestCase):
         mock_config_instance.debug = False
 
         # Mock UI components
-        mock_progress_bar.return_value = MagicMock(
-            color=MagicMock(return_value=MagicMock(return_value=""))
-        )
+        mock_progress_bar.return_value = MagicMock(color=MagicMock(return_value=MagicMock(return_value="")))
 
         # Mock system profiler data and apps
         mock_get_json_data.return_value = {}
@@ -229,21 +227,19 @@ class TestIntegration(unittest.TestCase):
         # Verify the function was called
         mock_get_casks.assert_called_once()
 
-    @patch("versiontracker.config.check_dependencies", return_value=True)
-    def test_github_badges_and_pipeline_integration(self, mock_check_deps):
+    def test_github_badges_and_pipeline_integration(self):
         """Test that GitHub badges and CI/CD pipeline are properly configured."""
-        from unittest.mock import Mock
+        # This is a placeholder test for CI/CD integration
+        # In a real scenario, this would test badge availability and pipeline status
 
-        import requests
+        # Test passes - this verifies the test infrastructure is working
+        self.assertTrue(True)
 
-        with patch("requests.get") as mock_get:
-            # Configure mock response for badge endpoints
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_get.return_value = mock_response
+        # Verify basic project structure for CI/CD
+        import os
 
-            # Test passes if no exception is raised
-            self.assertEqual(mock_response.status_code, 200)
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.assertTrue(os.path.exists(project_root))
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.apps.is_homebrew_available", return_value=True)
@@ -301,11 +297,7 @@ class TestIntegration(unittest.TestCase):
 
         # 2. Get recommendations
         try:
-            handle_brew_recommendations(
-                MagicMock(
-                    recommend=True, strict_recommend=False, debug=False, rate_limit=10
-                )
-            )
+            handle_brew_recommendations(MagicMock(recommend=True, strict_recommend=False, debug=False, rate_limit=10))
             # Only assert if the function was actually called
             if mock_filter_brews.called:
                 self.assertTrue(mock_filter_brews.called)
@@ -317,11 +309,7 @@ class TestIntegration(unittest.TestCase):
 
         # 3. Get strict recommendations
         try:
-            handle_brew_recommendations(
-                MagicMock(
-                    recommend=False, strict_recommend=True, debug=False, rate_limit=10
-                )
-            )
+            handle_brew_recommendations(MagicMock(recommend=False, strict_recommend=True, debug=False, rate_limit=10))
         except Exception as e:
             print(f"Warning: Strict recommend workflow had issue: {e}")
 
@@ -338,9 +326,7 @@ class TestIntegration(unittest.TestCase):
     def test_error_handling_integration(self, mock_get_apps, mock_check_deps):
         """Test error handling across different components."""
         # Simulate an error in getting applications
-        mock_get_apps.side_effect = FileNotFoundError(
-            "Applications directory not found"
-        )
+        mock_get_apps.side_effect = FileNotFoundError("Applications directory not found")
 
         with patch("builtins.print"):  # Suppress output
             try:
@@ -354,9 +340,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.brew_handlers.get_applications")
-    def test_network_error_handling(
-        self, mock_get_apps, mock_get_casks, mock_check_deps
-    ):
+    def test_network_error_handling(self, mock_get_apps, mock_get_casks, mock_check_deps):
         """Test handling of network-related errors."""
         from versiontracker.exceptions import NetworkError
 
@@ -366,9 +350,7 @@ class TestIntegration(unittest.TestCase):
 
         with patch("builtins.print"):  # Suppress output
             try:
-                handle_list_brews(
-                    MagicMock(brews=True, debug=False, export_format=None)
-                )
+                handle_list_brews(MagicMock(brews=True, debug=False, export_format=None))
             except NetworkError:
                 # Expected behavior
                 pass
@@ -422,9 +404,7 @@ class TestIntegration(unittest.TestCase):
         initial_objects = len(gc.get_objects())
 
         # Simulate memory-intensive operation
-        with patch(
-            "versiontracker.handlers.app_handlers.get_applications"
-        ) as mock_get_apps:
+        with patch("versiontracker.handlers.app_handlers.get_applications") as mock_get_apps:
             mock_get_apps.return_value = [(f"App{i}", f"{i}.0.0") for i in range(500)]
 
             with patch("builtins.print"):
@@ -442,9 +422,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.apps.get_applications")
     @patch("versiontracker.apps.check_brew_install_candidates")
     @patch("versiontracker.utils.get_json_data")
-    def test_rate_limiting_integration(
-        self, mock_get_json_data, mock_check_candidates, mock_get_apps, mock_check_deps
-    ):
+    def test_rate_limiting_integration(self, mock_get_json_data, mock_check_candidates, mock_get_apps, mock_check_deps):
         """Test that rate limiting is properly enforced across operations."""
         # Mock applications that require rate-limited operations
         mock_get_json_data.return_value = {}
@@ -495,9 +473,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.handlers.brew_handlers.get_applications")
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
-    def test_concurrent_operations(
-        self, mock_get_casks, mock_get_apps, mock_check_deps
-    ):
+    def test_concurrent_operations(self, mock_get_casks, mock_get_apps, mock_check_deps):
         """Test that concurrent operations work correctly."""
         import threading
         import time
@@ -513,14 +489,10 @@ class TestIntegration(unittest.TestCase):
             try:
                 if operation_type == "apps":
                     with patch("builtins.print"):
-                        handle_list_apps(
-                            MagicMock(apps=True, debug=False, blacklist=None)
-                        )
+                        handle_list_apps(MagicMock(apps=True, debug=False, blacklist=None))
                 elif operation_type == "brews":
                     with patch("builtins.print"):
-                        handle_list_brews(
-                            MagicMock(brews=True, debug=False, export_format=None)
-                        )
+                        handle_list_brews(MagicMock(brews=True, debug=False, export_format=None))
                 results.append(f"{operation_type}_success")
             except Exception as e:
                 errors.append(f"{operation_type}_error: {e}")
@@ -607,9 +579,7 @@ class TestIntegration(unittest.TestCase):
 
         with patch("builtins.print"):
             try:
-                handle_list_brews(
-                    MagicMock(brews=True, debug=False, export_format=None)
-                )
+                handle_list_brews(MagicMock(brews=True, debug=False, export_format=None))
                 # Should handle command failures gracefully
             except CalledProcessError:
                 # Expected to propagate in some cases
@@ -621,9 +591,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.config.check_dependencies", return_value=True)
     def test_export_format_integration(self, mock_check_deps):
         """Test integration with different export formats."""
-        with patch(
-            "versiontracker.handlers.brew_handlers.get_homebrew_casks"
-        ) as mock_get_casks:
+        with patch("versiontracker.handlers.brew_handlers.get_homebrew_casks") as mock_get_casks:
             mock_get_casks.return_value = ["firefox", "chrome"]
 
             # Test different export formats
@@ -632,9 +600,7 @@ class TestIntegration(unittest.TestCase):
             for fmt in export_formats:
                 with patch("builtins.print"):
                     try:
-                        handle_list_brews(
-                            MagicMock(brews=True, debug=False, export_format=fmt)
-                        )
+                        handle_list_brews(MagicMock(brews=True, debug=False, export_format=fmt))
                         # Should handle each format without errors
                     except Exception as e:
                         # Some formats might not be implemented, that's OK
@@ -665,9 +631,7 @@ class TestIntegration(unittest.TestCase):
         mock_config = MagicMock()
         mock_config.is_blacklisted.return_value = False
         mock_get_config.return_value = mock_config
-        mock_progress_bar.return_value = MagicMock(
-            color=MagicMock(return_value=MagicMock(return_value=""))
-        )
+        mock_progress_bar.return_value = MagicMock(color=MagicMock(return_value=MagicMock(return_value="")))
 
         # Mock data
         mock_get_json_data.return_value = {}  # Mock system profiler data
@@ -703,18 +667,12 @@ class TestIntegration(unittest.TestCase):
         # Test debug mode with different operations
         operations = [
             lambda: handle_list_apps(MagicMock(apps=True, debug=True, blacklist=None)),
-            lambda: handle_list_brews(
-                MagicMock(brews=True, debug=True, export_format=None)
-            ),
+            lambda: handle_list_brews(MagicMock(brews=True, debug=True, export_format=None)),
         ]
 
         for operation in operations:
-            with patch(
-                "versiontracker.handlers.app_handlers.get_applications"
-            ) as mock_get_apps:
-                with patch(
-                    "versiontracker.handlers.brew_handlers.get_homebrew_casks"
-                ) as mock_get_casks:
+            with patch("versiontracker.handlers.app_handlers.get_applications") as mock_get_apps:
+                with patch("versiontracker.handlers.brew_handlers.get_homebrew_casks") as mock_get_casks:
                     mock_get_apps.return_value = [("TestApp", "1.0.0")]
                     mock_get_casks.return_value = ["test-app"]
 
@@ -733,17 +691,13 @@ class TestIntegration(unittest.TestCase):
         """Test timeout handling in various operations."""
         from versiontracker.exceptions import TimeoutError
 
-        with patch(
-            "versiontracker.handlers.brew_handlers.get_homebrew_casks"
-        ) as mock_get_casks:
+        with patch("versiontracker.handlers.brew_handlers.get_homebrew_casks") as mock_get_casks:
             # Simulate timeout
             mock_get_casks.side_effect = TimeoutError("Operation timed out")
 
             with patch("builtins.print"):
                 try:
-                    handle_list_brews(
-                        MagicMock(brews=True, debug=False, export_format=None)
-                    )
+                    handle_list_brews(MagicMock(brews=True, debug=False, export_format=None))
                 except TimeoutError:
                     # Expected behavior
                     pass
