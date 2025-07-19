@@ -122,15 +122,13 @@ def get_all_homebrew_casks() -> List[Dict[str, Any]]:
 
     try:
         brew_path = get_brew_command()
-        command = f"{brew_path} info --json=v2 --cask $(ls $(brew --repository)/Library/Taps/homebrew/homebrew-cask/Casks/)"
+        command = (
+            f"{brew_path} info --json=v2 --cask $(ls $(brew --repository)/Library/Taps/homebrew/homebrew-cask/Casks/)"
+        )
 
         # Show progress message
         progress_bar = create_progress_bar()
-        print(
-            progress_bar.color("blue")(
-                "Fetching all Homebrew casks (this may take a while)..."
-            )
-        )
+        print(progress_bar.color("blue")("Fetching all Homebrew casks (this may take a while)..."))
 
         # Execute command with timeout
         stdout, returncode = run_command(command, timeout=120)  # 2 minute timeout
@@ -342,9 +340,7 @@ def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
     batch_size = getattr(config, "homebrew_batch_size", DEFAULT_BATCH_SIZE)
     progress_bar = create_progress_bar()
 
-    print(
-        progress_bar.color("blue")(f"Fetching info for {len(casks_to_fetch)} casks...")
-    )
+    print(progress_bar.color("blue")(f"Fetching info for {len(casks_to_fetch)} casks..."))
 
     for i in range(0, len(casks_to_fetch), batch_size):
         batch = casks_to_fetch[i : i + batch_size]
@@ -535,3 +531,59 @@ def get_caskroom_path() -> str:
             return path
     # Fallback to the first path if none exist
     return paths[0]
+
+
+def has_auto_updates(cask_name: str) -> bool:
+    """Check if a Homebrew cask has auto-updates enabled.
+
+    Args:
+        cask_name: Name of the cask
+
+    Returns:
+        bool: True if the cask has auto-updates enabled, False otherwise
+    """
+    try:
+        cask_info = get_cask_info(cask_name)
+
+        # Check if auto_updates field exists and is True
+        # The auto_updates field is typically in the cask metadata
+        if cask_info.get("auto_updates"):
+            return True
+
+        # Also check in the caveats for auto-update mentions
+        caveats = cask_info.get("caveats", "")
+        if caveats and isinstance(caveats, str):
+            auto_update_patterns = [
+                "auto.?update",
+                "automatically update",
+                "self.?update",
+                "sparkle",
+                "update automatically",
+            ]
+            caveats_lower = caveats.lower()
+            for pattern in auto_update_patterns:
+                if re.search(pattern, caveats_lower):
+                    return True
+
+        return False
+    except Exception as e:
+        logging.debug(f"Error checking auto-updates for cask {cask_name}: {e}")
+        return False
+
+
+def get_casks_with_auto_updates(cask_names: List[str]) -> List[str]:
+    """Get a list of cask names that have auto-updates enabled.
+
+    Args:
+        cask_names: List of cask names to check
+
+    Returns:
+        List[str]: List of cask names with auto-updates enabled
+    """
+    auto_update_casks = []
+
+    for cask_name in cask_names:
+        if has_auto_updates(cask_name):
+            auto_update_casks.append(cask_name)
+
+    return auto_update_casks

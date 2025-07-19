@@ -6,6 +6,7 @@ from pathlib import Path
 
 from versiontracker.cli import get_arguments
 from versiontracker.handlers import (
+    handle_blacklist_auto_updates,
     handle_brew_recommendations,
     handle_config_generation,
     handle_configure_from_options,
@@ -16,9 +17,12 @@ from versiontracker.handlers import (
     handle_outdated_check,
     handle_save_filter,
     handle_setup_logging,
+    handle_uninstall_auto_updates,
 )
 
 # Import macOS handlers if available
+_MACOS_HANDLERS_AVAILABLE = False
+_MACOS_HANDLERS = {}
 try:
     from versiontracker.handlers import (
         handle_install_service,
@@ -29,8 +33,15 @@ try:
     )
 
     _MACOS_HANDLERS_AVAILABLE = True
+    _MACOS_HANDLERS = {
+        "install_service": handle_install_service,
+        "uninstall_service": handle_uninstall_service,
+        "service_status": handle_service_status,
+        "test_notification": handle_test_notification,
+        "menubar_app": handle_menubar_app,
+    }
 except ImportError:
-    _MACOS_HANDLERS_AVAILABLE = False
+    pass
 from versiontracker.profiling import (
     disable_profiling,
     enable_profiling,
@@ -96,33 +107,37 @@ def versiontracker_main() -> int:
             result = handle_brew_recommendations(options)
         elif hasattr(options, "check_outdated") and options.check_outdated:
             result = handle_outdated_check(options)
+        elif hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates:
+            result = handle_blacklist_auto_updates(options)
+        elif hasattr(options, "uninstall_auto_updates") and options.uninstall_auto_updates:
+            result = handle_uninstall_auto_updates(options)
         elif hasattr(options, "install_service") and options.install_service:
-            if _MACOS_HANDLERS_AVAILABLE:
-                result = handle_install_service(options)
+            if _MACOS_HANDLERS_AVAILABLE and "install_service" in _MACOS_HANDLERS:
+                result = _MACOS_HANDLERS["install_service"](options)
             else:
                 print("macOS integration not available on this platform")
                 return 1
         elif hasattr(options, "uninstall_service") and options.uninstall_service:
-            if _MACOS_HANDLERS_AVAILABLE:
-                result = handle_uninstall_service(options)
+            if _MACOS_HANDLERS_AVAILABLE and "uninstall_service" in _MACOS_HANDLERS:
+                result = _MACOS_HANDLERS["uninstall_service"](options)
             else:
                 print("macOS integration not available on this platform")
                 return 1
         elif hasattr(options, "service_status") and options.service_status:
-            if _MACOS_HANDLERS_AVAILABLE:
-                result = handle_service_status(options)
+            if _MACOS_HANDLERS_AVAILABLE and "service_status" in _MACOS_HANDLERS:
+                result = _MACOS_HANDLERS["service_status"](options)
             else:
                 print("macOS integration not available on this platform")
                 return 1
         elif hasattr(options, "test_notification") and options.test_notification:
-            if _MACOS_HANDLERS_AVAILABLE:
-                result = handle_test_notification(options)
+            if _MACOS_HANDLERS_AVAILABLE and "test_notification" in _MACOS_HANDLERS:
+                result = _MACOS_HANDLERS["test_notification"](options)
             else:
                 print("macOS integration not available on this platform")
                 return 1
         elif hasattr(options, "menubar") and options.menubar:
-            if _MACOS_HANDLERS_AVAILABLE:
-                result = handle_menubar_app(options)
+            if _MACOS_HANDLERS_AVAILABLE and "menubar_app" in _MACOS_HANDLERS:
+                result = _MACOS_HANDLERS["menubar_app"](options)
             else:
                 print("macOS integration not available on this platform")
                 return 1
@@ -137,10 +152,7 @@ def versiontracker_main() -> int:
 
         # Print performance report if profiling was enabled
         if hasattr(options, "profile") and options.profile:
-            print_report(
-                detailed=hasattr(options, "detailed_profile")
-                and options.detailed_profile
-            )
+            print_report(detailed=hasattr(options, "detailed_profile") and options.detailed_profile)
             disable_profiling()
 
         return result

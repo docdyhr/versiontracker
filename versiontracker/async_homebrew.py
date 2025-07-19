@@ -31,9 +31,7 @@ DEFAULT_TIMEOUT = 10  # seconds
 CACHE_EXPIRY = 86400  # 1 day in seconds
 
 
-async def fetch_cask_info(
-    cask_name: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True
-) -> Dict[str, Any]:
+async def fetch_cask_info(cask_name: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> Dict[str, Any]:
     """Fetch information about a Homebrew cask asynchronously.
 
     Args:
@@ -54,9 +52,7 @@ async def fetch_cask_info(
     return await fetch_json(url, cache_key, timeout, use_cache)
 
 
-async def search_casks(
-    query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True
-) -> List[Dict[str, Any]]:
+async def search_casks(query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> List[Dict[str, Any]]:
     """Search for Homebrew casks asynchronously.
 
     Args:
@@ -117,9 +113,7 @@ async def search_casks(
         raise NetworkError(f"Unexpected error: {str(e)}") from e
 
 
-class HomebrewBatchProcessor(
-    AsyncBatchProcessor[Tuple[str, str], Tuple[str, str, bool]]
-):
+class HomebrewBatchProcessor(AsyncBatchProcessor[Tuple[str, str], Tuple[str, str, bool]]):
     """Process batches of applications to check for Homebrew installability."""
 
     def __init__(
@@ -246,9 +240,7 @@ class HomebrewBatchProcessor(
 
         return False
 
-    def handle_error(
-        self, item: Tuple[str, str], error: Exception
-    ) -> Tuple[str, str, bool]:
+    def handle_error(self, item: Tuple[str, str], error: Exception) -> Tuple[str, str, bool]:
         """Handle an error that occurred during processing.
 
         Args:
@@ -289,17 +281,12 @@ async def async_check_brew_install_candidates(
         strict_match=strict_match,
     )
 
-    # Access the underlying async method without the sync wrapper
-    if hasattr(processor.process_all, "__wrapped__"):
-        return await processor.process_all.__wrapped__(processor, data)
-    else:
-        return await processor.process_all(data)
+    # Call the async method directly
+    return await processor.process_all(data)
 
 
 @async_to_sync
-async def async_get_cask_version(
-    cask_name: str, use_cache: bool = True
-) -> Optional[str]:
+async def async_get_cask_version(cask_name: str, use_cache: bool = True) -> Optional[str]:
     """Get the latest version of a Homebrew cask asynchronously.
 
     Args:
@@ -328,9 +315,7 @@ async def async_get_cask_version(
         raise HomebrewError(f"Error getting cask version: {e}") from e
 
 
-class HomebrewVersionChecker(
-    AsyncBatchProcessor[Tuple[str, str, str], Tuple[str, str, str, Optional[str]]]
-):
+class HomebrewVersionChecker(AsyncBatchProcessor[Tuple[str, str, str], Tuple[str, str, str, Optional[str]]]):
     """Process batches of applications to check for updates via Homebrew."""
 
     def __init__(
@@ -351,9 +336,7 @@ class HomebrewVersionChecker(
         super().__init__(batch_size, max_concurrency, rate_limit)
         self.use_cache = use_cache
 
-    async def process_item(
-        self, item: Tuple[str, str, str]
-    ) -> Tuple[str, str, str, Optional[str]]:
+    async def process_item(self, item: Tuple[str, str, str]) -> Tuple[str, str, str, Optional[str]]:
         """Check for updates to a Homebrew-installed application.
 
         Args:
@@ -366,22 +349,16 @@ class HomebrewVersionChecker(
 
         try:
             # Get the latest version from Homebrew
-            # Access the underlying async function without the sync wrapper
-            if hasattr(async_get_cask_version, "__wrapped__"):
-                latest_version = await async_get_cask_version.__wrapped__(
-                    cask_name, self.use_cache
-                )
-            else:
-                latest_version = await async_get_cask_version(cask_name, self.use_cache)
+            # Call the async function directly since we're already in an async context
+            cask_info = await fetch_cask_info(cask_name, use_cache=self.use_cache)
+            latest_version = cask_info.get("version") if cask_info else None
             return (app_name, version, cask_name, latest_version)
 
         except (NetworkError, TimeoutError, HomebrewError) as e:
             logging.error(f"Error checking version for {app_name} ({cask_name}): {e}")
             return (app_name, version, cask_name, None)
 
-    def handle_error(
-        self, item: Tuple[str, str, str], error: Exception
-    ) -> Tuple[str, str, str, Optional[str]]:
+    def handle_error(self, item: Tuple[str, str, str], error: Exception) -> Tuple[str, str, str, Optional[str]]:
         """Handle an error that occurred during processing.
 
         Args:
@@ -420,8 +397,5 @@ async def async_check_brew_update_candidates(
         rate_limit=rate_limit,
     )
 
-    # Access the underlying async method without the sync wrapper
-    if hasattr(processor.process_all, "__wrapped__"):
-        return await processor.process_all.__wrapped__(processor, data)
-    else:
-        return await processor.process_all(data)
+    # Call the async method directly
+    return await processor.process_all(data)

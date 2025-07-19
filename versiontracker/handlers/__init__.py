@@ -4,15 +4,15 @@ This package contains modules that handle different CLI commands and operations
 for VersionTracker. Each handler module is designed to encapsulate the logic
 for a specific command or set of related commands, implementing the command pattern
 design principle for better separation of concerns.
-
-Args:
-    None: This is a package, not a function.
-
-Returns:
-    None: This package doesn't return anything directly.
 """
 
+# Import handlers from submodules for easier access
 from versiontracker.handlers.app_handlers import handle_list_apps
+from versiontracker.handlers.auto_update_handlers import (
+    handle_blacklist_auto_updates,
+    handle_list_auto_updates,
+    handle_uninstall_auto_updates,
+)
 from versiontracker.handlers.brew_handlers import (
     handle_brew_recommendations,
     handle_list_brews,
@@ -49,6 +49,9 @@ __all__ = [
     "handle_list_apps",
     "handle_list_brews",
     "handle_brew_recommendations",
+    "handle_blacklist_auto_updates",
+    "handle_uninstall_auto_updates",
+    "handle_list_auto_updates",
     "handle_config_generation",
     "handle_export",
     "handle_filter_management",
@@ -57,8 +60,6 @@ __all__ = [
     "handle_initialize_config",
     "handle_configure_from_options",
     "handle_setup_logging",
-    "get_status_icon",
-    "get_status_color",
 ]
 
 # Add macOS handlers to __all__ if available

@@ -177,15 +177,9 @@ class ConfigValidator:
             },
             "ui": {
                 "use_color": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-                "monitor_resources": [
-                    (lambda v: isinstance(v, bool), "Must be a boolean")
-                ],
-                "adaptive_rate_limiting": [
-                    (lambda v: isinstance(v, bool), "Must be a boolean")
-                ],
-                "enhanced_progress": [
-                    (lambda v: isinstance(v, bool), "Must be a boolean")
-                ],
+                "monitor_resources": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+                "adaptive_rate_limiting": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+                "enhanced_progress": [(lambda v: isinstance(v, bool), "Must be a boolean")],
             },
             "version_comparison": {
                 "rate_limit": [
@@ -206,12 +200,8 @@ class ConfigValidator:
                         "Must be between 0 and 100",
                     ),
                 ],
-                "include_beta_versions": [
-                    (lambda v: isinstance(v, bool), "Must be a boolean")
-                ],
-                "sort_by_outdated": [
-                    (lambda v: isinstance(v, bool), "Must be a boolean")
-                ],
+                "include_beta_versions": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+                "sort_by_outdated": [(lambda v: isinstance(v, bool), "Must be a boolean")],
             },
             "outdated_detection": {
                 "enabled": [(lambda v: isinstance(v, bool), "Must be a boolean")],
@@ -219,9 +209,7 @@ class ConfigValidator:
                     (lambda v: isinstance(v, (int, float)), "Must be a number"),
                     (lambda v: v >= 0, "Must be non-negative"),
                 ],
-                "include_pre_releases": [
-                    (lambda v: isinstance(v, bool), "Must be a boolean")
-                ],
+                "include_pre_releases": [(lambda v: isinstance(v, bool), "Must be a boolean")],
             },
         }
 
@@ -253,9 +241,7 @@ class ConfigValidator:
             if not isinstance(config[section_name], dict):
                 errors.setdefault(section_name, []).append("Must be a dictionary")
             else:
-                ConfigValidator._validate_rules_for_config(
-                    config[section_name], rules, errors, section_name
-                )
+                ConfigValidator._validate_rules_for_config(config[section_name], rules, errors, section_name)
 
     @staticmethod
     def validate_config(config: Dict[str, Any]) -> Dict[str, List[str]]:
@@ -271,16 +257,12 @@ class ConfigValidator:
         validation_rules = ConfigValidator._get_validation_rules()
 
         # Apply top-level validation rules
-        ConfigValidator._validate_rules_for_config(
-            config, validation_rules["top_level"], errors
-        )
+        ConfigValidator._validate_rules_for_config(config, validation_rules["top_level"], errors)
 
         # Validate nested sections
         for section_name in ["ui", "version_comparison", "outdated_detection"]:
             if section_name in validation_rules:
-                ConfigValidator._validate_nested_section(
-                    config, section_name, validation_rules[section_name], errors
-                )
+                ConfigValidator._validate_nested_section(config, section_name, validation_rules[section_name], errors)
 
         return errors
 
@@ -302,11 +284,7 @@ class Config:
             # Default paths
             "log_dir": Path.home() / "Library" / "Logs" / "Versiontracker",
             # Config file path
-            "config_file": (
-                config_file
-                if config_file
-                else Path.home() / ".config" / "versiontracker" / "config.yaml"
-            ),
+            "config_file": (config_file if config_file else Path.home() / ".config" / "versiontracker" / "config.yaml"),
             # Default commands
             "system_profiler_cmd": "/usr/sbin/system_profiler -json SPApplicationsDataType",
             # Set up Homebrew path based on architecture (Apple Silicon or Intel)
@@ -395,9 +373,7 @@ class Config:
 
         # First try the architecture-appropriate path
         is_arm = platform.machine().startswith("arm")
-        prioritized_paths = (
-            paths if is_arm else [paths[1]] + [p for p in paths if p != paths[1]]
-        )
+        prioritized_paths = paths if is_arm else [paths[1]] + [p for p in paths if p != paths[1]]
 
         for path in prioritized_paths:
             try:
@@ -469,17 +445,13 @@ class Config:
             logging.debug(f"Successfully updated configuration from {config_path}")
 
         except yaml.YAMLError as e:
-            logging.error(
-                f"YAML parsing error in configuration file {config_path}: {e}"
-            )
+            logging.error(f"YAML parsing error in configuration file {config_path}: {e}")
             raise ConfigError(f"Invalid YAML in configuration file: {str(e)}")
         except IOError as e:
             logging.error(f"Error reading configuration file {config_path}: {e}")
             raise ConfigError(f"Error loading configuration: {str(e)}")
         except Exception as e:
-            logging.error(
-                f"Unexpected error loading configuration from {config_path}: {e}"
-            )
+            logging.error(f"Unexpected error loading configuration from {config_path}: {e}")
             raise ConfigError(f"Error in configuration processing: {str(e)}")
 
     def _normalize_config_keys(self, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -515,9 +487,7 @@ class Config:
 
         return normalized
 
-    def _load_integer_env_var(
-        self, env_var: str, config_key: str, env_config: dict
-    ) -> None:
+    def _load_integer_env_var(self, env_var: str, config_key: str, env_config: dict) -> None:
         """Load and validate an integer environment variable."""
         if os.environ.get(env_var):
             try:
@@ -548,15 +518,9 @@ class Config:
             self._config["log_level"] = logging.DEBUG
 
         # Integer configurations
-        self._load_integer_env_var(
-            "VERSIONTRACKER_API_RATE_LIMIT", "api_rate_limit", env_config
-        )
-        self._load_integer_env_var(
-            "VERSIONTRACKER_MAX_WORKERS", "max_workers", env_config
-        )
-        self._load_integer_env_var(
-            "VERSIONTRACKER_SIMILARITY_THRESHOLD", "similarity_threshold", env_config
-        )
+        self._load_integer_env_var("VERSIONTRACKER_API_RATE_LIMIT", "api_rate_limit", env_config)
+        self._load_integer_env_var("VERSIONTRACKER_MAX_WORKERS", "max_workers", env_config)
+        self._load_integer_env_var("VERSIONTRACKER_SIMILARITY_THRESHOLD", "similarity_threshold", env_config)
 
         # Additional app directories
         if os.environ.get("VERSIONTRACKER_ADDITIONAL_APP_DIRS"):
@@ -570,9 +534,7 @@ class Config:
     def _load_ui_env_vars(self, env_config: dict) -> None:
         """Load UI-related environment variables."""
         # Progress bars
-        self._load_boolean_env_var(
-            "VERSIONTRACKER_PROGRESS_BARS", "show_progress", env_config
-        )
+        self._load_boolean_env_var("VERSIONTRACKER_PROGRESS_BARS", "show_progress", env_config)
 
         # UI options
         ui_vars = [
@@ -594,14 +556,10 @@ class Config:
         if validation_errors:
             self._handle_validation_errors(validation_errors, env_config)
         else:
-            logging.debug(
-                f"Applying all environment variables: {list(env_config.keys())}"
-            )
+            logging.debug(f"Applying all environment variables: {list(env_config.keys())}")
             self._config.update(env_config)
 
-    def _handle_validation_errors(
-        self, validation_errors: dict, env_config: dict
-    ) -> None:
+    def _handle_validation_errors(self, validation_errors: dict, env_config: dict) -> None:
         """Handle validation errors for environment configuration."""
         error_msg = "Environment configuration validation failed:"
         for param, errors in validation_errors.items():
@@ -615,15 +573,11 @@ class Config:
             if key not in validation_errors:
                 valid_env_config[key] = value
             else:
-                logging.warning(
-                    f"Ignoring invalid environment configuration for '{key}'"
-                )
+                logging.warning(f"Ignoring invalid environment configuration for '{key}'")
 
         # Update configuration with valid values only
         if valid_env_config:
-            logging.debug(
-                f"Applying valid environment variables: {list(valid_env_config.keys())}"
-            )
+            logging.debug(f"Applying valid environment variables: {list(valid_env_config.keys())}")
             self._config.update(valid_env_config)
 
     def _load_version_comparison_env_vars(self) -> None:
@@ -762,9 +716,7 @@ class Config:
                 else:
                     if default is not None:
                         return default
-                    raise KeyError(
-                        f"Configuration key '{key}' not found and no default provided"
-                    )
+                    raise KeyError(f"Configuration key '{key}' not found and no default provided")
             return current
 
         # Direct key access
@@ -830,9 +782,7 @@ class Config:
             error_msg = self._format_validation_errors(key, validation_errors)
             raise ConfigError(error_msg)
 
-    def _format_validation_errors(
-        self, key: str, validation_errors: Dict[str, List[str]]
-    ) -> str:
+    def _format_validation_errors(self, key: str, validation_errors: Dict[str, List[str]]) -> str:
         """Format validation errors into readable message."""
         error_msg = f"Configuration validation failed for '{key}':"
         for param, errors in validation_errors.items():
@@ -852,6 +802,44 @@ class Config:
             current[parts[-1]] = value
         else:
             self._config[key] = value
+
+    def save(self) -> bool:
+        """Save the current configuration to the YAML file.
+
+        Saves all current configuration values to the configuration file,
+        creating the file and parent directories if they don't exist.
+
+        Returns:
+            bool: True if save was successful, False otherwise
+        """
+        try:
+            config_path = Path(self._config["config_file"])
+
+            # Create parent directories if they don't exist
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Prepare config for saving (exclude non-serializable values)
+            save_config = {}
+            for key, value in self._config.items():
+                # Skip certain keys that shouldn't be saved
+                if key in ["config_file", "log_dir"]:
+                    continue
+                # Convert Path objects to strings
+                if isinstance(value, Path):
+                    save_config[key] = str(value)
+                else:
+                    save_config[key] = value
+
+            # Write to file
+            with open(config_path, "w", encoding="utf-8") as f:
+                yaml.dump(save_config, f, default_flow_style=False, sort_keys=True)
+
+            logging.info(f"Configuration saved to {config_path}")
+            return True
+
+        except Exception as e:
+            logging.error(f"Failed to save configuration: {e}")
+            return False
 
     def get_blacklist(self) -> List[str]:
         """Get the blacklisted applications.
@@ -945,32 +933,20 @@ class Config:
             "ui": {
                 "use-color": self._config["ui"].get("use_color", True),
                 "monitor-resources": self._config["ui"].get("monitor_resources", True),
-                "adaptive-rate-limiting": self._config["ui"].get(
-                    "adaptive_rate_limiting", True
-                ),
+                "adaptive-rate-limiting": self._config["ui"].get("adaptive_rate_limiting", True),
                 "enhanced-progress": self._config["ui"].get("enhanced_progress", True),
             },
             "version-comparison": {
                 "rate-limit": self._config["version_comparison"]["rate_limit"],
                 "cache-ttl": self._config["version_comparison"]["cache_ttl"],
-                "similarity-threshold": self._config["version_comparison"][
-                    "similarity_threshold"
-                ],
-                "include-beta-versions": self._config["version_comparison"][
-                    "include_beta_versions"
-                ],
-                "sort-by-outdated": self._config["version_comparison"][
-                    "sort_by_outdated"
-                ],
+                "similarity-threshold": self._config["version_comparison"]["similarity_threshold"],
+                "include-beta-versions": self._config["version_comparison"]["include_beta_versions"],
+                "sort-by-outdated": self._config["version_comparison"]["sort_by_outdated"],
             },
             "outdated-detection": {
                 "enabled": self._config["outdated_detection"]["enabled"],
-                "min-version-diff": self._config["outdated_detection"][
-                    "min_version_diff"
-                ],
-                "include-pre-releases": self._config["outdated_detection"][
-                    "include_pre_releases"
-                ],
+                "min-version-diff": self._config["outdated_detection"]["min_version_diff"],
+                "include-pre-releases": self._config["outdated_detection"]["include_pre_releases"],
             },
         }
 

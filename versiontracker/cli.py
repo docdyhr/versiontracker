@@ -25,9 +25,7 @@ def get_arguments():
     )
 
     # Debug mode
-    parser.add_argument(
-        "-D", "--debug", dest="debug", action="store_true", help="turn on DEBUG mode"
-    )
+    parser.add_argument("-D", "--debug", dest="debug", action="store_true", help="turn on DEBUG mode")
 
     # Performance options
     performance_group = parser.add_argument_group("Performance options")
@@ -106,6 +104,18 @@ def get_arguments():
         dest="no_enhanced_matching",
         action="store_true",
         help="Disable enhanced fuzzy matching (use basic matching instead)",
+    )
+    filter_group.add_argument(
+        "--exclude-auto-updates",
+        dest="exclude_auto_updates",
+        action="store_true",
+        help="Exclude applications that have auto-updates enabled in Homebrew",
+    )
+    filter_group.add_argument(
+        "--only-auto-updates",
+        dest="only_auto_updates",
+        action="store_true",
+        help="Only show applications that have auto-updates enabled in Homebrew",
     )
 
     # Filter management
@@ -207,10 +217,7 @@ def get_arguments():
         "--strict-recommend",
         action="store_true",
         dest="strict_recom",
-        help=(
-            "return recommendations for brew, excluding apps that can already be "
-            "installed with brew"
-        ),
+        help=("return recommendations for brew, excluding apps that can already be installed with brew"),
     )
     group.add_argument(
         "-o",
@@ -218,6 +225,18 @@ def get_arguments():
         action="store_true",
         dest="check_outdated",
         help="check for outdated applications compared to Homebrew versions",
+    )
+    group.add_argument(
+        "--blacklist-auto-updates",
+        action="store_true",
+        dest="blacklist_auto_updates",
+        help="Add all applications with auto-updates to the blacklist",
+    )
+    group.add_argument(
+        "--uninstall-auto-updates",
+        action="store_true",
+        dest="uninstall_auto_updates",
+        help="Uninstall all Homebrew casks that have auto-updates enabled (with confirmation)",
     )
     group.add_argument(
         "--install-service",
@@ -249,9 +268,7 @@ def get_arguments():
         dest="menubar",
         help="Launch macOS menubar application",
     )
-    group.add_argument(
-        "-V", "--version", action="version", version=f"%(prog)s {__version__}"
-    )
+    group.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
 
     # If no arguments were provided, show help
     if len(sys.argv) == 1:

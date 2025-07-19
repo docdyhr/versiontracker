@@ -26,6 +26,7 @@ from versiontracker.apps import (
 from versiontracker.config import get_config
 from versiontracker.exceptions import HomebrewError, NetworkError
 from versiontracker.handlers.export_handlers import handle_export
+from versiontracker.homebrew import get_casks_with_auto_updates
 from versiontracker.ui import create_progress_bar
 from versiontracker.utils import get_json_data
 
@@ -65,26 +66,33 @@ def handle_list_brews(options: Any) -> int:
             # Sort by name
             brews.sort()
 
+            # Check for auto-updates if requested
+            auto_update_casks = []
+            if hasattr(options, "exclude_auto_updates") or hasattr(options, "only_auto_updates"):
+                print(create_progress_bar().color("blue")("Checking for auto-updates..."))
+                auto_update_casks = get_casks_with_auto_updates(brews)
+
+            # Filter based on auto-updates if requested
+            if hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
+                brews = [brew for brew in brews if brew not in auto_update_casks]
+            elif hasattr(options, "only_auto_updates") and options.only_auto_updates:
+                brews = auto_update_casks
+
             # Display results
             if brews:
-                print(
-                    create_progress_bar().color("green")(
-                        f"\nFound {len(brews)} Homebrew packages:\n"
-                    )
-                )
+                print(create_progress_bar().color("green")(f"\nFound {len(brews)} Homebrew packages:\n"))
                 for i, brew in enumerate(brews, 1):
-                    print(f"{i:3d}. {create_progress_bar().color('green')(brew)}")
+                    # Mark packages with auto-updates
+                    if brew in auto_update_casks and not (
+                        hasattr(options, "only_auto_updates") and options.only_auto_updates
+                    ):
+                        auto_update_marker = create_progress_bar().color("yellow")("(auto-updates)")
+                        print(f"{i:3d}. {create_progress_bar().color('green')(brew)} {auto_update_marker}")
+                    else:
+                        print(f"{i:3d}. {create_progress_bar().color('green')(brew)}")
             else:
-                print(
-                    create_progress_bar().color("yellow")(
-                        "\nNo Homebrew packages found."
-                    )
-                )
-                print(
-                    create_progress_bar().color("yellow")(
-                        "Make sure Homebrew is installed and in your PATH."
-                    )
-                )
+                print(create_progress_bar().color("yellow")("\nNo Homebrew packages found."))
+                print(create_progress_bar().color("yellow")("Make sure Homebrew is installed and in your PATH."))
 
             # Export if requested
             if options.export_format:
@@ -141,9 +149,7 @@ def _determine_strict_mode(options: Any) -> bool:
         return True
 
     # Detect if we're being run in a test
-    if len(sys.argv) <= 1 and (
-        hasattr(options, "strict_recommend") or hasattr(options, "recommend")
-    ):
+    if len(sys.argv) <= 1 and (hasattr(options, "strict_recommend") or hasattr(options, "recommend")):
         options.mock_test = True
         return False
 
@@ -167,9 +173,7 @@ def _get_application_data() -> List[Tuple[str, str]]:
 
     # Apply blacklist filtering
     filtered_apps: List[Tuple[str, str]] = [
-        (item[0], item[1])
-        for item in apps_folder
-        if not get_config().is_blacklisted(item[0])
+        (item[0], item[1]) for item in apps_folder if not get_config().is_blacklisted(item[0])
     ]
 
     return filtered_apps
@@ -184,23 +188,11 @@ def _get_homebrew_casks() -> List[str]:
         return homebrew_casks
     except HomebrewError as e:
         print(create_progress_bar().color("red")(f"Error getting Homebrew casks: {e}"))
-        print(
-            create_progress_bar().color("yellow")(
-                "Proceeding without Homebrew cask filtering."
-            )
-        )
+        print(create_progress_bar().color("yellow")("Proceeding without Homebrew cask filtering."))
         return []
     except Exception as e:
-        print(
-            create_progress_bar().color("red")(
-                f"Unexpected error getting Homebrew casks: {e}"
-            )
-        )
-        print(
-            create_progress_bar().color("yellow")(
-                "Proceeding without Homebrew cask filtering."
-            )
-        )
+        print(create_progress_bar().color("red")(f"Unexpected error getting Homebrew casks: {e}"))
+        print(create_progress_bar().color("yellow")("Proceeding without Homebrew cask filtering."))
         return []
 
 
@@ -242,25 +234,15 @@ def _get_rate_limit(options: Any) -> int:
     return rate_limit_int
 
 
-def _search_brew_candidates(
-    search_list: List[Tuple[str, str]], rate_limit_int: int, strict_mode: bool
-) -> List[str]:
+def _search_brew_candidates(search_list: List[Tuple[str, str]], rate_limit_int: int, strict_mode: bool) -> List[str]:
     """Search for Homebrew installation candidates."""
     print(
         create_progress_bar().color("green")(
             f"\nSearching for {len(search_list)} applications in Homebrew repository..."
         )
     )
-    print(
-        create_progress_bar().color("green")(
-            f"Using rate limit of {rate_limit_int} seconds between API calls"
-        )
-    )
-    print(
-        create_progress_bar().color("green")(
-            "This process may take some time, please be patient..."
-        )
-    )
+    print(create_progress_bar().color("green")(f"Using rate limit of {rate_limit_int} seconds between API calls"))
+    print(create_progress_bar().color("green")("This process may take some time, please be patient..."))
 
     # Special case for testing - detect if we're in a test environment
     import inspect
@@ -271,9 +253,7 @@ def _search_brew_candidates(
         # Unable to inspect stack, continue normally
         pass
 
-    brew_candidates = check_brew_install_candidates(
-        search_list, rate_limit_int, strict_mode
-    )
+    brew_candidates = check_brew_install_candidates(search_list, rate_limit_int, strict_mode)
 
     # Extract installable app names from the results
     installables = [app for app, _, installable in brew_candidates if installable]
@@ -297,28 +277,29 @@ def _display_results(
             f"✓ Processed {len(search_list)} applications in {elapsed_time:.1f} seconds"
         )
     )
-    print(
-        create_progress_bar().color("green")(
-            f"Found {len(installables)} applications installable with Homebrew"
+
+    # Adjust message based on filter options
+    if hasattr(options, "only_auto_updates") and options.only_auto_updates:
+        print(create_progress_bar().color("green")(f"Found {len(installables)} applications with auto-updates enabled"))
+    elif hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
+        print(
+            create_progress_bar().color("green")(
+                f"Found {len(installables)} applications installable with Homebrew (auto-updates excluded)"
+            )
         )
-    )
+    else:
+        print(create_progress_bar().color("green")(f"Found {len(installables)} applications installable with Homebrew"))
     print("")
 
     if installables:
         for i, installable in enumerate(installables, 1):
-            install_name = (
-                installable if isinstance(installable, str) else str(installable)
-            )
-            print(
-                f"{i:2d}. {create_progress_bar().color('green')(install_name)} "
-                "(installable with Homebrew)"
-            )
+            install_name = installable if isinstance(installable, str) else str(installable)
+            print(f"{i:2d}. {create_progress_bar().color('green')(install_name)} (installable with Homebrew)")
     else:
-        print(
-            create_progress_bar().color("yellow")(
-                "No applications found that can be installed with Homebrew."
-            )
-        )
+        if hasattr(options, "only_auto_updates") and options.only_auto_updates:
+            print(create_progress_bar().color("yellow")("No applications with auto-updates found."))
+        else:
+            print(create_progress_bar().color("yellow")("No applications found that can be installed with Homebrew."))
 
 
 def _handle_export_output(installables: List[str], options: Any) -> None:
@@ -369,9 +350,8 @@ def handle_brew_recommendations(options: Any) -> int:
         apps_homebrew = _get_homebrew_casks()
 
         # Get installable candidates
-        search_list: List[Tuple[str, str]] = filter_out_brews(
-            filtered_apps, apps_homebrew, strict_mode
-        )
+        # Search for brew candidates
+        search_list: List[Tuple[str, str]] = filter_out_brews(filtered_apps, apps_homebrew, strict_mode)
 
         # Log debug information
         _log_debug_info(options, filtered_apps, apps_homebrew, search_list)
@@ -384,30 +364,38 @@ def handle_brew_recommendations(options: Any) -> int:
 
         try:
             # Search for brew candidates
-            installables = _search_brew_candidates(
-                search_list, rate_limit_int, strict_mode
-            )
-        except HomebrewError as e:
-            print(
-                create_progress_bar().color("red")(
-                    f"Error checking brew install candidates: {e}"
+            installables = _search_brew_candidates(search_list, rate_limit_int, strict_mode)
+
+            # Filter based on auto-updates if requested
+            if hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
+                print(create_progress_bar().color("green")("Filtering out applications with auto-updates enabled..."))
+                auto_update_casks = get_casks_with_auto_updates(installables)
+                installables = [cask for cask in installables if cask not in auto_update_casks]
+                print(
+                    create_progress_bar().color("green")(
+                        f"Excluded {len(auto_update_casks)} applications with auto-updates"
+                    )
                 )
-            )
+            elif hasattr(options, "only_auto_updates") and options.only_auto_updates:
+                print(
+                    create_progress_bar().color("green")(
+                        "Filtering to only show applications with auto-updates enabled..."
+                    )
+                )
+                auto_update_casks = get_casks_with_auto_updates(installables)
+                installables = auto_update_casks
+                print(create_progress_bar().color("green")(f"Found {len(installables)} applications with auto-updates"))
+        except HomebrewError as e:
+            print(create_progress_bar().color("red")(f"Error checking brew install candidates: {e}"))
             return 1
         except NetworkError as e:
             print(create_progress_bar().color("red")(f"Network error: {e}"))
-            print(
-                create_progress_bar().color("yellow")(
-                    "Check your internet connection and try again."
-                )
-            )
+            print(create_progress_bar().color("yellow")("Check your internet connection and try again."))
             return 1
         except TimeoutError as e:
             print(create_progress_bar().color("red")(f"Timeout error: {e}"))
             print(
-                create_progress_bar().color("yellow")(
-                    "Operation timed out. Try again later or increase the timeout."
-                )
+                create_progress_bar().color("yellow")("Operation timed out. Try again later or increase the timeout.")
             )
             return 1
 

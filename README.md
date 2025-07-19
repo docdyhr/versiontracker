@@ -75,6 +75,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * Smart progress indicators with system resource monitoring
 * Adaptive rate limiting based on CPU and memory usage
 * Support for saving and loading query filters
+* **Auto-updates detection** for Homebrew casks with filtering options
 
 ## Requirements
 
@@ -149,6 +150,9 @@ Filtering options:
                         Similarity threshold for matching (0-100, default: 75)
   --no-enhanced-matching
                         Disable enhanced fuzzy matching (use basic matching instead)
+  --exclude-auto-updates
+                        Exclude applications that have auto-updates enabled in Homebrew
+  --only-auto-updates   Only show applications that have auto-updates enabled in Homebrew
 
 Export options:
   --export {json,csv}   Export results in specified format (json or csv)
@@ -206,6 +210,39 @@ Or if installed:
 ```shell
 versiontracker --outdated
 ```
+
+### Handle applications with auto-updates
+
+```shell
+# List brews excluding those with auto-updates enabled
+python3 versiontracker-cli.py --brews --exclude-auto-updates
+
+# List only brews that have auto-updates enabled
+python3 versiontracker-cli.py --brews --only-auto-updates
+
+# Get recommendations excluding apps with auto-updates
+python3 versiontracker-cli.py --recommend --exclude-auto-updates
+
+# Get recommendations for only apps with auto-updates
+python3 versiontracker-cli.py --recommend --only-auto-updates
+```
+
+### Manage applications with auto-updates
+
+```shell
+# Add all apps with auto-updates to the blacklist
+python3 versiontracker-cli.py --blacklist-auto-updates
+
+# Uninstall all Homebrew casks that have auto-updates (with confirmation)
+python3 versiontracker-cli.py --uninstall-auto-updates
+```
+
+The auto-update management commands provide:
+
+* **Interactive confirmation**: Both commands ask for confirmation before making changes
+* **Clear feedback**: Shows exactly what will be blacklisted or uninstalled
+* **Safety features**: The uninstall command requires typing "UNINSTALL" to confirm
+* **Status reporting**: Shows success/failure for each operation
 
 ### Export results to JSON format
 
