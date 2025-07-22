@@ -86,7 +86,10 @@ class Cache[K, V]:  # Python 3.12+ syntax
         self._data: dict[K, V] = {}
 
     def get(self, key: K) -> V | None:
-        """Get value by key."""
+        """Get value by key.
+
+        Note: For Python < 3.10, use Optional[V] instead of 'V | None'.
+        """
         return self._data.get(key)
 
     def set(self, key: K, value: V) -> None:
