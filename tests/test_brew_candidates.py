@@ -193,9 +193,7 @@ class TestBrewCandidates(unittest.TestCase):
             batch = [("Firefox", "100.0")]
 
             # Call the function with proper mocking of executor's future result
-            with patch(
-                "versiontracker.apps._process_brew_search", return_value="Firefox"
-            ):
+            with patch("versiontracker.apps._process_brew_search", return_value="Firefox"):
                 result = _process_brew_batch(batch, 2, True)
 
             # Verify the result
@@ -203,9 +201,7 @@ class TestBrewCandidates(unittest.TestCase):
             self.assertEqual(result, expected)
 
             # Verify is_brew_cask_installable was called with the normalized name
-            mock_executor.submit.assert_called_once_with(
-                mock_is_installable, "firefox", True
-            )
+            mock_executor.submit.assert_called_once_with(mock_is_installable, "firefox", True)
 
     @patch("versiontracker.apps.run_command")
     def test_process_brew_search_match_found(self, mock_run_command):
@@ -265,9 +261,7 @@ class TestBrewCandidates(unittest.TestCase):
 
         # Test with delay below minimum
         min_limiter = SimpleRateLimiter(0.05)
-        self.assertEqual(
-            self._get_limiter_delay(min_limiter), 0.1
-        )  # Should be clamped to 0.1
+        self.assertEqual(self._get_limiter_delay(min_limiter), 0.1)  # Should be clamped to 0.1
 
         # Test with higher delay
         high_limiter = SimpleRateLimiter(0.5)

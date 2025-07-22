@@ -124,9 +124,7 @@ class TestMain(unittest.TestCase):
         """Test that console warnings are suppressed correctly."""
         # Setup mock logger and handler
         mock_handler = MagicMock(spec=logging.StreamHandler)
-        mock_handler.stream = (
-            sys.stderr
-        )  # Add stream attribute to avoid attribute error
+        mock_handler.stream = sys.stderr  # Add stream attribute to avoid attribute error
         mock_root_logger = MagicMock()
         mock_root_logger.handlers = [mock_handler]
         mock_get_logger.return_value = mock_root_logger

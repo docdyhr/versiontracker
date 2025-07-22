@@ -128,9 +128,7 @@ class TestTerminalUI(unittest.TestCase):
         colored_output = color_func(long_message)
 
         # Verify the colored output contains the original message
-        cleaned_text = (
-            colored_output.replace("\033[34m", "").replace("\033[0m", "").strip()
-        )
+        cleaned_text = colored_output.replace("\033[34m", "").replace("\033[0m", "").strip()
 
         # Just verify output was produced, actual wrapping is hard to test
         self.assertIn(long_message, cleaned_text)
@@ -209,9 +207,7 @@ class TestAccessibility(unittest.TestCase):
         error_message = "✗ Operation failed"
 
         # Test that messages are passed through
-        self.assertEqual(
-            get_status_color("uptodate")(uptodate_message), uptodate_message
-        )
+        self.assertEqual(get_status_color("uptodate")(uptodate_message), uptodate_message)
         self.assertEqual(get_status_color("outdated")(error_message), error_message)
 
 
@@ -245,9 +241,7 @@ class TestInteractiveUI(unittest.TestCase):
     def test_adaptive_rate_limiter(self):
         """Test that adaptive rate limiter provides rate limits."""
         # Create a rate limiter
-        limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.2, max_rate_limit_sec=3.0
-        )
+        limiter = AdaptiveRateLimiter(base_rate_limit_sec=1.0, min_rate_limit_sec=0.2, max_rate_limit_sec=3.0)
 
         # Verify it has the correct attributes
         self.assertEqual(limiter.base_rate_limit_sec, 1.0)

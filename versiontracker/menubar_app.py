@@ -45,7 +45,8 @@ class MenubarApp:
             # Create AppleScript for menu
             script = f'''
             set menuItems to {{"{'", "'.join(menu_items)}"}}
-            set selectedItem to (choose from list menuItems with title "VersionTracker" with prompt "Choose an action:" default items {{"Check for Updates"}})
+            set selectedItem to (choose from list menuItems with title "VersionTracker" \\
+                with prompt "Choose an action:" default items {{"Check for Updates"}})
 
             if selectedItem is not false then
                 return item 1 of selectedItem
@@ -54,9 +55,7 @@ class MenubarApp:
             end if
             '''
 
-            result = subprocess.run(
-                ["osascript", "-e", script], capture_output=True, text=True
-            )
+            result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
 
             if result.returncode == 0:
                 choice = result.stdout.strip()
@@ -117,9 +116,7 @@ class MenubarApp:
 
             except Exception as e:
                 logger.error(f"Error running command: {e}")
-                self.show_result_dialog(
-                    "VersionTracker Error", f"Failed to run command: {e}"
-                )
+                self.show_result_dialog("VersionTracker Error", f"Failed to run command: {e}")
 
         # Run in background thread
         thread = threading.Thread(target=run_command, daemon=True)
@@ -165,12 +162,17 @@ import sys
 print("📦|size=14")
 print("---")
 print("VersionTracker")
-print("Check for Updates | terminal=false bash='{sys.executable}' param1='-m' param2='versiontracker' param3='--outdated' param4='--notify'")
-print("Show All Apps | terminal=false bash='{sys.executable}' param1='-m' param2='versiontracker' param3='--apps'")
-print("Show Homebrew Casks | terminal=false bash='{sys.executable}' param1='-m' param2='versiontracker' param3='--brews'")
+print("Check for Updates | terminal=false bash='{sys.executable}' param1='-m' "
+      "param2='versiontracker' param3='--outdated' param4='--notify'")
+print("Show All Apps | terminal=false bash='{sys.executable}' param1='-m' "
+      "param2='versiontracker' param3='--apps'")
+print("Show Homebrew Casks | terminal=false bash='{sys.executable}' param1='-m' "
+      "param2='versiontracker' param3='--brews'")
 print("---")
-print("Install Service | terminal=false bash='{sys.executable}' param1='-m' param2='versiontracker' param3='--install-service'")
-print("Service Status | terminal=false bash='{sys.executable}' param1='-m' param2='versiontracker' param3='--service-status'")
+print("Install Service | terminal=false bash='{sys.executable}' param1='-m' "
+      "param2='versiontracker' param3='--install-service'")
+print("Service Status | terminal=false bash='{sys.executable}' param1='-m' "
+      "param2='versiontracker' param3='--service-status'")
 print("---")
 print("Quit | quit=true")
 """

@@ -376,9 +376,7 @@ class TestAdvancedCache:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create cache and add items
             cache1 = AdvancedCache(cache_dir=tmpdir)
-            cache1.put(
-                "persistent_key", "persistent_value", priority=CachePriority.HIGH
-            )
+            cache1.put("persistent_key", "persistent_value", priority=CachePriority.HIGH)
 
             # Save metadata explicitly since it's not auto-saved on put
             cache1._save_metadata()
@@ -402,9 +400,7 @@ class TestAdvancedCache:
     def test_cache_size_monitoring(self):
         """Test cache size monitoring and limits."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            cache = AdvancedCache(
-                cache_dir=tmpdir, disk_cache_size_mb=1
-            )  # Very small limit
+            cache = AdvancedCache(cache_dir=tmpdir, disk_cache_size_mb=1)  # Very small limit
 
             # Add some data
             cache.put("key1", "value1")

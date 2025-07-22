@@ -24,9 +24,7 @@ class TestConfigFile(TestCase):
     def test_load_from_yaml_file(self):
         """Test loading configuration from YAML file."""
         # Create a temporary configuration file
-        with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as f:
             yaml_config = {
                 "api-rate-limit": 5,
                 "max-workers": 20,
@@ -39,9 +37,7 @@ class TestConfigFile(TestCase):
 
         try:
             # Create a test Config instance
-            with patch.object(
-                Config, "_load_from_env"
-            ):  # Prevent loading from environment
+            with patch.object(Config, "_load_from_env"):  # Prevent loading from environment
                 test_config = Config()
                 test_config._config["config_file"] = config_path
                 test_config._load_from_file()
@@ -75,25 +71,19 @@ class TestConfigFile(TestCase):
             with open(config_path, "r", encoding="utf-8") as f:
                 yaml_config = yaml.safe_load(f)
 
-            self.assertEqual(
-                yaml_config["api-rate-limit"], test_config.get("api_rate_limit")
-            )
+            self.assertEqual(yaml_config["api-rate-limit"], test_config.get("api_rate_limit"))
             self.assertEqual(yaml_config["max-workers"], test_config.get("max_workers"))
             self.assertEqual(
                 yaml_config["similarity-threshold"],
                 test_config.get("similarity_threshold"),
             )
             self.assertEqual(yaml_config["blacklist"], ["TestApp1", "TestApp2"])
-            self.assertEqual(
-                yaml_config["show-progress"], test_config.get("show_progress")
-            )
+            self.assertEqual(yaml_config["show-progress"], test_config.get("show_progress"))
 
     def test_env_vars_override_file(self):
         """Test that environment variables override file configuration."""
         # Create a temporary configuration file
-        with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as f:
             yaml_config = {
                 "api-rate-limit": 5,
                 "max-workers": 20,
@@ -116,9 +106,7 @@ class TestConfigFile(TestCase):
             # Verify the environment variables override the file configuration
             self.assertEqual(test_config.get("api_rate_limit"), 10)
             self.assertEqual(test_config.get("max_workers"), 20)  # Not overridden
-            self.assertEqual(
-                test_config.get_blacklist(), ["App3", "App4"]
-            )  # Overridden
+            self.assertEqual(test_config.get_blacklist(), ["App3", "App4"])  # Overridden
         finally:
             # Clean up the temporary file
             os.unlink(config_path)
@@ -143,9 +131,7 @@ class TestConfigFile(TestCase):
     def test_custom_config_path(self):
         """Test using a custom configuration path."""
         # Create a temporary configuration file with custom settings
-        with tempfile.NamedTemporaryFile(
-            suffix=".yaml", delete=False, mode="w", encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False, mode="w", encoding="utf-8") as f:
             yaml_config = {
                 "api-rate-limit": 8,
                 "max-workers": 6,
@@ -157,9 +143,7 @@ class TestConfigFile(TestCase):
 
         try:
             # Create a test Config instance with the custom path
-            with patch.object(
-                Config, "_load_from_env"
-            ):  # Prevent loading from environment
+            with patch.object(Config, "_load_from_env"):  # Prevent loading from environment
                 test_config = Config(config_file=custom_config_path)
 
             # Verify the configuration values were loaded from the custom path

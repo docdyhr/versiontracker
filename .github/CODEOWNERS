@@ -1,0 +1,29 @@
+# Require reviews from code owners and security team for critical files
+
+# Security workflows and configuration
+/.github/workflows/security.yml @security-team @docdyhr
+/.github/workflows/codeql-analysis.yml @security-team @docdyhr
+/.github/dependabot.yml        @security-team @docdyhr
+
+# Core application code
+/versiontracker/              @docdyhr
+
+# CI/CD workflows
+/.github/workflows/ci.yml          @docdyhr
+/.github/workflows/lint.yml        @docdyhr
+/.github/workflows/performance.yml @docdyhr
+/.github/workflows/release.yml     @docdyhr
+
+# Tests and test configuration
+/tests/                       @docdyhr
+/test_*.yaml                  @docdyhr
+/pytest.ini                   @docdyhr
+
+# Documentation
+/README.md                    @docdyhr
+/CONTRIBUTING.md              @docdyhr
+/CHANGELOG.md                 @docdyhr
+/docs/                        @docdyhr
+
+# All other files default to code owner
+*                             @docdyhr

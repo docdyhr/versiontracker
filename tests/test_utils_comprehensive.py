@@ -44,7 +44,9 @@ class TestSetupLogging:
         """Test setup_logging with debug mode in Python 3.9+."""
         mock_log_dir = MagicMock()
         mock_path.home.return_value = MagicMock()
-        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_log_dir
+        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = (
+            mock_log_dir
+        )
         mock_log_dir.mkdir = MagicMock()
         mock_log_dir.__truediv__.return_value = "/fake/path/versiontracker.log"
 
@@ -63,7 +65,9 @@ class TestSetupLogging:
         """Test setup_logging with info mode in Python 3.8."""
         mock_log_dir = MagicMock()
         mock_path.home.return_value = MagicMock()
-        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_log_dir
+        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = (
+            mock_log_dir
+        )
         mock_log_dir.mkdir = MagicMock()
         mock_log_dir.__truediv__.return_value = "/fake/path/versiontracker.log"
 
@@ -79,7 +83,9 @@ class TestSetupLogging:
         """Test setup_logging handles directory creation errors gracefully."""
         mock_log_dir = MagicMock()
         mock_path.home.return_value = MagicMock()
-        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = mock_log_dir
+        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value = (
+            mock_log_dir
+        )
         mock_log_dir.mkdir.side_effect = OSError("Permission denied")
         mock_log_dir.__truediv__.return_value = "/fake/path/versiontracker.log"
 
@@ -216,9 +222,7 @@ class TestCacheHelpers:
     @patch("time.time")
     @patch("logging.warning")
     @patch("builtins.open", new_callable=mock_open)
-    def test_write_cache_file_error(
-        self, mock_file, mock_warning, mock_time, mock_ensure_dir
-    ):
+    def test_write_cache_file_error(self, mock_file, mock_warning, mock_time, mock_ensure_dir):
         """Test cache file writing with error."""
         mock_time.return_value = 1500
         mock_file.side_effect = OSError("Permission denied")
@@ -247,9 +251,7 @@ class TestGetJsonData:
     @patch("versiontracker.utils._write_cache_file")
     @patch("versiontracker.utils._read_cache_file")
     @patch("versiontracker.utils.run_command")
-    def test_get_json_data_cache_hit(
-        self, mock_run_cmd, mock_read_cache, mock_write_cache
-    ):
+    def test_get_json_data_cache_hit(self, mock_run_cmd, mock_read_cache, mock_write_cache):
         """Test get_json_data with cache hit."""
         cached_data = {"data": {"apps": "cached"}}
         mock_read_cache.return_value = cached_data
@@ -263,9 +265,7 @@ class TestGetJsonData:
     @patch("versiontracker.utils._write_cache_file")
     @patch("versiontracker.utils._read_cache_file")
     @patch("versiontracker.utils.run_command")
-    def test_get_json_data_cache_miss(
-        self, mock_run_cmd, mock_read_cache, mock_write_cache
-    ):
+    def test_get_json_data_cache_miss(self, mock_run_cmd, mock_read_cache, mock_write_cache):
         """Test get_json_data with cache miss."""
         mock_read_cache.return_value = {}
         test_data = {"apps": "fresh"}

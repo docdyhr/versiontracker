@@ -310,16 +310,11 @@ class SmartProgress(Generic[T]):
 
         if self.use_tqdm:
             # Set up the progress bar with our custom postfix
-            self.progress_bar = TQDM_CLASS(
-                iter_obj, desc=self.desc, total=self.total, **self.kwargs
-            )
+            self.progress_bar = TQDM_CLASS(iter_obj, desc=self.desc, total=self.total, **self.kwargs)
 
             for item in self.progress_bar:
                 # Update system resource information
-                if (
-                    self.monitor_resources
-                    and time.time() - self.last_update_time > self.update_interval
-                ):
+                if self.monitor_resources and time.time() - self.last_update_time > self.update_interval:
                     self._update_resource_info()
 
                 yield item
@@ -340,9 +335,7 @@ class SmartProgress(Generic[T]):
 
             # Update the progress bar postfix with resource information
             if self.progress_bar is not None:
-                self.progress_bar.set_postfix_str(
-                    f"CPU: {self.cpu_usage:.1f}% | MEM: {self.memory_usage:.1f}%"
-                )
+                self.progress_bar.set_postfix_str(f"CPU: {self.cpu_usage:.1f}% | MEM: {self.memory_usage:.1f}%")
 
             self.last_update_time = time.time()
         except Exception:
@@ -441,9 +434,7 @@ class AdaptiveRateLimiter:
             )
 
             # Ensure we're within bounds
-            return float(
-                max(self.min_rate_limit_sec, min(self.max_rate_limit_sec, rate_limit))
-            )
+            return float(max(self.min_rate_limit_sec, min(self.max_rate_limit_sec, rate_limit)))
         except Exception:
             # If we can't get resource information, fall back to base rate
             return float(self.base_rate_limit_sec)

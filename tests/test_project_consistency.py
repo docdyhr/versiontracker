@@ -36,46 +36,32 @@ class TestProjectConsistency:
             mypy_version_match = re.search(r"python_version\s*=\s*(\d+\.\d+)", content)
             assert mypy_version_match, "python_version not found in mypy.ini"
             mypy_version = mypy_version_match.group(1)
-            assert mypy_version == min_version, (
-                f"mypy.ini has {mypy_version}, expected {min_version}"
-            )
+            assert mypy_version == min_version, f"mypy.ini has {mypy_version}, expected {min_version}"
 
         # Check setup.cfg
         setup_cfg_path = project_root / "setup.cfg"
         if setup_cfg_path.exists():
             with open(setup_cfg_path) as f:
                 content = f.read()
-                setup_version_match = re.search(
-                    r"python_version\s*=\s*(\d+\.\d+)", content
-                )
+                setup_version_match = re.search(r"python_version\s*=\s*(\d+\.\d+)", content)
                 if setup_version_match:
                     setup_version = setup_version_match.group(1)
-                    assert setup_version == min_version, (
-                        f"setup.cfg has {setup_version}, expected {min_version}"
-                    )
+                    assert setup_version == min_version, f"setup.cfg has {setup_version}, expected {min_version}"
 
         # Check README.md
         readme_path = project_root / "README.md"
         with open(readme_path) as f:
             content = f.read()
             # Look for "Python X.Y or later" pattern
-            readme_version_match = re.search(
-                r"Python\s+(\d+\.\d+)\s+or\s+later", content
-            )
-            assert readme_version_match, (
-                "Python version requirement not found in README.md"
-            )
+            readme_version_match = re.search(r"Python\s+(\d+\.\d+)\s+or\s+later", content)
+            assert readme_version_match, "Python version requirement not found in README.md"
             readme_version = readme_version_match.group(1)
-            assert readme_version == min_version, (
-                f"README.md has {readme_version}, expected {min_version}"
-            )
+            assert readme_version == min_version, f"README.md has {readme_version}, expected {min_version}"
 
         # Check Ruff target version
         ruff_target = pyproject.get("tool", {}).get("ruff", {}).get("target-version")
         expected_ruff = f"py{min_version.replace('.', '')}"
-        assert ruff_target == expected_ruff, (
-            f"Ruff target is {ruff_target}, expected {expected_ruff}"
-        )
+        assert ruff_target == expected_ruff, f"Ruff target is {ruff_target}, expected {expected_ruff}"
 
     def test_ci_python_versions(self):
         """Test that CI workflows test appropriate Python versions."""
@@ -90,9 +76,7 @@ class TestProjectConsistency:
         classifiers = pyproject["project"]["classifiers"]
         supported_versions = []
         for classifier in classifiers:
-            match = re.match(
-                r"Programming Language :: Python :: (\d+\.\d+)", classifier
-            )
+            match = re.match(r"Programming Language :: Python :: (\d+\.\d+)", classifier)
             if match:
                 supported_versions.append(match.group(1))
 
@@ -107,9 +91,7 @@ class TestProjectConsistency:
 
         # Ensure CI tests all supported versions
         for version in supported_versions:
-            assert version in ci_versions, (
-                f"Python {version} is supported but not tested in CI"
-            )
+            assert version in ci_versions, f"Python {version} is supported but not tested in CI"
 
     def test_coverage_configuration(self):
         """Test that coverage configuration is consistent."""
@@ -124,21 +106,17 @@ class TestProjectConsistency:
                 fail_under_match = re.search(r"fail_under\s*=\s*(\d+)", content)
                 if fail_under_match:
                     fail_under = int(fail_under_match.group(1))
-                    assert fail_under <= 70, (
-                        f"Coverage fail_under is {fail_under}%, which might be too high"
-                    )
-                    assert fail_under >= 50, (
-                        f"Coverage fail_under is {fail_under}%, consider raising it"
-                    )
+                    assert fail_under <= 70, f"Coverage fail_under is {fail_under}%, which might be too high"
+                    assert fail_under >= 50, f"Coverage fail_under is {fail_under}%, consider raising it"
 
         # Check pytest.ini settings
         pytest_ini_path = project_root / "pytest.ini"
         if pytest_ini_path.exists():
             with open(pytest_ini_path) as f:
                 content = f.read()
-                assert (
-                    "--cov-fail-under=0" in content or "cov-fail-under" not in content
-                ), "pytest.ini should not enforce coverage threshold during development"
+                assert "--cov-fail-under=0" in content or "cov-fail-under" not in content, (
+                    "pytest.ini should not enforce coverage threshold during development"
+                )
 
         # Check pytest-ci.ini settings
         pytest_ci_ini_path = project_root / "pytest-ci.ini"
@@ -168,6 +146,4 @@ class TestProjectConsistency:
         current_version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
         # We support Python 3.9+
-        assert sys.version_info >= (3, 9), (
-            f"Tests running on Python {current_version}, but 3.9+ is required"
-        )
+        assert sys.version_info >= (3, 9), f"Tests running on Python {current_version}, but 3.9+ is required"

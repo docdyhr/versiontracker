@@ -20,7 +20,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        # Allow Python 3.13 to fail temporarily while ecosystem catches up
+        include:
+          - python-version: "3.13"
+            experimental: true
 
     steps:
       - name: Checkout code
@@ -31,14 +35,26 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
+          allow-prereleases: ${{ matrix.python-version == '3.13' }}
 
       - name: Install dependencies
         uses: ./.github/actions/setup-python-deps
+
+      - name: Install Python 3.13 specific requirements
+        if: matrix.python-version == '3.13'
+        run: |
+          pip install -r requirements-py313.txt || echo "Python 3.13 requirements failed, using fallback"
+
+      - name: Run Python 3.13 compatibility test
+        if: matrix.python-version == '3.13'
+        run: |
+          python scripts/test_python313.py
 
       - name: Run tests
         run: |
           # Note: pytest-timeout is installed via requirements-dev.txt
           pytest --maxfail=5 --tb=short --timeout=300 --cov=versiontracker --cov-report=xml
+        continue-on-error: ${{ matrix.experimental == true }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

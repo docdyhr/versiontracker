@@ -14,9 +14,7 @@ class TestConfig(unittest.TestCase):
         """Set up test fixtures, if any."""
         # Store original environment variables and clear test-related ones
         self.original_env = {}
-        env_vars_to_clear = [
-            var for var in os.environ.keys() if var.startswith("VERSIONTRACKER_")
-        ]
+        env_vars_to_clear = [var for var in os.environ.keys() if var.startswith("VERSIONTRACKER_")]
         for var in env_vars_to_clear:
             self.original_env[var] = os.environ[var]
             del os.environ[var]

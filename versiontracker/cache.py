@@ -22,9 +22,7 @@ def _ensure_cache_dir():
         raise CacheError(f"Failed to create cache directory: {e}")
 
 
-def read_cache(
-    cache_name: str, max_age_seconds: int = 86400
-) -> Optional[Dict[str, Any]]:
+def read_cache(cache_name: str, max_age_seconds: int = 86400) -> Optional[Dict[str, Any]]:
     """Read data from cache.
 
     Args:

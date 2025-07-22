@@ -45,9 +45,7 @@ class TestHomebrew(unittest.TestCase):
         casks = versiontracker.apps.get_homebrew_casks()
 
         # Verify the expected command was run
-        mock_run_command.assert_called_once_with(
-            "/usr/local/bin/brew list --cask", timeout=30
-        )
+        mock_run_command.assert_called_once_with("/usr/local/bin/brew list --cask", timeout=30)
 
         # Check the result
         self.assertEqual(casks, ["cask1", "cask2", "cask3"])

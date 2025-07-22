@@ -67,9 +67,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps._execute_brew_search")
     @patch("versiontracker.apps.read_cache")
-    def test_is_brew_cask_installable_error(
-        self, mock_read_cache, mock_execute_search, mock_is_homebrew_available
-    ):
+    def test_is_brew_cask_installable_error(self, mock_read_cache, mock_execute_search, mock_is_homebrew_available):
         """Test is_brew_cask_installable error handling."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
@@ -86,9 +84,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
 
     @patch("versiontracker.apps.get_homebrew_cask_name")
     @patch("versiontracker.apps.is_homebrew_available", return_value=True)
-    def test_is_brew_cask_installable_with_cache(
-        self, mock_homebrew_available, mock_get_brew_cask_name
-    ):
+    def test_is_brew_cask_installable_with_cache(self, mock_homebrew_available, mock_get_brew_cask_name):
         """Test is_brew_cask_installable with caching."""
         # Set up the test
         # We'll mock the read_cache and write_cache functions instead of directly manipulating the cache
@@ -132,9 +128,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
     @patch("versiontracker.apps.read_cache")
     @patch("versiontracker.apps.write_cache")
     @patch("versiontracker.apps._process_brew_search")
-    def test_get_brew_cask_name_search_match(
-        self, mock_process_brew_search, mock_write_cache, mock_read_cache
-    ):
+    def test_get_brew_cask_name_search_match(self, mock_process_brew_search, mock_write_cache, mock_read_cache):
         """Test get_brew_cask_name when search finds a match."""
         # Mock cache to return None (cache miss)
         mock_read_cache.return_value = None
@@ -159,9 +153,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
 
     @patch("versiontracker.apps.read_cache")
     @patch("versiontracker.apps._process_brew_search")
-    def test_get_brew_cask_name_no_match(
-        self, mock_process_brew_search, mock_read_cache
-    ):
+    def test_get_brew_cask_name_no_match(self, mock_process_brew_search, mock_read_cache):
         """Test get_brew_cask_name when no match is found."""
         # Mock cache to return None (cache miss)
         mock_read_cache.return_value = None

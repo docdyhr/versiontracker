@@ -212,9 +212,7 @@ def test_get_homebrew_casks_success():
             casks = get_homebrew_casks()
 
             # Verify the expected command was run
-            mock_run_command.assert_called_once_with(
-                "/usr/local/bin/brew list --cask", timeout=30
-            )
+            mock_run_command.assert_called_once_with("/usr/local/bin/brew list --cask", timeout=30)
 
             # Verify the result
             assert casks == ["cask1", "cask2", "cask3"]
@@ -476,9 +474,7 @@ def test_get_cask_version_found(mock_run_command):
     assert version == "95.0.1"
 
     # Verify the command that was run
-    mock_run_command.assert_called_once_with(
-        "/usr/local/bin/brew info --cask firefox", timeout=30
-    )
+    mock_run_command.assert_called_once_with("/usr/local/bin/brew info --cask firefox", timeout=30)
 
 
 @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
@@ -579,9 +575,7 @@ def test_check_brew_install_candidates_no_homebrew(mock_is_homebrew):
 @patch("versiontracker.apps.is_homebrew_available")
 @patch("versiontracker.apps._process_brew_batch")
 @patch("versiontracker.apps.smart_progress")
-def test_check_brew_install_candidates_success(
-    mock_smart_progress, mock_process_brew_batch, mock_is_homebrew
-):
+def test_check_brew_install_candidates_success(mock_smart_progress, mock_process_brew_batch, mock_is_homebrew):
     """Test check_brew_install_candidates with successful batch processing."""
     # Mock is_homebrew_available to return True
     mock_is_homebrew.return_value = True
@@ -725,9 +719,7 @@ def test_process_brew_batch_with_adaptive_rate_limiter(
     mock_as_completed.return_value = [mock_future]
 
     # Create mock for AdaptiveRateLimiter
-    with patch(
-        "versiontracker.apps._AdaptiveRateLimiter"
-    ) as mock_adaptive_rate_limiter:
+    with patch("versiontracker.apps._AdaptiveRateLimiter") as mock_adaptive_rate_limiter:
         # Call the function
         _process_brew_batch([("Firefox", "100.0")], 2, True)
 
@@ -740,9 +732,7 @@ def test_process_brew_batch_with_adaptive_rate_limiter(
 @patch("versiontracker.apps.is_homebrew_available")
 @patch("versiontracker.apps.ThreadPoolExecutor")
 @patch("versiontracker.apps.as_completed")
-def test_process_brew_batch_future_exceptions(
-    mock_as_completed, mock_executor_class, mock_is_homebrew
-):
+def test_process_brew_batch_future_exceptions(mock_as_completed, mock_executor_class, mock_is_homebrew):
     """Test _process_brew_batch handling future exceptions."""
     # Mock is_homebrew_available to return True
     mock_is_homebrew.return_value = True

@@ -52,13 +52,25 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 - **TruffleHog**: Secret detection
 - **Scheduled scans**: Weekly security audits
 
-#### Features
+#### Security Pipeline Features
 
 - JSON report generation for all tools
 - Security summary with issue counts
 - Artifact upload for detailed analysis
 
-### 4. Release Pipeline (`release.yml`)
+### 4. CodeQL Analysis (`codeql-analysis.yml`)
+
+**Triggers**: Push/PR to main/master branches, manual dispatch, weekly schedule  
+**Purpose**: Deep static analysis using CodeQL  
+
+#### CodeQL Analysis Features
+
+- Initialises the CodeQL environment and builds the CodeQL database for Python.  
+- Executes CodeQL queries for `security-and-quality` across the repository.  
+- Publishes results automatically to the GitHub Code Scanning tab.  
+- Scheduled weekly scans on Sundays at 03:00 UTC for early detection of vulnerabilities.  
+
+### 5. Release Pipeline (`release.yml`)
 
 **Triggers**: GitHub releases, manual workflow dispatch
 **Purpose**: Automated package building, testing, and PyPI publishing

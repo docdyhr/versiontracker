@@ -82,9 +82,7 @@ class PerformanceProfiler:
         ps.print_stats(20)  # Top 20 functions by cumulative time
         return s.getvalue()
 
-    def time_function(
-        self, func_name: Optional[str] = None
-    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    def time_function(self, func_name: Optional[str] = None) -> Callable[[Callable[..., T]], Callable[..., T]]:
         """Create a timing decorator for a function.
 
         Args:
@@ -216,14 +214,10 @@ class PerformanceProfiler:
             return
 
         # Sort functions by total time (descending)
-        sorted_timings = sorted(
-            self.function_timings.values(), key=lambda x: x.total_time, reverse=True
-        )
+        sorted_timings = sorted(self.function_timings.values(), key=lambda x: x.total_time, reverse=True)
 
         print("\n=== Performance Report ===")
-        print(
-            f"{'Function':<40} {'Calls':<8} {'Total(s)':<10} {'Avg(s)':<10} {'Memory(MB)':<10}"
-        )
+        print(f"{'Function':<40} {'Calls':<8} {'Total(s)':<10} {'Avg(s)':<10} {'Memory(MB)':<10}")
         print("-" * 80)
 
         for timing in sorted_timings:

@@ -18,9 +18,7 @@ from versiontracker.config import get_config
 from versiontracker.ui import QueryFilterManager, create_progress_bar
 
 
-def handle_filter_management(
-    options: Any, filter_manager: QueryFilterManager
-) -> Optional[int]:
+def handle_filter_management(options: Any, filter_manager: QueryFilterManager) -> Optional[int]:
     """Handle filter management operations.
 
     Args:
@@ -45,15 +43,9 @@ def handle_filter_management(
     if hasattr(options, "delete_filter") and options.delete_filter:
         filter_name = options.delete_filter
         if filter_manager.delete_filter(filter_name):
-            print(
-                create_progress_bar().color("green")(
-                    f"Filter '{filter_name}' deleted successfully."
-                )
-            )
+            print(create_progress_bar().color("green")(f"Filter '{filter_name}' deleted successfully."))
         else:
-            print(
-                create_progress_bar().color("red")(f"Filter '{filter_name}' not found.")
-            )
+            print(create_progress_bar().color("red")(f"Filter '{filter_name}' not found."))
         return 0
 
     # Load filter
@@ -74,9 +66,7 @@ def handle_filter_management(
                     if key in get_config()._config:
                         get_config()._config[key] = value
         else:
-            print(
-                create_progress_bar().color("red")(f"Filter '{filter_name}' not found.")
-            )
+            print(create_progress_bar().color("red")(f"Filter '{filter_name}' not found."))
             return 1
 
     return None
@@ -119,18 +109,10 @@ def handle_save_filter(options: Any, filter_manager: QueryFilterManager) -> int:
 
             # Save the filter
             if filter_manager.save_filter(filter_name, filter_data):
-                print(
-                    create_progress_bar().color("green")(
-                        f"Filter '{filter_name}' saved successfully."
-                    )
-                )
+                print(create_progress_bar().color("green")(f"Filter '{filter_name}' saved successfully."))
                 return 0
             else:
-                print(
-                    create_progress_bar().color("red")(
-                        f"Failed to save filter '{filter_name}'."
-                    )
-                )
+                print(create_progress_bar().color("red")(f"Failed to save filter '{filter_name}'."))
                 return 1
         return 0
     except Exception as e:

@@ -74,9 +74,7 @@ class TestHomebrewModule(unittest.TestCase):
     @patch("versiontracker.homebrew.run_command")
     @patch("os.path.exists")
     @patch("os.access")
-    def test_get_homebrew_path_apple_silicon(
-        self, mock_access, mock_exists, mock_run_command
-    ):
+    def test_get_homebrew_path_apple_silicon(self, mock_access, mock_exists, mock_run_command):
         """Test getting Homebrew path on Apple Silicon Mac."""
         # Mock Apple Silicon path exists
         mock_exists.side_effect = lambda path: path == "/opt/homebrew/bin/brew"
@@ -89,9 +87,7 @@ class TestHomebrewModule(unittest.TestCase):
     @patch("versiontracker.homebrew.run_command")
     @patch("os.path.exists")
     @patch("os.access")
-    def test_get_homebrew_path_fallback(
-        self, mock_access, mock_exists, mock_run_command
-    ):
+    def test_get_homebrew_path_fallback(self, mock_access, mock_exists, mock_run_command):
         """Test getting Homebrew path using which command fallback."""
         # Mock no paths exist
         mock_exists.return_value = False
@@ -105,9 +101,7 @@ class TestHomebrewModule(unittest.TestCase):
     @patch("versiontracker.homebrew.run_command")
     @patch("os.path.exists")
     @patch("os.access")
-    def test_get_homebrew_path_not_found(
-        self, mock_access, mock_exists, mock_run_command
-    ):
+    def test_get_homebrew_path_not_found(self, mock_access, mock_exists, mock_run_command):
         """Test getting Homebrew path when it is not found."""
         # Mock no paths exist
         mock_exists.return_value = False
@@ -119,9 +113,7 @@ class TestHomebrewModule(unittest.TestCase):
 
     @patch("versiontracker.homebrew.get_homebrew_path")
     @patch("versiontracker.homebrew.run_command")
-    def test_get_all_homebrew_casks_cached(
-        self, mock_run_command, mock_get_homebrew_path
-    ):
+    def test_get_all_homebrew_casks_cached(self, mock_run_command, mock_get_homebrew_path):
         """Test getting all Homebrew casks when they are cached."""
         # Put test data in cache
         test_casks = [
@@ -140,9 +132,7 @@ class TestHomebrewModule(unittest.TestCase):
 
     @patch("versiontracker.homebrew.get_homebrew_path")
     @patch("versiontracker.homebrew.run_command")
-    def test_get_all_homebrew_casks_uncached(
-        self, mock_run_command, mock_get_homebrew_path
-    ):
+    def test_get_all_homebrew_casks_uncached(self, mock_run_command, mock_get_homebrew_path):
         """Test getting all Homebrew casks when they are not cached."""
         # Setup mocks
         mock_get_homebrew_path.return_value = "/usr/local/bin/brew"
@@ -254,9 +244,7 @@ class TestHomebrewModule(unittest.TestCase):
 
     @patch("versiontracker.homebrew.get_homebrew_path")
     @patch("versiontracker.homebrew.run_command")
-    def test_get_installed_homebrew_casks(
-        self, mock_run_command, mock_get_homebrew_path
-    ):
+    def test_get_installed_homebrew_casks(self, mock_run_command, mock_get_homebrew_path):
         """Test getting installed Homebrew casks."""
         # Setup mocks
         mock_get_homebrew_path.return_value = "/usr/local/bin/brew"
@@ -276,12 +264,8 @@ class TestHomebrewModule(unittest.TestCase):
     def test_clear_homebrew_cache(self):
         """Test clearing Homebrew cache."""
         # Put test data in cache
-        self.test_cache.put(
-            "homebrew:all_casks", [{"token": "firefox"}], source="homebrew"
-        )
-        self.test_cache.put(
-            "homebrew:cask:firefox", {"token": "firefox"}, source="homebrew"
-        )
+        self.test_cache.put("homebrew:all_casks", [{"token": "firefox"}], source="homebrew")
+        self.test_cache.put("homebrew:cask:firefox", {"token": "firefox"}, source="homebrew")
         self.test_cache.put("other:key", {"data": "value"}, source="other")
 
         # Clear homebrew cache
@@ -299,9 +283,7 @@ class TestHomebrewModule(unittest.TestCase):
 
     @patch("versiontracker.homebrew.get_homebrew_path")
     @patch("versiontracker.homebrew.run_command")
-    def test_get_outdated_homebrew_casks(
-        self, mock_run_command, mock_get_homebrew_path
-    ):
+    def test_get_outdated_homebrew_casks(self, mock_run_command, mock_get_homebrew_path):
         """Test getting outdated Homebrew casks."""
         # Setup mocks
         mock_get_homebrew_path.return_value = "/usr/local/bin/brew"

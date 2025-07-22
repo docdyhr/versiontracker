@@ -192,9 +192,7 @@ class AdvancedCache:
             except (FileNotFoundError, PermissionError):
                 pass
 
-        memory_size = sum(
-            len(json.dumps(v).encode()) for v in self._memory_cache.values()
-        )
+        memory_size = sum(len(json.dumps(v).encode()) for v in self._memory_cache.values())
 
         self._stats.disk_size_bytes = disk_size
         self._stats.memory_size_bytes = memory_size
@@ -250,9 +248,7 @@ class AdvancedCache:
         with self._lock:
             # Check memory cache size
             if len(self._memory_cache) > self._memory_cache_size:
-                self._evict_from_memory(
-                    len(self._memory_cache) - self._memory_cache_size
-                )
+                self._evict_from_memory(len(self._memory_cache) - self._memory_cache_size)
 
             # Check disk cache size
             disk_size_mb = self._stats.disk_size_bytes / (1024 * 1024)
@@ -276,12 +272,8 @@ class AdvancedCache:
         items_to_evict = sorted(
             self._memory_cache.keys(),
             key=lambda k: (
-                self._metadata.get(
-                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
-                ).priority.value,
-                self._metadata.get(
-                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
-                ).last_accessed,
+                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).priority.value,
+                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).last_accessed,
             ),
         )
 
@@ -307,12 +299,8 @@ class AdvancedCache:
         items_to_evict = sorted(
             [f.stem for f in cache_files],
             key=lambda k: (
-                self._metadata.get(
-                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
-                ).priority.value,
-                self._metadata.get(
-                    k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
-                ).last_accessed,
+                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).priority.value,
+                self._metadata.get(k, CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")).last_accessed,
             ),
         )
 
@@ -386,9 +374,7 @@ class AdvancedCache:
                 source=source,
             )
 
-    def get(
-        self, key: str, level: CacheLevel = CacheLevel.ALL, ttl: Optional[int] = None
-    ) -> Optional[T]:
+    def get(self, key: str, level: CacheLevel = CacheLevel.ALL, ttl: Optional[int] = None) -> Optional[T]:
         """Get item from cache.
 
         Args:
@@ -406,10 +392,7 @@ class AdvancedCache:
 
         with self._lock:
             # Check memory cache first if requested
-            if (
-                level in (CacheLevel.MEMORY, CacheLevel.ALL)
-                and key in self._memory_cache
-            ):
+            if level in (CacheLevel.MEMORY, CacheLevel.ALL) and key in self._memory_cache:
                 if self._is_expired(key, ttl):
                     # Item is expired, remove it
                     del self._memory_cache[key]
@@ -455,9 +438,7 @@ class AdvancedCache:
                             return None
 
                         # Update access metadata
-                        self._update_metadata(
-                            key, len(data), "", CachePriority.NORMAL, is_access=True
-                        )
+                        self._update_metadata(key, len(data), "", CachePriority.NORMAL, is_access=True)
 
                         # Store in memory cache for faster access next time
                         if level == CacheLevel.ALL:
@@ -593,11 +574,7 @@ class AdvancedCache:
             try:
                 if source:
                     # Clear only items from the specified source
-                    keys_to_delete = [
-                        key
-                        for key, meta in self._metadata.items()
-                        if meta.source == source
-                    ]
+                    keys_to_delete = [key for key, meta in self._metadata.items() if meta.source == source]
 
                     # Delete each item
                     for key in keys_to_delete:
@@ -647,9 +624,7 @@ class AdvancedCache:
         """
         with self._lock:
             if source:
-                return [
-                    key for key, meta in self._metadata.items() if meta.source == source
-                ]
+                return [key for key, meta in self._metadata.items() if meta.source == source]
             return list(self._metadata.keys())
 
     def get_size_mb(self) -> float:
@@ -675,10 +650,7 @@ class AdvancedCache:
         """
         with self._lock:
             # Check memory cache
-            if (
-                level in (CacheLevel.MEMORY, CacheLevel.ALL)
-                and key in self._memory_cache
-            ):
+            if level in (CacheLevel.MEMORY, CacheLevel.ALL) and key in self._memory_cache:
                 return True
 
             # Check disk cache

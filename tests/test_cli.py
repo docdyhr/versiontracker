@@ -11,9 +11,7 @@ class TestCLI(unittest.TestCase):
 
     def test_default_args(self):
         """Test default command-line arguments."""
-        with patch(
-            "sys.argv", ["versiontracker", "--apps"]
-        ):  # Need at least one arg to avoid printing help
+        with patch("sys.argv", ["versiontracker", "--apps"]):  # Need at least one arg to avoid printing help
             args = get_arguments()
             self.assertTrue(args.apps)
             self.assertFalse(args.brews)
@@ -86,9 +84,7 @@ class TestCLI(unittest.TestCase):
 
     def test_blacklist_option(self):
         """Test --blacklist option."""
-        with patch(
-            "sys.argv", ["versiontracker", "--apps", "--blacklist", "Firefox,Chrome"]
-        ):
+        with patch("sys.argv", ["versiontracker", "--apps", "--blacklist", "Firefox,Chrome"]):
             args = get_arguments()
             self.assertEqual(args.blacklist, "Firefox,Chrome")
 

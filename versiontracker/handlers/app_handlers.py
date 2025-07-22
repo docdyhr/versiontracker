@@ -70,22 +70,14 @@ def handle_list_apps(options: Any) -> int:
             # Create a temporary config with the specified blacklist
             temp_config = Config()
             temp_config.set("blacklist", options.blacklist.split(","))
-            filtered_apps = [
-                (app, ver) for app, ver in apps if not temp_config.is_blacklisted(app)
-            ]
+            filtered_apps = [(app, ver) for app, ver in apps if not temp_config.is_blacklisted(app)]
         else:
             # Use global config for blacklisting
-            filtered_apps = [
-                (app, ver) for app, ver in apps if not get_config().is_blacklisted(app)
-            ]
+            filtered_apps = [(app, ver) for app, ver in apps if not get_config().is_blacklisted(app)]
 
         # Get Homebrew casks if needed for filtering
         if hasattr(options, "brew_filter") and options.brew_filter:
-            print(
-                create_progress_bar().color("green")(
-                    "Getting Homebrew casks for filtering..."
-                )
-            )
+            print(create_progress_bar().color("green")("Getting Homebrew casks for filtering..."))
             brews = get_homebrew_casks()
             include_brews = getattr(options, "include_brews", False)
             if not include_brews:
@@ -109,20 +101,10 @@ def handle_list_apps(options: Any) -> int:
 
         # Display results
         if table:
-            print(
-                create_progress_bar().color("green")(
-                    "\nFound {} applications:\n".format(len(table))
-                )
-            )
-            print(
-                tabulate(table, headers=["Application", "Version"], tablefmt="pretty")
-            )
+            print(create_progress_bar().color("green")("\nFound {} applications:\n".format(len(table))))
+            print(tabulate(table, headers=["Application", "Version"], tablefmt="pretty"))
         else:
-            print(
-                create_progress_bar().color("yellow")(
-                    "\nNo applications found matching the criteria."
-                )
-            )
+            print(create_progress_bar().color("yellow")("\nNo applications found matching the criteria."))
 
         # Export if requested
         if hasattr(options, "export_format") and options.export_format:

@@ -55,9 +55,7 @@ class TestNetworkOperations(unittest.TestCase):
 
         # Patch subprocess.run to simulate timeout
         with patch("subprocess.run") as mock_subprocess:
-            mock_subprocess.side_effect = subprocess.TimeoutExpired(
-                cmd=["brew", "search", "--cask"], timeout=60
-            )
+            mock_subprocess.side_effect = subprocess.TimeoutExpired(cmd=["brew", "search", "--cask"], timeout=60)
 
             # Test the function - should return None for timeout, not raise exception
             result = find_matching_cask("Firefox")
@@ -183,10 +181,7 @@ class TestNetworkOperations(unittest.TestCase):
                     return {"name": "firefox", "version": "120.0.1"}
                 elif "chrome" in app_name.lower():
                     return {"name": "chrome", "version": "119.0.0"}
-                elif (
-                    "visual studio code" in app_name.lower()
-                    or "vscode" in app_name.lower()
-                ):
+                elif "visual studio code" in app_name.lower() or "vscode" in app_name.lower():
                     return {"name": "vscode", "version": "1.85.0"}
                 return None
 

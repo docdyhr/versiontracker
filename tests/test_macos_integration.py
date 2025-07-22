@@ -10,9 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # Only run these tests on macOS
-pytestmark = pytest.mark.skipif(
-    sys.platform != "darwin", reason="macOS integration tests only run on macOS"
-)
+pytestmark = pytest.mark.skipif(sys.platform != "darwin", reason="macOS integration tests only run on macOS")
 
 # Import after pytest marker to avoid import errors on non-macOS systems
 if sys.platform == "darwin":
@@ -57,9 +55,7 @@ class TestLaunchdService(unittest.TestCase):
 
         self.assertEqual(plist_config["Label"], "com.versiontracker.updater")
         self.assertIn("--test", plist_config["ProgramArguments"])
-        self.assertEqual(
-            plist_config["StartInterval"], 12 * 3600
-        )  # 12 hours in seconds
+        self.assertEqual(plist_config["StartInterval"], 12 * 3600)  # 12 hours in seconds
         self.assertFalse(plist_config["RunAtLoad"])
 
     def test_dict_to_plist_xml(self):
@@ -96,9 +92,7 @@ class TestLaunchdService(unittest.TestCase):
     def test_get_status_loaded(self, mock_run):
         """Test getting service status when loaded."""
         mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = (
-            "PID\tStatus\tLabel\n1234\t0\tcom.versiontracker.updater"
-        )
+        mock_run.return_value.stdout = "PID\tStatus\tLabel\n1234\t0\tcom.versiontracker.updater"
 
         status = self.service.get_status()
 
@@ -123,9 +117,7 @@ class TestMacOSNotifications(unittest.TestCase):
         """Test successful notification sending."""
         mock_run.return_value.returncode = 0
 
-        success = MacOSNotifications.send_notification(
-            "Test Title", "Test Message", "Test Subtitle"
-        )
+        success = MacOSNotifications.send_notification("Test Title", "Test Message", "Test Subtitle")
 
         self.assertTrue(success)
         mock_run.assert_called_once()
@@ -198,9 +190,7 @@ class TestGlobalFunctions(unittest.TestCase):
 
         self.assertTrue(result)
         mock_service.install_service.assert_called_once_with(["--test"])
-        mock_notifications.notify_service_status.assert_called_once_with(
-            "installed", True
-        )
+        mock_notifications.notify_service_status.assert_called_once_with("installed", True)
 
     @patch("versiontracker.macos_integration.LaunchdService")
     @patch("versiontracker.macos_integration.MacOSNotifications")
@@ -215,9 +205,7 @@ class TestGlobalFunctions(unittest.TestCase):
 
         self.assertTrue(result)
         mock_service.uninstall_service.assert_called_once()
-        mock_notifications.notify_service_status.assert_called_once_with(
-            "uninstalled", True
-        )
+        mock_notifications.notify_service_status.assert_called_once_with("uninstalled", True)
 
     @patch("versiontracker.macos_integration.LaunchdService")
     def test_get_service_status(self, mock_service_class):
@@ -238,9 +226,7 @@ class TestGlobalFunctions(unittest.TestCase):
     def test_check_and_notify(self, mock_notifications, mock_check_apps, mock_get_apps):
         """Test check and notify function."""
         mock_get_apps.return_value = [("App1", "1.0")]
-        mock_check_apps.return_value = [
-            ("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")
-        ]
+        mock_check_apps.return_value = [("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")]
         mock_notifications.notify_outdated_apps.return_value = True
 
         # Should not raise an exception

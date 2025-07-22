@@ -102,9 +102,7 @@ from versiontracker.version import (
 def test_compare_versions_edge_cases(version1, version2, expected_result):
     """Test version comparison with various edge cases."""
     result = compare_versions(version1, version2)
-    assert result == expected_result, (
-        f"Expected {expected_result} but got {result} for {version1} vs {version2}"
-    )
+    assert result == expected_result, f"Expected {expected_result} but got {result} for {version1} vs {version2}"
 
 
 @pytest.mark.parametrize(
@@ -178,9 +176,7 @@ def test_compare_versions_edge_cases(version1, version2, expected_result):
 def test_parse_version_edge_cases(version_string, expected_tuple):
     """Test version parsing with various edge cases."""
     result = parse_version(version_string)
-    assert result == expected_tuple, (
-        f"Expected {expected_tuple} but got {result} for '{version_string}'"
-    )
+    assert result == expected_tuple, f"Expected {expected_tuple} but got {result} for '{version_string}'"
 
 
 @pytest.mark.parametrize(
@@ -299,20 +295,12 @@ def test_version_status_edge_cases(current_version, latest_version, expected_sta
         ("1.0", "1.1.0", 0, -1, 0),
     ],
 )
-def test_version_difference_components_edge_cases(
-    version1, version2, expected_major, expected_minor, expected_patch
-):
+def test_version_difference_components_edge_cases(version1, version2, expected_major, expected_minor, expected_patch):
     """Test individual component differences in versions with edge cases."""
     diff = get_version_difference(version1, version2)
     if diff is not None:
         # Check only the first three components (major, minor, patch)
         if len(diff) >= 3:
-            assert diff[0] == expected_major, (
-                f"Expected major diff {expected_major} but got {diff[0]}"
-            )
-            assert diff[1] == expected_minor, (
-                f"Expected minor diff {expected_minor} but got {diff[1]}"
-            )
-            assert diff[2] == expected_patch, (
-                f"Expected patch diff {expected_patch} but got {diff[2]}"
-            )
+            assert diff[0] == expected_major, f"Expected major diff {expected_major} but got {diff[0]}"
+            assert diff[1] == expected_minor, f"Expected minor diff {expected_minor} but got {diff[1]}"
+            assert diff[2] == expected_patch, f"Expected patch diff {expected_patch} but got {diff[2]}"

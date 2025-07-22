@@ -281,8 +281,8 @@ async def async_check_brew_install_candidates(
         strict_match=strict_match,
     )
 
-    # Call the async method directly
-    return await processor.process_all(data)
+    # Call the method directly (it's sync due to @async_to_sync decorator)
+    return processor.process_all(data)
 
 
 @async_to_sync
@@ -397,5 +397,5 @@ async def async_check_brew_update_candidates(
         rate_limit=rate_limit,
     )
 
-    # Call the async method directly
-    return await processor.process_all(data)
+    # Call the method directly (it's sync due to @async_to_sync decorator)
+    return processor.process_all(data)

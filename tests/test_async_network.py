@@ -33,9 +33,7 @@ async def test_fetch_json_success():
 
         with patch("aiohttp.ClientSession", session_factory):
             with patch("versiontracker.async_network.read_cache", return_value=None):
-                with patch(
-                    "versiontracker.async_network.write_cache", return_value=True
-                ):
+                with patch("versiontracker.async_network.write_cache", return_value=True):
                     result = await fetch_json("https://example.com/api", use_cache=True)
 
                     # Verify the result

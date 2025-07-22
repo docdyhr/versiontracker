@@ -21,9 +21,7 @@ class TestAppsExtra(unittest.TestCase):
     """Additional test cases for the apps module."""
 
     @patch("versiontracker.apps.is_homebrew_available")
-    def test_check_brew_install_candidates_no_homebrew(
-        self, mock_is_homebrew_available
-    ):
+    def test_check_brew_install_candidates_no_homebrew(self, mock_is_homebrew_available):
         """Test check_brew_install_candidates when Homebrew is not available."""
         # Mock is_homebrew_available to return False
         mock_is_homebrew_available.return_value = False
@@ -231,9 +229,7 @@ class TestAppsExtra(unittest.TestCase):
 
         # Test with lower than minimum delay
         min_limiter = SimpleRateLimiter(0.05)
-        self.assertEqual(
-            get_limiter_delay(min_limiter), 0.1
-        )  # Should be clamped to 0.1
+        self.assertEqual(get_limiter_delay(min_limiter), 0.1)  # Should be clamped to 0.1
 
         # Test wait method
         import time
@@ -263,9 +259,7 @@ class TestAppsExtra(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list_cached(
-        self, mock_get_homebrew_casks, mock_is_homebrew
-    ):
+    def test_get_homebrew_casks_list_cached(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list with cached data."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
@@ -281,9 +275,7 @@ class TestAppsExtra(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list_no_cache(
-        self, mock_get_homebrew_casks, mock_is_homebrew
-    ):
+    def test_get_homebrew_casks_list_no_cache(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list without cached data."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
@@ -300,9 +292,7 @@ class TestAppsExtra(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list_first_command_fails(
-        self, mock_get_homebrew_casks, mock_is_homebrew
-    ):
+    def test_get_homebrew_casks_list_first_command_fails(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list when first brew command fails."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
@@ -319,17 +309,13 @@ class TestAppsExtra(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list_all_commands_fail(
-        self, mock_get_homebrew_casks, mock_is_homebrew
-    ):
+    def test_get_homebrew_casks_list_all_commands_fail(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list when both brew commands fail."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
 
         # Mock get_homebrew_casks to raise HomebrewError
-        mock_get_homebrew_casks.side_effect = HomebrewError(
-            "Failed to get Homebrew casks"
-        )
+        mock_get_homebrew_casks.side_effect = HomebrewError("Failed to get Homebrew casks")
 
         # Test that HomebrewError is raised
         with self.assertRaises(HomebrewError):
@@ -337,9 +323,7 @@ class TestAppsExtra(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list_permission_error(
-        self, mock_get_homebrew_casks, mock_is_homebrew
-    ):
+    def test_get_homebrew_casks_list_permission_error(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list with permission error."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
@@ -415,9 +399,7 @@ class TestAppsExtra(unittest.TestCase):
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.read_cache")
     @patch("versiontracker.apps.run_command")
-    def test_is_brew_cask_installable_not_found(
-        self, mock_run_command, mock_read_cache, mock_is_homebrew
-    ):
+    def test_is_brew_cask_installable_not_found(self, mock_run_command, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable when cask is not found."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True

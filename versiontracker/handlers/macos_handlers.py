@@ -31,11 +31,7 @@ def handle_install_service(options: Namespace) -> int:
 
         # Check if we're on macOS
         if sys.platform != "darwin":
-            print(
-                progress_bar.color("red")(
-                    "Error: macOS integration is only available on macOS"
-                )
-            )
+            print(progress_bar.color("red")("Error: macOS integration is only available on macOS"))
             return 1
 
         print("Installing VersionTracker scheduled checker service...")  # type: ignore[unreachable]
@@ -55,15 +51,11 @@ def handle_install_service(options: Namespace) -> int:
                     f"✅ Successfully installed VersionTracker service (runs every {interval_hours} hours)"
                 )
             )
-            print(
-                "The service will check for outdated applications and send notifications."
-            )
+            print("The service will check for outdated applications and send notifications.")
             print("Logs are available at: ~/Library/Logs/VersionTracker/")
             return 0
         else:
-            print(
-                progress_bar.color("red")("❌ Failed to install VersionTracker service")
-            )
+            print(progress_bar.color("red")("❌ Failed to install VersionTracker service"))
             print("Check the logs for more details.")
             return 1
 
@@ -87,11 +79,7 @@ def handle_uninstall_service(options: Namespace) -> int:
 
         # Check if we're on macOS
         if sys.platform != "darwin":
-            print(
-                progress_bar.color("red")(
-                    "Error: macOS integration is only available on macOS"
-                )
-            )
+            print(progress_bar.color("red")("Error: macOS integration is only available on macOS"))
             return 1
 
         print("Uninstalling VersionTracker scheduled checker service...")  # type: ignore[unreachable]
@@ -100,18 +88,10 @@ def handle_uninstall_service(options: Namespace) -> int:
         success = uninstall_scheduled_checker()
 
         if success:
-            print(
-                progress_bar.color("green")(
-                    "✅ Successfully uninstalled VersionTracker service"
-                )
-            )
+            print(progress_bar.color("green")("✅ Successfully uninstalled VersionTracker service"))
             return 0
         else:
-            print(
-                progress_bar.color("red")(
-                    "❌ Failed to uninstall VersionTracker service"
-                )
-            )
+            print(progress_bar.color("red")("❌ Failed to uninstall VersionTracker service"))
             print("The service may not have been installed or there was an error.")
             return 1
 
@@ -135,11 +115,7 @@ def handle_service_status(options: Namespace) -> int:
 
         # Check if we're on macOS
         if sys.platform != "darwin":
-            print(
-                progress_bar.color("red")(
-                    "Error: macOS integration is only available on macOS"
-                )
-            )
+            print(progress_bar.color("red")("Error: macOS integration is only available on macOS"))
             return 1
 
         print("VersionTracker Service Status:")  # type: ignore[unreachable]
@@ -161,11 +137,7 @@ def handle_service_status(options: Namespace) -> int:
         if service_status == "loaded":
             pid = status.get("pid", "unknown")
             if pid == "not running":
-                print(
-                    progress_bar.color("yellow")(
-                        "🔄 Status: Loaded but not currently running"
-                    )
-                )
+                print(progress_bar.color("yellow")("🔄 Status: Loaded but not currently running"))
             else:
                 print(progress_bar.color("green")(f"✅ Status: Running (PID: {pid})"))
         elif service_status == "not loaded":
@@ -177,15 +149,9 @@ def handle_service_status(options: Namespace) -> int:
         exit_code = status.get("last_exit_code")
         if exit_code and exit_code != "unknown":
             if exit_code == "0":
-                print(
-                    progress_bar.color("green")(
-                        f"✅ Last exit code: {exit_code} (success)"
-                    )
-                )
+                print(progress_bar.color("green")(f"✅ Last exit code: {exit_code} (success)"))
             else:
-                print(
-                    progress_bar.color("red")(f"❌ Last exit code: {exit_code} (error)")
-                )
+                print(progress_bar.color("red")(f"❌ Last exit code: {exit_code} (error)"))
 
         # Display configuration info
         service = LaunchdService()
@@ -215,11 +181,7 @@ def handle_test_notification(options: Namespace) -> int:
 
         # Check if we're on macOS
         if sys.platform != "darwin":
-            print(
-                progress_bar.color("red")(
-                    "Error: macOS notifications are only available on macOS"
-                )
-            )
+            print(progress_bar.color("red")("Error: macOS notifications are only available on macOS"))
             return 1
 
         print("Sending test notification...")  # type: ignore[unreachable]
@@ -258,11 +220,7 @@ def handle_menubar_app(options: Namespace) -> int:
 
         # Check if we're on macOS
         if sys.platform != "darwin":
-            print(
-                progress_bar.color("red")(
-                    "Error: menubar application is only available on macOS"
-                )
-            )
+            print(progress_bar.color("red")("Error: menubar application is only available on macOS"))
             return 1
 
         print("Launching VersionTracker menubar application...")  # type: ignore[unreachable]
