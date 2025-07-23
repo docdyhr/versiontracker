@@ -3,9 +3,9 @@ name: Performance Testing
 
 "on":
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+    branches: [master]
   schedule:
     # Run performance tests weekly on Sunday at 23:00 UTC
     - cron: "0 23 * * 0"

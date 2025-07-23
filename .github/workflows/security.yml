@@ -3,9 +3,9 @@ name: Security
 
 "on":
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+    branches: [master]
   workflow_dispatch:
   schedule:
     # Run security checks weekly on Sundays at 2 AM UTC
