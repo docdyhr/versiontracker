@@ -8,6 +8,15 @@ set -e
 REPO="docdyhr/versiontracker"
 DEFAULT_BRANCH="master"
 
+# Detect sed type and set appropriate in-place flag
+if sed --version 2>/dev/null | grep -q GNU; then
+    # GNU sed
+    SED_INPLACE="sed -i"
+else
+    # BSD sed (macOS)
+    SED_INPLACE="sed -i ''"
+fi
+
 echo "🔧 Cleaning up workflow branch references to use '$DEFAULT_BRANCH'"
 echo ""
 
@@ -16,6 +25,8 @@ update_workflow_files() {
     local files_updated=0
 
     if [[ -d ".github/workflows" ]]; then
+        # Enable nullglob to handle cases where no files match
+        shopt -s nullglob
         for workflow in .github/workflows/*.yml .github/workflows/*.yaml; do
             if [[ -f "$workflow" ]]; then
                 local workflow_name
@@ -31,10 +42,10 @@ update_workflow_files() {
                     cp "$workflow" "$workflow.backup"
 
                     # Remove main branch references, keep master
-                    sed -i '' '/branches:.*\[.*main.*master.*\]/s/main, //g' "$workflow"
-                    sed -i '' '/branches:.*\[.*master.*main.*\]/s/, main//g' "$workflow"
-                    sed -i '' 's/\[main, master\]/[master]/g' "$workflow"
-                    sed -i '' 's/\[master, main\]/[master]/g' "$workflow"
+                    eval "$SED_INPLACE '/branches:.*\[.*main.*master.*\]/s/main, //g' '$workflow'"
+                    eval "$SED_INPLACE '/branches:.*\[.*master.*main.*\]/s/, main//g' '$workflow'"
+                    eval "$SED_INPLACE 's/\[main, master\]/[master]/g' '$workflow'"
+                    eval "$SED_INPLACE 's/\[master, main\]/[master]/g' '$workflow'"
 
                     echo "   ✅ Updated to use only '$DEFAULT_BRANCH'"
                     ((files_updated++))
@@ -46,8 +57,8 @@ update_workflow_files() {
                     cp "$workflow" "$workflow.backup"
 
                     # Replace main with master
-                    sed -i '' 's/branches:.*\[main\]/branches: [master]/g' "$workflow"
-                    sed -i '' 's/branches: main/branches: master/g' "$workflow"
+                    eval "$SED_INPLACE 's/branches:.*\[main\]/branches: [master]/g' '$workflow'"
+                    eval "$SED_INPLACE 's/branches: main/branches: master/g' '$workflow'"
 
                     echo "   ✅ Updated to use '$DEFAULT_BRANCH'"
                     ((files_updated++))
@@ -81,8 +92,12 @@ validate_workflows() {
             local workflow_name
             workflow_name=$(basename "$workflow")
 
+            # Check if PyYAML is installed
+            if ! python3 -c "import yaml" 2>/dev/null; then
+                echo "   ❌ PyYAML is not installed. Please install it with 'pip install pyyaml' to validate YAML syntax."
+                validation_passed=false
             # Basic YAML syntax check
-            if python3 -c "import yaml; yaml.safe_load(open('$workflow'))" 2>/dev/null; then
+            elif python3 -c "import yaml; yaml.safe_load(open('$workflow'))" 2>/dev/null; then
                 echo "   ✅ $workflow_name: Valid YAML syntax"
             else
                 echo "   ❌ $workflow_name: Invalid YAML syntax"

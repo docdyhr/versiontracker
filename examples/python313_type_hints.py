@@ -1,4 +1,10 @@
-"""Example of Python 3.13 compatible type hints."""
+"""Example of Python 3.13 compatible type hints.
+
+NOTE: This file contains Python 3.12+ syntax (generic function syntax) and
+will cause syntax errors on older Python versions. It is excluded from
+linting and type checking in pyproject.toml to prevent CI failures.
+This is an example file meant to be run only on Python 3.12+.
+"""
 
 from __future__ import annotations  # Enable modern type hint syntax
 

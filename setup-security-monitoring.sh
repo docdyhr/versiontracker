@@ -44,26 +44,42 @@ gh api \
 
 # Check if GitHub Advanced Security is available (may require GitHub Pro/Enterprise)
 echo "🔍 Checking GitHub Advanced Security availability..."
-ADVANCED_SECURITY=$(gh api "/repos/$REPO" --jq '.security_and_analysis.advanced_security.status' 2>/dev/null || echo "not_available")
+# Properly handle API call failure
+if ADVANCED_SECURITY=$(gh api "/repos/$REPO" --jq '.security_and_analysis.advanced_security.status' 2>/dev/null); then
+    echo "✅ Successfully retrieved Advanced Security status: $ADVANCED_SECURITY"
+else
+    ADVANCED_SECURITY="not_available"
+    echo "ℹ️  Could not retrieve Advanced Security status (may not be available on current plan)"
+fi
 
 if [ "$ADVANCED_SECURITY" = "enabled" ] || [ "$ADVANCED_SECURITY" = "disabled" ]; then
     echo "✅ GitHub Advanced Security is available"
 
     # Enable secret scanning
     echo "🔐 Enabling secret scanning..."
-    gh api \
+    if gh api \
         --method PATCH \
         -H "Accept: application/vnd.github+json" \
         "/repos/$REPO" \
-        --field "security_and_analysis[secret_scanning][status]=enabled" || echo "⚠️  Secret scanning may require GitHub Advanced Security"
+        --field "security_and_analysis[secret_scanning][status]=enabled" 2>/dev/null; then
+        echo "✅ Secret scanning enabled successfully"
+    else
+        echo "⚠️  Failed to enable secret scanning (may require GitHub Advanced Security or proper permissions)"
+        echo "   Please check your GitHub plan and repository permissions"
+    fi
 
     # Enable secret scanning push protection
     echo "🛡️  Enabling secret scanning push protection..."
-    gh api \
+    if gh api \
         --method PATCH \
         -H "Accept: application/vnd.github+json" \
         "/repos/$REPO" \
-        --field "security_and_analysis[secret_scanning_push_protection][status]=enabled" || echo "⚠️  Push protection may require GitHub Advanced Security"
+        --field "security_and_analysis[secret_scanning_push_protection][status]=enabled" 2>/dev/null; then
+        echo "✅ Push protection enabled successfully"
+    else
+        echo "⚠️  Failed to enable push protection (may require GitHub Advanced Security or proper permissions)"
+        echo "   Please check your GitHub plan and repository permissions"
+    fi
 
     # Enable code scanning (if CodeQL workflow exists)
     if [ -f ".github/workflows/codeql-analysis.yml" ]; then

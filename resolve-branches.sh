@@ -8,6 +8,15 @@ set -e
 REPO="docdyhr/versiontracker"
 echo "🔍 Analyzing branch configuration for $REPO"
 
+# Detect sed type and set appropriate in-place flag
+if sed --version 2>/dev/null | grep -q GNU; then
+    # GNU sed
+    SED_INPLACE="sed -i"
+else
+    # BSD sed (macOS)
+    SED_INPLACE="sed -i ''"
+fi
+
 # Function to check current branch status
 check_branch_status() {
     echo "📊 Current Branch Status:"
@@ -41,7 +50,7 @@ check_protection_status() {
 identify_default_branch() {
     echo "🎯 Identifying default branch..."
 
-    local default_branch
+    # Make default_branch global so it can be used by other functions
     default_branch=$(gh api "repos/$REPO" --jq '.default_branch')
     echo "   GitHub default branch: $default_branch"
 
@@ -68,7 +77,7 @@ resolve_protection_issues() {
 
     # Update the branch protection script with correct branch
     if [[ -f "setup-branch-protection.sh" ]]; then
-        sed -i '' "s/BRANCH=\".*\"/BRANCH=\"$default_branch\"/" setup-branch-protection.sh
+        eval "$SED_INPLACE \"s/BRANCH=\\\".*\\\"/BRANCH=\\\"$default_branch\\\"/\" setup-branch-protection.sh"
         echo "✅ Updated setup-branch-protection.sh to use '$default_branch'"
     fi
 
@@ -189,18 +198,18 @@ main() {
     echo ""
 
     # Resolve protection issues
-    resolve_protection_issues "$DEFAULT_BRANCH"
+    resolve_protection_issues "$default_branch"
     echo ""
 
     # Update local configuration
-    update_local_config "$DEFAULT_BRANCH"
+    update_local_config "$default_branch"
     echo ""
 
     # Final verification
     echo "✅ Branch resolution complete!"
     echo ""
     echo "📋 Summary:"
-    echo "   • Default branch: $DEFAULT_BRANCH"
+    echo "   • Default branch: $default_branch"
     echo "   • Branch protection: Active"
     echo "   • Local tracking: Updated"
     echo "   • Protection script: Updated"
