@@ -100,9 +100,10 @@ class TestCLIAutoUpdates(unittest.TestCase):
 class TestMainAutoUpdatesIntegration(unittest.TestCase):
     """Test main module integration with auto-update commands."""
 
+    @patch("versiontracker.apps.get_homebrew_casks", return_value=["firefox", "chrome"])
     @patch("versiontracker.__main__.handle_blacklist_auto_updates")
     @patch("versiontracker.__main__.get_arguments")
-    def test_main_blacklist_auto_updates(self, mock_get_args, mock_handle_blacklist):
+    def test_main_blacklist_auto_updates(self, mock_get_args, mock_handle_blacklist, mock_get_casks):
         """Test main function calls blacklist handler correctly."""
         from versiontracker.__main__ import versiontracker_main
 
@@ -121,9 +122,10 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         self.assertEqual(result, 0)
         mock_handle_blacklist.assert_called_once_with(mock_args)
 
+    @patch("versiontracker.apps.get_homebrew_casks", return_value=["firefox", "chrome"])
     @patch("versiontracker.__main__.handle_uninstall_auto_updates")
     @patch("versiontracker.__main__.get_arguments")
-    def test_main_uninstall_auto_updates(self, mock_get_args, mock_handle_uninstall):
+    def test_main_uninstall_auto_updates(self, mock_get_args, mock_handle_uninstall, mock_get_casks):
         """Test main function calls uninstall handler correctly."""
         from versiontracker.__main__ import versiontracker_main
 
@@ -150,11 +152,10 @@ class TestAutoUpdatesCLIHelp(unittest.TestCase):
         """Test that help text includes all auto-update options."""
         sys.argv = ["versiontracker", "--help"]
 
-        help_text = None
-        with self.assertRaises(SystemExit) as cm:
-            with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            with self.assertRaises(SystemExit) as cm:
                 get_arguments()
-                help_text = mock_stdout.getvalue()
+            help_text = mock_stdout.getvalue()
 
         self.assertEqual(cm.exception.code, 0)
 
