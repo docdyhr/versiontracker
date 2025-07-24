@@ -14,17 +14,20 @@ Your VersionTracker repository now has comprehensive security monitoring configu
 ### Dependabot Configuration Enhancements
 
 #### Production Dependencies
+
 - **Daily security scans** for critical vulnerabilities
 - **Automatic security updates** with priority grouping
 - **Auto-merge eligible** for patch and minor security updates
 - **Reviewer assignment** to @docdyhr for all security PRs
 
 #### Development Dependencies
+
 - **Weekly security scans** for development tools
 - **Separate grouping** for testing and linting tool updates
 - **Security-focused updates** for tools like bandit, safety, pip-audit
 
 #### GitHub Actions
+
 - **Weekly scans** for action security updates
 - **Security grouping** for GitHub-maintained actions
 - **Auto-assignment** for review and approval
@@ -32,6 +35,7 @@ Your VersionTracker repository now has comprehensive security monitoring configu
 ### Security Scanning Workflows
 
 #### New Security Audit Workflow
+
 - **Daily automated scans** at 6 AM UTC
 - **Multi-tool scanning**: safety, pip-audit, bandit
 - **PR integration** with automatic security reports
@@ -42,9 +46,9 @@ Your VersionTracker repository now has comprehensive security monitoring configu
 
 You can monitor security status at these locations:
 
-- **Main Security Tab**: https://github.com/docdyhr/versiontracker/security
-- **Dependabot Alerts**: https://github.com/docdyhr/versiontracker/security/dependabot
-- **Security Advisories**: https://github.com/docdyhr/versiontracker/security/advisories
+- **Main Security Tab**: <https://github.com/docdyhr/versiontracker/security>
+- **Dependabot Alerts**: <https://github.com/docdyhr/versiontracker/security/dependabot>
+- **Security Advisories**: <https://github.com/docdyhr/versiontracker/security/advisories>
 
 ## 🔧 How It Works
 
@@ -68,16 +72,19 @@ You can monitor security status at these locations:
 ### Security Scanning Tools
 
 #### Safety
+
 - Scans against PyUp.io vulnerability database
 - Checks for known security vulnerabilities in dependencies
 - JSON output for automated processing
 
 #### Pip-Audit
+
 - OSS vulnerability scanner for Python packages
 - Cross-references with multiple vulnerability databases
 - Provides detailed vulnerability information
 
 #### Bandit
+
 - Static analysis for common security issues in Python code
 - Scans your source code for potential security problems
 - Configurable via pyproject.toml
@@ -102,16 +109,19 @@ To receive security alerts:
 ## 🚀 Next Steps and Best Practices
 
 ### Immediate Actions
+
 - [ ] Review your notification preferences in GitHub settings
 - [ ] Check the Security tab to see current vulnerability status
 - [ ] Review and test the first Dependabot security PR when it arrives
 
 ### Ongoing Maintenance
+
 - [ ] Weekly review of Dependabot PRs (automated but should be monitored)
 - [ ] Monthly review of security audit reports
 - [ ] Quarterly review of dependency update policies
 
 ### Development Workflow Integration
+
 - [ ] Run `safety check` locally before committing
 - [ ] Use `pip-audit` in your development environment
 - [ ] Consider adding pre-commit hooks for security scanning
@@ -146,16 +156,19 @@ Your repository now maintains:
 ## 🛡️ Additional Security Recommendations
 
 ### Repository Settings
+
 - Consider enabling "Restrict pushes that create files" in branch protection
 - Enable "Include administrators" in branch protection for maximum security
 - Set up signing verification for all commits
 
 ### Development Environment
+
 - Use virtual environments for all development
 - Keep development dependencies updated
 - Use environment variables for sensitive configuration
 
 ### Code Quality
+
 - Regular code reviews even for solo development
 - Use type hints and mypy for better code safety
 - Follow secure coding practices for file operations

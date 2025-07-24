@@ -29,7 +29,7 @@ gh api \
     "strict": true,
     "contexts": [
       "Test Python 3.10 on ubuntu-latest",
-      "Test Python 3.11 on ubuntu-latest", 
+      "Test Python 3.11 on ubuntu-latest",
       "Test Python 3.12 on ubuntu-latest",
       "Test Python 3.10 on macos-latest",
       "Test Python 3.11 on macos-latest",

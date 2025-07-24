@@ -48,7 +48,7 @@ ADVANCED_SECURITY=$(gh api "/repos/$REPO" --jq '.security_and_analysis.advanced_
 
 if [ "$ADVANCED_SECURITY" = "enabled" ] || [ "$ADVANCED_SECURITY" = "disabled" ]; then
     echo "✅ GitHub Advanced Security is available"
-    
+
     # Enable secret scanning
     echo "🔐 Enabling secret scanning..."
     gh api \
@@ -56,7 +56,7 @@ if [ "$ADVANCED_SECURITY" = "enabled" ] || [ "$ADVANCED_SECURITY" = "disabled" ]
         -H "Accept: application/vnd.github+json" \
         "/repos/$REPO" \
         --field "security_and_analysis[secret_scanning][status]=enabled" || echo "⚠️  Secret scanning may require GitHub Advanced Security"
-    
+
     # Enable secret scanning push protection
     echo "🛡️  Enabling secret scanning push protection..."
     gh api \
@@ -64,7 +64,7 @@ if [ "$ADVANCED_SECURITY" = "enabled" ] || [ "$ADVANCED_SECURITY" = "disabled" ]
         -H "Accept: application/vnd.github+json" \
         "/repos/$REPO" \
         --field "security_and_analysis[secret_scanning_push_protection][status]=enabled" || echo "⚠️  Push protection may require GitHub Advanced Security"
-    
+
     # Enable code scanning (if CodeQL workflow exists)
     if [ -f ".github/workflows/codeql-analysis.yml" ]; then
         echo "🔬 CodeQL analysis workflow detected - code scanning should be automatically enabled"
