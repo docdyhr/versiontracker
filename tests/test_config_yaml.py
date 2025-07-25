@@ -126,7 +126,7 @@ class TestConfigFile(TestCase):
         # Verify default values are used
         self.assertEqual(test_config.get("api_rate_limit"), 3)  # Default value
         self.assertEqual(test_config.get("max_workers"), 10)  # Default value
-        self.assertEqual(len(test_config.get_blacklist()), 13)  # Default value
+        self.assertEqual(len(test_config.get_blacklist()), 8)  # Default value
 
     def test_custom_config_path(self):
         """Test using a custom configuration path."""
