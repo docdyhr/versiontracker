@@ -29,7 +29,7 @@ class TestConfig(unittest.TestCase):
         """Test that default values are set correctly."""
         config = Config()
         self.assertEqual(config.get("api_rate_limit"), 3)
-        self.assertEqual(len(config.get_blacklist()), 8)
+        self.assertEqual(len(config.get_blacklist()), 13)
         self.assertTrue(config.get("show_progress"))
 
     def test_set_get(self):

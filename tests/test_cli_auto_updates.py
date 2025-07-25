@@ -112,8 +112,25 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         from versiontracker.__main__ import versiontracker_main
 
         mock_args = MagicMock()
+        # Set the target option to True
         mock_args.blacklist_auto_updates = True
         mock_args.generate_config = False
+        # Set all other action options to False to avoid conflict
+        mock_args.apps = False
+        mock_args.brews = False
+        mock_args.recom = False
+        mock_args.strict_recom = False
+        mock_args.check_outdated = False
+        mock_args.uninstall_auto_updates = False
+        mock_args.install_service = False
+        mock_args.uninstall_service = False
+        mock_args.service_status = False
+        mock_args.test_notification = False
+        mock_args.menubar = False
+        # Set filter-related attributes
+        mock_args.blacklist = None
+        mock_args.additional_dirs = None
+        mock_args.save_filter = None
         mock_get_args.return_value = mock_args
         mock_handle_blacklist.return_value = 0
 
@@ -121,7 +138,7 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
             with patch("versiontracker.__main__.handle_initialize_config"):
                 with patch("versiontracker.__main__.handle_configure_from_options"):
                     with patch("versiontracker.__main__.handle_filter_management", return_value=None):
-                        with patch("versiontracker.__main__.handle_main_actions", return_value=0):
+                        with patch("versiontracker.__main__.handle_save_filter"):
                             result = versiontracker_main()
 
         self.assertEqual(result, 0)
@@ -139,8 +156,25 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         from versiontracker.__main__ import versiontracker_main
 
         mock_args = MagicMock()
+        # Set the target option to True
         mock_args.uninstall_auto_updates = True
         mock_args.generate_config = False
+        # Set all other action options to False to avoid conflict
+        mock_args.apps = False
+        mock_args.brews = False
+        mock_args.recom = False
+        mock_args.strict_recom = False
+        mock_args.check_outdated = False
+        mock_args.blacklist_auto_updates = False
+        mock_args.install_service = False
+        mock_args.uninstall_service = False
+        mock_args.service_status = False
+        mock_args.test_notification = False
+        mock_args.menubar = False
+        # Set filter-related attributes
+        mock_args.blacklist = None
+        mock_args.additional_dirs = None
+        mock_args.save_filter = None
         mock_get_args.return_value = mock_args
         mock_handle_uninstall.return_value = 0
 
@@ -148,7 +182,7 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
             with patch("versiontracker.__main__.handle_initialize_config"):
                 with patch("versiontracker.__main__.handle_configure_from_options"):
                     with patch("versiontracker.__main__.handle_filter_management", return_value=None):
-                        with patch("versiontracker.__main__.handle_main_actions", return_value=0):
+                        with patch("versiontracker.__main__.handle_save_filter"):
                             result = versiontracker_main()
 
         self.assertEqual(result, 0)
@@ -232,6 +266,9 @@ class TestAutoUpdatesEndToEnd(unittest.TestCase):
             mock_args = MagicMock()
             mock_args.blacklist_auto_updates = True
             mock_args.generate_config = False
+            mock_args.blacklist = None
+            mock_args.additional_dirs = None
+            mock_args.save_filter = None
             mock_get_args.return_value = mock_args
 
             with patch("versiontracker.__main__.handle_setup_logging"):
