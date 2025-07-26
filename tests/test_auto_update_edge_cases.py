@@ -207,12 +207,14 @@ class TestAutoUpdateConfirmationFlows(unittest.TestCase):
             ("", 0, False),  # Empty (default to No)
             ("yes", 0, False),  # Invalid (not just 'y')
             ("Y", 0, False),  # Invalid (uppercase Y not accepted)
-            (" y ", 0, False),  # y with spaces (strip should handle)
+            (" y ", 0, True),  # y with spaces (strip should handle and save)
         ]
 
         for user_input, expected_result, should_save in test_cases:
             with self.subTest(user_input=user_input):
-                mock_input.return_value = user_input.strip()  # Simulate input().strip()
+                mock_input.return_value = user_input  # Don't pre-strip, let the handler do it
+                self.mock_config.get.return_value = []  # Reset config state
+                self.mock_config.save.return_value = True  # Mock save success
                 self.mock_config.save.reset_mock()
 
                 result = handle_blacklist_auto_updates(self.mock_options)
@@ -321,6 +323,10 @@ class TestAutoUpdateNetworkAndPermissionErrors(unittest.TestCase):
 class TestAutoUpdateConcurrentOperations(unittest.TestCase):
     """Test handling of concurrent operations and race conditions."""
 
+    def setUp(self):
+        """Set up test fixtures."""
+        self.mock_options = MagicMock()
+
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates")
@@ -378,6 +384,10 @@ class TestAutoUpdateConcurrentOperations(unittest.TestCase):
 class TestAutoUpdateTimeoutScenarios(unittest.TestCase):
     """Test timeout handling in auto-update operations."""
 
+    def setUp(self):
+        """Set up test fixtures."""
+        self.mock_options = MagicMock()
+
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates")
@@ -405,6 +415,10 @@ class TestAutoUpdateTimeoutScenarios(unittest.TestCase):
 
 class TestAutoUpdateLargeScaleOperations(unittest.TestCase):
     """Test handling of large-scale operations."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.mock_options = MagicMock()
 
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
