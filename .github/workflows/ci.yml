@@ -50,7 +50,27 @@ jobs:
         run: |
           python scripts/test_python313.py
 
-      - name: Run tests
+      - name: Install from lock files
+        run: |
+          # Use lock files for reproducible builds
+          if [ -f requirements-prod.lock ]; then
+            pip install -r requirements-prod.lock
+          fi
+          if [ -f requirements-dev.lock ]; then
+            pip install -r requirements-dev.lock
+          fi
+
+      - name: Run platform compatibility tests
+        run: |
+          pytest tests/test_platform_compatibility.py -v --tb=short
+        continue-on-error: ${{ matrix.experimental == true }}
+
+      - name: Run auto-update feature tests
+        run: |
+          pytest tests/test_auto_update_*.py tests/test_enhanced_auto_update_handlers.py -v --tb=short --timeout=300
+        continue-on-error: ${{ matrix.experimental == true }}
+
+      - name: Run all tests
         run: |
           # Note: pytest-timeout is installed via requirements-dev.txt
           pytest --maxfail=5 --tb=short --timeout=300 --cov=versiontracker --cov-report=xml

@@ -1,12 +1,18 @@
 """Platform compatibility tests for cross-platform environments."""
 
 import os
+import platform
 import sys
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from versiontracker.handlers.auto_update_handlers import (
+    handle_blacklist_auto_updates,
+    handle_uninstall_auto_updates,
+)
 
 
 class TestCrossPlatformUtils(unittest.TestCase):
@@ -83,6 +89,33 @@ class TestCICompatibility(unittest.TestCase):
 
         # This test documents CI detection logic
         self.assertIsInstance(is_ci, bool)
+
+    def test_homebrew_mocking_in_ci(self):
+        """Test Homebrew operations work with mocking in CI."""
+        is_ci = os.environ.get("CI", "").lower() in ("true", "1")
+
+        if is_ci and platform.system() != "Darwin":
+            # On non-macOS CI systems, Homebrew should be mocked
+            with patch("versiontracker.apps.get_homebrew_casks", return_value=[]):
+                with patch("versiontracker.homebrew.get_casks_with_auto_updates", return_value=[]):
+                    mock_options = MagicMock()
+                    result = handle_blacklist_auto_updates(mock_options)
+                    self.assertEqual(result, 0)
+
+    def test_platform_specific_skipping(self):
+        """Test platform-specific tests are properly skipped."""
+        current_platform = platform.system()
+
+        # Verify we can detect platform correctly
+        self.assertIn(current_platform, ["Darwin", "Linux", "Windows"])
+
+        # Test that non-macOS systems skip macOS-specific functionality
+        if current_platform != "Darwin":
+            with self.assertRaises(ImportError):
+                # This should fail on non-macOS systems
+                from versiontracker.macos_integration import send_notification
+
+                send_notification("test", "test")
 
     @pytest.mark.skipif(os.environ.get("CI") == "true", reason="Timing-sensitive test may fail in CI")
     def test_timing_sensitive_operations(self):

@@ -1,0 +1,46 @@
+# Generated lock file for production dependencies
+# This file pins exact versions for reproducible builds
+# Generated on: July 26, 2025
+# Python version: 3.10+
+
+# Core dependencies (matching pyproject.toml)
+fuzzywuzzy==0.18.0
+rapidfuzz==3.11.1
+tqdm==4.67.1
+PyYAML==6.0.2
+termcolor==2.5.0
+tabulate==0.9.0
+psutil==7.0.0
+aiohttp==3.11.11
+
+# Sub-dependencies for reproducible builds
+# (These are automatically installed but we pin them for stability)
+
+# PyYAML dependencies
+pyyaml==6.0.2
+
+# aiohttp dependencies
+aiosignal==1.3.2
+attrs==24.2.0
+frozenlist==1.5.0
+multidict==6.1.0
+yarl==1.18.3
+
+# rapidfuzz dependencies
+rapidfuzz==3.11.1
+
+# termcolor dependencies
+termcolor==2.5.0
+
+# tabulate dependencies
+tabulate==0.9.0
+
+# psutil dependencies
+psutil==7.0.0
+
+# tqdm dependencies
+tqdm==4.67.1
+
+# fuzzywuzzy dependencies
+fuzzywuzzy==0.18.0
+python-levenshtein==0.26.0

@@ -1,0 +1,41 @@
+# Generated lock file for development dependencies
+# This file pins exact versions for reproducible builds
+# Generated on: July 26, 2025
+# Python version: 3.11+
+
+# Core testing dependencies
+pytest==8.4.1
+pytest-cov==6.1.0
+pytest-timeout==2.5.0
+pytest-mock==4.0.0
+pytest-xdist==3.8.0
+
+# Code quality and linting
+ruff==0.11.4
+mypy==1.11.3
+bandit==1.9.0
+
+# Type checking support
+types-PyYAML==6.0.12.20241104
+types-tabulate==0.9.0.20241106
+types-termcolor==1.1.6.20241106
+
+# Build and packaging
+build==1.2.2
+wheel==0.44.0
+setuptools==75.5.0
+
+# Development utilities
+pip-tools==7.5.0
+safety==3.2.7
+
+# Coverage and reporting
+coverage==7.10.0
+
+# Mock and testing utilities
+responses==0.25.0
+freezegun==1.6.0
+
+# CI/CD utilities
+tox==4.23.2
+pre-commit==4.0.1

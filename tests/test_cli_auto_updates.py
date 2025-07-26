@@ -264,8 +264,22 @@ class TestAutoUpdatesEndToEnd(unittest.TestCase):
 
         with patch("versiontracker.__main__.get_arguments") as mock_get_args:
             mock_args = MagicMock()
+            # Set the target option to True
             mock_args.blacklist_auto_updates = True
             mock_args.generate_config = False
+            # Set all other action options to False to avoid conflict
+            mock_args.apps = False
+            mock_args.brews = False
+            mock_args.recom = False
+            mock_args.strict_recom = False
+            mock_args.check_outdated = False
+            mock_args.uninstall_auto_updates = False
+            mock_args.install_service = False
+            mock_args.uninstall_service = False
+            mock_args.service_status = False
+            mock_args.test_notification = False
+            mock_args.menubar = False
+            # Set filter-related attributes
             mock_args.blacklist = None
             mock_args.additional_dirs = None
             mock_args.save_filter = None
