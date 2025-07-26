@@ -90,17 +90,28 @@ class TestCICompatibility(unittest.TestCase):
         # This test documents CI detection logic
         self.assertIsInstance(is_ci, bool)
 
-    def test_homebrew_mocking_in_ci(self):
+    @patch("versiontracker.handlers.auto_update_handlers.get_config")
+    @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
+    @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates")
+    def test_homebrew_mocking_in_ci(self, mock_get_auto_updates, mock_get_casks, mock_get_config):
         """Test Homebrew operations work with mocking in CI."""
         is_ci = os.environ.get("CI", "").lower() in ("true", "1")
 
         if is_ci and platform.system() != "Darwin":
             # On non-macOS CI systems, Homebrew should be mocked
-            with patch("versiontracker.apps.get_homebrew_casks", return_value=[]):
-                with patch("versiontracker.homebrew.get_casks_with_auto_updates", return_value=[]):
-                    mock_options = MagicMock()
-                    result = handle_blacklist_auto_updates(mock_options)
-                    self.assertEqual(result, 0)
+            mock_config = MagicMock()
+            mock_config.get.return_value = []
+            mock_config.save.return_value = True
+            mock_get_config.return_value = mock_config
+            mock_get_casks.return_value = []
+            mock_get_auto_updates.return_value = []
+
+            mock_options = MagicMock()
+            result = handle_blacklist_auto_updates(mock_options)
+            self.assertEqual(result, 0)
+        else:
+            # Skip test on macOS or non-CI environments
+            self.skipTest("Test only runs in CI on non-macOS systems")
 
     def test_platform_specific_skipping(self):
         """Test platform-specific tests are properly skipped."""
