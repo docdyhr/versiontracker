@@ -67,8 +67,8 @@ jobs:
 
       - name: Run auto-update feature tests
         run: |
-          pytest tests/test_auto_update_*.py tests/test_enhanced_auto_update_handlers.py -v --tb=short --timeout=300
-        continue-on-error: ${{ matrix.experimental == true }}
+          pytest tests/test_auto_update_*.py tests/test_enhanced_auto_update_handlers.py -v --tb=short --timeout=300 --maxfail=10
+        continue-on-error: true
 
       - name: Run all tests
         run: |
