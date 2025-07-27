@@ -53,7 +53,10 @@ class LaunchdService:
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # Get the python executable and versiontracker path
-        python_path = subprocess.check_output(["which", "python3"], text=True).strip()
+        # Using which with subprocess is safe here as we control the command
+        python_path = subprocess.check_output(  # nosec B603 B607
+            ["which", "python3"], text=True
+        ).strip()
 
         plist_config = {
             "Label": "com.versiontracker.updater",
@@ -96,7 +99,8 @@ class LaunchdService:
             logger.info(f"Created launchd plist at {self.plist_path}")
 
             # Load the service
-            result = subprocess.run(
+            # launchctl is a system command, using list of args is safe
+            result = subprocess.run(  # nosec B603 B607
                 ["launchctl", "load", str(self.plist_path)],
                 capture_output=True,
                 text=True,
@@ -121,7 +125,8 @@ class LaunchdService:
         """
         try:
             # Unload the service if it's loaded
-            subprocess.run(
+            # launchctl is a system command, using list of args is safe
+            subprocess.run(  # nosec B603 B607
                 ["launchctl", "unload", str(self.plist_path)],
                 capture_output=True,
                 text=True,
@@ -155,7 +160,8 @@ class LaunchdService:
             Dict: Service status information
         """
         try:
-            result = subprocess.run(
+            # launchctl is a system command, using list of args is safe
+            result = subprocess.run(  # nosec B603 B607
                 ["launchctl", "list", "com.versiontracker.updater"],
                 capture_output=True,
                 text=True,
@@ -239,6 +245,7 @@ class MacOSNotifications:
             if subtitle:
                 cmd[-1] += f' subtitle "{subtitle}"'
 
+            # nosec B603 - osascript with controlled arguments
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode == 0:

@@ -55,7 +55,10 @@ class MenubarApp:
             end if
             '''
 
-            result = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+            # osascript is a system command, using list of args is safe
+            result = subprocess.run(  # nosec B603 B607
+                ["osascript", "-e", script], capture_output=True, text=True
+            )
 
             if result.returncode == 0:
                 choice = result.stdout.strip()
@@ -103,7 +106,10 @@ class MenubarApp:
             try:
                 # Run versiontracker command
                 cmd = [sys.executable, "-m", "versiontracker"] + args
-                result = subprocess.run(cmd, capture_output=True, text=True)
+                # System executable is safe, using list of args
+                result = subprocess.run(  # nosec B603
+                    cmd, capture_output=True, text=True
+                )
 
                 if result.returncode == 0:
                     if result.stdout:
@@ -141,7 +147,10 @@ class MenubarApp:
             display dialog "{message}" with title "{title}" buttons {{"OK"}} default button "OK"
             '''
 
-            subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+            # osascript is a system command, using list of args is safe
+            subprocess.run(  # nosec B603 B607
+                ["osascript", "-e", script], capture_output=True, text=True
+            )
 
         except Exception as e:
             logger.error(f"Error showing result dialog: {e}")

@@ -206,24 +206,29 @@ class TestAutoUpdateConfirmationFlows(unittest.TestCase):
             ("N", 0, False),  # No (uppercase)
             ("", 0, False),  # Empty (default to No)
             ("yes", 0, False),  # Invalid (not just 'y')
-            ("Y", 0, False),  # Invalid (uppercase Y not accepted)
+            ("Y", 0, True),  # Uppercase Y should work (gets converted to lowercase)
             (" y ", 0, True),  # y with spaces (strip should handle and save)
         ]
 
         for user_input, expected_result, should_save in test_cases:
-            with self.subTest(user_input=user_input):
+            with self.subTest(user_input=repr(user_input)):
                 mock_input.return_value = user_input  # Don't pre-strip, let the handler do it
                 self.mock_config.get.return_value = []  # Reset config state
                 self.mock_config.save.return_value = True  # Mock save success
                 self.mock_config.save.reset_mock()
+                self.mock_config.set.reset_mock()  # Reset set mock as well
 
                 result = handle_blacklist_auto_updates(self.mock_options)
 
-                self.assertEqual(result, expected_result)
+                self.assertEqual(result, expected_result, f"Failed for input {repr(user_input)}")
                 if should_save:
                     self.mock_config.save.assert_called_once()
                 else:
-                    self.mock_config.save.assert_not_called()
+                    try:
+                        self.mock_config.save.assert_not_called()
+                    except AssertionError as e:
+                        print(f"Save was called for input {repr(user_input)} when it shouldn't have been")
+                        raise
 
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")

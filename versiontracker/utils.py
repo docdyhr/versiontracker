@@ -329,7 +329,8 @@ def run_command_secure(command_parts: List[str], timeout: Optional[int] = None) 
     try:
         # Run the command without shell=True for security
         logging.debug(f"Running secure command: {' '.join(command_parts)}")
-        process = subprocess.Popen(
+        # Using Popen with shell=False and list args is secure
+        process = subprocess.Popen(  # nosec B603
             command_parts,
             shell=False,  # Security: No shell interpretation
             stdout=subprocess.PIPE,
@@ -417,7 +418,8 @@ def shell_command_to_args(cmd: str) -> List[str]:
 
 def _execute_subprocess(cmd_list: List[str], timeout: Optional[int]) -> subprocess.Popen:
     """Execute subprocess and return the process object."""
-    return subprocess.Popen(
+    # Using Popen with shell=False and list args is secure
+    return subprocess.Popen(  # nosec B603
         cmd_list,
         shell=False,
         stdout=subprocess.PIPE,

@@ -1,5 +1,6 @@
 """User interface utilities for VersionTracker."""
 
+import logging
 import shutil
 import sys
 import time
@@ -338,10 +339,10 @@ class SmartProgress(Generic[T]):
                 self.progress_bar.set_postfix_str(f"CPU: {self.cpu_usage:.1f}% | MEM: {self.memory_usage:.1f}%")
 
             self.last_update_time = time.time()
-        except Exception:
+        except Exception as e:
             # If we can't get resource information, just continue without it
-            # This is non-critical functionality
-            pass
+            # This is non-critical functionality for displaying system stats
+            logging.debug("Unable to update resource information: %s", e)
 
 
 # Create a progress bar function (adapter for smart_progress)

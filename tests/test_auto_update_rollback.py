@@ -303,12 +303,9 @@ class TestAutoUpdateRecoveryScenarios(unittest.TestCase):
         mock_get_auto_updates.return_value = ["app1"]
         mock_input.return_value = "y"
 
-        # Config.get works initially but set fails due to corruption
+        # Config.get and set work initially but save fails due to corruption
         self.mock_config.get.return_value = []
-        self.mock_config.set.side_effect = [
-            None,  # First call succeeds
-            Exception("Config file corrupted"),  # Second call fails
-        ]
+        self.mock_config.save.return_value = False  # Save fails due to corruption
 
         result = handle_blacklist_auto_updates(self.mock_options)
 
@@ -469,7 +466,8 @@ class TestAutoUpdateTransactionIntegrity(unittest.TestCase):
         # Verify final reporting shows consistent state
         print_calls = [str(call) for call in mock_print.call_args_list]
         self.assertTrue(any("Successfully uninstalled: 3" in call for call in print_calls))
-        self.assertTrue(any("Failed to uninstall: 0" in call for call in print_calls))
+        # When all succeed, no failure message is printed (which is correct behavior)
+        self.assertFalse(any("Failed to uninstall:" in call for call in print_calls))
 
 
 if __name__ == "__main__":

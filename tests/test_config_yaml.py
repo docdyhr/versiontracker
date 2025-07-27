@@ -116,14 +116,11 @@ class TestConfigFile(TestCase):
         # Use a path that definitely doesn't exist
         non_existent_path = "/tmp/definitely_not_a_real_config_file_12345.yaml"
 
-        # Create a test Config instance
-        test_config = Config()
-        test_config._config["config_file"] = non_existent_path
+        # Create a fresh test Config instance that will load defaults
+        # since the file doesn't exist
+        test_config = Config(config_file=non_existent_path)
 
-        # This should not raise an exception and should use default values
-        test_config._load_from_file()
-
-        # Verify default values are used
+        # Verify default values are used (these should be the defaults from __init__)
         self.assertEqual(test_config.get("api_rate_limit"), 3)  # Default value
         self.assertEqual(test_config.get("max_workers"), 10)  # Default value
         self.assertEqual(len(test_config.get_blacklist()), 8)  # Default value

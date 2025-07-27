@@ -958,7 +958,8 @@ def get_homebrew_cask_info(app_name: str, use_enhanced: bool = True) -> Optional
     """
     try:
         # First try exact match
-        result = subprocess.run(
+        # brew is a known system command, using list args is safe
+        result = subprocess.run(  # nosec B603 B607
             ["brew", "info", "--cask", app_name, "--json"],
             capture_output=True,
             text=True,
@@ -1004,7 +1005,8 @@ def _search_homebrew_casks(app_name: str, use_enhanced: bool = True) -> Optional
     """
     try:
         # Get list of all casks
-        result = subprocess.run(
+        # brew is a known system command, using list args is safe (enhanced search)
+        result = subprocess.run(  # nosec B603 B607
             ["brew", "search", "--cask"],
             capture_output=True,
             text=True,
@@ -1651,7 +1653,8 @@ def find_matching_cask(app_name: str, threshold: int = 70, use_enhanced: bool = 
     """
     try:
         # Get list of all casks
-        result = subprocess.run(
+        # brew is a known system command, using list args is safe (find matching)
+        result = subprocess.run(  # nosec B603 B607
             ["brew", "search", "--cask"],
             capture_output=True,
             text=True,

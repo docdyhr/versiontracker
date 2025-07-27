@@ -27,7 +27,8 @@ class TestConfig(unittest.TestCase):
 
     def test_init_default_values(self):
         """Test that default values are set correctly."""
-        config = Config()
+        # Create a Config with a non-existent file to get defaults only
+        config = Config(config_file="/nonexistent/config.yaml")
         self.assertEqual(config.get("api_rate_limit"), 3)
         self.assertEqual(len(config.get_blacklist()), 8)
         self.assertTrue(config.get("show_progress"))

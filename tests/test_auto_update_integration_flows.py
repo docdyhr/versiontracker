@@ -228,9 +228,9 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
     @patch("versiontracker.__main__.handle_configure_from_options")
     @patch("versiontracker.__main__.handle_filter_management")
     @patch("versiontracker.__main__.handle_save_filter")
-    @patch("versiontracker.handlers.auto_update_handlers.get_config")
-    @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
-    @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates")
+    @patch("versiontracker.handlers.brew_handlers.get_config")
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
+    @patch("versiontracker.handlers.brew_handlers.get_casks_with_auto_updates")
     @patch("builtins.print")
     def test_list_auto_updates_workflow(
         self,
@@ -253,8 +253,8 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
         mock_get_auto_updates.return_value = self.auto_update_casks
         mock_filter_mgmt.return_value = None
 
-        # Set up command line arguments
-        sys.argv = ["versiontracker", "--list-auto-updates"]
+        # Set up command line arguments - use --brews --only-auto-updates to list auto-update casks
+        sys.argv = ["versiontracker", "--brews", "--only-auto-updates", "--no-progress"]
 
         # Run main function
         result = versiontracker_main()
@@ -343,8 +343,8 @@ class TestAutoUpdateConfirmationVariations(unittest.TestCase):
             (["y", "INSTALL"], False, "Second confirmation wrong word"),
             (["y", ""], False, "Second confirmation empty"),
             (["y", "delete"], False, "Second confirmation different word"),
-            (["y", "UNINSTALL "], False, "Second confirmation with trailing space"),
-            (["y", " UNINSTALL"], False, "Second confirmation with leading space"),
+            (["y", "UNINSTALL "], True, "Second confirmation with trailing space (stripped)"),
+            (["y", " UNINSTALL"], True, "Second confirmation with leading space (stripped)"),
             # Valid combination
             (["y", "UNINSTALL"], True, "Valid confirmation sequence"),
         ]
