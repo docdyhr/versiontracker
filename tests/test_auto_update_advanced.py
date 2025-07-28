@@ -216,11 +216,18 @@ class TestAutoUpdateEdgeCases(unittest.TestCase):
 
 
 class TestAutoUpdateConfirmationFlows(unittest.TestCase):
-    """Test various confirmation flow scenarios."""
+    """Test confirmation flow scenarios for auto-update operations."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.mock_options = MagicMock()
+
+    def _assert_command_execution(self, mock_run, should_proceed):
+        """Helper to assert command execution based on expected outcome."""
+        if should_proceed:
+            mock_run.assert_called_once()
+        else:
+            mock_run.assert_not_called()
 
     def test_uninstall_with_various_confirmation_inputs(self):
         """Test various user inputs for confirmation prompts."""
@@ -268,10 +275,7 @@ class TestAutoUpdateConfirmationFlows(unittest.TestCase):
 
                             handle_uninstall_auto_updates(self.mock_options)
 
-                            if should_proceed:
-                                mock_run.assert_called_once()
-                            else:
-                                mock_run.assert_not_called()
+                            self._assert_command_execution(mock_run, should_proceed)
 
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
@@ -437,16 +441,17 @@ class TestAutoUpdateLargeScaleOperations(unittest.TestCase):
         """Generate list of auto-update apps (every second app up to 150)."""
         return [f"app{i}" for i in range(0, 150, 2)]
 
+    def _create_uninstall_result(self, index):
+        """Helper to create a single uninstall result based on index."""
+        if index % 10 == 0:  # Every 10th app fails
+            return ("Error: Failed to uninstall", 1)
+        else:
+            return ("Success", 0)
+
     def _generate_mixed_uninstall_results(self) -> list[tuple[str, int]]:
         """Generate mixed success/failure results for uninstall operations."""
-        results: list[tuple[str, int]] = []
         # Generate 75 results (one for each auto-update app)
-        for i in range(75):
-            if i % 10 == 0:  # Every 10th app fails
-                results.append(("Error: Failed to uninstall", 1))
-            else:
-                results.append(("Success", 0))
-        return results
+        return [self._create_uninstall_result(i) for i in range(75)]
 
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
