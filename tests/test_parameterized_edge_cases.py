@@ -298,9 +298,7 @@ def test_version_status_edge_cases(current_version, latest_version, expected_sta
 def test_version_difference_components_edge_cases(version1, version2, expected_major, expected_minor, expected_patch):
     """Test individual component differences in versions with edge cases."""
     diff = get_version_difference(version1, version2)
-    if diff is not None:
-        # Check only the first three components (major, minor, patch)
-        if len(diff) >= 3:
-            assert diff[0] == expected_major, f"Expected major diff {expected_major} but got {diff[0]}"
-            assert diff[1] == expected_minor, f"Expected minor diff {expected_minor} but got {diff[1]}"
-            assert diff[2] == expected_patch, f"Expected patch diff {expected_patch} but got {diff[2]}"
+    if diff is not None and len(diff) >= 3:
+        assert diff[0] == expected_major, f"Expected major diff {expected_major} but got {diff[0]}"
+        assert diff[1] == expected_minor, f"Expected minor diff {expected_minor} but got {diff[1]}"
+        assert diff[2] == expected_patch, f"Expected patch diff {expected_patch} but got {diff[2]}"

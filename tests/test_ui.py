@@ -572,13 +572,17 @@ class TestQueryFilterManager:
     def test_list_filters_with_filters(self):
         """Test listing filters when some exist."""
         # Create some filter files
-        for name in ["filter1", "filter2", "filter3"]:
-            filter_file = self.manager.filters_dir / f"{name}.json"
-            with open(filter_file, "w") as f:
-                json.dump({"test": True}, f)
+        self._create_test_filters(["filter1", "filter2", "filter3"])
 
         filters = self.manager.list_filters()
         assert sorted(filters) == ["filter1", "filter2", "filter3"]
+
+    def _create_test_filters(self, filter_names: list[str]) -> None:
+        """Helper method to create test filter files."""
+        for name in filter_names:
+            filter_file = self.manager.filters_dir / f"{name}.json"
+            with open(filter_file, "w") as f:
+                json.dump({"test": True}, f)
 
     def test_list_filters_ignores_non_json(self):
         """Test list_filters ignores non-JSON files."""
