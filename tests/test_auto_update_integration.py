@@ -38,6 +38,28 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
             "discord",
         ]
 
+    def _filter_non_blacklisted_apps(self, all_apps, blacklisted_apps):
+        """Helper to filter out blacklisted apps."""
+        return [app for app in all_apps if app not in blacklisted_apps]
+
+    def _filter_auto_update_apps(self, all_apps, auto_update_apps):
+        """Helper to filter apps that have auto-updates."""
+        return [app for app in all_apps if app in auto_update_apps]
+
+    def _create_large_app_list(self, count):
+        """Helper to create a large list of apps for testing."""
+        return [f"app{i}" for i in range(count)]
+
+    def _generate_system_app_results(self, all_apps, system_apps):
+        """Helper to generate expected results for system apps."""
+        results = []
+        for app in all_apps:
+            if app in system_apps:
+                results.append(("Error: Cannot uninstall system app", 1))
+            else:
+                results.append(("Success", 0))
+        return results
+
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates")
@@ -90,7 +112,7 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
         }.get(key, default)
 
         # Filter out blacklisted apps for uninstall
-        non_blacklisted = [app for app in self.auto_update_apps if app not in expected_blacklist]
+        non_blacklisted = self._filter_non_blacklisted_apps(self.auto_update_apps, expected_blacklist)
         mock_get_auto_updates.return_value = non_blacklisted
 
         mock_run_command.return_value = ("Success", 0)
@@ -258,6 +280,10 @@ class TestAutoUpdateUserExperience(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_options = MagicMock()
 
+    def _create_large_app_list(self, count):
+        """Helper to create a large list of apps for testing."""
+        return [f"app{i}" for i in range(count)]
+
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates")
@@ -268,7 +294,7 @@ class TestAutoUpdateUserExperience(unittest.TestCase):
     ):
         """Test that progress feedback is provided during operations."""
         # Setup mocks for large operation
-        large_app_list = [f"app{i}" for i in range(100)]
+        large_app_list = self._create_large_app_list(100)
         mock_get_casks.return_value = large_app_list
         mock_get_auto_updates.return_value = large_app_list[:50]  # 50 auto-update apps
         mock_input.return_value = "y"
@@ -323,6 +349,16 @@ class TestAutoUpdateSafetyChecks(unittest.TestCase):
         """Set up test fixtures."""
         self.mock_options = MagicMock()
 
+    def _generate_system_app_results(self, all_apps, system_apps):
+        """Helper to generate expected results for system apps."""
+        results = []
+        for app in all_apps:
+            if app in system_apps:
+                results.append(("Error: Cannot uninstall system app", 1))
+            else:
+                results.append(("Success", 0))
+        return results
+
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
     @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates")
     @patch("versiontracker.handlers.auto_update_handlers.run_command")
@@ -342,12 +378,7 @@ class TestAutoUpdateSafetyChecks(unittest.TestCase):
         mock_input.side_effect = ["y", "UNINSTALL"]
 
         # System apps should fail to uninstall
-        results = []
-        for app in all_apps:
-            if app in system_apps:
-                results.append(("Error: Cannot uninstall system app", 1))
-            else:
-                results.append(("Success", 0))
+        results = self._generate_system_app_results(all_apps, system_apps)
         mock_run_command.side_effect = results
 
         # Execute
