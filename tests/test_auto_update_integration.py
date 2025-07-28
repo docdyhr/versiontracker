@@ -107,12 +107,20 @@ class TestAutoUpdateWithFilters(unittest.TestCase):
         auto_update_apps = ["app1", "app3"]
 
         # Test exclude auto-updates
-        excluded = [app for app in all_apps if app not in auto_update_apps]
+        excluded = self._get_excluded_apps(all_apps, auto_update_apps)
         self.assertEqual(excluded, ["app2", "app4"])
 
         # Test only auto-updates
-        only_auto = [app for app in all_apps if app in auto_update_apps]
+        only_auto = self._get_only_auto_updates(all_apps, auto_update_apps)
         self.assertEqual(only_auto, ["app1", "app3"])
+
+    def _get_excluded_apps(self, all_apps: list[str], auto_update_apps: list[str]) -> list[str]:
+        """Get apps excluding auto-updates."""
+        return [app for app in all_apps if app not in auto_update_apps]
+
+    def _get_only_auto_updates(self, all_apps: list[str], auto_update_apps: list[str]) -> list[str]:
+        """Get only auto-updating apps."""
+        return [app for app in all_apps if app in auto_update_apps]
 
 
 class TestAutoUpdateExportIntegration(unittest.TestCase):

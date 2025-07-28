@@ -224,40 +224,54 @@ class TestAutoUpdateConfirmationFlows(unittest.TestCase):
 
     def test_uninstall_with_various_confirmation_inputs(self):
         """Test various user inputs for confirmation prompts."""
-        # Test various inputs
-        test_cases = [
-            (["y", "UNINSTALL"], True),  # Normal case
-            (["Y", "UNINSTALL"], True),  # Capital Y is accepted (strip().lower() converts to "y")
-            (["yes", "UNINSTALL"], False),  # Full "yes" not accepted
-            (["y", "uninstall"], False),  # Lowercase uninstall
-            (["y", "UNINSTALL "], True),  # Extra space is ok (strip() removes it)
-            (["y", ""], False),  # Empty confirmation
-            (["n", "UNINSTALL"], False),  # First prompt cancelled
-            (["", "UNINSTALL"], False),  # Empty first prompt
-            ([" y ", "UNINSTALL"], True),  # Spaces around y (strip() removes them)
-        ]
+        # Test valid confirmation sequence
+        self._test_uninstall_confirmation(["y", "UNINSTALL"], should_proceed=True)
 
-        for inputs, should_proceed in test_cases:
-            with self.subTest(inputs=inputs):
-                with patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks") as mock_get_casks:
-                    with patch(
-                        "versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates"
-                    ) as mock_get_auto_updates:
-                        with patch("builtins.input") as mock_input:
-                            with patch("builtins.print"):
-                                with patch("versiontracker.handlers.auto_update_handlers.run_command") as mock_run:
-                                    # Setup mocks
-                                    mock_get_casks.return_value = ["app1"]
-                                    mock_get_auto_updates.return_value = ["app1"]
-                                    mock_input.side_effect = inputs
-                                    mock_run.return_value = ("Success", 0)
+        # Test capital Y is accepted
+        self._test_uninstall_confirmation(["Y", "UNINSTALL"], should_proceed=True)
 
-                                    result = handle_uninstall_auto_updates(self.mock_options)
+        # Test valid with extra spaces
+        self._test_uninstall_confirmation([" y ", "UNINSTALL"], should_proceed=True)
 
-                                    if should_proceed:
-                                        mock_run.assert_called_once()
-                                    else:
-                                        mock_run.assert_not_called()
+        # Test UNINSTALL with trailing space
+        self._test_uninstall_confirmation(["y", "UNINSTALL "], should_proceed=True)
+
+        # Test full "yes" not accepted
+        self._test_uninstall_confirmation(["yes", "UNINSTALL"], should_proceed=False)
+
+        # Test lowercase uninstall not accepted
+        self._test_uninstall_confirmation(["y", "uninstall"], should_proceed=False)
+
+        # Test empty confirmation
+        self._test_uninstall_confirmation(["y", ""], should_proceed=False)
+
+        # Test first prompt cancelled
+        self._test_uninstall_confirmation(["n", "UNINSTALL"], should_proceed=False)
+
+        # Test empty first prompt
+        self._test_uninstall_confirmation(["", "UNINSTALL"], should_proceed=False)
+
+    def _test_uninstall_confirmation(self, inputs, should_proceed):
+        """Helper method to test uninstall confirmation scenarios."""
+        auto_update_handlers = "versiontracker.handlers.auto_update_handlers"
+
+        with patch(f"{auto_update_handlers}.get_homebrew_casks") as mock_casks:
+            with patch(f"{auto_update_handlers}.get_casks_with_auto_updates") as mock_auto_updates:
+                with patch("builtins.input") as mock_input:
+                    with patch("builtins.print"):
+                        with patch(f"{auto_update_handlers}.run_command") as mock_run:
+                            # Setup mocks
+                            mock_casks.return_value = ["app1"]
+                            mock_auto_updates.return_value = ["app1"]
+                            mock_input.side_effect = inputs
+                            mock_run.return_value = ("Success", 0)
+
+                            handle_uninstall_auto_updates(self.mock_options)
+
+                            if should_proceed:
+                                mock_run.assert_called_once()
+                            else:
+                                mock_run.assert_not_called()
 
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
@@ -393,22 +407,17 @@ class TestAutoUpdateLargeScaleOperations(unittest.TestCase):
         self, mock_print, mock_input, mock_run_command, mock_get_auto_updates, mock_get_casks
     ):
         """Test uninstalling a large number of apps (100+)."""
-        # Generate 150 test apps
-        large_app_list = [f"app{i}" for i in range(150)]
-        auto_update_apps = [f"app{i}" for i in range(0, 150, 2)]  # 75 apps
+        # Generate 150 test apps and 75 auto-update apps
+        large_app_list = self._generate_app_list(150)
+        auto_update_apps = self._generate_auto_update_apps()
 
         # Setup mocks
         mock_get_casks.return_value = large_app_list
         mock_get_auto_updates.return_value = auto_update_apps
         mock_input.side_effect = ["y", "UNINSTALL"]
 
-        # Simulate mixed results
-        results = []
-        for i, app in enumerate(auto_update_apps):
-            if i % 10 == 0:  # Every 10th app fails
-                results.append(("Error: Failed to uninstall", 1))
-            else:
-                results.append(("Success", 0))
+        # Simulate mixed results using helper
+        results = self._generate_mixed_uninstall_results()
         mock_run_command.side_effect = results
 
         # Execute
@@ -416,7 +425,28 @@ class TestAutoUpdateLargeScaleOperations(unittest.TestCase):
 
         # Verify
         self.assertEqual(result, 1)  # Some failures
-        self.assertEqual(mock_run_command.call_count, 75)
+        # Should call run_command 75 times (one for each auto-update app)
+        expected_call_count = 75
+        self.assertEqual(mock_run_command.call_count, expected_call_count)
+
+    def _generate_app_list(self, count: int) -> list[str]:
+        """Generate a list of test app names."""
+        return [f"app{i}" for i in range(count)]
+
+    def _generate_auto_update_apps(self) -> list[str]:
+        """Generate list of auto-update apps (every second app up to 150)."""
+        return [f"app{i}" for i in range(0, 150, 2)]
+
+    def _generate_mixed_uninstall_results(self) -> list[tuple[str, int]]:
+        """Generate mixed success/failure results for uninstall operations."""
+        results: list[tuple[str, int]] = []
+        # Generate 75 results (one for each auto-update app)
+        for i in range(75):
+            if i % 10 == 0:  # Every 10th app fails
+                results.append(("Error: Failed to uninstall", 1))
+            else:
+                results.append(("Success", 0))
+        return results
 
     @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks")
@@ -427,9 +457,9 @@ class TestAutoUpdateLargeScaleOperations(unittest.TestCase):
         self, mock_print, mock_input, mock_get_auto_updates, mock_get_casks, mock_get_config
     ):
         """Test adding to a blacklist that already has 500+ entries."""
-        # Setup large existing blacklist
-        existing_blacklist = [f"old-app{i}" for i in range(500)]
-        new_apps = [f"new-app{i}" for i in range(50)]
+        # Setup large existing blacklist and new apps using helpers
+        existing_blacklist = self._generate_existing_blacklist()
+        new_apps = self._generate_new_apps()
 
         # Setup mocks
         mock_get_casks.return_value = new_apps
@@ -449,6 +479,14 @@ class TestAutoUpdateLargeScaleOperations(unittest.TestCase):
         # Check that set was called with combined list
         expected_list = existing_blacklist + new_apps
         mock_config.set.assert_called_once_with("blacklist", expected_list)
+
+    def _generate_existing_blacklist(self) -> list[str]:
+        """Generate large existing blacklist with 500 entries."""
+        return [f"old-app{i}" for i in range(500)]
+
+    def _generate_new_apps(self) -> list[str]:
+        """Generate 50 new apps to add to blacklist."""
+        return [f"new-app{i}" for i in range(50)]
 
 
 class TestAutoUpdateTimeoutScenarios(unittest.TestCase):
