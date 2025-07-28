@@ -4,6 +4,27 @@ This document outlines planned enhancements and future development for the Versi
 
 ## 🚀 High Priority
 
+### Technical Debt Resolution (NEW - July 2025)
+
+- [x] **Line Length Standards Harmonization** (Completed July 2025)
+  - [x] Established consistent 120-character limit across codebase
+  - [x] Updated pyproject.toml with clear documentation
+  - [x] Enhanced CLAUDE.md with coding standards section
+  - [x] Verified E501 rule enforcement via ruff
+  - [x] Confirmed zero violations in current codebase
+
+- [ ] **Fix Coverage Reporting Discrepancy** (Critical)
+  - [ ] Investigate why HTML coverage shows 16% vs 70%+ actual
+  - [ ] Update coverage configuration in pyproject.toml
+  - [ ] Verify accurate reporting across all modules
+  - [ ] Ensure CI/CD uses correct coverage metrics
+
+- [ ] **Update Dependencies** (Security)
+  - [ ] Update psutil from 6.1.1 to 7.0.0
+  - [ ] Review and update all development dependencies
+  - [ ] Test compatibility after updates
+  - [ ] Update lock files for reproducible builds
+
 ### Performance and Architecture
 
 - [ ] **Async Network Operations Enhancement**
@@ -32,6 +53,25 @@ This document outlines planned enhancements and future development for the Versi
   - [ ] Create unified interface for multiple package managers
 
 ## 🔧 Medium Priority
+
+### Code Quality and Maintainability (NEW - July 2025)
+
+- [ ] **Refactor Large Modules** (Maintainability)
+  - [ ] Split version.py (1,911 lines) into focused modules:
+    - [ ] version/parser.py - Parsing functions
+    - [ ] version/comparator.py - Comparison logic  
+    - [ ] version/models.py - Data classes
+  - [ ] Refactor apps.py (1,413 lines) for better organization:
+    - [ ] apps/finder.py - Application discovery
+    - [ ] apps/matcher.py - Fuzzy matching logic
+    - [ ] apps/cache.py - Caching functionality
+  - [ ] Consider breaking down config.py (1,031 lines)
+
+- [ ] **Improve Type Safety** (Quality)
+  - [ ] Enable strict type checking in mypy configuration
+  - [ ] Add type annotations to menubar_app.py untyped functions
+  - [ ] Review and fix any new type errors
+  - [ ] Enable --check-untyped-defs flag
 
 ### Developer Experience
 
@@ -95,6 +135,14 @@ This document outlines planned enhancements and future development for the Versi
   - [ ] Add plugin sandboxing for security
 
 ## 🐛 Known Issues
+
+### Technical Debt Items (NEW - July 2025)
+
+- [ ] **Clean Up Security Warnings** (Code Quality)
+  - [ ] Rename "blacklist" variables throughout codebase to "blocklist" or "exclude_list"
+  - [ ] Configure bandit to suppress false positive warnings
+  - [ ] Review hardcoded_sql_expressions warning in advanced_cache.py:575
+  - [ ] Address subprocess_without_shell_equals_true in macos_integration.py:249
 
 ### Compatibility and Edge Cases
 

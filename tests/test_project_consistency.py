@@ -132,14 +132,17 @@ class TestProjectConsistency:
         error_msg = f"mypy.ini has {mypy_version}, expected {min_version}"
         assert mypy_version == min_version, error_msg
 
+    def _assert_setup_cfg_version(self, setup_version: Optional[str], min_version: str) -> None:
+        """Assert setup.cfg version matches expected if it exists."""
+        if setup_version is not None:
+            msg = f"setup.cfg has {setup_version}, expected {min_version}"
+            assert setup_version == min_version, msg
+
     def test_setup_cfg_python_version_consistency(self):
         """Test setup.cfg Python version matches pyproject.toml."""
         min_version = extract_min_python_version()
         setup_version = check_setup_cfg_version()
-
-        if setup_version is not None:
-            msg = f"setup.cfg has {setup_version}, expected {min_version}"
-            assert setup_version == min_version, msg
+        self._assert_setup_cfg_version(setup_version, min_version)
 
     def test_readme_python_version_consistency(self):
         """Test that README.md Python version matches pyproject.toml."""
@@ -177,24 +180,31 @@ class TestProjectConsistency:
         # Validate all supported versions are tested
         self._validate_ci_versions(supported_versions, ci_versions)
 
+    def _assert_version_in_ci(self, version: str, ci_versions: List[str]) -> None:
+        """Assert that a specific version is tested in CI."""
+        error_msg = f"Python {version} is supported but not tested in CI"
+        assert version in ci_versions, error_msg
+
+    def _get_missing_versions(self, supported: List[str], ci_versions: List[str]) -> List[str]:
+        """Get list of supported versions missing from CI."""
+        return [version for version in supported if version not in ci_versions]
+
     def _validate_ci_versions(self, supported: List[str], ci_versions: List[str]) -> None:
         """Validate that all supported versions are tested in CI."""
-        for version in supported:
-            error_msg = f"Python {version} is supported but not tested in CI"
-            assert version in ci_versions, error_msg
+        missing_versions = self._get_missing_versions(supported, ci_versions)
+        msg = f"Python versions not tested in CI: {missing_versions}"
+        assert not missing_versions, msg
 
-    def test_coverage_configuration(self):
-        """Test that coverage configuration is consistent."""
-        project_root = get_project_root()
-
-        # Check .coveragerc
+    def _check_coveragerc_file(self, project_root: Path) -> None:
+        """Check .coveragerc file if it exists."""
         coveragerc_path = project_root / ".coveragerc"
         if coveragerc_path.exists():
             with open(coveragerc_path, encoding="utf-8") as f:
                 content = f.read()
                 validate_coverage_config(content)
 
-        # Check pytest.ini settings
+    def _check_pytest_ini_file(self, project_root: Path) -> None:
+        """Check pytest.ini file if it exists."""
         pytest_ini_path = project_root / "pytest.ini"
         if pytest_ini_path.exists():
             with open(pytest_ini_path, encoding="utf-8") as f:
@@ -204,13 +214,23 @@ class TestProjectConsistency:
                 dev_msg = "pytest.ini should not enforce coverage threshold"
                 assert has_cov_flag or no_cov_flag, dev_msg
 
-        # Check pytest-ci.ini settings
+    def _check_pytest_ci_file(self, project_root: Path) -> None:
+        """Check pytest-ci.ini file if it exists."""
         pytest_ci_path = project_root / "pytest-ci.ini"
         if pytest_ci_path.exists():
             with open(pytest_ci_path, encoding="utf-8") as f:
                 content = f.read()
                 ci_msg = "pytest-ci.ini should have --cov-fail-under=0"
                 assert "--cov-fail-under=0" in content, ci_msg
+
+    def test_coverage_configuration(self):
+        """Test that coverage configuration is consistent."""
+        project_root = get_project_root()
+
+        # Check configuration files
+        self._check_coveragerc_file(project_root)
+        self._check_pytest_ini_file(project_root)
+        self._check_pytest_ci_file(project_root)
 
     def test_dependency_constraints(self):
         """Test that constraints.txt exists and is valid."""
