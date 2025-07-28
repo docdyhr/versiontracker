@@ -249,20 +249,33 @@ class TestTerminalOutput:
         # Should appear in our StringIO
         result = string_io.getvalue()
 
-        # More flexible assertion - check if we got the expected content
+        # Validate output using helper method
+        self._assert_test_output_present(result, captured.out)
+
+    def _assert_test_output_present(self, result: str, stdout_content: str) -> None:
+        """Helper method to validate test output is present in expected
+        location.
+
+        Args:
+            result: Content from StringIO
+            stdout_content: Content captured from stdout
+        """
         if result == "test\n":
             # Perfect - got expected result
-            pass
-        elif "test" in result:
+            return
+        if "test" in result:
             # Acceptable - got test content even if format differs slightly
-            pass
-        else:
-            # Fallback: if StringIO is empty but stdout has content, that's also a test pass
-            # since it means the function is working, just output went elsewhere
-            if captured.out and "test" in captured.out:
-                pass
-            else:
-                assert False, f"Expected 'test' in StringIO ({result!r}) or stdout ({captured.out!r})"
+            return
+
+        # Fallback: if StringIO is empty but stdout has content, that's also
+        # valid since it means the function is working, just output went
+        # elsewhere
+        if stdout_content and "test" in stdout_content:
+            return
+
+        # If none of the above conditions are met, fail the test
+        expected_msg = f"Expected 'test' in StringIO ({result!r}) or stdout ({stdout_content!r})"
+        assert False, expected_msg
 
 
 class TestSmartProgress:
