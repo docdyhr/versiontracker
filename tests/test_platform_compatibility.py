@@ -5,13 +5,13 @@ import platform
 import sys
 import tempfile
 import unittest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from versiontracker.handlers.auto_update_handlers import (
     handle_blacklist_auto_updates,
-    handle_uninstall_auto_updates,
 )
 
 
@@ -198,16 +198,30 @@ class TestResourceCleanup(unittest.TestCase):
         """Clean up resources."""
         import shutil
 
-        # Clean up temporary files
-        for temp_file in self.temp_files:
+        # Clean up temporary files and directories
+        self._cleanup_temp_files()
+        self._cleanup_temp_directories(shutil)
+
+    def _cleanup_temp_files(self):
+        """Helper method to clean up temporary files."""
+        self._safe_cleanup_files(self.temp_files)
+
+    def _cleanup_temp_directories(self, shutil):
+        """Helper method to clean up temporary directories."""
+        self._safe_cleanup_directories(self.temp_dirs, shutil)
+
+    def _safe_cleanup_files(self, file_list):
+        """Safely clean up a list of files."""
+        for temp_file in file_list:
             try:
                 if temp_file.exists():
                     temp_file.unlink()
             except Exception:
                 pass  # Best effort cleanup
 
-        # Clean up temporary directories
-        for temp_dir in self.temp_dirs:
+    def _safe_cleanup_directories(self, dir_list, shutil):
+        """Safely clean up a list of directories."""
+        for temp_dir in dir_list:
             try:
                 if temp_dir.exists():
                     shutil.rmtree(temp_dir)
@@ -260,7 +274,7 @@ class TestNetworkMocking(unittest.TestCase):
         from unittest.mock import Mock
 
         # Mock a hypothetical HTTP library instead of real requests
-        with patch("builtins.__import__") as mock_import:
+        with patch("builtins.__import__"):
             # Mock the requests module
             mock_requests = Mock()
             mock_response = Mock()
@@ -297,8 +311,8 @@ class TestMemoryManagement(unittest.TestCase):
         # Create a large list
         large_list = list(range(10000))
 
-        # Process it
-        processed = [x * 2 for x in large_list if x % 2 == 0]
+        # Process it using helper method
+        processed = self._process_large_list(large_list)
 
         # Verify it worked
         self.assertEqual(len(processed), 5000)
@@ -310,24 +324,36 @@ class TestMemoryManagement(unittest.TestCase):
         del large_list
         del processed
 
+    def _process_large_list(self, large_list):
+        """Helper method to process large list with conditional logic."""
+        return [x * 2 for x in large_list if x % 2 == 0]
+
     def test_memory_intensive_operations(self):
         """Test memory-intensive operations complete successfully."""
-        # Create multiple temporary objects
-        temp_objects = []
-
-        for i in range(1000):
-            temp_obj = {"id": i, "data": f"test_data_{i}", "values": list(range(100))}
-            temp_objects.append(temp_obj)
+        # Create multiple temporary objects using helper method
+        temp_objects = self._create_test_memory_objects()
 
         # Verify they were created
         self.assertEqual(len(temp_objects), 1000)
 
-        # Process them
-        total_values = sum(len(obj["values"]) for obj in temp_objects)
+        # Process them using helper method
+        total_values = self._count_total_values(temp_objects)
         self.assertEqual(total_values, 100000)
 
         # Clean up
         temp_objects.clear()
+
+    def _create_test_memory_objects(self):
+        """Helper method to create test memory objects with loop."""
+        temp_objects = []
+        for i in range(1000):
+            temp_obj = {"id": i, "data": f"test_data_{i}", "values": list(range(100))}
+            temp_objects.append(temp_obj)
+        return temp_objects
+
+    def _count_total_values(self, temp_objects):
+        """Helper method to count total values with comprehension."""
+        return sum(len(obj["values"]) for obj in temp_objects)
 
 
 if __name__ == "__main__":
