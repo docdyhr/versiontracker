@@ -47,6 +47,7 @@ if _spec is not None and _spec.loader is not None:
     _process_brew_batch = _apps_main._process_brew_batch
     get_cask_version = _apps_main.get_cask_version
     is_brew_cask_installable = _apps_main.is_brew_cask_installable
+    _create_rate_limiter = _apps_main._create_rate_limiter
 else:
 
     def get_homebrew_casks() -> List[str]:
@@ -68,6 +69,10 @@ else:
     def is_brew_cask_installable(*args, **kwargs):
         """Fallback if main apps.py cannot be loaded."""
         return False
+
+    def _create_rate_limiter(*args, **kwargs):
+        """Fallback if main apps.py cannot be loaded."""
+        return SimpleRateLimiter(1.0)
 
 
 __all__ = [
@@ -97,4 +102,5 @@ __all__ = [
     "_process_brew_batch",
     "get_cask_version",
     "is_brew_cask_installable",
+    "_create_rate_limiter",
 ]

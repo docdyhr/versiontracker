@@ -19,7 +19,9 @@ _spec = importlib.util.spec_from_file_location("versiontracker_version_main", _v
 if _spec is not None and _spec.loader is not None:
     _version_main = importlib.util.module_from_spec(_spec)
     _spec.loader.exec_module(_version_main)
-    # Import the missing function
+
+    # Import all legacy functions and constants from main version.py
+    # Functions
     partial_ratio = _version_main.partial_ratio
     similarity_score = _version_main.similarity_score
     check_latest_version = _version_main.check_latest_version
@@ -27,6 +29,21 @@ if _spec is not None and _spec.loader is not None:
     find_matching_cask = _version_main.find_matching_cask
     get_homebrew_cask_info = _version_main.get_homebrew_cask_info
     get_version_info = _version_main.get_version_info
+    compare_fuzzy = _version_main.compare_fuzzy
+    compose_version_tuple = _version_main.compose_version_tuple
+    decompose_version = _version_main.decompose_version
+    get_compiled_pattern = _version_main.get_compiled_pattern
+
+    # Private functions (used in tests)
+    _dict_to_tuple = _version_main._dict_to_tuple
+    _parse_version_components = _version_main._parse_version_components
+    _parse_version_to_dict = _version_main._parse_version_to_dict
+    _tuple_to_dict = _version_main._tuple_to_dict
+
+    # Constants
+    USE_FUZZYWUZZY = _version_main.USE_FUZZYWUZZY
+    USE_RAPIDFUZZ = _version_main.USE_RAPIDFUZZ
+    VERSION_PATTERNS = _version_main.VERSION_PATTERNS
 else:
 
     def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
@@ -57,6 +74,50 @@ else:
         """Fallback function."""
         return None
 
+    def compare_fuzzy(*args, **kwargs):
+        """Fallback function."""
+        return 0
+
+    def compose_version_tuple(*args, **kwargs):
+        """Fallback function."""
+        return (0, 0, 0)
+
+    def decompose_version(*args, **kwargs):
+        """Fallback function."""
+        return {}
+
+    def get_compiled_pattern(*args, **kwargs):
+        """Fallback function."""
+        import re
+
+        return re.compile(r".*")
+
+    def _dict_to_tuple(*args, **kwargs):
+        """Fallback function."""
+        return (0, 0, 0)
+
+    def _parse_version_components(*args, **kwargs):
+        """Fallback function."""
+        return {}
+
+    def _parse_version_to_dict(*args, **kwargs):
+        """Fallback function."""
+        return {}
+
+    def _tuple_to_dict(*args, **kwargs):
+        """Fallback function."""
+        return {}
+
+    # Fallback constants
+    USE_FUZZYWUZZY = False
+    USE_RAPIDFUZZ = False
+    import re
+
+    VERSION_PATTERNS = [
+        re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9\-\.]+))?$"),  # semantic
+        re.compile(r"^(\d+)\.(\d+)$"),  # simple
+    ]
+
 
 __all__ = [
     # Models
@@ -77,4 +138,17 @@ __all__ = [
     "find_matching_cask",
     "get_homebrew_cask_info",
     "get_version_info",
+    "compare_fuzzy",
+    "compose_version_tuple",
+    "decompose_version",
+    "get_compiled_pattern",
+    # Private functions (used in tests)
+    "_dict_to_tuple",
+    "_parse_version_components",
+    "_parse_version_to_dict",
+    "_tuple_to_dict",
+    # Constants
+    "USE_FUZZYWUZZY",
+    "USE_RAPIDFUZZ",
+    "VERSION_PATTERNS",
 ]
