@@ -17,7 +17,7 @@ env:
 
 jobs:
   security:
-    name: Security
+    name: Security Analysis
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
