@@ -44,6 +44,9 @@ if _spec is not None and _spec.loader is not None:
     # Import the missing functions
     get_homebrew_casks = _apps_main.get_homebrew_casks
     check_brew_install_candidates = _apps_main.check_brew_install_candidates
+    _process_brew_batch = _apps_main._process_brew_batch
+    get_cask_version = _apps_main.get_cask_version
+    is_brew_cask_installable = _apps_main.is_brew_cask_installable
 else:
 
     def get_homebrew_casks() -> List[str]:
@@ -53,6 +56,18 @@ else:
     def check_brew_install_candidates(*args, **kwargs):
         """Fallback if main apps.py cannot be loaded."""
         return []
+
+    def _process_brew_batch(*args, **kwargs):
+        """Fallback if main apps.py cannot be loaded."""
+        return []
+
+    def get_cask_version(*args, **kwargs):
+        """Fallback if main apps.py cannot be loaded."""
+        return None
+
+    def is_brew_cask_installable(*args, **kwargs):
+        """Fallback if main apps.py cannot be loaded."""
+        return False
 
 
 __all__ = [
@@ -79,4 +94,7 @@ __all__ = [
     # Legacy functions from main apps.py
     "get_homebrew_casks",
     "check_brew_install_candidates",
+    "_process_brew_batch",
+    "get_cask_version",
+    "is_brew_cask_installable",
 ]
