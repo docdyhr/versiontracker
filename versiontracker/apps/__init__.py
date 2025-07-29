@@ -41,11 +41,16 @@ _spec = importlib.util.spec_from_file_location("versiontracker_apps_main", _apps
 if _spec is not None and _spec.loader is not None:
     _apps_main = importlib.util.module_from_spec(_spec)
     _spec.loader.exec_module(_apps_main)
-    # Import the missing function
+    # Import the missing functions
     get_homebrew_casks = _apps_main.get_homebrew_casks
+    check_brew_install_candidates = _apps_main.check_brew_install_candidates
 else:
 
     def get_homebrew_casks() -> List[str]:
+        """Fallback if main apps.py cannot be loaded."""
+        return []
+
+    def check_brew_install_candidates(*args, **kwargs):
         """Fallback if main apps.py cannot be loaded."""
         return []
 
@@ -73,4 +78,5 @@ __all__ = [
     "_process_brew_search",
     # Legacy functions from main apps.py
     "get_homebrew_casks",
+    "check_brew_install_candidates",
 ]
