@@ -3,9 +3,9 @@ name: Security
 
 "on":
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+    branches: [master]
   workflow_dispatch:
   schedule:
     # Run security checks weekly on Sundays at 2 AM UTC
@@ -55,10 +55,10 @@ jobs:
           echo "::endgroup::"
 
       - name: Check for secrets with TruffleHog
-        uses: trufflesecurity/trufflehog@v3.89.2
+        uses: trufflesecurity/trufflehog@v3.90.1
         with:
           path: ./
-          base: main
+          base: master
           head: HEAD
           extra_args: --debug --only-verified
 

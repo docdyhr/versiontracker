@@ -65,9 +65,7 @@ class TestApps(unittest.TestCase):
             config.ui = {"adaptive_rate_limiting": True}
 
             # Patch the _process_brew_search function to return "Firefox" for the search
-            with patch(
-                "versiontracker.apps._process_brew_search", return_value="Firefox"
-            ):
+            with patch("versiontracker.apps._process_brew_search", return_value="Firefox"):
                 with patch("versiontracker.apps.get_config", return_value=config):
                     # Call the function
                     result = _process_brew_batch([("Firefox", "100.0")], 1, True)
@@ -98,9 +96,7 @@ class TestApps(unittest.TestCase):
 
         # Test with lower than minimum delay
         min_limiter = SimpleRateLimiter(0.05)
-        self.assertEqual(
-            get_limiter_delay(min_limiter), 0.1
-        )  # Should be clamped to 0.1
+        self.assertEqual(get_limiter_delay(min_limiter), 0.1)  # Should be clamped to 0.1
 
         # Test wait method
         start_time = time.time()
@@ -228,9 +224,7 @@ class TestApps(unittest.TestCase):
     @patch("platform.system")
     @patch("platform.machine")
     @patch("versiontracker.apps.run_command")
-    def test_is_homebrew_available_true(
-        self, mock_run_command, mock_machine, mock_system
-    ):
+    def test_is_homebrew_available_true(self, mock_run_command, mock_machine, mock_system):
         """Test is_homebrew_available when Homebrew is installed."""
         # Mock platform.system() to return "Darwin" (macOS)
         mock_system.return_value = "Darwin"
@@ -266,9 +260,7 @@ class TestApps(unittest.TestCase):
     @patch("platform.system")
     @patch("platform.machine")
     @patch("versiontracker.apps.run_command")
-    def test_is_homebrew_available_arm(
-        self, mock_run_command, mock_machine, mock_system
-    ):
+    def test_is_homebrew_available_arm(self, mock_run_command, mock_machine, mock_system):
         """Test is_homebrew_available on ARM macOS (Apple Silicon)."""
         # Mock platform.system() to return "Darwin" (macOS)
         mock_system.return_value = "Darwin"
@@ -449,9 +441,7 @@ class TestApps(unittest.TestCase):
         apps = get_applications_from_system_profiler(valid_data)
 
         # Verify results
-        self.assertEqual(
-            len(apps), 2
-        )  # SystemApp and SysPathApp should be filtered out
+        self.assertEqual(len(apps), 2)  # SystemApp and SysPathApp should be filtered out
         self.assertIn(("App1", "1.0"), apps)
         self.assertIn(("App2", "2.0"), apps)
         self.assertNotIn(("SystemApp", "3.0"), apps)
@@ -480,9 +470,7 @@ class TestApps(unittest.TestCase):
             get_applications_from_system_profiler(invalid_data)
 
     @patch("versiontracker.apps.get_config")
-    def test_get_applications_from_system_profiler_test_app_normalization(
-        self, mock_get_config
-    ):
+    def test_get_applications_from_system_profiler_test_app_normalization(self, mock_get_config):
         """Test normalization of test app names."""
         # Mock configuration
         mock_config = MagicMock()
@@ -535,9 +523,7 @@ class TestApps(unittest.TestCase):
         self.assertEqual(version, "95.0.1")
 
         # Verify the command that was run
-        mock_run_command.assert_called_once_with(
-            "/usr/local/bin/brew info --cask firefox", timeout=30
-        )
+        mock_run_command.assert_called_once_with("/usr/local/bin/brew info --cask firefox", timeout=30)
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
     @patch("versiontracker.apps.run_command")

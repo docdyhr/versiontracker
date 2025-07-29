@@ -248,10 +248,7 @@ class TestRealWorldScenarios:
 
         # Test browser variations
         assert matcher.calculate_similarity("Google Chrome", "chrome") == 100.0
-        assert (
-            matcher.calculate_similarity("Firefox Developer Edition", "firefox")
-            == 100.0
-        )
+        assert matcher.calculate_similarity("Firefox Developer Edition", "firefox") == 100.0
         assert matcher.calculate_similarity("Microsoft Edge", "edge") == 100.0
 
         # Test utility variations
@@ -291,10 +288,7 @@ class TestRealWorldScenarios:
         # Should be case insensitive
         assert matcher.calculate_similarity("FIREFOX", "firefox") == 100.0
         assert matcher.calculate_similarity("Chrome", "CHROME") == 100.0
-        assert (
-            matcher.calculate_similarity("Visual Studio Code", "VISUAL STUDIO CODE")
-            == 100.0
-        )
+        assert matcher.calculate_similarity("Visual Studio Code", "VISUAL STUDIO CODE") == 100.0
 
 
 class TestPerformance:

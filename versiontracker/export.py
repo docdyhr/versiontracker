@@ -94,19 +94,9 @@ def _export_to_json(
                 if isinstance(app, tuple) and len(app) > 2:
                     app_data = {
                         "name": str(app[0]),
-                        "installed_version": (
-                            app[1].get("installed", "")
-                            if isinstance(app[1], dict)
-                            else ""
-                        ),
-                        "latest_version": (
-                            app[1].get("latest", "Unknown")
-                            if isinstance(app[1], dict)
-                            else "Unknown"
-                        ),
-                        "status": app[2].name
-                        if hasattr(app[2], "name")
-                        else str(app[2]),
+                        "installed_version": (app[1].get("installed", "") if isinstance(app[1], dict) else ""),
+                        "latest_version": (app[1].get("latest", "Unknown") if isinstance(app[1], dict) else "Unknown"),
+                        "status": app[2].name if hasattr(app[2], "name") else str(app[2]),
                     }
                 else:
                     if isinstance(app, tuple) and len(app) > 0:  # type: ignore
@@ -154,11 +144,7 @@ def _export_to_csv(
 
         # For test data in tests/test_export.py
         # Handle structure like {"applications": [("Firefox", "100.0"), ...]}
-        if (
-            isinstance(data, dict)
-            and "applications" in data
-            and isinstance(data["applications"], list)
-        ):
+        if isinstance(data, dict) and "applications" in data and isinstance(data["applications"], list):
             for app in data["applications"]:
                 if isinstance(app, tuple):
                     app_name = str(app[0]) if len(app) > 0 else ""
@@ -182,14 +168,8 @@ def _export_to_csv(
                         writer.writerow(
                             [
                                 str(app[0]),
-                                app[1].get("installed", "")
-                                if isinstance(app[1], dict)
-                                else "",
-                                (
-                                    app[1].get("latest", "Unknown")
-                                    if isinstance(app[1], dict)
-                                    else "Unknown"
-                                ),
+                                app[1].get("installed", "") if isinstance(app[1], dict) else "",
+                                (app[1].get("latest", "Unknown") if isinstance(app[1], dict) else "Unknown"),
                                 app[2].name if hasattr(app[2], "name") else str(app[2]),
                             ]
                         )

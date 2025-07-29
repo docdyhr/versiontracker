@@ -119,9 +119,7 @@ class TestTerminalOutput:
         "print_func",
         [print_success, print_info, print_warning, print_error, print_debug],
     )
-    @pytest.mark.skip(
-        reason="Environment-specific print behavior varies between local and CI"
-    )
+    @pytest.mark.skip(reason="Environment-specific print behavior varies between local and CI")
     def test_print_functions_fallback(self, print_func, capsys, monkeypatch):
         """Test print functions when termcolor is not available."""
         message = "test message"
@@ -145,9 +143,7 @@ class TestTerminalOutput:
             "x" * 100,  # Long message
         ],
     )
-    @pytest.mark.skip(
-        reason="Edge case terminal output capture varies between Python versions and CI environments"
-    )
+    @pytest.mark.skip(reason="Edge case terminal output capture varies between Python versions and CI environments")
     def test_print_functions_edge_cases(self, message, capsys, monkeypatch):
         """Test print functions with edge case inputs."""
         # Test with termcolor disabled
@@ -160,9 +156,7 @@ class TestTerminalOutput:
         # When termcolor is not available, should use regular print
         assert message in captured.out
 
-    @pytest.mark.skip(
-        reason="Environment-specific color handling varies between local and CI"
-    )
+    @pytest.mark.skip(reason="Environment-specific color handling varies between local and CI")
     def test_colored_fallback(self):
         """Test colored function fallback."""
         # This test is environment-dependent and can vary between local and CI
@@ -172,9 +166,7 @@ class TestTerminalOutput:
         # In fallback mode, should return text without color codes
         assert "test" in result  # More flexible assertion
 
-    @pytest.mark.skip(
-        reason="Test has intermittent failures due to test state pollution in full suite context"
-    )
+    @pytest.mark.skip(reason="Test has intermittent failures due to test state pollution in full suite context")
     def test_cprint_fallback(self, capsys, monkeypatch):
         """Test cprint function fallback."""
         import versiontracker.ui as ui
@@ -203,9 +195,7 @@ class TestTerminalOutput:
         captured = capsys.readouterr()
 
         # The output should contain "test" regardless of the exact format
-        assert "test" in captured.out, (
-            f"Expected 'test' in output but got {captured.out!r}"
-        )
+        assert "test" in captured.out, f"Expected 'test' in output but got {captured.out!r}"
         assert captured.err == ""
 
     def test_color_constants_values(self):
@@ -232,9 +222,7 @@ class TestTerminalOutput:
                     # If it does raise, that's the current behavior - document it
                     pass
 
-    @pytest.mark.skip(
-        reason="Test has intermittent failures due to test state pollution in full suite context"
-    )
+    @pytest.mark.skip(reason="Test has intermittent failures due to test state pollution in full suite context")
     def test_print_functions_with_file_kwarg(self, capsys, monkeypatch):
         """Test print functions work with file kwarg."""
         import versiontracker.ui as ui
@@ -261,22 +249,33 @@ class TestTerminalOutput:
         # Should appear in our StringIO
         result = string_io.getvalue()
 
-        # More flexible assertion - check if we got the expected content
+        # Validate output using helper method
+        self._assert_test_output_present(result, captured.out)
+
+    def _assert_test_output_present(self, result: str, stdout_content: str) -> None:
+        """Helper method to validate test output is present in expected
+        location.
+
+        Args:
+            result: Content from StringIO
+            stdout_content: Content captured from stdout
+        """
         if result == "test\n":
             # Perfect - got expected result
-            pass
-        elif "test" in result:
+            return
+        if "test" in result:
             # Acceptable - got test content even if format differs slightly
-            pass
-        else:
-            # Fallback: if StringIO is empty but stdout has content, that's also a test pass
-            # since it means the function is working, just output went elsewhere
-            if captured.out and "test" in captured.out:
-                pass
-            else:
-                assert False, (
-                    f"Expected 'test' in StringIO ({result!r}) or stdout ({captured.out!r})"
-                )
+            return
+
+        # Fallback: if StringIO is empty but stdout has content, that's also
+        # valid since it means the function is working, just output went
+        # elsewhere
+        if stdout_content and "test" in stdout_content:
+            return
+
+        # If none of the above conditions are met, fail the test
+        expected_msg = f"Expected 'test' in StringIO ({result!r}) or stdout ({stdout_content!r})"
+        assert False, expected_msg
 
 
 class TestSmartProgress:
@@ -586,13 +585,17 @@ class TestQueryFilterManager:
     def test_list_filters_with_filters(self):
         """Test listing filters when some exist."""
         # Create some filter files
-        for name in ["filter1", "filter2", "filter3"]:
-            filter_file = self.manager.filters_dir / f"{name}.json"
-            with open(filter_file, "w") as f:
-                json.dump({"test": True}, f)
+        self._create_test_filters(["filter1", "filter2", "filter3"])
 
         filters = self.manager.list_filters()
         assert sorted(filters) == ["filter1", "filter2", "filter3"]
+
+    def _create_test_filters(self, filter_names: list[str]) -> None:
+        """Helper method to create test filter files."""
+        for name in filter_names:
+            filter_file = self.manager.filters_dir / f"{name}.json"
+            with open(filter_file, "w") as f:
+                json.dump({"test": True}, f)
 
     def test_list_filters_ignores_non_json(self):
         """Test list_filters ignores non-JSON files."""

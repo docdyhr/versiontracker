@@ -105,9 +105,7 @@ class TestSmartProgress(unittest.TestCase):
     def test_smart_progress_creation(self):
         """Test creating a SmartProgress instance."""
         # Explicitly set the total since it's not automatically detected from range objects
-        progress = SmartProgress(
-            range(10), desc="Test", monitor_resources=False, total=10
-        )
+        progress = SmartProgress(range(10), desc="Test", monitor_resources=False, total=10)
         self.assertEqual(progress.desc, "Test")
         self.assertEqual(progress.total, 10)
         self.assertFalse(progress.monitor_resources)
@@ -154,9 +152,7 @@ class TestSmartProgress(unittest.TestCase):
     @patch("sys.stdout.isatty", return_value=True)
     @patch("psutil.cpu_percent", return_value=75.0)
     @patch("psutil.virtual_memory")
-    def test_resource_monitoring_with_tqdm(
-        self, mock_memory, _mock_cpu_percent, _mock_isatty
-    ):
+    def test_resource_monitoring_with_tqdm(self, mock_memory, _mock_cpu_percent, _mock_isatty):
         """Test resource monitoring with tqdm progress bar."""
         mock_memory.return_value = MagicMock(percent=80.0)
 
@@ -165,9 +161,7 @@ class TestSmartProgress(unittest.TestCase):
             mock_tqdm.return_value = mock_progress_bar
             mock_progress_bar.__iter__ = Mock(return_value=iter([1, 2, 3]))
 
-            progress = SmartProgress(
-                [1, 2, 3], monitor_resources=True, update_interval=0
-            )
+            progress = SmartProgress([1, 2, 3], monitor_resources=True, update_interval=0)
             # Process the iteration to trigger resource monitoring
             list(progress)
 
@@ -208,9 +202,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
 
     def test_initialization(self):
         """Test initializing an AdaptiveRateLimiter."""
-        limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.2, max_rate_limit_sec=3.0
-        )
+        limiter = AdaptiveRateLimiter(base_rate_limit_sec=1.0, min_rate_limit_sec=0.2, max_rate_limit_sec=3.0)
         self.assertEqual(limiter.base_rate_limit_sec, 1.0)
         self.assertEqual(limiter.min_rate_limit_sec, 0.2)
         self.assertEqual(limiter.max_rate_limit_sec, 3.0)
@@ -236,9 +228,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         """Test rate limiting with high resource usage."""
         mock_memory.return_value = MagicMock(percent=95.0)  # High memory usage
 
-        limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0
-        )
+        limiter = AdaptiveRateLimiter(base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0)
 
         # With high resource usage, we should get a rate limit closer to the maximum
         limit = limiter.get_current_limit()
@@ -250,9 +240,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         """Test rate limiting with low resource usage."""
         mock_memory.return_value = MagicMock(percent=30.0)  # Low memory usage
 
-        limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0
-        )
+        limiter = AdaptiveRateLimiter(base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0)
 
         # With low resource usage, we should get a rate limit closer to the minimum
         limit = limiter.get_current_limit()
@@ -266,9 +254,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
         """Test rate limiting with medium resource usage."""
         mock_memory.return_value = MagicMock(percent=60.0)
 
-        limiter = AdaptiveRateLimiter(
-            base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0
-        )
+        limiter = AdaptiveRateLimiter(base_rate_limit_sec=1.0, min_rate_limit_sec=0.5, max_rate_limit_sec=2.0)
 
         limit = limiter.get_current_limit()
         # Should be between base and max

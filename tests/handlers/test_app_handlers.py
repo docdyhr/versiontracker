@@ -16,9 +16,7 @@ class TestAppHandlers(unittest.TestCase):
     @patch("versiontracker.handlers.app_handlers.get_applications")
     @patch("versiontracker.handlers.app_handlers.get_config")
     @patch("sys.stdout", new_callable=StringIO)
-    def test_handle_list_apps_success(
-        self, mock_stdout, mock_get_config, mock_get_applications, mock_get_json_data
-    ):
+    def test_handle_list_apps_success(self, mock_stdout, mock_get_config, mock_get_applications, mock_get_json_data):
         """Test handle_list_apps with successful execution."""
         # Setup mocks
         mock_get_json_data.return_value = {"items": []}
@@ -120,9 +118,7 @@ class TestAppHandlers(unittest.TestCase):
         ]
 
         mock_temp_config = Mock()
-        mock_temp_config.is_blacklisted.side_effect = (
-            lambda app: app == "BlacklistedApp"
-        )
+        mock_temp_config.is_blacklisted.side_effect = lambda app: app == "BlacklistedApp"
         mock_Config.return_value = mock_temp_config
 
         # Create test options
@@ -192,9 +188,7 @@ class TestAppHandlers(unittest.TestCase):
     )
     @patch("versiontracker.handlers.app_handlers.get_config")
     @patch("sys.stdout", new_callable=StringIO)
-    def test_handle_list_apps_error(
-        self, mock_stdout, mock_get_config, mock_get_json_data
-    ):
+    def test_handle_list_apps_error(self, mock_stdout, mock_get_config, mock_get_json_data):
         """Test handle_list_apps with error condition."""
         # Setup mocks
         mock_config = Mock()

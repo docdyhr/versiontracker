@@ -166,10 +166,7 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
         results = []
         if query:
             for cask_name, cask_data in self.casks_data.items():
-                if (
-                    query.lower() in cask_name.lower()
-                    or query.lower() in cask_data["desc"].lower()
-                ):
+                if query.lower() in cask_name.lower() or query.lower() in cask_data["desc"].lower():
                     results.append(cask_data)
         else:
             # No query, return all casks
@@ -252,9 +249,7 @@ class MockHomebrewServer:
         """
         MockHomebrewHandler.casks_data = casks
 
-    def add_cask(
-        self, name: str, version: str, desc: str = "", homepage: str = ""
-    ) -> None:
+    def add_cask(self, name: str, version: str, desc: str = "", homepage: str = "") -> None:
         """Add a new cask to the mock server.
 
         Args:

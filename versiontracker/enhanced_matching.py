@@ -130,9 +130,7 @@ class EnhancedMatcher:
         self.version_regex = re.compile(r"|".join(self.VERSION_PATTERNS))
         # Only match suffixes at the end of the string or followed by whitespace
         self.suffix_regex = re.compile(
-            r"\b("
-            + "|".join(re.escape(s) for s in self.IGNORE_SUFFIXES)
-            + r")(?:\s|$)",
+            r"\b(" + "|".join(re.escape(s) for s in self.IGNORE_SUFFIXES) + r")(?:\s|$)",
             re.IGNORECASE,
         )
 
@@ -149,9 +147,7 @@ class EnhancedMatcher:
         normalized = name.lower().strip()
 
         # Remove file extensions
-        normalized = re.sub(
-            r"\.(app|exe|dmg|pkg)$", "", normalized, flags=re.IGNORECASE
-        )
+        normalized = re.sub(r"\.(app|exe|dmg|pkg)$", "", normalized, flags=re.IGNORECASE)
 
         # Remove version numbers
         normalized = self.version_regex.sub("", normalized)
@@ -196,9 +192,7 @@ class EnhancedMatcher:
 
         return tokens
 
-    def calculate_token_similarity(
-        self, tokens1: List[str], tokens2: List[str]
-    ) -> float:
+    def calculate_token_similarity(self, tokens1: List[str], tokens2: List[str]) -> float:
         """Calculate similarity based on token overlap.
 
         Args:
@@ -315,9 +309,7 @@ class EnhancedMatcher:
         # Return the highest score
         return max(scores) if scores else 0.0
 
-    def find_best_match(
-        self, target: str, candidates: List[str]
-    ) -> Optional[Tuple[str, float]]:
+    def find_best_match(self, target: str, candidates: List[str]) -> Optional[Tuple[str, float]]:
         """Find the best matching candidate for a target name.
 
         Args:
@@ -349,9 +341,7 @@ class EnhancedMatcher:
 
         return None
 
-    def find_all_matches(
-        self, target: str, candidates: List[str]
-    ) -> List[Tuple[str, float]]:
+    def find_all_matches(self, target: str, candidates: List[str]) -> List[Tuple[str, float]]:
         """Find all candidates matching above the threshold.
 
         Args:
@@ -374,9 +364,7 @@ class EnhancedMatcher:
 
         return matches
 
-    def explain_match(
-        self, name1: str, name2: str
-    ) -> Dict[str, Union[float, str, List[str], bool, Dict[str, float]]]:
+    def explain_match(self, name1: str, name2: str) -> Dict[str, Union[float, str, List[str], bool, Dict[str, float]]]:
         """Explain why two names match or don't match.
 
         Args:
@@ -414,24 +402,14 @@ class EnhancedMatcher:
             if hasattr(fuzz, "partial_ratio"):
                 scores_dict["partial_ratio"] = float(fuzz.partial_ratio(norm1, norm2))
             if hasattr(fuzz, "token_sort_ratio"):
-                scores_dict["token_sort_ratio"] = float(
-                    fuzz.token_sort_ratio(norm1, norm2)
-                )
+                scores_dict["token_sort_ratio"] = float(fuzz.token_sort_ratio(norm1, norm2))
             if hasattr(fuzz, "token_set_ratio"):
-                scores_dict["token_set_ratio"] = float(
-                    fuzz.token_set_ratio(norm1, norm2)
-                )
+                scores_dict["token_set_ratio"] = float(fuzz.token_set_ratio(norm1, norm2))
 
         # Token similarity
-        tokens1_list = (
-            list(result["tokens1"]) if isinstance(result["tokens1"], list) else []
-        )
-        tokens2_list = (
-            list(result["tokens2"]) if isinstance(result["tokens2"], list) else []
-        )
-        scores_dict["token_similarity"] = self.calculate_token_similarity(
-            tokens1_list, tokens2_list
-        )
+        tokens1_list = list(result["tokens1"]) if isinstance(result["tokens1"], list) else []
+        tokens2_list = list(result["tokens2"]) if isinstance(result["tokens2"], list) else []
+        scores_dict["token_similarity"] = self.calculate_token_similarity(tokens1_list, tokens2_list)
 
         result["scores"] = scores_dict
 
@@ -477,9 +455,7 @@ def enhanced_match(name1: str, name2: str, threshold: int = 75) -> float:
     return matcher.calculate_similarity(name1, name2)
 
 
-def find_best_enhanced_match(
-    target: str, candidates: List[str], threshold: int = 75
-) -> Optional[Tuple[str, float]]:
+def find_best_enhanced_match(target: str, candidates: List[str], threshold: int = 75) -> Optional[Tuple[str, float]]:
     """Find the best matching candidate using enhanced matching.
 
     Args:

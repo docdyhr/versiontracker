@@ -22,7 +22,7 @@ except ImportError:
         import tomli as tomllib  # type: ignore[no-redef]
     except ImportError:
         # Fallback for older Python versions without tomli
-        import toml as tomllib  # type: ignore[no-redef]
+        import toml as tomllib  # type: ignore[import-untyped,no-redef]
 
 
 class ValidationError(Exception):
@@ -107,9 +107,7 @@ class CIPrecommitValidator:
                 elif line.strip().startswith(f"{tool_name}>="):
                     versions["constraints.txt"] = line.strip()
 
-    def _check_requirements_dev_file(
-        self, tool_name: str, versions: dict[str, str]
-    ) -> None:
+    def _check_requirements_dev_file(self, tool_name: str, versions: dict[str, str]) -> None:
         """Check tool version in requirements-dev.txt."""
         req_dev_file = self.project_root / "requirements-dev.txt"
         if not req_dev_file.exists():
@@ -124,9 +122,7 @@ class CIPrecommitValidator:
                     version_part = line.split(">=")[1].split("#")[0].strip()
                     versions["requirements-dev.txt"] = f"{tool_name}>={version_part}"
 
-    def _check_precommit_config(
-        self, tool_name: str, repo_patterns: List[str], versions: dict
-    ) -> None:
+    def _check_precommit_config(self, tool_name: str, repo_patterns: List[str], versions: dict) -> None:
         """Check tool version in pre-commit config."""
         precommit_file = self.project_root / ".pre-commit-config.yaml"
         if not precommit_file.exists():
@@ -137,18 +133,12 @@ class CIPrecommitValidator:
             for repo in config.get("repos", []):
                 repo_url = repo.get("repo", "")
                 if any(pattern in repo_url for pattern in repo_patterns):
-                    versions[".pre-commit-config.yaml"] = repo.get("rev", "").lstrip(
-                        "v"
-                    )
+                    versions[".pre-commit-config.yaml"] = repo.get("rev", "").lstrip("v")
 
-    def _check_installed_version(
-        self, tool_name: str, versions: dict[str, str]
-    ) -> None:
+    def _check_installed_version(self, tool_name: str, versions: dict[str, str]) -> None:
         """Check installed tool version."""
         try:
-            result = subprocess.run(
-                [tool_name, "--version"], capture_output=True, text=True, check=True
-            )
+            result = subprocess.run([tool_name, "--version"], capture_output=True, text=True, check=True)
             output = result.stdout.strip()
             if tool_name == "mypy":
                 # mypy output: "mypy 1.15.0 (compiled: yes)"
@@ -160,9 +150,7 @@ class CIPrecommitValidator:
         except (subprocess.CalledProcessError, FileNotFoundError):
             self.warnings.append(f"Could not determine installed {tool_name} version")
 
-    def _validate_version_consistency(
-        self, tool_name: str, versions: dict[str, str]
-    ) -> None:
+    def _validate_version_consistency(self, tool_name: str, versions: dict[str, str]) -> None:
         """Validate that versions are consistent across all sources."""
         normalized_versions = set()
         for v in versions.values():
@@ -178,12 +166,8 @@ class CIPrecommitValidator:
             normalized_versions.add(clean_v)
 
         if len(normalized_versions) > 1:
-            version_info = "\n".join(
-                f"  {file}: {version}" for file, version in versions.items()
-            )
-            raise ValidationError(
-                f"Inconsistent {tool_name} versions found:\n{version_info}"
-            )
+            version_info = "\n".join(f"  {file}: {version}" for file, version in versions.items())
+            raise ValidationError(f"Inconsistent {tool_name} versions found:\n{version_info}")
 
     def validate_precommit_config(self) -> None:
         """Validate pre-commit configuration."""
@@ -236,9 +220,7 @@ class CIPrecommitValidator:
         required_workflows = ["ci.yml", "lint.yml"]
         existing_workflows = [f.name for f in workflows_dir.glob("*.yml")]
 
-        missing_workflows = [
-            w for w in required_workflows if w not in existing_workflows
-        ]
+        missing_workflows = [w for w in required_workflows if w not in existing_workflows]
         if missing_workflows:
             self.warnings.append(f"Missing recommended workflows: {missing_workflows}")
 
@@ -292,12 +274,8 @@ class CIPrecommitValidator:
                             if hook.get("id") == "mypy":
                                 deps = hook.get("additional_dependencies", [])
                                 for dep in deps:
-                                    if isinstance(dep, str) and dep.startswith(
-                                        "types-"
-                                    ):
-                                        precommit_stubs.add(
-                                            dep.split(">=")[0].split("==")[0]
-                                        )
+                                    if isinstance(dep, str) and dep.startswith("types-"):
+                                        precommit_stubs.add(dep.split(">=")[0].split("==")[0])
 
         # Check requirements-dev.txt
         req_dev_file = self.project_root / "requirements-dev.txt"
@@ -316,17 +294,11 @@ class CIPrecommitValidator:
             missing_in_precommit = req_stubs - precommit_stubs
 
             if missing_in_req:
-                self.warnings.append(
-                    f"Type stubs in pre-commit but not requirements-dev.txt: {missing_in_req}"
-                )
+                self.warnings.append(f"Type stubs in pre-commit but not requirements-dev.txt: {missing_in_req}")
             if missing_in_precommit:
-                self.warnings.append(
-                    f"Type stubs in requirements-dev.txt but not pre-commit: {missing_in_precommit}"
-                )
+                self.warnings.append(f"Type stubs in requirements-dev.txt but not pre-commit: {missing_in_precommit}")
 
-        print(
-            f"   Type stubs: {len(precommit_stubs)} in pre-commit, {len(req_stubs)} in requirements-dev.txt"
-        )
+        print(f"   Type stubs: {len(precommit_stubs)} in pre-commit, {len(req_stubs)} in requirements-dev.txt")
 
     def validate_config_files(self) -> None:
         """Validate configuration file syntax."""

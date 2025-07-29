@@ -130,10 +130,7 @@ def _read_cache_file() -> Dict[str, Any]:
                 cache_data = json.load(f)
 
             # Check if cache has timestamp and is still valid
-            if (
-                "timestamp" in cache_data
-                and time.time() - cache_data["timestamp"] <= APP_CACHE_TTL
-            ):
+            if "timestamp" in cache_data and time.time() - cache_data["timestamp"] <= APP_CACHE_TTL:
                 return cast(Dict[str, Any], cache_data)
 
             logging.info("Cache expired, will refresh application data")
@@ -186,9 +183,7 @@ def _parse_json_output(stdout: str, command: str) -> Dict[str, Any]:
         raise DataParsingError(f"Failed to parse JSON from command output: {e}") from e
 
 
-def _handle_command_execution_error(
-    e: subprocess.CalledProcessError, command: str
-) -> NoReturn:
+def _handle_command_execution_error(e: subprocess.CalledProcessError, command: str) -> NoReturn:
     """Handle errors from command execution and raise appropriate exceptions."""
     logging.error(f"Command '{command}' failed with error code {e.returncode}")
     error_output = str(e.output) if e.output else str(e)
@@ -287,9 +282,7 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
 
         if returncode != 0:
             logging.error(f"Command failed with return code {returncode}: {output}")
-            raise DataParsingError(
-                f"Command failed with return code {returncode}: {output}"
-            )
+            raise DataParsingError(f"Command failed with return code {returncode}: {output}")
 
         # Parse JSON data
         try:
@@ -312,9 +305,7 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
         raise DataParsingError(f"Failed to get JSON data: {e}") from e
 
 
-def run_command_secure(
-    command_parts: List[str], timeout: Optional[int] = None
-) -> Tuple[str, int]:
+def run_command_secure(command_parts: List[str], timeout: Optional[int] = None) -> Tuple[str, int]:
     """Run a command securely without shell=True.
 
     This function executes commands without using shell=True, which eliminates
@@ -338,7 +329,8 @@ def run_command_secure(
     try:
         # Run the command without shell=True for security
         logging.debug(f"Running secure command: {' '.join(command_parts)}")
-        process = subprocess.Popen(
+        # Using Popen with shell=False and list args is secure
+        process = subprocess.Popen(  # nosec B603
             command_parts,
             shell=False,  # Security: No shell interpretation
             stdout=subprocess.PIPE,
@@ -367,16 +359,12 @@ def run_command_secure(
         if process:
             process.kill()
             process.wait()
-        error_msg = (
-            f"Command {' '.join(command_parts)} timed out after {timeout} seconds"
-        )
+        error_msg = f"Command {' '.join(command_parts)} timed out after {timeout} seconds"
         logging.error(error_msg)
         raise TimeoutError(error_msg)
 
     except FileNotFoundError as e:
-        error_msg = (
-            f"Command not found: {command_parts[0] if command_parts else 'unknown'}"
-        )
+        error_msg = f"Command not found: {command_parts[0] if command_parts else 'unknown'}"
         logging.error(error_msg)
         raise FileNotFoundError(error_msg) from e
 
@@ -398,13 +386,9 @@ def run_command_secure(
                 "timeout",
             ]
         ):
-            raise NetworkError(
-                f"Network error running command: {' '.join(command_parts)}"
-            ) from e
+            raise NetworkError(f"Network error running command: {' '.join(command_parts)}") from e
         # Re-raise with more context
-        raise Exception(
-            f"Error executing command {' '.join(command_parts)}: {e}"
-        ) from e
+        raise Exception(f"Error executing command {' '.join(command_parts)}: {e}") from e
 
 
 def shell_command_to_args(cmd: str) -> List[str]:
@@ -432,11 +416,10 @@ def shell_command_to_args(cmd: str) -> List[str]:
         return cmd.split()
 
 
-def _execute_subprocess(
-    cmd_list: List[str], timeout: Optional[int]
-) -> subprocess.Popen:
+def _execute_subprocess(cmd_list: List[str], timeout: Optional[int]) -> subprocess.Popen:
     """Execute subprocess and return the process object."""
-    return subprocess.Popen(
+    # Using Popen with shell=False and list args is secure
+    return subprocess.Popen(  # nosec B603
         cmd_list,
         shell=False,
         stdout=subprocess.PIPE,
@@ -468,9 +451,7 @@ def _classify_command_error(stderr: str, cmd: str) -> None:
         raise NetworkError(f"Network error: {stderr}")
 
 
-def _handle_process_output(
-    stdout: str, stderr: str, return_code: int, cmd: str
-) -> Tuple[str, int]:
+def _handle_process_output(stdout: str, stderr: str, return_code: int, cmd: str) -> Tuple[str, int]:
     """Handle process output and return appropriate result."""
     if return_code != 0:
         if _is_expected_homebrew_failure(stderr):
@@ -491,9 +472,7 @@ def _handle_process_output(
     return stdout, return_code
 
 
-def _handle_timeout_error(
-    process: Optional[subprocess.Popen], timeout: Optional[int], cmd: str
-) -> NoReturn:
+def _handle_timeout_error(process: Optional[subprocess.Popen], timeout: Optional[int], cmd: str) -> NoReturn:
     """Handle timeout errors and cleanup process."""
     if process:
         try:
@@ -619,24 +598,14 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
         stderr = e.stderr or ""
         # Check for common error patterns to provide better messages
         if e.returncode == 13 or "permission denied" in stderr.lower():
-            logging.error(
-                f"{error_msg}: Permission denied. Try running with sudo or check file permissions."
-            )
-            raise PermissionError(
-                f"Permission denied while executing '{command}'"
-            ) from e
+            logging.error(f"{error_msg}: Permission denied. Try running with sudo or check file permissions.")
+            raise PermissionError(f"Permission denied while executing '{command}'") from e
         elif "command not found" in stderr.lower():
-            logging.error(
-                f"{error_msg}: Command not found. Check if the required program is installed."
-            )
+            logging.error(f"{error_msg}: Command not found. Check if the required program is installed.")
             raise FileNotFoundError(f"Command not found: '{command}'") from e
         elif "no such file or directory" in stderr.lower():
-            logging.error(
-                f"{error_msg}: File or directory not found. Check if the path exists."
-            )
-            raise FileNotFoundError(
-                f"File or directory not found in command: '{command}'"
-            ) from e
+            logging.error(f"{error_msg}: File or directory not found. Check if the path exists.")
+            raise FileNotFoundError(f"File or directory not found in command: '{command}'") from e
         elif any(
             network_err in stderr.lower()
             for network_err in [
@@ -650,9 +619,7 @@ def run_command_original(command: str, timeout: int = 30) -> List[str]:
             ]
         ):
             logging.error(f"{error_msg}: Network error: {stderr}")
-            raise NetworkError(
-                f"Network error while executing '{command}': {stderr}"
-            ) from e
+            raise NetworkError(f"Network error while executing '{command}': {stderr}") from e
         else:
             detailed_error = stderr.strip() if stderr else "Unknown error"
             logging.error(f"{error_msg}: {detailed_error}")
@@ -694,17 +661,13 @@ class RateLimiter:
             current_time = time.time()
 
             # Remove timestamps older than the period
-            self.timestamps = [
-                t for t in self.timestamps if current_time - t <= self.period
-            ]
+            self.timestamps = [t for t in self.timestamps if current_time - t <= self.period]
 
             # If we've reached the limit, wait until we can make another call
             if len(self.timestamps) >= self.calls_per_period:
                 sleep_time = self.period - (current_time - self.timestamps[0])
                 if sleep_time > 0:
-                    logging.debug(
-                        f"Rate limiting: waiting for {sleep_time:.2f} seconds"
-                    )
+                    logging.debug(f"Rate limiting: waiting for {sleep_time:.2f} seconds")
                     # Release the lock while sleeping to avoid blocking other threads
                     self._lock.release()
                     try:
@@ -715,9 +678,7 @@ class RateLimiter:
                     current_time = time.time()  # Update current time after sleeping
 
                     # Remove timestamps older than the period after sleeping
-                    self.timestamps = [
-                        t for t in self.timestamps if current_time - t <= self.period
-                    ]
+                    self.timestamps = [t for t in self.timestamps if current_time - t <= self.period]
 
             # Record the timestamp for this call
             self.timestamps.append(current_time)

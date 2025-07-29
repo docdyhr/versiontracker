@@ -48,9 +48,7 @@ class TestFilterHandlers:
         mock_color.return_value.assert_called_with("No saved filters found.")
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
-    def test_handle_filter_management_list_filters_with_filters(
-        self, mock_progress_bar
-    ):
+    def test_handle_filter_management_list_filters_with_filters(self, mock_progress_bar):
         """Test listing filters when filters exist."""
         # Setup
         mock_options = mock.MagicMock()
@@ -98,9 +96,7 @@ class TestFilterHandlers:
         # Assert
         assert result == 0
         mock_color.assert_called_with("green")
-        mock_color.return_value.assert_called_with(
-            "Filter 'test-filter' deleted successfully."
-        )
+        mock_color.return_value.assert_called_with("Filter 'test-filter' deleted successfully.")
         assert not (filter_dir / "test-filter.json").exists()
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
@@ -119,15 +115,11 @@ class TestFilterHandlers:
         # Assert
         assert result == 0
         mock_color.assert_called_with("red")
-        mock_color.return_value.assert_called_with(
-            "Filter 'nonexistent-filter' not found."
-        )
+        mock_color.return_value.assert_called_with("Filter 'nonexistent-filter' not found.")
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
-    def test_handle_filter_management_load_filter_success(
-        self, mock_get_config, mock_progress_bar
-    ):
+    def test_handle_filter_management_load_filter_success(self, mock_get_config, mock_progress_bar):
         """Test loading a filter that exists."""
         # Setup
         mock_options = mock.MagicMock()
@@ -183,9 +175,7 @@ class TestFilterHandlers:
         # Assert
         assert result == 1
         mock_color.assert_called_with("red")
-        mock_color.return_value.assert_called_with(
-            "Filter 'nonexistent-filter' not found."
-        )
+        mock_color.return_value.assert_called_with("Filter 'nonexistent-filter' not found.")
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
@@ -236,16 +226,12 @@ class TestFilterHandlers:
         assert "max_workers" in filter_data["config"]
 
         mock_color.assert_called_with("green")
-        mock_color.return_value.assert_called_with(
-            "Filter 'test-save-filter' saved successfully."
-        )
+        mock_color.return_value.assert_called_with("Filter 'test-save-filter' saved successfully.")
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
     @mock.patch("versiontracker.handlers.filter_handlers.logging")
-    def test_handle_save_filter_failure(
-        self, mock_logging, mock_get_config, mock_progress_bar
-    ):
+    def test_handle_save_filter_failure(self, mock_logging, mock_get_config, mock_progress_bar):
         """Test handling a failure when saving a filter."""
         # Setup
         mock_options = mock.MagicMock()
@@ -264,16 +250,12 @@ class TestFilterHandlers:
         # Assert
         assert result == 1
         mock_color.assert_called_with("red")
-        mock_color.return_value.assert_called_with(
-            "Failed to save filter 'test-save-filter'."
-        )
+        mock_color.return_value.assert_called_with("Failed to save filter 'test-save-filter'.")
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     @mock.patch("versiontracker.handlers.filter_handlers.get_config")
     @mock.patch("versiontracker.handlers.filter_handlers.logging")
-    def test_handle_save_filter_exception(
-        self, mock_logging, mock_get_config, mock_progress_bar
-    ):
+    def test_handle_save_filter_exception(self, mock_logging, mock_get_config, mock_progress_bar):
         """Test handling an exception when saving a filter."""
         # Setup
         mock_options = mock.MagicMock()

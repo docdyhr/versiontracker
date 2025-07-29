@@ -22,7 +22,8 @@ print(f"api_rate_limit: {config.get('api_rate_limit')} (Expected: 5)")
 print(f"max_workers: {config.get('max_workers')} (Expected: 4)")
 print(f"blacklist: {config.get_blacklist()} (Expected: ['Safari', 'Numbers', 'Pages'])")
 print(
-    f"additional_app_dirs: {config.get('additional_app_dirs')} (Expected: ['/Applications/Utilities', '/Applications/Adobe'])"
+    f"additional_app_dirs: {config.get('additional_app_dirs')} "
+    f"(Expected: ['/Applications/Utilities', '/Applications/Adobe'])"
 )
 print(f"similarity_threshold: {config.get('similarity_threshold')} (Expected: 85)")
 print(f"show_progress: {config.get('show_progress')} (Expected: False)")

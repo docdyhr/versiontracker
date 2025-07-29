@@ -83,13 +83,9 @@ class TestGetInstalledApplications:
     @patch("versiontracker.handlers.outdated_handlers.get_json_data")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
-    def test_get_installed_applications_success(
-        self, mock_progress, mock_config, mock_json, mock_get_apps
-    ):
+    def test_get_installed_applications_success(self, mock_progress, mock_config, mock_json, mock_get_apps):
         """Test successful retrieval of installed applications."""
-        mock_config.return_value.system_profiler_cmd = (
-            "system_profiler -json SPApplicationsDataType"
-        )
+        mock_config.return_value.system_profiler_cmd = "system_profiler -json SPApplicationsDataType"
         mock_json.return_value = {"apps": "data"}
         mock_get_apps.return_value = [("App1", "1.0"), ("App2", "2.0")]
         mock_progress.return_value.color.return_value = lambda x: x
@@ -97,22 +93,16 @@ class TestGetInstalledApplications:
         result = _get_installed_applications()
 
         assert result == [("App1", "1.0"), ("App2", "2.0")]
-        mock_json.assert_called_once_with(
-            "system_profiler -json SPApplicationsDataType"
-        )
+        mock_json.assert_called_once_with("system_profiler -json SPApplicationsDataType")
         mock_get_apps.assert_called_once_with({"apps": "data"})
 
     @patch("versiontracker.handlers.outdated_handlers.get_applications")
     @patch("versiontracker.handlers.outdated_handlers.get_json_data")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
-    def test_get_installed_applications_permission_error(
-        self, mock_progress, mock_config, mock_json, mock_get_apps
-    ):
+    def test_get_installed_applications_permission_error(self, mock_progress, mock_config, mock_json, mock_get_apps):
         """Test handling of permission error."""
-        mock_config.return_value.system_profiler_cmd = (
-            "system_profiler -json SPApplicationsDataType"
-        )
+        mock_config.return_value.system_profiler_cmd = "system_profiler -json SPApplicationsDataType"
         mock_json.side_effect = PermissionError("Permission denied")
         mock_progress.return_value.color.return_value = lambda x: x
 
@@ -123,13 +113,9 @@ class TestGetInstalledApplications:
     @patch("versiontracker.handlers.outdated_handlers.get_json_data")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
-    def test_get_installed_applications_timeout_error(
-        self, mock_progress, mock_config, mock_json, mock_get_apps
-    ):
+    def test_get_installed_applications_timeout_error(self, mock_progress, mock_config, mock_json, mock_get_apps):
         """Test handling of timeout error."""
-        mock_config.return_value.system_profiler_cmd = (
-            "system_profiler -json SPApplicationsDataType"
-        )
+        mock_config.return_value.system_profiler_cmd = "system_profiler -json SPApplicationsDataType"
         mock_json.side_effect = TimeoutError("Operation timed out")
         mock_progress.return_value.color.return_value = lambda x: x
 
@@ -140,9 +126,7 @@ class TestGetInstalledApplications:
     @patch("versiontracker.handlers.outdated_handlers.get_json_data")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
-    def test_get_installed_applications_config_without_cmd(
-        self, mock_progress, mock_config, mock_json, mock_get_apps
-    ):
+    def test_get_installed_applications_config_without_cmd(self, mock_progress, mock_config, mock_json, mock_get_apps):
         """Test when config doesn't have system_profiler_cmd."""
         mock_config_obj = Mock()
         del mock_config_obj.system_profiler_cmd  # Remove attribute
@@ -154,9 +138,7 @@ class TestGetInstalledApplications:
         result = _get_installed_applications()
 
         assert result == [("App1", "1.0")]
-        mock_json.assert_called_once_with(
-            "system_profiler -json SPApplicationsDataType"
-        )
+        mock_json.assert_called_once_with("system_profiler -json SPApplicationsDataType")
 
 
 class TestGetHomebrewCasks:
@@ -251,9 +233,7 @@ class TestCheckOutdatedApps:
         result = _check_outdated_apps(apps)
 
         assert result == expected
-        mock_check.assert_called_once_with(
-            apps, batch_size=50, use_enhanced_matching=True
-        )
+        mock_check.assert_called_once_with(apps, batch_size=50, use_enhanced_matching=True)
 
     @patch("versiontracker.handlers.outdated_handlers.check_outdated_apps")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
@@ -269,9 +249,7 @@ class TestCheckOutdatedApps:
         result = _check_outdated_apps(apps)
 
         assert result == expected
-        mock_check.assert_called_once_with(
-            apps, batch_size=50, use_enhanced_matching=True
-        )
+        mock_check.assert_called_once_with(apps, batch_size=50, use_enhanced_matching=True)
 
     @patch("versiontracker.handlers.outdated_handlers.check_outdated_apps")
     @patch("versiontracker.handlers.outdated_handlers.get_config")
@@ -576,9 +554,7 @@ class TestHandleOutdatedCheck:
         mock_get_apps.return_value = [("App1", "1.0"), ("App2", "2.0")]
         mock_get_casks.return_value = ["cask1", "cask2"]
         mock_filter.return_value = [("App1", "1.0"), ("App2", "2.0")]
-        mock_check.return_value = [
-            ("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")
-        ]
+        mock_check.return_value = [("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")]
         mock_process.return_value = (
             [["icon", "App1", "1.0", "2.0"]],
             {"outdated": 1, "uptodate": 0, "not_found": 0, "error": 0, "unknown": 0},
@@ -593,9 +569,7 @@ class TestHandleOutdatedCheck:
         mock_update_config.assert_called_once_with(options)
         mock_get_apps.assert_called_once()
         mock_get_casks.assert_called_once()
-        mock_filter.assert_called_once_with(
-            [("App1", "1.0"), ("App2", "2.0")], ["cask1", "cask2"], False
-        )
+        mock_filter.assert_called_once_with([("App1", "1.0"), ("App2", "2.0")], ["cask1", "cask2"], False)
         mock_check.assert_called_once_with([("App1", "1.0"), ("App2", "2.0")], True)
         mock_process.assert_called_once()
         mock_display.assert_called_once()
@@ -631,9 +605,7 @@ class TestHandleOutdatedCheck:
         mock_get_apps.return_value = [("App1", "1.0")]
         mock_get_casks.return_value = ["cask1"]
         mock_filter.return_value = [("App1", "1.0")]
-        mock_check.return_value = [
-            ("App1", {"installed": "1.0", "latest": "1.0"}, "uptodate")
-        ]
+        mock_check.return_value = [("App1", {"installed": "1.0", "latest": "1.0"}, "uptodate")]
         mock_process.return_value = ([], {})
         mock_export.return_value = 0
 
@@ -749,9 +721,7 @@ class TestHandleOutdatedCheck:
         mock_get_apps.return_value = [("App1", "1.0")]
         mock_get_casks.return_value = ["cask1"]
         mock_filter.return_value = [("App1", "1.0")]
-        mock_check.return_value = [
-            ("App1", {"installed": "1.0", "latest": "1.0"}, "uptodate")
-        ]
+        mock_check.return_value = [("App1", {"installed": "1.0", "latest": "1.0"}, "uptodate")]
         mock_process.return_value = ([], {})
         mock_export.side_effect = ExportError("Export failed")
 
@@ -856,9 +826,7 @@ class TestErrorHandling:
     @patch("versiontracker.handlers.outdated_handlers._get_installed_applications")
     @patch("versiontracker.handlers.outdated_handlers._update_config_from_options")
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
-    def test_handle_timeout_error_apps(
-        self, mock_progress, mock_update_config, mock_get_apps
-    ):
+    def test_handle_timeout_error_apps(self, mock_progress, mock_update_config, mock_get_apps):
         """Test handling timeout error when getting applications."""
         mock_progress.return_value.color.return_value = lambda x: x
         mock_get_apps.side_effect = TimeoutError("Operation timed out")
@@ -873,9 +841,7 @@ class TestErrorHandling:
     @patch("versiontracker.handlers.outdated_handlers._get_installed_applications")
     @patch("versiontracker.handlers.outdated_handlers._update_config_from_options")
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
-    def test_handle_permission_error_homebrew(
-        self, mock_progress, mock_update_config, mock_get_apps, mock_get_casks
-    ):
+    def test_handle_permission_error_homebrew(self, mock_progress, mock_update_config, mock_get_apps, mock_get_casks):
         """Test handling permission error when accessing Homebrew."""
         mock_progress.return_value.color.return_value = lambda x: x
         mock_get_apps.return_value = [("App1", "1.0")]

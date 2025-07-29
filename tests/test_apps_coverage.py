@@ -39,9 +39,7 @@ class TestAdaptiveRateLimiter(unittest.TestCase):
 
     def test_adaptive_rate_limiter_custom_params(self):
         """Test _AdaptiveRateLimiter with custom parameters."""
-        limiter = _AdaptiveRateLimiter(
-            base_rate_limit_sec=2.0, min_rate_limit_sec=0.5, max_rate_limit_sec=10.0
-        )
+        limiter = _AdaptiveRateLimiter(base_rate_limit_sec=2.0, min_rate_limit_sec=0.5, max_rate_limit_sec=10.0)
         self.assertEqual(limiter._base_rate_limit_sec, 2.0)
         self.assertEqual(limiter._min_rate_limit_sec, 0.5)
         self.assertEqual(limiter._max_rate_limit_sec, 10.0)
@@ -162,9 +160,7 @@ class TestBrewCaskInstallable(unittest.TestCase):
 
     @patch("versiontracker.apps.read_cache")
     @patch("versiontracker.apps.is_homebrew_available")
-    def test_is_brew_cask_installable_cache_hit(
-        self, mock_homebrew_available, mock_read_cache
-    ):
+    def test_is_brew_cask_installable_cache_hit(self, mock_homebrew_available, mock_read_cache):
         """Test cask check with cache hit."""
         mock_homebrew_available.return_value = True
         mock_read_cache.return_value = {"testapp": True}
@@ -174,9 +170,7 @@ class TestBrewCaskInstallable(unittest.TestCase):
 
     @patch("versiontracker.apps.read_cache")
     @patch("versiontracker.apps.is_homebrew_available")
-    def test_is_brew_cask_installable_cache_miss(
-        self, mock_homebrew_available, mock_read_cache
-    ):
+    def test_is_brew_cask_installable_cache_miss(self, mock_homebrew_available, mock_read_cache):
         """Test cask check with cache miss."""
         mock_homebrew_available.return_value = True
         mock_read_cache.return_value = None

@@ -14,9 +14,7 @@ class TestConfig(unittest.TestCase):
         """Set up test fixtures, if any."""
         # Store original environment variables and clear test-related ones
         self.original_env = {}
-        env_vars_to_clear = [
-            var for var in os.environ.keys() if var.startswith("VERSIONTRACKER_")
-        ]
+        env_vars_to_clear = [var for var in os.environ.keys() if var.startswith("VERSIONTRACKER_")]
         for var in env_vars_to_clear:
             self.original_env[var] = os.environ[var]
             del os.environ[var]
@@ -29,7 +27,8 @@ class TestConfig(unittest.TestCase):
 
     def test_init_default_values(self):
         """Test that default values are set correctly."""
-        config = Config()
+        # Create a Config with a non-existent file to get defaults only
+        config = Config(config_file="/nonexistent/config.yaml")
         self.assertEqual(config.get("api_rate_limit"), 3)
         self.assertEqual(len(config.get_blacklist()), 8)
         self.assertTrue(config.get("show_progress"))

@@ -325,10 +325,7 @@ def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
             app_version = app.get("version", "").strip()
 
             # Check if we already have this app with this version (avoid exact duplicates)
-            if not any(
-                existing[0] == app_name and existing[1] == app_version
-                for existing in apps
-            ):
+            if not any(existing[0] == app_name and existing[1] == app_version for existing in apps):
                 apps.append((app_name, app_version))
 
             logging.debug("\t%s %s", app_name, app_version)
@@ -358,9 +355,7 @@ def get_applications_from_system_profiler(
         # Extract application data
         if not apps_data or "SPApplicationsDataType" not in apps_data:
             logging.warning("Invalid application data format")
-            raise DataParsingError(
-                "Invalid application data format: missing SPApplicationsDataType"
-            )
+            raise DataParsingError("Invalid application data format: missing SPApplicationsDataType")
 
         applications = apps_data.get("SPApplicationsDataType", [])
 
@@ -475,14 +470,8 @@ def _handle_brew_search_result(output: str, returncode: int, cask_name: str) -> 
         if "No formulae or casks found" in output:
             return False
         else:
-            error_msg = (
-                output.strip()
-                if output.strip()
-                else f"Command failed with exit code {returncode}"
-            )
-            logging.warning(
-                "Error checking if %s is installable: %s", cask_name, error_msg
-            )
+            error_msg = output.strip() if output.strip() else f"Command failed with exit code {returncode}"
+            logging.warning("Error checking if %s is installable: %s", cask_name, error_msg)
             return False
 
     # Check if exact match exists in output
@@ -504,11 +493,7 @@ def _update_cache_with_installable(cask_name: str, cache_data: Optional[dict]) -
 
 def _get_error_message(error: Exception) -> str:
     """Get a descriptive error message from an exception."""
-    return (
-        str(error)
-        if str(error).strip()
-        else f"Unknown error of type {type(error).__name__}"
-    )
+    return str(error) if str(error).strip() else f"Unknown error of type {type(error).__name__}"
 
 
 def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
@@ -531,9 +516,7 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
     try:
         # Fast path for non-homebrew systems
         if not is_homebrew_available():
-            raise HomebrewError(
-                f"Homebrew is not available for checking cask: {cask_name}"
-            )
+            raise HomebrewError(f"Homebrew is not available for checking cask: {cask_name}")
 
         # Check cache first
         cache_data = read_cache("brew_installable")
@@ -555,45 +538,31 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
 
         except Exception as e:
             error_details = _get_error_message(e)
-            logging.warning(
-                "Exception checking if %s is installable: %s", cask_name, error_details
-            )
+            logging.warning("Exception checking if %s is installable: %s", cask_name, error_details)
             return False
 
     except BrewTimeoutError as e:
         error_msg = _get_error_message(e)
-        logging.warning(
-            "Timeout checking if %s is installable: %s", cask_name, error_msg
-        )
+        logging.warning("Timeout checking if %s is installable: %s", cask_name, error_msg)
         raise
     except NetworkError as e:
         error_msg = _get_error_message(e)
-        logging.warning(
-            "Network error checking if %s is installable: %s", cask_name, error_msg
-        )
+        logging.warning("Network error checking if %s is installable: %s", cask_name, error_msg)
         raise
     except HomebrewError as e:
         error_msg = _get_error_message(e)
-        logging.warning(
-            "Homebrew error checking if %s is installable: %s", cask_name, error_msg
-        )
+        logging.warning("Homebrew error checking if %s is installable: %s", cask_name, error_msg)
         raise
     except Exception as e:
         error_details = _get_error_message(e)
-        logging.warning(
-            "Exception checking if %s is installable: %s", cask_name, error_details
-        )
+        logging.warning("Exception checking if %s is installable: %s", cask_name, error_details)
 
         # Check if it's a network-related exception
         if "network" in str(e).lower() or "connection" in str(e).lower():
-            raise NetworkError(
-                f"Network unavailable when checking homebrew cask: {cask_name}"
-            ) from e
+            raise NetworkError(f"Network unavailable when checking homebrew cask: {cask_name}") from e
 
         # Re-raise with improved error message
-        raise HomebrewError(
-            f"Error checking if {cask_name} is installable: {error_details}"
-        ) from e
+        raise HomebrewError(f"Error checking if {cask_name} is installable: {error_details}") from e
 
 
 def is_homebrew_available() -> bool:
@@ -636,12 +605,8 @@ def is_homebrew_available() -> bool:
         # Define architecture-specific paths
         is_arm = platform.machine().startswith("arm")
         paths = [
-            "/opt/homebrew/bin/brew"
-            if is_arm
-            else "/usr/local/bin/brew",  # Primary path based on architecture
-            "/usr/local/bin/brew"
-            if is_arm
-            else "/opt/homebrew/bin/brew",  # Secondary path (cross-architecture)
+            "/opt/homebrew/bin/brew" if is_arm else "/usr/local/bin/brew",  # Primary path based on architecture
+            "/usr/local/bin/brew" if is_arm else "/opt/homebrew/bin/brew",  # Secondary path (cross-architecture)
             "/usr/local/Homebrew/bin/brew",  # Alternative Intel location
             "/homebrew/bin/brew",  # Custom installation
             "brew",  # PATH-based installation
@@ -671,9 +636,7 @@ def is_homebrew_available() -> bool:
         return False
 
 
-def _create_batches(
-    data: List[Tuple[str, str]], batch_size: int = 50
-) -> List[List[Tuple[str, str]]]:
+def _create_batches(data: List[Tuple[str, str]], batch_size: int = 50) -> List[List[Tuple[str, str]]]:
     """Split data into batches of specified size.
 
     Args:
@@ -788,17 +751,13 @@ def check_brew_install_candidates(
     error_count = 0  # Counter for consecutive errors
 
     # Process each batch
-    for batch in smart_progress(
-        batches, desc="Checking Homebrew installability", monitor_resources=True
-    ):
+    for batch in smart_progress(batches, desc="Checking Homebrew installability", monitor_resources=True):
         try:
             batch_results = _process_brew_batch(batch, rate_limit, use_cache)
             results.extend(batch_results)
             error_count = 0  # Reset error count on success
         except Exception as e:
-            batch_results, error_count, exception_to_raise = _handle_batch_error(
-                e, error_count, batch
-            )
+            batch_results, error_count, exception_to_raise = _handle_batch_error(e, error_count, batch)
             results.extend(batch_results)
             if exception_to_raise:
                 raise exception_to_raise
@@ -830,9 +789,7 @@ def _create_rate_limiter(rate_limit: Union[int, Any]) -> RateLimiterProtocol:
         logging.debug("Using default rate limit: %d second(s)", rate_limit_seconds)
 
     # Create and return the appropriate rate limiter
-    if hasattr(get_config(), "ui") and getattr(get_config(), "ui", {}).get(
-        "adaptive_rate_limiting", False
-    ):
+    if hasattr(get_config(), "ui") and getattr(get_config(), "ui", {}).get("adaptive_rate_limiting", False):
         return _AdaptiveRateLimiter(
             base_rate_limit_sec=float(rate_limit_seconds),
             min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),
@@ -859,31 +816,19 @@ def _handle_future_result(
     exception = future.exception()
     if exception:
         if isinstance(exception, BrewTimeoutError):
-            error_details = (
-                str(exception) if str(exception).strip() else "Unknown timeout error"
-            )
+            error_details = str(exception) if str(exception).strip() else "Unknown timeout error"
             logging.warning("Timeout checking %s: %s", name, error_details)
-            timeout_error = BrewTimeoutError(
-                f"Operation timed out while checking {name}: {error_details}"
-            )
+            timeout_error = BrewTimeoutError(f"Operation timed out while checking {name}: {error_details}")
             return (name, version, False), timeout_error
         elif isinstance(exception, NetworkError):
-            error_details = (
-                str(exception) if str(exception).strip() else "Unknown network error"
-            )
+            error_details = str(exception) if str(exception).strip() else "Unknown network error"
             logging.warning("Network error checking %s: %s", name, error_details)
-            network_error = NetworkError(
-                f"Network error while checking {name}: {error_details}"
-            )
+            network_error = NetworkError(f"Network error while checking {name}: {error_details}")
             return (name, version, False), network_error
         elif isinstance(exception, HomebrewError):
-            error_details = (
-                str(exception) if str(exception).strip() else "Unknown Homebrew error"
-            )
+            error_details = str(exception) if str(exception).strip() else "Unknown Homebrew error"
             logging.warning("Homebrew error checking %s: %s", name, error_details)
-            homebrew_error = HomebrewError(
-                f"Homebrew error while checking {name}: {error_details}"
-            )
+            homebrew_error = HomebrewError(f"Homebrew error while checking {name}: {error_details}")
             return (name, version, False), homebrew_error
         else:
             # Handle other exceptions
@@ -891,9 +836,7 @@ def _handle_future_result(
                 logging.debug("No formulae found for %s: %s", name, exception)
             else:
                 error_details = (
-                    str(exception)
-                    if str(exception).strip()
-                    else f"Unknown error of type {type(exception).__name__}"
+                    str(exception) if str(exception).strip() else f"Unknown error of type {type(exception).__name__}"
                 )
                 logging.warning("Error checking %s: %s", name, error_details)
             return (name, version, False), None
@@ -905,16 +848,12 @@ def _handle_future_result(
     except Exception as e:
         # This should not normally happen since we already checked for exceptions
         # But handle it just in case
-        error_details = (
-            str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
-        )
+        error_details = str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
         logging.warning("Unexpected error checking %s: %s", name, error_details)
         return (name, version, False), e
 
 
-def _process_brew_batch(
-    batch: List[Tuple[str, str]], rate_limit: int, use_cache: bool
-) -> List[Tuple[str, str, bool]]:
+def _process_brew_batch(batch: List[Tuple[str, str]], rate_limit: int, use_cache: bool) -> List[Tuple[str, str, bool]]:
     """Process a batch of applications to check if they can be installed with Homebrew.
 
     Searches for each application name in Homebrew casks to determine
@@ -950,9 +889,7 @@ def _process_brew_batch(
         # Process applications in parallel
         with ThreadPoolExecutor(max_workers=rate_limit) as executor:
             future_to_app = {
-                executor.submit(
-                    is_brew_cask_installable, name.lower().replace(" ", "-"), use_cache
-                ): (name, version)
+                executor.submit(is_brew_cask_installable, name.lower().replace(" ", "-"), use_cache): (name, version)
                 for name, version in batch
                 if name  # Skip empty names
             }
@@ -963,9 +900,7 @@ def _process_brew_batch(
                 # Check if the future has an exception directly
                 if future.exception() is not None:
                     exception = future.exception()
-                    if isinstance(
-                        exception, (BrewTimeoutError, NetworkError, HomebrewError)
-                    ):
+                    if isinstance(exception, (BrewTimeoutError, NetworkError, HomebrewError)):
                         # Re-raise these specific exceptions for proper handling
                         raise exception
                     else:
@@ -1000,9 +935,7 @@ def _process_brew_batch(
         # Re-raise HomebrewError without modification
         raise
     except Exception as e:
-        error_details = (
-            str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
-        )
+        error_details = str(e) if str(e).strip() else f"Unknown error of type {type(e).__name__}"
         logging.error("Unexpected error processing brew batch: %s", error_details)
         raise HomebrewError(f"Error processing brew batch: {error_details}") from e
 
@@ -1075,9 +1008,7 @@ def search_brew_cask(search_term: str) -> List[str]:
         output, return_code = run_command(cmd, timeout=30)
 
         if return_code != 0:
-            logging.warning(
-                "Homebrew search failed with code %d: %s", return_code, output
-            )
+            logging.warning("Homebrew search failed with code %d: %s", return_code, output)
             return []
 
         # Process the output
@@ -1095,9 +1026,7 @@ def search_brew_cask(search_term: str) -> List[str]:
         return []
 
 
-def _process_brew_search(
-    app: Tuple[str, str], rate_limiter: Optional[RateLimiterProtocol] = None
-) -> Optional[str]:
+def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimiterProtocol] = None) -> Optional[str]:
     """Process a single brew search for an application.
 
     Args:
@@ -1125,14 +1054,10 @@ def _process_brew_search(
         try:
             stdout, return_code = run_command(brew_search)
             if return_code == 0:
-                response = [
-                    item for item in stdout.splitlines() if item and "==>" not in item
-                ]
+                response = [item for item in stdout.splitlines() if item and "==>" not in item]
             else:
                 # Log with % formatting
-                logging.warning(
-                    "Homebrew search failed with code %d: %s", return_code, stdout
-                )
+                logging.warning("Homebrew search failed with code %d: %s", return_code, stdout)
                 response = []
         except Exception as e:
             # Log with % formatting
@@ -1154,9 +1079,7 @@ def _process_brew_search(
     return None
 
 
-def _batch_process_brew_search(
-    apps_batch: List[Tuple[str, str]], rate_limiter: object
-) -> List[str]:
+def _batch_process_brew_search(apps_batch: List[Tuple[str, str]], rate_limiter: object) -> List[str]:
     """Process a batch of brew searches to reduce API calls.
 
     Args:
@@ -1172,9 +1095,7 @@ def _batch_process_brew_search(
         app_name, _ = app
 
         # Wait for rate limit if needed
-        if rate_limiter is not None and isinstance(
-            rate_limiter, (SimpleRateLimiter, _AdaptiveRateLimiter)
-        ):
+        if rate_limiter is not None and isinstance(rate_limiter, (SimpleRateLimiter, _AdaptiveRateLimiter)):
             rate_limiter.wait()
 
         try:
@@ -1289,9 +1210,7 @@ def check_brew_update_candidates(
     max_workers = min(4, len(batches))
 
     # Process batches and collect results
-    installers = _process_brew_search_batches(
-        batches, rate_limiter, max_workers, existing_brews
-    )
+    installers = _process_brew_search_batches(batches, rate_limiter, max_workers, existing_brews)
 
     # Get versions for installable casks
     _populate_cask_versions(installers)
@@ -1320,10 +1239,7 @@ def _process_brew_search_batches(
     show_progress = _should_show_progress()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_batch = {
-            executor.submit(_batch_process_brew_search, batch, rate_limiter): batch
-            for batch in batches
-        }
+        future_to_batch = {executor.submit(_batch_process_brew_search, batch, rate_limiter): batch for batch in batches}
 
         if HAS_PROGRESS and show_progress:
             _process_with_progress_bar(future_to_batch, installers, existing_brews)
@@ -1442,14 +1358,10 @@ def get_cask_version(cask_name: str) -> Optional[str]:
         raise
     except Exception as e:
         logging.error("Error getting cask version for %s: %s", cask_name, e)
-        raise HomebrewError(
-            "Failed to get cask version for %s: %s" % (cask_name, e)
-        ) from e
+        raise HomebrewError("Failed to get cask version for %s: %s" % (cask_name, e)) from e
 
 
-def get_homebrew_cask_name(
-    app_name: str, rate_limiter: Optional[RateLimiterProtocol] = None
-) -> Optional[str]:
+def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterProtocol] = None) -> Optional[str]:
     """Get the Homebrew cask name for an application.
 
     Searches Homebrew for a cask matching the given application name,

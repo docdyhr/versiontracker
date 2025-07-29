@@ -53,7 +53,10 @@ class LaunchdService:
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # Get the python executable and versiontracker path
-        python_path = subprocess.check_output(["which", "python3"], text=True).strip()
+        # Using which with subprocess is safe here as we control the command
+        python_path = subprocess.check_output(  # nosec B603 B607
+            ["which", "python3"], text=True
+        ).strip()
 
         plist_config = {
             "Label": "com.versiontracker.updater",
@@ -96,7 +99,8 @@ class LaunchdService:
             logger.info(f"Created launchd plist at {self.plist_path}")
 
             # Load the service
-            result = subprocess.run(
+            # launchctl is a system command, using list of args is safe
+            result = subprocess.run(  # nosec B603 B607
                 ["launchctl", "load", str(self.plist_path)],
                 capture_output=True,
                 text=True,
@@ -121,7 +125,8 @@ class LaunchdService:
         """
         try:
             # Unload the service if it's loaded
-            subprocess.run(
+            # launchctl is a system command, using list of args is safe
+            subprocess.run(  # nosec B603 B607
                 ["launchctl", "unload", str(self.plist_path)],
                 capture_output=True,
                 text=True,
@@ -155,7 +160,8 @@ class LaunchdService:
             Dict: Service status information
         """
         try:
-            result = subprocess.run(
+            # launchctl is a system command, using list of args is safe
+            result = subprocess.run(  # nosec B603 B607
                 ["launchctl", "list", "com.versiontracker.updater"],
                 capture_output=True,
                 text=True,
@@ -168,12 +174,8 @@ class LaunchdService:
                     status_line = lines[1].split()
                     return {
                         "status": "loaded",
-                        "pid": status_line[0]
-                        if status_line[0] != "-"
-                        else "not running",
-                        "last_exit_code": status_line[1]
-                        if len(status_line) > 1
-                        else "unknown",
+                        "pid": status_line[0] if status_line[0] != "-" else "not running",
+                        "last_exit_code": status_line[1] if len(status_line) > 1 else "unknown",
                     }
 
             return {"status": "not loaded"}
@@ -203,9 +205,7 @@ class LaunchdService:
                 items = "".join(_convert_value(item) for item in value)
                 return f"<array>{items}</array>"
             elif isinstance(value, dict):
-                items = "".join(
-                    f"<key>{k}</key>{_convert_value(v)}" for k, v in value.items()
-                )
+                items = "".join(f"<key>{k}</key>{_convert_value(v)}" for k, v in value.items())
                 return f"<dict>{items}</dict>"
             else:
                 return f"<string>{str(value)}</string>"
@@ -245,6 +245,7 @@ class MacOSNotifications:
             if subtitle:
                 cmd[-1] += f' subtitle "{subtitle}"'
 
+            # nosec B603 - osascript with controlled arguments
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode == 0:
@@ -269,9 +270,7 @@ class MacOSNotifications:
             bool: True if notification was sent successfully
         """
         if not outdated_apps:
-            return MacOSNotifications.send_notification(
-                "VersionTracker", "All applications are up to date! ✅"
-            )
+            return MacOSNotifications.send_notification("VersionTracker", "All applications are up to date! ✅")
 
         count = len(outdated_apps)
         app_names = ", ".join(app.get("name", "Unknown") for app in outdated_apps[:3])
@@ -281,9 +280,7 @@ class MacOSNotifications:
 
         message = f"{count} app{'s' if count != 1 else ''} need updating: {app_names}"
 
-        return MacOSNotifications.send_notification(
-            "VersionTracker", message, subtitle="Application Updates Available"
-        )
+        return MacOSNotifications.send_notification("VersionTracker", message, subtitle="Application Updates Available")
 
     @staticmethod
     def notify_service_status(action: str, success: bool) -> bool:
@@ -304,9 +301,7 @@ class MacOSNotifications:
             return MacOSNotifications.send_notification("VersionTracker", message)
 
 
-def install_scheduled_checker(
-    interval_hours: int = 24, command_args: Optional[List[str]] = None
-) -> bool:
+def install_scheduled_checker(interval_hours: int = 24, command_args: Optional[List[str]] = None) -> bool:
     """Install the scheduled application checker service.
 
     Args:
@@ -389,12 +384,8 @@ def check_and_notify() -> None:
         # Send notification
         MacOSNotifications.notify_outdated_apps(outdated_apps)
 
-        logger.info(
-            f"Checked {len(apps)} applications, found {len(outdated_apps)} outdated"
-        )
+        logger.info(f"Checked {len(apps)} applications, found {len(outdated_apps)} outdated")
 
     except Exception as e:
         logger.error(f"Error during scheduled check: {e}")
-        MacOSNotifications.send_notification(
-            "VersionTracker", f"Error during scheduled check: {str(e)}"
-        )
+        MacOSNotifications.send_notification("VersionTracker", f"Error during scheduled check: {str(e)}")

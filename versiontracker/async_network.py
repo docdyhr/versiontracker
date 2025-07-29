@@ -143,9 +143,7 @@ async def batch_fetch_json(
             return await fetch_json(url, cache_key, timeout, use_cache)
 
     # Create tasks for all URLs
-    tasks = [
-        fetch_with_semaphore(url, cache_key) for url, cache_key in zip(urls, cache_keys)
-    ]
+    tasks = [fetch_with_semaphore(url, cache_key) for url, cache_key in zip(urls, cache_keys)]
 
     # Execute all tasks concurrently and gather results
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -161,9 +159,7 @@ async def batch_fetch_json(
             elif isinstance(result, NetworkError):
                 raise result
             else:
-                raise NetworkError(
-                    f"Error fetching {urls[i]}: {str(result)}"
-                ) from result
+                raise NetworkError(f"Error fetching {urls[i]}: {str(result)}") from result
         else:
             # result is guaranteed to be Dict[str, Any] here since exceptions were handled above
             processed_results.append(cast(Dict[str, Any], result))

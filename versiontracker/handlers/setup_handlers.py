@@ -11,6 +11,7 @@ Returns:
 """
 
 import logging
+import sys
 from typing import Any
 
 from versiontracker.config import Config, get_config
@@ -106,7 +107,8 @@ def handle_setup_logging(options: Any) -> int:
         try:
             logging.basicConfig(level=logging.WARNING)
             logging.error(f"Error setting up logging: {e}")
-        except Exception:
-            # Last resort if even basic logging fails - suppress to avoid crash
-            pass
+        except Exception as basic_error:
+            # Last resort if even basic logging fails - print to stderr
+            print(f"Critical error: Unable to set up logging: {e}", file=sys.stderr)
+            print(f"Basic logging also failed: {basic_error}", file=sys.stderr)
         return 1

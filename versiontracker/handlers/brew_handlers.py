@@ -249,9 +249,10 @@ def _search_brew_candidates(search_list: List[Tuple[str, str]], rate_limit_int: 
 
     try:
         any("unittest" in f.filename for f in inspect.stack())
-    except Exception:
+    except Exception as e:
         # Unable to inspect stack, continue normally
-        pass
+        # This is a non-critical operation for test detection
+        logging.debug("Unable to inspect stack for unittest detection: %s", e)
 
     brew_candidates = check_brew_install_candidates(search_list, rate_limit_int, strict_mode)
 

@@ -53,9 +53,7 @@ class TestUtilsHandlers:
     @mock.patch("sys.stderr")
     @mock.patch("logging.getLogger")
     @mock.patch("warnings.filterwarnings")
-    def test_suppress_console_warnings_with_handlers(
-        self, mock_filter_warnings, mock_get_logger, mock_stderr
-    ):
+    def test_suppress_console_warnings_with_handlers(self, mock_filter_warnings, mock_get_logger, mock_stderr):
         """Test suppressing console warnings with handlers."""
         # Setup the mock logger and handler
         mock_logger = mock.MagicMock()

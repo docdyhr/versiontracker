@@ -57,19 +57,11 @@ def handle_export(
         return result
     except ValueError as e:
         print(create_progress_bar().color("red")(f"Export Error: {e}"))
-        print(
-            create_progress_bar().color("yellow")(
-                "Supported formats are 'json' and 'csv'"
-            )
-        )
+        print(create_progress_bar().color("yellow")("Supported formats are 'json' and 'csv'"))
         return 1
     except PermissionError as e:
         print(create_progress_bar().color("red")(f"Permission Error: {e}"))
-        print(
-            create_progress_bar().color("yellow")(
-                "Check your write permissions for the output file"
-            )
-        )
+        print(create_progress_bar().color("yellow")("Check your write permissions for the output file"))
         return 1
     except ExportError as e:
         print(create_progress_bar().color("red")(f"Export Error: {e}"))

@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: System :: Systems Administration",
     "Topic :: Utilities",
 ]
@@ -64,6 +65,9 @@ exclude = [
 # Define the target Python version.
 # We support Python 3.10 and later.
 target-version = "py310"
+
+# Line length configuration - harmonized for AI assistant best practices
+# 120 characters provides good readability while being AI-friendly
 line-length = 120
 
 # Exclude the venv directory.
@@ -88,16 +92,18 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    "examples",
 ]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
-# E203: whitespace before ':' (handled by black)
+# E203: whitespace before ':' (handled by ruff formatter)
 # E402: module level import not at top (common in test files with conditional imports)
-# F401: unused import (keeping old config)
-# F811: redefinition of unused name (keeping old config)
-# F821: undefined name (keeping old config)
-# F841: assigned but unused variable (keeping old config)
+# F401: unused import (keeping old config for iterative development)
+# F811: redefinition of unused name (keeping old config for iterative development)
+# F821: undefined name (keeping old config for iterative development)
+# F841: assigned but unused variable (keeping old config for iterative development)
+# Note: E501 (line too long) is enforced via line-length setting above
 ignore = ["E203", "E402", "F401", "F811", "F821", "F841"]
 
 # Allow autofix for all enabled rules (when --fix)
@@ -119,7 +125,7 @@ line-ending = "auto"
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.10"  # Use 3.10 as baseline for compatibility
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -144,6 +150,7 @@ explicit_package_bases = true
 ignore_missing_imports = true
 cache_dir = ".mypy_cache"
 show_column_numbers = true
+exclude = "examples/"
 
 [[tool.mypy.overrides]]
 module = [

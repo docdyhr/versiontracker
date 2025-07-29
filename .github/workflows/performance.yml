@@ -3,9 +3,9 @@ name: Performance Testing
 
 "on":
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
+    branches: [master]
   schedule:
     # Run performance tests weekly on Sunday at 23:00 UTC
     - cron: "0 23 * * 0"
@@ -78,7 +78,7 @@ jobs:
               generate_report,
               get_profiler
           )
-          from versiontracker.cli import main as cli_main
+          from versiontracker.__main__ import versiontracker_main as cli_main
 
 
           def run_benchmark(command: str, iterations: int = 3) -> Dict[str, Any]:

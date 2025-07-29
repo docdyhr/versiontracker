@@ -97,9 +97,7 @@ class TestUtils(unittest.TestCase):
     def test_run_command_timeout(self, mock_popen):
         """Test run_command with timeout."""
         mock_process = Mock()
-        mock_process.communicate.side_effect = subprocess.TimeoutExpired(
-            "test command", 30
-        )
+        mock_process.communicate.side_effect = subprocess.TimeoutExpired("test command", 30)
         mock_popen.return_value = mock_process
 
         with self.assertRaises(TimeoutError):

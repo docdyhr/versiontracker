@@ -221,12 +221,8 @@ class BadgeVerifier:
         print("📊 BADGE VERIFICATION SUMMARY")
         print("=" * 80)
         print(f"Total Badges Checked: {len(self.results)}")
-        print(
-            f"✅ Successful: {len(successful)} ({len(successful) / len(self.results) * 100:.1f}%)"
-        )
-        print(
-            f"❌ Failed: {len(failed)} ({len(failed) / len(self.results) * 100:.1f}%)"
-        )
+        print(f"✅ Successful: {len(successful)} ({len(successful) / len(self.results) * 100:.1f}%)")
+        print(f"❌ Failed: {len(failed)} ({len(failed) / len(self.results) * 100:.1f}%)")
 
         if failed:
             print("\n🚨 FAILED BADGES:")
@@ -253,22 +249,14 @@ class BadgeVerifier:
             print(f"Slowest Response: {max_time:.2f}s")
 
         # Badge Categories
-        github_actions = [
-            r
-            for r in self.results
-            if "github.com/docdyhr/versiontracker/actions" in r["url"]
-        ]
+        github_actions = [r for r in self.results if "github.com/docdyhr/versiontracker/actions" in r["url"]]
         shields_io = [r for r in self.results if "img.shields.io" in r["url"]]
         codecov = [r for r in self.results if "codecov.io" in r["url"]]
 
         print("\n📋 BADGE CATEGORIES:")
         print("-" * 40)
-        print(
-            f"GitHub Actions: {len([r for r in github_actions if r['success']])}/{len(github_actions)}"
-        )
-        print(
-            f"Shields.io: {len([r for r in shields_io if r['success']])}/{len(shields_io)}"
-        )
+        print(f"GitHub Actions: {len([r for r in github_actions if r['success']])}/{len(github_actions)}")
+        print(f"Shields.io: {len([r for r in shields_io if r['success']])}/{len(shields_io)}")
         print(f"Codecov: {len([r for r in codecov if r['success']])}/{len(codecov)}")
 
         return len(failed) == 0
@@ -292,9 +280,7 @@ class BadgeVerifier:
         for workflow in workflow_files:
             path = os.path.join(workflow_dir, workflow)
             exists = os.path.exists(path)
-            print(
-                f"{'✅' if exists else '❌'} {workflow}: {'Found' if exists else 'Missing'}"
-            )
+            print(f"{'✅' if exists else '❌'} {workflow}: {'Found' if exists else 'Missing'}")
 
         # Note about consolidated workflow
         print("\nℹ️  Note: test.yml was consolidated into ci.yml for better efficiency")

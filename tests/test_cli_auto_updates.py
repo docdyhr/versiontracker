@@ -100,15 +100,37 @@ class TestCLIAutoUpdates(unittest.TestCase):
 class TestMainAutoUpdatesIntegration(unittest.TestCase):
     """Test main module integration with auto-update commands."""
 
+    @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks", return_value=["firefox", "chrome"])
+    @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates", return_value=["firefox"])
+    @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.__main__.handle_blacklist_auto_updates")
     @patch("versiontracker.__main__.get_arguments")
-    def test_main_blacklist_auto_updates(self, mock_get_args, mock_handle_blacklist):
+    def test_main_blacklist_auto_updates(
+        self, mock_get_args, mock_handle_blacklist, mock_get_config, mock_get_auto_updates, mock_get_casks
+    ):
         """Test main function calls blacklist handler correctly."""
         from versiontracker.__main__ import versiontracker_main
 
         mock_args = MagicMock()
+        # Set the target option to True
         mock_args.blacklist_auto_updates = True
         mock_args.generate_config = False
+        # Set all other action options to False to avoid conflict
+        mock_args.apps = False
+        mock_args.brews = False
+        mock_args.recom = False
+        mock_args.strict_recom = False
+        mock_args.check_outdated = False
+        mock_args.uninstall_auto_updates = False
+        mock_args.install_service = False
+        mock_args.uninstall_service = False
+        mock_args.service_status = False
+        mock_args.test_notification = False
+        mock_args.menubar = False
+        # Set filter-related attributes
+        mock_args.blacklist = None
+        mock_args.additional_dirs = None
+        mock_args.save_filter = None
         mock_get_args.return_value = mock_args
         mock_handle_blacklist.return_value = 0
 
@@ -116,20 +138,43 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
             with patch("versiontracker.__main__.handle_initialize_config"):
                 with patch("versiontracker.__main__.handle_configure_from_options"):
                     with patch("versiontracker.__main__.handle_filter_management", return_value=None):
-                        result = versiontracker_main()
+                        with patch("versiontracker.__main__.handle_save_filter"):
+                            result = versiontracker_main()
 
         self.assertEqual(result, 0)
         mock_handle_blacklist.assert_called_once_with(mock_args)
 
+    @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks", return_value=["firefox", "chrome"])
+    @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates", return_value=["firefox"])
+    @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.__main__.handle_uninstall_auto_updates")
     @patch("versiontracker.__main__.get_arguments")
-    def test_main_uninstall_auto_updates(self, mock_get_args, mock_handle_uninstall):
+    def test_main_uninstall_auto_updates(
+        self, mock_get_args, mock_handle_uninstall, mock_get_config, mock_get_auto_updates, mock_get_casks
+    ):
         """Test main function calls uninstall handler correctly."""
         from versiontracker.__main__ import versiontracker_main
 
         mock_args = MagicMock()
+        # Set the target option to True
         mock_args.uninstall_auto_updates = True
         mock_args.generate_config = False
+        # Set all other action options to False to avoid conflict
+        mock_args.apps = False
+        mock_args.brews = False
+        mock_args.recom = False
+        mock_args.strict_recom = False
+        mock_args.check_outdated = False
+        mock_args.blacklist_auto_updates = False
+        mock_args.install_service = False
+        mock_args.uninstall_service = False
+        mock_args.service_status = False
+        mock_args.test_notification = False
+        mock_args.menubar = False
+        # Set filter-related attributes
+        mock_args.blacklist = None
+        mock_args.additional_dirs = None
+        mock_args.save_filter = None
         mock_get_args.return_value = mock_args
         mock_handle_uninstall.return_value = 0
 
@@ -137,7 +182,8 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
             with patch("versiontracker.__main__.handle_initialize_config"):
                 with patch("versiontracker.__main__.handle_configure_from_options"):
                     with patch("versiontracker.__main__.handle_filter_management", return_value=None):
-                        result = versiontracker_main()
+                        with patch("versiontracker.__main__.handle_save_filter"):
+                            result = versiontracker_main()
 
         self.assertEqual(result, 0)
         mock_handle_uninstall.assert_called_once_with(mock_args)
@@ -150,11 +196,10 @@ class TestAutoUpdatesCLIHelp(unittest.TestCase):
         """Test that help text includes all auto-update options."""
         sys.argv = ["versiontracker", "--help"]
 
-        help_text = None
-        with self.assertRaises(SystemExit) as cm:
-            with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+            with self.assertRaises(SystemExit) as cm:
                 get_arguments()
-                help_text = mock_stdout.getvalue()
+            help_text = mock_stdout.getvalue()
 
         self.assertEqual(cm.exception.code, 0)
 
@@ -219,8 +264,25 @@ class TestAutoUpdatesEndToEnd(unittest.TestCase):
 
         with patch("versiontracker.__main__.get_arguments") as mock_get_args:
             mock_args = MagicMock()
+            # Set the target option to True
             mock_args.blacklist_auto_updates = True
             mock_args.generate_config = False
+            # Set all other action options to False to avoid conflict
+            mock_args.apps = False
+            mock_args.brews = False
+            mock_args.recom = False
+            mock_args.strict_recom = False
+            mock_args.check_outdated = False
+            mock_args.uninstall_auto_updates = False
+            mock_args.install_service = False
+            mock_args.uninstall_service = False
+            mock_args.service_status = False
+            mock_args.test_notification = False
+            mock_args.menubar = False
+            # Set filter-related attributes
+            mock_args.blacklist = None
+            mock_args.additional_dirs = None
+            mock_args.save_filter = None
             mock_get_args.return_value = mock_args
 
             with patch("versiontracker.__main__.handle_setup_logging"):

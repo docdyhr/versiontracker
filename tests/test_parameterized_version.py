@@ -61,9 +61,7 @@ from versiontracker.version import (
 def test_compare_versions(version1, version2, expected_result):
     """Test version comparison with various version formats."""
     result = compare_versions(version1, version2)
-    assert result == expected_result, (
-        f"Expected {expected_result} but got {result} for {version1} vs {version2}"
-    )
+    assert result == expected_result, f"Expected {expected_result} but got {result} for {version1} vs {version2}"
 
 
 @pytest.mark.parametrize(
@@ -98,9 +96,7 @@ def test_compare_versions(version1, version2, expected_result):
 def test_parse_version(version_string, expected_tuple):
     """Test version parsing with various version formats."""
     result = parse_version(version_string)
-    assert result == expected_tuple, (
-        f"Expected {expected_tuple} but got {result} for '{version_string}'"
-    )
+    assert result == expected_tuple, f"Expected {expected_tuple} but got {result} for '{version_string}'"
 
 
 @pytest.mark.parametrize(
@@ -181,29 +177,15 @@ def test_version_status(current_version, latest_version, expected_status):
         ("2.3.4", "1.2.3", 1, 1, 1),
     ],
 )
-def test_version_difference_components(
-    version1, version2, expected_major, expected_minor, expected_patch
-):
+def test_version_difference_components(version1, version2, expected_major, expected_minor, expected_patch):
     """Test individual component differences in versions."""
     version_info = get_version_info(version1, version2)
     if version_info.status == VersionStatus.UP_TO_DATE:
         # For equal versions, expect zero differences
         assert expected_major == 0 and expected_minor == 0 and expected_patch == 0
     elif version_info.status != VersionStatus.UNKNOWN:
-        diff = (
-            version_info.outdated_by
-            if version_info.status == VersionStatus.OUTDATED
-            else version_info.newer_by
-        )
-        assert diff is not None, (
-            f"Expected difference but got None for status {version_info.status}"
-        )
-        assert diff[0] == abs(expected_major), (
-            f"Expected major diff {abs(expected_major)} but got {diff[0]}"
-        )
-        assert diff[1] == abs(expected_minor), (
-            f"Expected minor diff {abs(expected_minor)} but got {diff[1]}"
-        )
-        assert diff[2] == abs(expected_patch), (
-            f"Expected patch diff {abs(expected_patch)} but got {diff[2]}"
-        )
+        diff = version_info.outdated_by if version_info.status == VersionStatus.OUTDATED else version_info.newer_by
+        assert diff is not None, f"Expected difference but got None for status {version_info.status}"
+        assert diff[0] == abs(expected_major), f"Expected major diff {abs(expected_major)} but got {diff[0]}"
+        assert diff[1] == abs(expected_minor), f"Expected minor diff {abs(expected_minor)} but got {diff[1]}"
+        assert diff[2] == abs(expected_patch), f"Expected patch diff {abs(expected_patch)} but got {diff[2]}"

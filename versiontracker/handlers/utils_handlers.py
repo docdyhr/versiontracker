@@ -16,9 +16,7 @@ import warnings
 from typing import Any, Callable, Optional
 
 
-def setup_logging(
-    level: int, log_file: Optional[str] = None, warnings_file: Optional[str] = None
-) -> None:
+def setup_logging(level: int, log_file: Optional[str] = None, warnings_file: Optional[str] = None) -> None:
     """Configure logging for the application.
 
     Sets up root logger, formatters, and handlers for console and file logging.
@@ -36,9 +34,7 @@ def setup_logging(
     root_logger.setLevel(level)
 
     # Create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Setup console handler
     console_handler = logging.StreamHandler(sys.stdout)
@@ -116,18 +112,13 @@ def suppress_console_warnings() -> None:
                 bool: True if the record should be processed, False otherwise
             """
             if record.levelno == logging.WARNING:
-                return warning_filter(
-                    record.getMessage(), UserWarning, record.filename, record.lineno
-                )
+                return warning_filter(record.getMessage(), UserWarning, record.filename, record.lineno)
             return True
 
     # Set warnings filter
     warnings.filterwarnings("default")
     for handler in logging.getLogger().handlers:
-        if (
-            hasattr(handler, "stream")
-            and getattr(handler, "stream", None) == sys.stderr
-        ):
+        if hasattr(handler, "stream") and getattr(handler, "stream", None) == sys.stderr:
             handler.addFilter(WarningFilter())
 
 

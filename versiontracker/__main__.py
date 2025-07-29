@@ -58,6 +58,74 @@ def setup_logging(*args, **kwargs):
     pass
 
 
+def handle_main_actions(options) -> int:
+    """Handle the main application actions based on parsed options.
+
+    Args:
+        options: Parsed command-line arguments
+
+    Returns:
+        int: Exit code (0 for success, non-zero for failure)
+    """
+    # Handle config generation first if requested
+    if hasattr(options, "generate_config") and options.generate_config:
+        return handle_config_generation(options)
+
+    # Process the requested action
+    if hasattr(options, "apps") and options.apps:
+        result = handle_list_apps(options)
+    elif hasattr(options, "brews") and options.brews:
+        result = handle_list_brews(options)
+    elif hasattr(options, "recom") and options.recom:
+        # This is the default recommend option
+        result = handle_brew_recommendations(options)
+    elif hasattr(options, "strict_recom") and options.strict_recom:
+        # This is the strict recommend option
+        result = handle_brew_recommendations(options)
+    elif hasattr(options, "check_outdated") and options.check_outdated:
+        result = handle_outdated_check(options)
+    elif hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates:
+        result = handle_blacklist_auto_updates(options)
+    elif hasattr(options, "uninstall_auto_updates") and options.uninstall_auto_updates:
+        result = handle_uninstall_auto_updates(options)
+    elif hasattr(options, "install_service") and options.install_service:
+        if _MACOS_HANDLERS_AVAILABLE and "install_service" in _MACOS_HANDLERS:
+            result = _MACOS_HANDLERS["install_service"](options)
+        else:
+            print("macOS integration not available on this platform")
+            return 1
+    elif hasattr(options, "uninstall_service") and options.uninstall_service:
+        if _MACOS_HANDLERS_AVAILABLE and "uninstall_service" in _MACOS_HANDLERS:
+            result = _MACOS_HANDLERS["uninstall_service"](options)
+        else:
+            print("macOS integration not available on this platform")
+            return 1
+    elif hasattr(options, "service_status") and options.service_status:
+        if _MACOS_HANDLERS_AVAILABLE and "service_status" in _MACOS_HANDLERS:
+            result = _MACOS_HANDLERS["service_status"](options)
+        else:
+            print("macOS integration not available on this platform")
+            return 1
+    elif hasattr(options, "test_notification") and options.test_notification:
+        if _MACOS_HANDLERS_AVAILABLE and "test_notification" in _MACOS_HANDLERS:
+            result = _MACOS_HANDLERS["test_notification"](options)
+        else:
+            print("macOS integration not available on this platform")
+            return 1
+    elif hasattr(options, "menubar") and options.menubar:
+        if _MACOS_HANDLERS_AVAILABLE and "menubar_app" in _MACOS_HANDLERS:
+            result = _MACOS_HANDLERS["menubar_app"](options)
+        else:
+            print("macOS integration not available on this platform")
+            return 1
+    else:
+        # No valid option selected
+        print("No valid action specified. Use -h for help.")
+        return 1
+
+    return result
+
+
 @profile_function("versiontracker_main")
 def versiontracker_main() -> int:
     """Execute the main VersionTracker functionality.
@@ -90,61 +158,8 @@ def versiontracker_main() -> int:
         return filter_result
 
     try:
-        # Handle config generation first if requested
-        if hasattr(options, "generate_config") and options.generate_config:
-            return handle_config_generation(options)
-
-        # Process the requested action
-        if hasattr(options, "apps") and options.apps:
-            result = handle_list_apps(options)
-        elif hasattr(options, "brews") and options.brews:
-            result = handle_list_brews(options)
-        elif hasattr(options, "recom") and options.recom:
-            # This is the default recommend option
-            result = handle_brew_recommendations(options)
-        elif hasattr(options, "strict_recom") and options.strict_recom:
-            # This is the strict recommend option
-            result = handle_brew_recommendations(options)
-        elif hasattr(options, "check_outdated") and options.check_outdated:
-            result = handle_outdated_check(options)
-        elif hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates:
-            result = handle_blacklist_auto_updates(options)
-        elif hasattr(options, "uninstall_auto_updates") and options.uninstall_auto_updates:
-            result = handle_uninstall_auto_updates(options)
-        elif hasattr(options, "install_service") and options.install_service:
-            if _MACOS_HANDLERS_AVAILABLE and "install_service" in _MACOS_HANDLERS:
-                result = _MACOS_HANDLERS["install_service"](options)
-            else:
-                print("macOS integration not available on this platform")
-                return 1
-        elif hasattr(options, "uninstall_service") and options.uninstall_service:
-            if _MACOS_HANDLERS_AVAILABLE and "uninstall_service" in _MACOS_HANDLERS:
-                result = _MACOS_HANDLERS["uninstall_service"](options)
-            else:
-                print("macOS integration not available on this platform")
-                return 1
-        elif hasattr(options, "service_status") and options.service_status:
-            if _MACOS_HANDLERS_AVAILABLE and "service_status" in _MACOS_HANDLERS:
-                result = _MACOS_HANDLERS["service_status"](options)
-            else:
-                print("macOS integration not available on this platform")
-                return 1
-        elif hasattr(options, "test_notification") and options.test_notification:
-            if _MACOS_HANDLERS_AVAILABLE and "test_notification" in _MACOS_HANDLERS:
-                result = _MACOS_HANDLERS["test_notification"](options)
-            else:
-                print("macOS integration not available on this platform")
-                return 1
-        elif hasattr(options, "menubar") and options.menubar:
-            if _MACOS_HANDLERS_AVAILABLE and "menubar_app" in _MACOS_HANDLERS:
-                result = _MACOS_HANDLERS["menubar_app"](options)
-            else:
-                print("macOS integration not available on this platform")
-                return 1
-        else:
-            # No valid option selected
-            print("No valid action specified. Use -h for help.")
-            return 1
+        # Handle main actions
+        result = handle_main_actions(options)
 
         # Save filter if requested
         if hasattr(options, "save_filter") and options.save_filter:

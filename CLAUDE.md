@@ -49,15 +49,24 @@ Include detailed descriptions in the commit body, not separate markdown files.
 - Run full test suite before major commits
 - Use pre-commit hooks for code formatting and quality
 
+### Coding Standards
+
+**Line Length Policy**:
+
+- **Maximum**: 120 characters per line (enforced via ruff)
+- **Rationale**: Provides good readability while being AI-friendly for code generation
+- **Enforcement**: Automatic via ruff E501 rule (enabled by default)
+
 ### AI Code Assistant Best Practices
 
 When working with AI code assistants, the following linting configurations have been optimized:
 
 **Ruff Lint Configuration (pyproject.toml):**
 
-- `E402`: Module import not at top - Ignored for AI-generated code patterns
-- `E501`: Line too long - AI assistants often generate longer lines for readability
+- **Line Length**: Enforced at 120 characters maximum (AI-friendly but maintains readability)
+- `E402`: Module import not at top - Ignored for AI-generated code patterns  
 - `F401`, `F811`, `F821`, `F841`: Import and variable warnings - Relaxed for iterative development
+- **E501**: Line length violations are enforced via `line-length = 120` setting
 
 **MyPy Configuration:**
 
