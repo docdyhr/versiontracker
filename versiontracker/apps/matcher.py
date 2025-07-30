@@ -37,6 +37,7 @@ def search_brew_cask(search_term: str) -> List[str]:
     Returns:
         List of matching cask names
     """
+    search_term = search_term.strip()
     if not search_term:
         return []
 
