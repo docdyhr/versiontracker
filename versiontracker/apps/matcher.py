@@ -148,8 +148,13 @@ def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterProt
     if not app_name:
         return None
 
+    # Normalize app_name for consistent cache key
+    import unicodedata
+
+    normalized_app_name = unicodedata.normalize("NFKC", app_name).strip().lower()
+
     # Check the cache first
-    cache_key = f"brew_cask_name_{app_name.lower()}"
+    cache_key = f"brew_cask_name_{normalized_app_name}"
     cached_result = read_cache(cache_key)
     if cached_result is not None:
         # The cache stores the result as a dict with a "cask_name" key
