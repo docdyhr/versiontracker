@@ -382,7 +382,7 @@ def _is_prerelease(version_str: str) -> bool:
     return bool(
         re.search(
             r"[-.](?:alpha|beta|rc|final|[αβγδ])(?:\W|$)",
-            str(version_str),
+            version_str,
             re.IGNORECASE,
         )
     )
