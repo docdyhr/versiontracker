@@ -4,12 +4,22 @@ name: Security
 "on":
   push:
     branches: [master]
+    paths:
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/security.yml'
+      - 'versiontracker/**'
   pull_request:
     branches: [master]
+    paths:
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/security.yml'
+      - 'versiontracker/**'
   workflow_dispatch:
   schedule:
-    # Run security checks weekly on Sundays at 2 AM UTC
-    - cron: "0 2 * * 0"
+    # Run comprehensive security checks daily at 6 AM UTC
+    - cron: "0 6 * * *"
 
 env:
   PYTHONUNBUFFERED: 1
@@ -31,6 +41,15 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup-python-deps
+
+      - name: Install additional security tools
+        run: |
+          # Install security tools that may have compatibility issues
+          # Try to install safety with fallback
+          pip install pip-audit bandit[toml] || true
+          echo "Attempting to install safety..."
+          pip install safety || \
+            echo "Safety installation failed, will skip safety checks"
 
       - name: Run Bandit security linter
         run: |
@@ -57,11 +76,12 @@ jobs:
           echo "::group::Pip-Audit Vulnerability Check"
           pip-audit --format=json --output=pip-audit-report.json || true
           # Run pip-audit but don't fail on setuptools vulnerabilities (system dependency)
-          pip-audit || echo "Pip-audit found vulnerabilities in system dependencies"
+          pip-audit || \
+            echo "Pip-audit found vulnerabilities in system dependencies"
           echo "::endgroup::"
 
       - name: Check for secrets with TruffleHog
-        uses: trufflesecurity/trufflehog@v3.90.2
+        uses: trufflesecurity/trufflehog@v3.93.0
         with:
           path: ./
           base: master
@@ -77,6 +97,38 @@ jobs:
             bandit-report.json
             safety-report.json
             pip-audit-report.json
+            security-summary.md
+          retention-days: 30
+
+      - name: Create comprehensive security report
+        run: |
+          echo "# Security Analysis Report" > security-summary.md
+          echo "**Generated**: $(date -u)" >> security-summary.md
+          echo "**Repository**: ${{ github.repository }}" >> security-summary.md
+          echo "**Commit**: ${{ github.sha }}" >> security-summary.md
+          echo "" >> security-summary.md
+
+          echo "## Bandit Security Scan" >> security-summary.md
+          echo '```' >> security-summary.md
+          bandit -r versiontracker/ -f txt >> security-summary.md || true
+          echo '```' >> security-summary.md
+          echo "" >> security-summary.md
+
+          echo "## Safety Check Results" >> security-summary.md
+          echo '```' >> security-summary.md
+          if command -v safety >/dev/null 2>&1; then
+            safety check --short-report >> security-summary.md || true
+          else
+            echo "Safety disabled due to psutil 7.0.0 incompatibility." \
+            >> security-summary.md
+          fi
+          echo '```' >> security-summary.md
+          echo "" >> security-summary.md
+
+          echo "## Pip-Audit Results" >> security-summary.md
+          echo '```' >> security-summary.md
+          pip-audit --format=text >> security-summary.md || true
+          echo '```' >> security-summary.md
 
       - name: Create security summary
         if: always()
@@ -106,5 +158,33 @@ jobs:
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📊 Security scan completed. Check the uploaded artifacts \
-            for detailed reports." >> $GITHUB_STEP_SUMMARY
+          echo "📊 Security scan completed. Check artifacts for reports." \
+              >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('security-summary.md')) {
+              const report = fs.readFileSync('security-summary.md', 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🔒 Security Analysis Report\n\n${report}`
+              });
+            }
+
+      - name: Fail on critical vulnerabilities
+        run: |
+          if [ -f security-summary.md ]; then
+            if grep -q "CRITICAL\|HIGH" security-summary.md; then
+              echo "❌ Critical or high severity vulnerabilities found!"
+              echo "Please review the security report and update dependencies."
+              exit 1
+            else
+              echo "✅ No critical vulnerabilities found."
+            fi
+          fi

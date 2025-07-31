@@ -1,6 +1,7 @@
+---
 name: "CodeQL Analysis"
 
-on:
+"on":
   push:
     branches: [master]
   pull_request:
