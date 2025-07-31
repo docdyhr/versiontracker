@@ -81,7 +81,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Check for secrets with TruffleHog
-        uses: trufflesecurity/trufflehog@v3.93.0
+        uses: trufflesecurity/trufflehog@main
         with:
           path: ./
           base: master
