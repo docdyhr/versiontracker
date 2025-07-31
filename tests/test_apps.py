@@ -633,21 +633,24 @@ def test_get_cask_version_general_exception():
             _apps_main.get_cask_version("firefox")
 
 
-@patch("versiontracker.apps.is_homebrew_available")
-def test_check_brew_install_candidates_no_homebrew(mock_is_homebrew):
+def test_check_brew_install_candidates_no_homebrew():
     """Test check_brew_install_candidates when Homebrew is not available."""
-    # Mock is_homebrew_available to return False
-    mock_is_homebrew.return_value = False
+    # Get the dynamically loaded module
+    import versiontracker.apps
 
-    # Create test data
-    data = [("Firefox", "100.0"), ("Chrome", "99.0")]
+    apps_module = versiontracker.apps._apps_main
 
-    # Call the function
-    result = check_brew_install_candidates(data)
+    # Mock is_homebrew_available in the loaded module
+    with patch.object(apps_module, "is_homebrew_available", return_value=False):
+        # Create test data
+        data = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
-    # Verify that all apps are marked as not installable
-    expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
-    assert result == expected
+        # Call the function
+        result = check_brew_install_candidates(data)
+
+        # Verify that all apps are marked as not installable
+        expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
+        assert result == expected
 
 
 def test_check_brew_install_candidates_success():
@@ -686,21 +689,24 @@ def test_check_brew_install_candidates_success():
         mock_process_brew_batch.assert_called_once_with(data, 1, True)
 
 
-@patch("versiontracker.apps.is_homebrew_available")
-def test_process_brew_batch_no_homebrew(mock_is_homebrew):
+def test_process_brew_batch_no_homebrew():
     """Test _process_brew_batch when Homebrew is not available."""
-    # Mock is_homebrew_available to return False
-    mock_is_homebrew.return_value = False
+    # Get the dynamically loaded module
+    import versiontracker.apps
 
-    # Create test data
-    batch = [("Firefox", "100.0"), ("Chrome", "99.0")]
+    apps_module = versiontracker.apps._apps_main
 
-    # Call the function
-    result = _process_brew_batch(batch, 1, True)
+    # Mock is_homebrew_available in the loaded module
+    with patch.object(apps_module, "is_homebrew_available", return_value=False):
+        # Create test data
+        batch = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
-    # Verify all apps are marked as not installable
-    expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
-    assert result == expected
+        # Call the function
+        result = _process_brew_batch(batch, 1, True)
+
+        # Verify that all apps are marked as not installable
+        expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
+        assert result == expected
 
 
 def test_process_brew_batch_empty():

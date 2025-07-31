@@ -20,28 +20,24 @@ from versiontracker.exceptions import (
 class TestAppsExtra(unittest.TestCase):
     """Additional test cases for the apps module."""
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    def test_check_brew_install_candidates_no_homebrew(self, mock_is_homebrew_available):
+    def test_check_brew_install_candidates_no_homebrew(self):
         """Test check_brew_install_candidates when Homebrew is not available."""
-        # Mock is_homebrew_available to return False
-        mock_is_homebrew_available.return_value = False
+        import versiontracker.apps
 
-        # Mock data
-        data = [("Firefox", "100.0"), ("Chrome", "99.0")]
+        apps_module = versiontracker.apps._apps_main
 
-        # Call the function
-        result = check_brew_install_candidates(data)
+        with patch.object(apps_module, "is_homebrew_available", return_value=False):
+            # Mock data
+            data = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
-        # Verify all apps are marked as not installable
-        expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
-        self.assertEqual(result, expected)
+            # Call the function
+            result = check_brew_install_candidates(data)
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._process_brew_batch")
-    @patch("versiontracker.apps.smart_progress")
-    def test_check_brew_install_candidates_success(
-        self, mock_smart_progress, mock_process_brew_batch, mock_is_homebrew_available
-    ):
+            # Expected result: all apps marked as not installable
+            expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
+            self.assertEqual(result, expected)
+
+    def test_check_brew_install_candidates_success(self):
         """Test check_brew_install_candidates with successful batch processing."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
@@ -79,12 +75,7 @@ class TestAppsExtra(unittest.TestCase):
         # seems to handle it differently by returning failure results instead.
         self.assertTrue(True)  # Mark test as passing
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._process_brew_batch")
-    @patch("versiontracker.apps.smart_progress")
-    def test_check_brew_install_candidates_batch_error_handling(
-        self, mock_smart_progress, mock_process_brew_batch, mock_is_homebrew_available
-    ):
+    def test_check_brew_install_candidates_batch_error_handling(self):
         """Test check_brew_install_candidates handling batch processing errors."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
@@ -115,21 +106,22 @@ class TestAppsExtra(unittest.TestCase):
             else:
                 self.assertEqual(installable, True)
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    def test_process_brew_batch_no_homebrew(self, mock_is_homebrew_available):
+    def test_process_brew_batch_no_homebrew(self):
         """Test _process_brew_batch when Homebrew is not available."""
-        # Mock is_homebrew_available to return False
-        mock_is_homebrew_available.return_value = False
+        import versiontracker.apps
 
-        # Mock data
-        data = [("Firefox", "100.0"), ("Chrome", "99.0")]
+        apps_module = versiontracker.apps._apps_main
 
-        # Call the function
-        result = _process_brew_batch(data, 1, True)
+        with patch.object(apps_module, "is_homebrew_available", return_value=False):
+            # Mock data
+            batch = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
-        # Verify all apps are marked as not installable
-        expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
-        self.assertEqual(result, expected)
+            # Call the function
+            result = _process_brew_batch(batch, 1, True)
+
+            # Expected result: all apps marked as not installable
+            expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
+            self.assertEqual(result, expected)
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.is_brew_cask_installable")
