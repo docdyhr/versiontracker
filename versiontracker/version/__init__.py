@@ -107,73 +107,195 @@ else:
         return partial_ratio(s1, s2)
 
     # All other functions as no-op fallbacks
-    def check_latest_version(*args, **kwargs): return None
-    def check_outdated_apps(*args, **kwargs): return []
-    def find_matching_cask(*args, **kwargs): return None
-    def get_homebrew_cask_info(*args, **kwargs): return None
-    def get_version_info(*args, **kwargs): return None
-    def compare_fuzzy(*args, **kwargs): return 0
-    def compose_version_tuple(*args, **kwargs): return (0, 0, 0)
-    def decompose_version(*args, **kwargs): return {}
-    def get_compiled_pattern(*args, **kwargs): 
+    def check_latest_version(*args, **kwargs):
+        return None
+
+    def check_outdated_apps(*args, **kwargs):
+        return []
+
+    def find_matching_cask(*args, **kwargs):
+        return None
+
+    def get_homebrew_cask_info(*args, **kwargs):
+        return None
+
+    def get_version_info(*args, **kwargs):
+        return None
+
+    def compare_fuzzy(*args, **kwargs):
+        return 0
+
+    def compose_version_tuple(*args, **kwargs):
+        return (0, 0, 0)
+
+    def decompose_version(*args, **kwargs):
+        return {}
+
+    def get_compiled_pattern(*args, **kwargs):
         import re
+
         return re.compile(r".*")
-    def _dict_to_tuple(*args, **kwargs): return (0, 0, 0)
-    def _parse_version_components(*args, **kwargs): return {}
-    def _parse_version_to_dict(*args, **kwargs): return {}
-    def _tuple_to_dict(*args, **kwargs): return {}
-    def get_partial_ratio_scorer(*args, **kwargs): return lambda x, y: 0
-    
+
+    def _dict_to_tuple(*args, **kwargs):
+        return (0, 0, 0)
+
+    def _parse_version_components(*args, **kwargs):
+        return {}
+
+    def _parse_version_to_dict(*args, **kwargs):
+        return {}
+
+    def _tuple_to_dict(*args, **kwargs):
+        return {}
+
+    def get_partial_ratio_scorer(*args, **kwargs):
+        return lambda x, y: 0
+
     # Private function fallbacks
-    def _apply_version_truncation(*args, **kwargs): return None
-    def _both_have_app_builds(*args, **kwargs): return False
-    def _build_final_version_tuple(*args, **kwargs): return (0, 0, 0)
-    def _build_prerelease_tuple(*args, **kwargs): return (0, 0, 0)
-    def _build_with_metadata(*args, **kwargs): return None
-    def _check_version_metadata(*args, **kwargs): return None
-    def _clean_version_string(*args, **kwargs): return ""
-    def _compare_application_builds(*args, **kwargs): return 0
-    def _compare_base_and_prerelease_versions(*args, **kwargs): return 0
-    def _compare_base_versions(*args, **kwargs): return 0
-    def _compare_build_numbers(*args, **kwargs): return 0
-    def _compare_none_suffixes(*args, **kwargs): return 0
-    def _compare_prerelease(*args, **kwargs): return 0
-    def _compare_prerelease_suffixes(*args, **kwargs): return 0
-    def _compare_string_suffixes(*args, **kwargs): return 0
-    def _compare_unicode_suffixes(*args, **kwargs): return 0
-    def _convert_to_version_tuples(*args, **kwargs): return ((0, 0, 0), (0, 0, 0))
-    def _convert_versions_to_tuples(*args, **kwargs): return ((0, 0, 0), (0, 0, 0))
-    def _create_app_batches(*args, **kwargs): return []
-    def _extract_build_metadata(*args, **kwargs): return None
-    def _extract_build_number(*args, **kwargs): return None
-    def _extract_prerelease_info(*args, **kwargs): return None
-    def _extract_prerelease_type_and_suffix(*args, **kwargs): return (None, None)
-    def _get_config_settings(*args, **kwargs): return {}
-    def _get_unicode_priority(*args, **kwargs): return 0
-    def _handle_application_prefixes(*args, **kwargs): return None
-    def _handle_batch_result(*args, **kwargs): return None
-    def _handle_empty_and_malformed_versions(*args, **kwargs): return None
-    def _handle_empty_version_cases(*args, **kwargs): return None
-    def _handle_malformed_versions(*args, **kwargs): return None
-    def _handle_mixed_format(*args, **kwargs): return None
-    def _handle_none_and_empty_versions(*args, **kwargs): return None
-    def _handle_semver_build_metadata(*args, **kwargs): return None
-    def _handle_special_beta_format(*args, **kwargs): return None
-    def _has_application_build_pattern(*args, **kwargs): return False
-    def _is_mixed_format(*args, **kwargs): return False
-    def _is_multi_component_version(*args, **kwargs): return False
-    def _is_prerelease(*args, **kwargs): return False
-    def _is_version_malformed(*args, **kwargs): return False
-    def _normalize_app_version_string(*args, **kwargs): return ""
-    def _normalize_to_three_components(*args, **kwargs): return (0, 0, 0)
-    def _parse_numeric_parts(*args, **kwargs): return []
-    def _parse_or_default(*args, **kwargs): return 0
-    def _perform_version_comparison(*args, **kwargs): return 0
-    def _process_app_batch(*args, **kwargs): return []
-    def _process_single_app(*args, **kwargs): return None
-    def _search_homebrew_casks(*args, **kwargs): return []
-    def _set_version_comparison_status(*args, **kwargs): return None
-    
+    def _apply_version_truncation(*args, **kwargs):
+        return None
+
+    def _both_have_app_builds(*args, **kwargs):
+        return False
+
+    def _build_final_version_tuple(*args, **kwargs):
+        return (0, 0, 0)
+
+    def _build_prerelease_tuple(*args, **kwargs):
+        return (0, 0, 0)
+
+    def _build_with_metadata(*args, **kwargs):
+        return None
+
+    def _check_version_metadata(*args, **kwargs):
+        return None
+
+    def _clean_version_string(*args, **kwargs):
+        return ""
+
+    def _compare_application_builds(*args, **kwargs):
+        return 0
+
+    def _compare_base_and_prerelease_versions(*args, **kwargs):
+        return 0
+
+    def _compare_base_versions(*args, **kwargs):
+        return 0
+
+    def _compare_build_numbers(*args, **kwargs):
+        return 0
+
+    def _compare_none_suffixes(*args, **kwargs):
+        return 0
+
+    def _compare_prerelease(*args, **kwargs):
+        return 0
+
+    def _compare_prerelease_suffixes(*args, **kwargs):
+        return 0
+
+    def _compare_string_suffixes(*args, **kwargs):
+        return 0
+
+    def _compare_unicode_suffixes(*args, **kwargs):
+        return 0
+
+    def _convert_to_version_tuples(*args, **kwargs):
+        return ((0, 0, 0), (0, 0, 0))
+
+    def _convert_versions_to_tuples(*args, **kwargs):
+        return ((0, 0, 0), (0, 0, 0))
+
+    def _create_app_batches(*args, **kwargs):
+        return []
+
+    def _extract_build_metadata(*args, **kwargs):
+        return None
+
+    def _extract_build_number(*args, **kwargs):
+        return None
+
+    def _extract_prerelease_info(*args, **kwargs):
+        return None
+
+    def _extract_prerelease_type_and_suffix(*args, **kwargs):
+        return (None, None)
+
+    def _get_config_settings(*args, **kwargs):
+        return {}
+
+    def _get_unicode_priority(*args, **kwargs):
+        return 0
+
+    def _handle_application_prefixes(*args, **kwargs):
+        return None
+
+    def _handle_batch_result(*args, **kwargs):
+        return None
+
+    def _handle_empty_and_malformed_versions(*args, **kwargs):
+        return None
+
+    def _handle_empty_version_cases(*args, **kwargs):
+        return None
+
+    def _handle_malformed_versions(*args, **kwargs):
+        return None
+
+    def _handle_mixed_format(*args, **kwargs):
+        return None
+
+    def _handle_none_and_empty_versions(*args, **kwargs):
+        return None
+
+    def _handle_semver_build_metadata(*args, **kwargs):
+        return None
+
+    def _handle_special_beta_format(*args, **kwargs):
+        return None
+
+    def _has_application_build_pattern(*args, **kwargs):
+        return False
+
+    def _is_mixed_format(*args, **kwargs):
+        return False
+
+    def _is_multi_component_version(*args, **kwargs):
+        return False
+
+    def _is_prerelease(*args, **kwargs):
+        return False
+
+    def _is_version_malformed(*args, **kwargs):
+        return False
+
+    def _normalize_app_version_string(*args, **kwargs):
+        return ""
+
+    def _normalize_to_three_components(*args, **kwargs):
+        return (0, 0, 0)
+
+    def _parse_numeric_parts(*args, **kwargs):
+        return []
+
+    def _parse_or_default(*args, **kwargs):
+        return 0
+
+    def _perform_version_comparison(*args, **kwargs):
+        return 0
+
+    def _process_app_batch(*args, **kwargs):
+        return []
+
+    def _process_single_app(*args, **kwargs):
+        return None
+
+    def _search_homebrew_casks(*args, **kwargs):
+        return []
+
+    def _set_version_comparison_status(*args, **kwargs):
+        return None
+
     # Fallback classes
     class _EarlyReturn:
         pass
@@ -184,6 +306,7 @@ else:
     USE_RAPIDFUZZ = False
     VERSION_PATTERN_DICT = {}
     import re
+
     VERSION_PATTERNS = [
         re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9\-\.]+))?$"),  # semantic
         re.compile(r"^(\d+)\.(\d+)$"),  # simple

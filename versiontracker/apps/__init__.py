@@ -9,6 +9,8 @@ from typing import List
 
 # Import partial_ratio from version module for compatibility with tests
 from ..version import partial_ratio
+# Import cache functions that tests depend on
+from ..cache import read_cache
 from .cache import (
     AdaptiveRateLimiter,
     RateLimiter,
@@ -43,7 +45,7 @@ _spec = importlib.util.spec_from_file_location("versiontracker_apps_main", _apps
 if _spec is not None and _spec.loader is not None:
     _apps_main = importlib.util.module_from_spec(_spec)
     _spec.loader.exec_module(_apps_main)
-    
+
     # Import ALL EXISTING functions from main apps.py (safe imports only)
     _batch_process_brew_search = _apps_main._batch_process_brew_search
     _check_cache_for_cask = _apps_main._check_cache_for_cask
@@ -67,7 +69,7 @@ if _spec is not None and _spec.loader is not None:
     get_cask_version = _apps_main.get_cask_version
     get_homebrew_casks = _apps_main.get_homebrew_casks
     is_brew_cask_installable = _apps_main.is_brew_cask_installable
-    
+
     # Import ALL EXISTING constants from main apps.py
     BREW_CMD = _apps_main.BREW_CMD
     BREW_PATH = _apps_main.BREW_PATH
@@ -78,31 +80,73 @@ if _spec is not None and _spec.loader is not None:
     _brew_search_cache = _apps_main._brew_search_cache
 else:
     # Comprehensive fallback functions if main apps.py cannot be loaded
-    def get_homebrew_casks() -> List[str]: return []
-    def check_brew_install_candidates(*args, **kwargs): return []
-    def _process_brew_batch(*args, **kwargs): return []
-    def get_cask_version(*args, **kwargs): return None
-    def is_brew_cask_installable(*args, **kwargs): return False
-    def _create_rate_limiter(*args, **kwargs): return SimpleRateLimiter(1.0)
-    def check_brew_update_candidates(*args, **kwargs): return []
-    
+    def get_homebrew_casks() -> List[str]:
+        return []
+
+    def check_brew_install_candidates(*args, **kwargs):
+        return []
+
+    def _process_brew_batch(*args, **kwargs):
+        return []
+
+    def get_cask_version(*args, **kwargs):
+        return None
+
+    def is_brew_cask_installable(*args, **kwargs):
+        return False
+
+    def _create_rate_limiter(*args, **kwargs):
+        return SimpleRateLimiter(1.0)
+
+    def check_brew_update_candidates(*args, **kwargs):
+        return []
+
     # Private function fallbacks
-    def _batch_process_brew_search(*args, **kwargs): return []
-    def _check_cache_for_cask(*args, **kwargs): return None
-    def _execute_brew_search(*args, **kwargs): return []
-    def _get_error_message(*args, **kwargs): return "Unknown error"
-    def _get_existing_brews(*args, **kwargs): return []
-    def _handle_batch_error(*args, **kwargs): return None
-    def _handle_brew_search_result(*args, **kwargs): return None
-    def _handle_future_result(*args, **kwargs): return None
-    def _populate_cask_versions(*args, **kwargs): return {}
-    def _process_batch_result(*args, **kwargs): return []
-    def _process_brew_search_batches(*args, **kwargs): return []
-    def _process_with_progress_bar(*args, **kwargs): return []
-    def _process_without_progress_bar(*args, **kwargs): return []
-    def _should_show_progress(*args, **kwargs): return False
-    def _update_cache_with_installable(*args, **kwargs): return None
-    
+    def _batch_process_brew_search(*args, **kwargs):
+        return []
+
+    def _check_cache_for_cask(*args, **kwargs):
+        return None
+
+    def _execute_brew_search(*args, **kwargs):
+        return []
+
+    def _get_error_message(*args, **kwargs):
+        return "Unknown error"
+
+    def _get_existing_brews(*args, **kwargs):
+        return []
+
+    def _handle_batch_error(*args, **kwargs):
+        return None
+
+    def _handle_brew_search_result(*args, **kwargs):
+        return None
+
+    def _handle_future_result(*args, **kwargs):
+        return None
+
+    def _populate_cask_versions(*args, **kwargs):
+        return {}
+
+    def _process_batch_result(*args, **kwargs):
+        return []
+
+    def _process_brew_search_batches(*args, **kwargs):
+        return []
+
+    def _process_with_progress_bar(*args, **kwargs):
+        return []
+
+    def _process_without_progress_bar(*args, **kwargs):
+        return []
+
+    def _should_show_progress(*args, **kwargs):
+        return False
+
+    def _update_cache_with_installable(*args, **kwargs):
+        return None
+
     # Fallback constants
     BREW_CMD = "brew"
     BREW_PATH = "/usr/local/bin/brew"
@@ -121,6 +165,7 @@ __all__ = [
     "SimpleRateLimiter",
     "_AdaptiveRateLimiter",
     "clear_homebrew_casks_cache",
+    "read_cache",
     # Finder components from submodules
     "get_applications",
     "get_applications_from_system_profiler",

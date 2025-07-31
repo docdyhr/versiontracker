@@ -180,7 +180,7 @@ This document outlines planned enhancements and future development for the Versi
   - [ ] Monitor safety package for psutil 7.0.0 compatibility updates
 
 - [ ] **Type Safety Improvements** (Medium Priority)
-  - [ ] Fix duplicate name "_EarlyReturn" in version/__init__.py
+  - [ ] Fix duplicate name "_EarlyReturn" in version/**init**.py
   - [ ] Add missing type annotations to menubar_app.py
   - [ ] Enable stricter mypy configuration
   - [ ] Review and fix any new type errors

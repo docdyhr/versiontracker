@@ -21,31 +21,32 @@ class TestAdditionalAppsFunctions(unittest.TestCase):
         """Test get_homebrew_casks_list function."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
-        
+
         # Mock the brew list command to return a list of casks
         mock_run_command.return_value = ("firefox\ngoogle-chrome\nvisual-studio-code\n", 0)
-        
+
         # Call the function
         result = get_homebrew_casks_list()
-        
+
         # Verify the result contains the expected casks
         self.assertEqual(sorted(result), ["firefox", "google-chrome", "visual-studio-code"])
-        
+
         # Test when Homebrew is not available
         mock_is_homebrew_available.return_value = False
-        
+
         # Should raise HomebrewError when Homebrew is not available
         from versiontracker.exceptions import HomebrewError
+
         with self.assertRaises(HomebrewError):
             get_homebrew_casks_list()
-            
+
         # Test error propagation with NetworkError
         mock_is_homebrew_available.return_value = True
         mock_run_command.side_effect = NetworkError("Network error")
         with self.assertRaises(NetworkError):
             get_homebrew_casks_list()
-            
-        # Test error propagation with BrewTimeoutError  
+
+        # Test error propagation with BrewTimeoutError
         mock_run_command.side_effect = BrewTimeoutError("Timeout error")
         with self.assertRaises(BrewTimeoutError):
             get_homebrew_casks_list()

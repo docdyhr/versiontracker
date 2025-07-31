@@ -120,14 +120,14 @@ class TestAdaptiveRateLimiterAlias(unittest.TestCase):
 class TestAppStoreCheck(unittest.TestCase):
     """Test App Store checking functionality."""
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps.finder.read_cache")
     def test_is_app_in_app_store_cache_hit(self, mock_read_cache):
         """Test is_app_in_app_store with cache hit."""
         mock_read_cache.return_value = {"apps": ["TestApp", "AnotherApp"]}
         result = is_app_in_app_store("TestApp", use_cache=True)
         self.assertTrue(result)
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps.finder.read_cache")
     def test_is_app_in_app_store_cache_miss(self, mock_read_cache):
         """Test is_app_in_app_store with cache miss."""
         mock_read_cache.return_value = None
@@ -139,7 +139,7 @@ class TestAppStoreCheck(unittest.TestCase):
         result = is_app_in_app_store("TestApp", use_cache=False)
         self.assertFalse(result)
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps.finder.read_cache")
     def test_is_app_in_app_store_exception(self, mock_read_cache):
         """Test is_app_in_app_store exception handling."""
         mock_read_cache.side_effect = Exception("Cache error")
@@ -158,17 +158,19 @@ class TestBrewCaskInstallable(unittest.TestCase):
         with self.assertRaises(HomebrewError):
             is_brew_cask_installable("testapp")
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.cache.read_cache")
     @patch("versiontracker.apps.is_homebrew_available")
     def test_is_brew_cask_installable_cache_hit(self, mock_homebrew_available, mock_read_cache):
         """Test cask check with cache hit."""
         mock_homebrew_available.return_value = True
         mock_read_cache.return_value = {"testapp": True}
 
-        result = is_brew_cask_installable("testapp", use_cache=True)
-        self.assertTrue(result)
+        with patch("versiontracker.apps._check_cache_for_cask") as mock_check_cache:
+            mock_check_cache.return_value = True
+            result = is_brew_cask_installable("testapp", use_cache=True)
+            self.assertTrue(result)
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.cache.read_cache")
     @patch("versiontracker.apps.is_homebrew_available")
     def test_is_brew_cask_installable_cache_miss(self, mock_homebrew_available, mock_read_cache):
         """Test cask check with cache miss."""
