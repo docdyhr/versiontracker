@@ -1,5 +1,6 @@
 """Tests for the apps module."""
 
+import unittest
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -201,7 +202,7 @@ def test_get_homebrew_casks_success():
     _apps_main = apps_module._apps_main
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None
+    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
     _apps_main.get_homebrew_casks.cache_clear()
 
     # Set up mocks
@@ -236,7 +237,7 @@ def test_get_homebrew_casks_empty():
     _apps_main = apps_module._apps_main
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None
+    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
     _apps_main.get_homebrew_casks.cache_clear()
 
     # Set up mocks
@@ -265,7 +266,7 @@ def test_get_homebrew_casks_error():
     _apps_main = apps_module._apps_main
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None
+    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
     _apps_main.get_homebrew_casks.cache_clear()
 
     # Set up mocks
@@ -292,7 +293,7 @@ def test_get_homebrew_casks_network_error():
     _apps_main = apps_module._apps_main
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None
+    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
     _apps_main.get_homebrew_casks.cache_clear()
 
     # Set up mocks
@@ -319,7 +320,7 @@ def test_get_homebrew_casks_timeout():
     _apps_main = apps_module._apps_main
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None
+    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
     _apps_main.get_homebrew_casks.cache_clear()
 
     # Set up mocks
@@ -346,7 +347,7 @@ def test_get_homebrew_casks_cache():
     _apps_main = apps_module._apps_main
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None
+    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
     _apps_main.get_homebrew_casks.cache_clear()
 
     # Set up initial data with mock
@@ -374,7 +375,7 @@ def test_get_homebrew_casks_cache():
         assert first_result == second_result
 
         # Now clear the cache and call again
-        _apps_main._brew_casks_cache = None
+        _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
         _apps_main.get_homebrew_casks.cache_clear()
 
         # This call should execute the function with the new mock data
@@ -629,8 +630,11 @@ def test_get_cask_version_general_exception():
         mock_run_command.side_effect = ValueError("Some unexpected error")
 
         # Test that a HomebrewError is raised with the original error wrapped
-        with pytest.raises(HomebrewError):
+        with pytest.raises(HomebrewError) as exc_info:
             _apps_main.get_cask_version("firefox")
+
+        # Assert that the error message contains the original exception message
+        assert "Some unexpected error" in str(exc_info.value)
 
 
 def test_check_brew_install_candidates_no_homebrew():

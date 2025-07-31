@@ -1,5 +1,6 @@
 """Version comparison functionality."""
 
+import logging
 import re
 from typing import List, Optional, Tuple, Union
 
@@ -343,14 +344,16 @@ def compare_versions(
     if isinstance(version1, tuple):
         v1_str = tuple_to_version_str(version1)
         if v1_str is None:
-            return malformed_result
+            # Handle malformed tuple - treat as comparison between malformed versions
+            return _handle_malformed_versions(version1, version2) or 0
     else:
         v1_str = str(version1)
 
     if isinstance(version2, tuple):
         v2_str = tuple_to_version_str(version2)
         if v2_str is None:
-            return malformed_result
+            # Handle malformed tuple - treat as comparison between malformed versions
+            return _handle_malformed_versions(version1, version2) or 0
     else:
         v2_str = str(version2)
 
@@ -420,8 +423,16 @@ def _compare_prerelease(version1: Union[str, Tuple[int, ...]], version2: Union[s
     # Pre-release type priority: alpha < beta < rc < final
     type_priority = {"alpha": 1, "beta": 2, "rc": 3, "final": 4}
 
-    v1_priority = type_priority.get(v1_type, 2)  # default to beta
-    v2_priority = type_priority.get(v2_type, 2)
+    # Handle unknown prerelease types with warning
+    v1_priority = type_priority.get(v1_type)
+    v2_priority = type_priority.get(v2_type)
+
+    if v1_priority is None:
+        logging.warning("Unknown prerelease type '%s' encountered, treating as beta", v1_type)
+        v1_priority = 2  # default to beta with warning
+    if v2_priority is None:
+        logging.warning("Unknown prerelease type '%s' encountered, treating as beta", v2_type)
+        v2_priority = 2  # default to beta with warning
 
     if v1_priority < v2_priority:
         return -1
@@ -557,7 +568,8 @@ def _extract_prerelease_type_and_suffix(
         elif unicode_char == "δ":
             return "delta", unicode_char
 
-    return "beta", None  # default
+    # No prerelease pattern found - return None to indicate stable release
+    return "final", None  # Treat as stable/final release when no prerelease markers found
 
 
 def is_version_newer(current: str, latest: str) -> bool:

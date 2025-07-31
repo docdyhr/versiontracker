@@ -168,14 +168,12 @@ class TestBrewCaskInstallable(unittest.TestCase):
 
         with (
             patch.object(apps_module, "is_homebrew_available", return_value=True),
-            patch("versiontracker.cache.read_cache") as mock_read_cache,
+            patch.object(apps_module, "read_cache", return_value={"installable": ["testapp"]}),
+            patch.object(apps_module, "_check_cache_for_cask", return_value=True),
         ):
-            mock_read_cache.return_value = {"testapp": True}
-
-            with patch("versiontracker.apps._check_cache_for_cask") as mock_check_cache:
-                mock_check_cache.return_value = True
-                result = is_brew_cask_installable("testapp", use_cache=True)
-                self.assertFalse(result)  # Expected to be False based on test failure
+            result = is_brew_cask_installable("testapp", use_cache=True)
+            # When cache returns True (cask is installable), function should return True
+            self.assertTrue(result)
 
     def test_is_brew_cask_installable_cache_miss(self):
         """Test cask check with cache miss."""

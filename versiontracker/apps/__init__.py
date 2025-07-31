@@ -48,28 +48,106 @@ if _spec is not None and _spec.loader is not None:
     _spec.loader.exec_module(_apps_main)
 
     # Import ALL EXISTING functions from main apps.py (safe imports only)
-    _batch_process_brew_search = _apps_main._batch_process_brew_search
-    _check_cache_for_cask = _apps_main._check_cache_for_cask
-    _create_rate_limiter = _apps_main._create_rate_limiter
-    _execute_brew_search = _apps_main._execute_brew_search
-    _get_error_message = _apps_main._get_error_message
-    _get_existing_brews = _apps_main._get_existing_brews
-    _handle_batch_error = _apps_main._handle_batch_error
-    _handle_brew_search_result = _apps_main._handle_brew_search_result
-    _handle_future_result = _apps_main._handle_future_result
-    _populate_cask_versions = _apps_main._populate_cask_versions
-    _process_batch_result = _apps_main._process_batch_result
-    _process_brew_batch = _apps_main._process_brew_batch
-    _process_brew_search_batches = _apps_main._process_brew_search_batches
-    _process_with_progress_bar = _apps_main._process_with_progress_bar
-    _process_without_progress_bar = _apps_main._process_without_progress_bar
-    _should_show_progress = _apps_main._should_show_progress
-    _update_cache_with_installable = _apps_main._update_cache_with_installable
-    check_brew_install_candidates = _apps_main.check_brew_install_candidates
-    check_brew_update_candidates = _apps_main.check_brew_update_candidates
-    get_cask_version = _apps_main.get_cask_version
-    get_homebrew_casks = _apps_main.get_homebrew_casks
-    is_brew_cask_installable = _apps_main.is_brew_cask_installable
+
+    def _batch_process_brew_search(*args, **kwargs):
+        """Process brew search in batches."""
+        return _apps_main._batch_process_brew_search(*args, **kwargs)
+
+    def _check_cache_for_cask(*args, **kwargs):
+        """Check cache for cask information."""
+        return _apps_main._check_cache_for_cask(*args, **kwargs)
+
+    def _create_rate_limiter(*args, **kwargs):
+        """Create appropriate rate limiter."""
+        return _apps_main._create_rate_limiter(*args, **kwargs)
+
+    def _execute_brew_search(*args, **kwargs):
+        """Execute brew search command."""
+        return _apps_main._execute_brew_search(*args, **kwargs)
+
+    def _get_error_message(*args, **kwargs):
+        """Get error message from exception."""
+        return _apps_main._get_error_message(*args, **kwargs)
+
+    def _get_existing_brews(*args, **kwargs):
+        """Get existing brew installations."""
+        return _apps_main._get_existing_brews(*args, **kwargs)
+
+    def _handle_batch_error(*args, **kwargs):
+        """Handle batch processing errors."""
+        return _apps_main._handle_batch_error(*args, **kwargs)
+
+    def _handle_brew_search_result(*args, **kwargs):
+        """Handle brew search result."""
+        return _apps_main._handle_brew_search_result(*args, **kwargs)
+
+    def _handle_future_result(*args, **kwargs):
+        """Handle future execution result."""
+        return _apps_main._handle_future_result(*args, **kwargs)
+
+    def _populate_cask_versions(*args, **kwargs):
+        """Populate cask version information."""
+        return _apps_main._populate_cask_versions(*args, **kwargs)
+
+    def _process_batch_result(*args, **kwargs):
+        """Process batch execution result."""
+        return _apps_main._process_batch_result(*args, **kwargs)
+
+    def _process_brew_batch(*args, **kwargs):
+        """Process batch of brew operations."""
+        return _apps_main._process_brew_batch(*args, **kwargs)
+
+    def _process_brew_search_batches(*args, **kwargs):
+        """Process brew search operations in batches."""
+        return _apps_main._process_brew_search_batches(*args, **kwargs)
+
+    def _process_with_progress_bar(*args, **kwargs):
+        """Process operations with progress bar."""
+        return _apps_main._process_with_progress_bar(*args, **kwargs)
+
+    def _process_without_progress_bar(*args, **kwargs):
+        """Process operations without progress bar."""
+        return _apps_main._process_without_progress_bar(*args, **kwargs)
+
+    def _should_show_progress(*args, **kwargs):
+        """Determine if progress bar should be shown."""
+        return _apps_main._should_show_progress(*args, **kwargs)
+
+    def _update_cache_with_installable(*args, **kwargs):
+        """Update cache with installable cask information."""
+        return _apps_main._update_cache_with_installable(*args, **kwargs)
+
+    def check_brew_install_candidates(*args, **kwargs):
+        """Check which applications can be installed via Homebrew."""
+        return _apps_main.check_brew_install_candidates(*args, **kwargs)
+
+    def check_brew_update_candidates(*args, **kwargs):
+        """Check which Homebrew casks can be updated."""
+        return _apps_main.check_brew_update_candidates(*args, **kwargs)
+
+    def get_cask_version(*args, **kwargs):
+        """Get version of a Homebrew cask."""
+        return _apps_main.get_cask_version(*args, **kwargs)
+
+    def get_homebrew_casks(*args, **kwargs):
+        """Get list of installed Homebrew casks."""
+        return _apps_main.get_homebrew_casks(*args, **kwargs)
+
+    def is_brew_cask_installable(*args, **kwargs):
+        """Check if a cask can be installed via Homebrew."""
+        return _apps_main.is_brew_cask_installable(*args, **kwargs)
+
+    def smart_progress(*args, **kwargs):
+        """Smart progress bar wrapper."""
+        return _apps_main.smart_progress(*args, **kwargs)
+
+    def run_command(*args, **kwargs):
+        """Run system command."""
+        return _apps_main.run_command(*args, **kwargs)
+
+    def write_cache(*args, **kwargs):
+        """Write data to cache."""
+        return _apps_main.write_cache(*args, **kwargs)
 
     # Import ALL EXISTING constants from main apps.py
     BREW_CMD = _apps_main.BREW_CMD
@@ -81,71 +159,112 @@ if _spec is not None and _spec.loader is not None:
     _brew_search_cache = _apps_main._brew_search_cache
 else:
     # Comprehensive fallback functions if main apps.py cannot be loaded
-    def get_homebrew_casks() -> List[str]:
+    def get_homebrew_casks(*args, **kwargs):
+        """Fallback: Get list of installed Homebrew casks."""
         return []
 
     def check_brew_install_candidates(*args, **kwargs):
+        """Fallback: Check which applications can be installed via Homebrew."""
         return []
 
     def _process_brew_batch(*args, **kwargs):
+        """Fallback: Process batch of brew operations."""
         return []
 
     def get_cask_version(*args, **kwargs):
+        """Fallback: Get version of a Homebrew cask."""
         return None
 
     def is_brew_cask_installable(*args, **kwargs):
+        """Fallback: Check if a cask can be installed via Homebrew."""
         return False
 
     def _create_rate_limiter(*args, **kwargs):
+        """Fallback: Create appropriate rate limiter."""
         return SimpleRateLimiter(1.0)
 
+    def run_command(*args, **kwargs):
+        """Fallback: Run system command."""
+        return ("", 1)
+
+    def write_cache(*args, **kwargs):
+        """Fallback: Write data to cache."""
+        return False
+
     def check_brew_update_candidates(*args, **kwargs):
+        """Fallback: Check which Homebrew casks can be updated."""
         return []
 
     # Private function fallbacks
     def _batch_process_brew_search(*args, **kwargs):
+        """Fallback: Process brew search in batches."""
         return []
 
     def _check_cache_for_cask(*args, **kwargs):
+        """Fallback: Check cache for cask information."""
         return None
 
     def _execute_brew_search(*args, **kwargs):
+        """Fallback: Execute brew search command."""
         return []
 
     def _get_error_message(*args, **kwargs):
+        """Fallback: Get error message from exception."""
         return "Unknown error"
 
     def _get_existing_brews(*args, **kwargs):
+        """Fallback: Get existing brew installations."""
         return []
 
     def _handle_batch_error(*args, **kwargs):
-        return None
+        """Fallback: Handle batch processing errors."""
+        # Extract arguments for backward compatibility
+        error = args[0] if len(args) > 0 else kwargs.get("error")
+        error_count = args[1] if len(args) > 1 else kwargs.get("error_count", 0)
+        batch = args[2] if len(args) > 2 else kwargs.get("batch", [])
+        # Return proper tuple structure: (results, error_count, exception)
+        failed_results = [(name, version, False) for name, version in batch] if batch else []
+        return (failed_results, error_count + 1, None)
 
     def _handle_brew_search_result(*args, **kwargs):
+        """Fallback: Handle brew search result."""
         return None
 
     def _handle_future_result(*args, **kwargs):
-        return None
+        """Fallback: Handle future execution result."""
+        # Extract arguments for backward compatibility
+        future = args[0] if len(args) > 0 else kwargs.get("future")
+        name = args[1] if len(args) > 1 else kwargs.get("name", "unknown")
+        version = args[2] if len(args) > 2 else kwargs.get("version", "0.0.0")
+        # Return proper tuple structure: ((name, version, result), exception)
+        return ((name, version, False), None)
 
     def _populate_cask_versions(*args, **kwargs):
+        """Fallback: Populate cask version information."""
         return {}
 
     def _process_batch_result(*args, **kwargs):
+        """Fallback: Process batch execution result."""
         return []
 
     def _process_brew_search_batches(*args, **kwargs):
+        """Fallback: Process brew search operations in batches."""
         return []
 
     def _process_with_progress_bar(*args, **kwargs):
+        """Fallback: Process operations with progress bar."""
         return []
 
     def _process_without_progress_bar(*args, **kwargs):
+        """Fallback: Process operations without progress bar."""
         return []
 
     def _should_show_progress(*args, **kwargs):
+        """Fallback: Determine if progress bar should be shown."""
         return False
 
     def _update_cache_with_installable(*args, **kwargs):
+        """Fallback: Update cache with installable cask information."""
         return None
 
     # Fallback constants
