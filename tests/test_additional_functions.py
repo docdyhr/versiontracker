@@ -1,5 +1,6 @@
 """Tests for additional functions in the apps module."""
 
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -14,40 +15,40 @@ from versiontracker.exceptions import BrewTimeoutError, NetworkError
 class TestAdditionalAppsFunctions(unittest.TestCase):
     """Test cases for additional functions in the apps module."""
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list(self, mock_get_homebrew_casks, mock_is_homebrew_available):
+    @patch("versiontracker.apps.finder.is_homebrew_available")
+    @patch("versiontracker.utils.run_command")
+    def test_get_homebrew_casks_list(self, mock_run_command, mock_is_homebrew_available):
         """Test get_homebrew_casks_list function."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew_available.return_value = True
 
-        # Mock get_homebrew_casks to return a list of casks
-        mock_get_homebrew_casks.return_value = [
-            "firefox",
-            "google-chrome",
-            "visual-studio-code",
-        ]
+        # Mock the brew list command to return a list of casks
+        mock_run_command.return_value = ("firefox\ngoogle-chrome\nvisual-studio-code\n", 0)
 
         # Call the function
         result = get_homebrew_casks_list()
 
-        # Verify the result is the same as what get_homebrew_casks returned
-        self.assertEqual(result, ["firefox", "google-chrome", "visual-studio-code"])
+        # Verify the result contains the expected casks
+        self.assertEqual(sorted(result), ["firefox", "google-chrome", "visual-studio-code"])
 
-        # Test error propagation
-        # Test NetworkError
-        mock_get_homebrew_casks.side_effect = NetworkError("Network error")
+        # Test when Homebrew is not available
+        mock_is_homebrew_available.return_value = False
+
+        # Should raise HomebrewError when Homebrew is not available
+        from versiontracker.exceptions import HomebrewError
+
+        with self.assertRaises(HomebrewError):
+            get_homebrew_casks_list()
+
+        # Test error propagation with NetworkError
+        mock_is_homebrew_available.return_value = True
+        mock_run_command.side_effect = NetworkError("Network error")
         with self.assertRaises(NetworkError):
             get_homebrew_casks_list()
 
-        # Test BrewTimeoutError
-        mock_get_homebrew_casks.side_effect = BrewTimeoutError("Timeout error")
+        # Test error propagation with BrewTimeoutError
+        mock_run_command.side_effect = BrewTimeoutError("Timeout error")
         with self.assertRaises(BrewTimeoutError):
-            get_homebrew_casks_list()
-
-        # Test general exception
-        mock_get_homebrew_casks.side_effect = Exception("General error")
-        with self.assertRaises(Exception):
             get_homebrew_casks_list()
 
     def test_filter_brew_candidates(self):

@@ -1,18 +1,18 @@
 """Fuzzy matching and Homebrew search functionality."""
 
+# Import partial_ratio directly from the main version.py file (not the version/ submodule)
+import importlib.util
 import logging
+import os
 from typing import List, Optional, Tuple, cast
 
 # Import from main version module (partial_ratio wasn't moved to submodules)
 from versiontracker.cache import read_cache, write_cache
 from versiontracker.config import get_config
 from versiontracker.utils import normalise_name, run_command
-# Import partial_ratio directly from the main version.py file (not the version/ submodule)
-import importlib.util
-import os
 
 # Import the main version.py file directly (not the version/ package)
-_version_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'version.py')
+_version_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version.py")
 _spec = importlib.util.spec_from_file_location("versiontracker_version_main", _version_py_path)
 if _spec is not None and _spec.loader is not None:
     _version_main = importlib.util.module_from_spec(_spec)
@@ -37,6 +37,7 @@ def search_brew_cask(search_term: str) -> List[str]:
     Returns:
         List of matching cask names
     """
+    search_term = search_term.strip()
     if not search_term:
         return []
 
@@ -147,8 +148,13 @@ def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterProt
     if not app_name:
         return None
 
+    # Normalize app_name for consistent cache key
+    import unicodedata
+
+    normalized_app_name = unicodedata.normalize("NFKC", app_name).strip().lower()
+
     # Check the cache first
-    cache_key = f"brew_cask_name_{app_name.lower()}"
+    cache_key = f"brew_cask_name_{normalized_app_name}"
     cached_result = read_cache(cache_key)
     if cached_result is not None:
         # The cache stores the result as a dict with a "cask_name" key

@@ -331,8 +331,28 @@ def compare_versions(
         return malformed_result
 
     # Convert to string representations for further processing
-    v1_str = str(version1) if not isinstance(version1, tuple) else ".".join(map(str, version1))
-    v2_str = str(version2) if not isinstance(version2, tuple) else ".".join(map(str, version2))
+    # Validate that all tuple elements are integers before joining
+    def tuple_to_version_str(version_tuple):
+        if not all(isinstance(x, int) for x in version_tuple):
+            # Handle non-integer elements in version tuple
+            # You may choose to raise an error, return a special value, or handle as malformed
+            # Here, we return the malformed_result for consistency
+            return None
+        return ".".join(map(str, version_tuple))
+
+    if isinstance(version1, tuple):
+        v1_str = tuple_to_version_str(version1)
+        if v1_str is None:
+            return malformed_result
+    else:
+        v1_str = str(version1)
+
+    if isinstance(version2, tuple):
+        v2_str = tuple_to_version_str(version2)
+        if v2_str is None:
+            return malformed_result
+    else:
+        v2_str = str(version2)
 
     # Handle semver build metadata
     semver_result = _handle_semver_build_metadata(v1_str, v2_str, version1, version2)
@@ -382,7 +402,7 @@ def _is_prerelease(version_str: str) -> bool:
     return bool(
         re.search(
             r"[-.](?:alpha|beta|rc|final|[αβγδ])(?:\W|$)",
-            str(version_str),
+            version_str,
             re.IGNORECASE,
         )
     )
