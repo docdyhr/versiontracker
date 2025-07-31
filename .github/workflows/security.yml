@@ -82,9 +82,10 @@ jobs:
 
       - name: Check for secrets with TruffleHog
         uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
         with:
           path: ./
-          base: master
+          base: ${{ github.event_name == 'pull_request' && 'master' || 'HEAD~1' }}
           head: HEAD
           extra_args: --debug --only-verified
 

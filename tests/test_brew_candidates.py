@@ -158,7 +158,7 @@ class TestBrewCandidates(unittest.TestCase):
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.is_brew_cask_installable")
     @patch("versiontracker.apps.ThreadPoolExecutor")
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     def test_process_brew_batch_success(
         self,
         mock_get_config,
