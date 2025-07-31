@@ -7,10 +7,11 @@ import os
 import sys
 from typing import List
 
-# Import partial_ratio from version module for compatibility with tests
-from ..version import partial_ratio
 # Import cache functions that tests depend on
 from ..cache import read_cache
+
+# Import partial_ratio from version module for compatibility with tests
+from ..version import partial_ratio
 from .cache import (
     AdaptiveRateLimiter,
     RateLimiter,
