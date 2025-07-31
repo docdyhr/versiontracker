@@ -160,9 +160,33 @@ This document outlines planned enhancements and future development for the Versi
 
 ## 🐛 Known Issues
 
-### Technical Debt Items (NEW - July 2025)
+### Technical Debt Items (Updated - July 30, 2025)
 
-- [ ] **Clean Up Security Warnings** (Code Quality)
+- [ ] **Test Suite Fixes** (High Priority - IMMEDIATE)
+  - [ ] Fix failing test in test_additional_functions.py by properly mocking homebrew casks
+  - [ ] Fix 4 failing app store tests with proper mocking
+  - [ ] Ensure all tests pass consistently in CI/CD pipeline
+
+- [ ] **Test Coverage Discrepancy Investigation** (High Priority)
+  - [ ] Investigate discrepancy between README claims (70%+) and TODO.md note (5.25%)
+  - [ ] Run actual coverage analysis and document findings
+  - [ ] Update documentation to reflect accurate coverage metrics
+  - [ ] Consider adding integration tests if extensive mocking is causing low coverage
+
+- [ ] **Dependency Updates** (Medium Priority)
+  - [ ] Update aiohttp from 3.12.14 to 3.12.15 (patch release)
+  - [ ] Update coverage from 7.9.2 to 7.10.1 (minor update)
+  - [ ] Update ruff from 0.12.5 to 0.12.7 (development dependency)
+  - [ ] Monitor safety package for psutil 7.0.0 compatibility updates
+
+- [ ] **Type Safety Improvements** (Medium Priority)
+  - [ ] Fix duplicate name "_EarlyReturn" in version/__init__.py
+  - [ ] Add missing type annotations to menubar_app.py
+  - [ ] Enable stricter mypy configuration
+  - [ ] Review and fix any new type errors
+
+- [ ] **Code Quality Issues** (Low Priority)
+  - [ ] Fix 2 linting issues (import sorting, multiple statements on one line)
   - [ ] Rename "blacklist" variables throughout codebase to "blocklist" or "exclude_list"
   - [ ] Configure bandit to suppress false positive warnings
   - [ ] Review hardcoded_sql_expressions warning in advanced_cache.py:575
