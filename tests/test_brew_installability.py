@@ -73,14 +73,16 @@ class TestBrewCaskInstallability(unittest.TestCase):
         mock_is_homebrew_available.return_value = True
         # Mock cache to return None (cache miss)
         mock_read_cache.return_value = None
-        # Mock execute_brew_search to raise an exception
-        mock_execute_search.side_effect = Exception("Some error")
+        # Mock _check_cache_for_cask to return None (cache miss)
+        with patch("versiontracker.apps._check_cache_for_cask", return_value=None):
+            # Mock execute_brew_search to raise an exception
+            mock_execute_search.side_effect = Exception("Some error")
 
-        # Call the function
-        result = is_brew_cask_installable("problematic-app")
+            # Call the function
+            result = is_brew_cask_installable("problematic-app")
 
-        # Verify result is False when an error occurs
-        self.assertFalse(result)
+            # Verify result is False when an error occurs
+            self.assertFalse(result)
 
     @patch("versiontracker.apps._apps_main.is_homebrew_available", return_value=True)
     def test_is_brew_cask_installable_with_cache(self, mock_homebrew_available):
@@ -173,7 +175,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is None when no match is found
         self.assertIsNone(result)
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps.matcher.read_cache")
     def test_get_brew_cask_name_from_cache(self, mock_read_cache):
         """Test get_brew_cask_name retrieving from cache."""
         # Mock cache to return a hit with the proper dictionary structure

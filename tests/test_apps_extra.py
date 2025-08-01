@@ -392,8 +392,8 @@ class TestAppsExtra(unittest.TestCase):
                 is_brew_cask_installable("firefox")
 
     @patch("versiontracker.apps._apps_main.is_homebrew_available")
-    @patch("versiontracker.apps.read_cache")
-    @patch("versiontracker.apps._check_cache_for_cask")
+    @patch("versiontracker.apps._apps_main.read_cache")
+    @patch("versiontracker.apps._apps_main._check_cache_for_cask")
     def test_is_brew_cask_installable_cached(self, mock_check_cache, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable with cached data."""
         # Mock is_homebrew_available to return True
@@ -406,16 +406,21 @@ class TestAppsExtra(unittest.TestCase):
         mock_check_cache.return_value = True
 
         # Test with cask in cache (should not call brew commands)
-        self.assertTrue(is_brew_cask_installable("firefox"))
+        result = is_brew_cask_installable("firefox")
+        self.assertTrue(result)
+
+        # Verify _check_cache_for_cask was called with the correct arguments
+        mock_check_cache.assert_called_with("firefox", {"installable": ["firefox", "chrome"]})
 
         # Test with cask not in cache
         mock_check_cache.return_value = None  # Cache miss
-        with patch("versiontracker.apps._execute_brew_search") as mock_execute_search:
-            with patch("versiontracker.apps._handle_brew_search_result") as mock_handle_result:
-                with patch("versiontracker.apps._update_cache_with_installable") as mock_update_cache:
+        with patch("versiontracker.apps._apps_main._execute_brew_search") as mock_execute_search:
+            with patch("versiontracker.apps._apps_main._handle_brew_search_result") as mock_handle_result:
+                with patch("versiontracker.apps._apps_main._update_cache_with_installable") as mock_update_cache:
                     mock_execute_search.return_value = ("No formulae or casks found", 1)
                     mock_handle_result.return_value = False
-                    self.assertFalse(is_brew_cask_installable("nonexistent"))
+                    result = is_brew_cask_installable("nonexistent")
+                    self.assertFalse(result)
 
     def test_is_brew_cask_installable_found(self):
         """Test is_brew_cask_installable when cask is found."""
