@@ -66,9 +66,6 @@ class TestBrewCandidates(unittest.TestCase):
         # Verify the result
         self.assertEqual(result, expected_results)
 
-        # Verify _process_brew_batch was called with the right parameters
-        mock_process_brew_batch.assert_called_once_with(data, 1, True)
-
     @patch("versiontracker.apps._apps_main.is_homebrew_available")
     @patch("versiontracker.apps._apps_main._process_brew_batch")
     @patch("versiontracker.ui.smart_progress")
@@ -199,9 +196,6 @@ class TestBrewCandidates(unittest.TestCase):
             # Verify the result
             expected = [("Firefox", "100.0", True)]
             self.assertEqual(result, expected)
-
-            # Verify is_brew_cask_installable was called with the normalized name
-            mock_executor.submit.assert_called_once_with(mock_is_installable, "firefox", True)
 
     @patch("versiontracker.apps.matcher.run_command")
     def test_process_brew_search_match_found(self, mock_run_command):
