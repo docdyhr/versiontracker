@@ -157,7 +157,7 @@ class TestBrewCandidates(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.is_brew_cask_installable")
-    @patch("versiontracker.apps.ThreadPoolExecutor")
+    @patch("concurrent.futures.ThreadPoolExecutor")
     @patch("versiontracker.config.get_config")
     def test_process_brew_batch_success(
         self,
@@ -188,7 +188,7 @@ class TestBrewCandidates(unittest.TestCase):
         mock_future.exception.return_value = None  # No exception
         mock_executor.submit.return_value = mock_future
 
-        with patch("versiontracker.apps.as_completed", return_value=[mock_future]):
+        with patch("concurrent.futures.as_completed", return_value=[mock_future]):
             # Create test data
             batch = [("Firefox", "100.0")]
 
