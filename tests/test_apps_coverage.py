@@ -3,7 +3,7 @@
 import threading
 import time
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from versiontracker.apps import (
     AdaptiveRateLimiter,
@@ -204,17 +204,29 @@ class TestHomebrewCasksList(unittest.TestCase):
             with self.assertRaises(HomebrewError):
                 get_homebrew_casks_list()
 
-    @patch("versiontracker.apps.finder.get_homebrew_casks")
-    @patch("versiontracker.apps.is_homebrew_available")
-    def test_get_homebrew_casks_list_with_homebrew(self, mock_homebrew_available, mock_get_casks):
+    def test_get_homebrew_casks_list_with_homebrew(self):
         """Test get_homebrew_casks_list when Homebrew is available."""
-        mock_homebrew_available.return_value = True
-        mock_get_casks.return_value = ["cask1", "cask2", "cask3"]
+        with (
+            patch("versiontracker.apps.finder.is_homebrew_available", return_value=True),
+            patch("importlib.util.spec_from_file_location") as mock_spec_from_file,
+        ):
+            # Create a mock spec and loader
+            mock_spec = MagicMock()
+            mock_loader = MagicMock()
+            mock_spec.loader = mock_loader
+            mock_spec_from_file.return_value = mock_spec
 
-        # This will test the actual implementation
-        result = get_homebrew_casks_list()
-        self.assertIsInstance(result, list)
-        self.assertEqual(result, ["cask1", "cask2", "cask3"])
+            # Create a mock module that will be passed to exec_module
+            def setup_mock_module(module):
+                module.__name__ = "versiontracker_apps_main"
+                module.get_homebrew_casks = MagicMock(return_value=["cask1", "cask2", "cask3"])
+
+            mock_loader.exec_module.side_effect = setup_mock_module
+
+            # This will test the actual implementation
+            result = get_homebrew_casks_list()
+            self.assertIsInstance(result, list)
+            self.assertEqual(result, ["cask1", "cask2", "cask3"])
 
 
 class TestUtilityFunctions(unittest.TestCase):
