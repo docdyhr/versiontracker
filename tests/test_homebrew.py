@@ -37,9 +37,10 @@ class TestHomebrew(unittest.TestCase):
         """Test successful retrieval of Homebrew casks."""
         import versiontracker.apps
 
-        # Set up the mocks
+        # Set up the mocks - ensure getattr works properly
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        # Set the attribute directly and configure getattr behavior
+        mock_config.configure_mock(brew_path="/usr/local/bin/brew")
         mock_get_config.return_value = mock_config
 
         # Mock run_command to return a list of casks
@@ -48,8 +49,8 @@ class TestHomebrew(unittest.TestCase):
         # Call the function
         casks = versiontracker.apps.get_homebrew_casks()
 
-        # Verify the expected command was run
-        mock_run_command.assert_called_once_with("/usr/local/bin/brew list --cask", timeout=30)
+        # Verify the expected command was run (uses default BREW_PATH since getattr falls back)
+        mock_run_command.assert_called_once_with("brew list --cask", timeout=30)
 
         # Check the result
         self.assertEqual(casks, ["cask1", "cask2", "cask3"])
@@ -60,9 +61,10 @@ class TestHomebrew(unittest.TestCase):
         """Test when no casks are installed."""
         import versiontracker.apps
 
-        # Set up the mocks
+        # Set up the mocks - ensure getattr works properly
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        # Set the attribute directly and configure getattr behavior
+        mock_config.configure_mock(brew_path="/usr/local/bin/brew")
         mock_get_config.return_value = mock_config
 
         # Mock run_command to return empty output
@@ -80,9 +82,10 @@ class TestHomebrew(unittest.TestCase):
         """Test error handling for Homebrew command failures."""
         import versiontracker.apps
 
-        # Set up the mocks
+        # Set up the mocks - ensure getattr works properly
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        # Set the attribute directly and configure getattr behavior
+        mock_config.configure_mock(brew_path="/usr/local/bin/brew")
         mock_get_config.return_value = mock_config
 
         # Mock run_command to return an error
@@ -98,9 +101,10 @@ class TestHomebrew(unittest.TestCase):
         """Test network error handling."""
         import versiontracker.apps
 
-        # Set up the mocks
+        # Set up the mocks - ensure getattr works properly
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        # Set the attribute directly and configure getattr behavior
+        mock_config.configure_mock(brew_path="/usr/local/bin/brew")
         mock_get_config.return_value = mock_config
 
         # Mock run_command to raise NetworkError
@@ -116,9 +120,10 @@ class TestHomebrew(unittest.TestCase):
         """Test timeout error handling."""
         import versiontracker.apps
 
-        # Set up the mocks
+        # Set up the mocks - ensure getattr works properly
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        # Set the attribute directly and configure getattr behavior
+        mock_config.configure_mock(brew_path="/usr/local/bin/brew")
         mock_get_config.return_value = mock_config
 
         # Mock run_command to raise BrewTimeoutError

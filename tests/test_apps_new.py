@@ -64,8 +64,8 @@ class TestApps(unittest.TestCase):
             config = MagicMock()
             config.ui = {"adaptive_rate_limiting": True}
 
-            # Patch the _process_brew_search function to return "Firefox" for the search
-            with patch("versiontracker.apps.matcher._process_brew_search", return_value="Firefox"):
+            # Mock _create_rate_limiter to avoid rate limiting setup issues
+            with patch("versiontracker.apps._create_rate_limiter") as mock_create_rate_limiter:
                 with patch("versiontracker.config.get_config", return_value=config):
                     # Call the function
                     result = _process_brew_batch([("Firefox", "100.0")], 1, True)

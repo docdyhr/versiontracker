@@ -393,23 +393,29 @@ class TestAppsExtra(unittest.TestCase):
 
     @patch("versiontracker.apps._apps_main.is_homebrew_available")
     @patch("versiontracker.apps.read_cache")
-    def test_is_brew_cask_installable_cached(self, mock_read_cache, mock_is_homebrew):
+    @patch("versiontracker.apps._check_cache_for_cask")
+    def test_is_brew_cask_installable_cached(self, mock_check_cache, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable with cached data."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
 
-        # Mock read_cache to return cached installable casks
+        # Mock read_cache to return cached data
         mock_read_cache.return_value = {"installable": ["firefox", "chrome"]}
 
-        # Test with cask in cache
+        # Mock _check_cache_for_cask to return True for firefox (cache hit)
+        mock_check_cache.return_value = True
+
+        # Test with cask in cache (should not call brew commands)
         self.assertTrue(is_brew_cask_installable("firefox"))
 
         # Test with cask not in cache
+        mock_check_cache.return_value = None  # Cache miss
         with patch("versiontracker.apps._execute_brew_search") as mock_execute_search:
             with patch("versiontracker.apps._handle_brew_search_result") as mock_handle_result:
-                mock_execute_search.return_value = ("No formulae or casks found", 1)
-                mock_handle_result.return_value = False
-                self.assertFalse(is_brew_cask_installable("nonexistent"))
+                with patch("versiontracker.apps._update_cache_with_installable") as mock_update_cache:
+                    mock_execute_search.return_value = ("No formulae or casks found", 1)
+                    mock_handle_result.return_value = False
+                    self.assertFalse(is_brew_cask_installable("nonexistent"))
 
     def test_is_brew_cask_installable_found(self):
         """Test is_brew_cask_installable when cask is found."""
