@@ -24,7 +24,7 @@ class TestBrewCandidates(unittest.TestCase):
             # For backward compatibility with existing tests, fall back to direct access
             return getattr(limiter, "_delay", 0.0)
 
-    @patch("versiontracker.apps.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
     def test_check_brew_install_candidates_no_homebrew(self, mock_is_homebrew):
         """Test check_brew_install_candidates when Homebrew is not available."""
         # Mock is_homebrew_available to return False
@@ -69,9 +69,9 @@ class TestBrewCandidates(unittest.TestCase):
         # Verify _process_brew_batch was called with the right parameters
         mock_process_brew_batch.assert_called_once_with(data, 1, True)
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._process_brew_batch")
-    @patch("versiontracker.apps.smart_progress")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main._process_brew_batch")
+    @patch("versiontracker.ui.smart_progress")
     def test_check_brew_install_candidates_network_error(
         self, mock_smart_progress, mock_process_brew_batch, mock_is_homebrew
     ):
@@ -94,7 +94,7 @@ class TestBrewCandidates(unittest.TestCase):
         data = [("Firefox", "100.0")]
 
         # Test that NetworkError is raised after MAX_ERRORS (3) consecutive failures
-        with patch("versiontracker.apps.MAX_ERRORS", 1):  # Lower MAX_ERRORS for testing
+        with patch("versiontracker.apps._apps_main.MAX_ERRORS", 1):  # Lower MAX_ERRORS for testing
             with self.assertRaises(NetworkError):
                 check_brew_install_candidates(data)
 
