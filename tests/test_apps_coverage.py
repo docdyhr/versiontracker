@@ -204,14 +204,17 @@ class TestHomebrewCasksList(unittest.TestCase):
             with self.assertRaises(HomebrewError):
                 get_homebrew_casks_list()
 
+    @patch("versiontracker.apps.finder.get_homebrew_casks")
     @patch("versiontracker.apps.is_homebrew_available")
-    def test_get_homebrew_casks_list_with_homebrew(self, mock_homebrew_available):
+    def test_get_homebrew_casks_list_with_homebrew(self, mock_homebrew_available, mock_get_casks):
         """Test get_homebrew_casks_list when Homebrew is available."""
         mock_homebrew_available.return_value = True
+        mock_get_casks.return_value = ["cask1", "cask2", "cask3"]
 
         # This will test the actual implementation
         result = get_homebrew_casks_list()
         self.assertIsInstance(result, list)
+        self.assertEqual(result, ["cask1", "cask2", "cask3"])
 
 
 class TestUtilityFunctions(unittest.TestCase):

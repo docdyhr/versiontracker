@@ -293,7 +293,11 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("cask1\ncask2\ncask3", 0)
 
         # Call the function
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
+        # Clear the cache using the implementation module
+        import versiontracker.apps
+
+        if hasattr(versiontracker.apps._apps_main.get_homebrew_casks, "cache_clear"):
+            versiontracker.apps._apps_main.get_homebrew_casks.cache_clear()
         casks = get_homebrew_casks()
 
         # Check the result
@@ -313,7 +317,11 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("", 0)
 
         # Call the function
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
+        # Clear the cache using the implementation module
+        import versiontracker.apps
+
+        if hasattr(versiontracker.apps._apps_main.get_homebrew_casks, "cache_clear"):
+            versiontracker.apps._apps_main.get_homebrew_casks.cache_clear()
         casks = get_homebrew_casks()
 
         # Check the result
@@ -333,7 +341,11 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("Error: command failed", 1)
 
         # Test that HomebrewError is raised
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
+        # Clear the cache using the implementation module
+        import versiontracker.apps
+
+        if hasattr(versiontracker.apps._apps_main.get_homebrew_casks, "cache_clear"):
+            versiontracker.apps._apps_main.get_homebrew_casks.cache_clear()
         with self.assertRaises(HomebrewError):
             get_homebrew_casks()
 
@@ -351,7 +363,11 @@ class TestApps(unittest.TestCase):
         mock_run_command.side_effect = NetworkError("Network unavailable")
 
         # Test that NetworkError is re-raised
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
+        # Clear the cache using the implementation module
+        import versiontracker.apps
+
+        if hasattr(versiontracker.apps._apps_main.get_homebrew_casks, "cache_clear"):
+            versiontracker.apps._apps_main.get_homebrew_casks.cache_clear()
         with self.assertRaises(NetworkError):
             get_homebrew_casks()
 
@@ -369,7 +385,11 @@ class TestApps(unittest.TestCase):
         mock_run_command.side_effect = TimeoutError("Operation timed out")
 
         # Test that TimeoutError is converted to HomebrewError
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
+        # Clear the cache using the implementation module
+        import versiontracker.apps
+
+        if hasattr(versiontracker.apps._apps_main.get_homebrew_casks, "cache_clear"):
+            versiontracker.apps._apps_main.get_homebrew_casks.cache_clear()
         with self.assertRaises(HomebrewError):
             get_homebrew_casks()
 
