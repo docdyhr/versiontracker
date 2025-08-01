@@ -127,7 +127,7 @@ class TestBrewCandidates(unittest.TestCase):
         for _, _, installable in result:
             self.assertFalse(installable)
 
-    @patch("versiontracker.apps.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
     def test_process_brew_batch_no_homebrew(self, mock_is_homebrew):
         """Test _process_brew_batch when Homebrew is not available."""
         # Mock is_homebrew_available to return False
@@ -143,7 +143,7 @@ class TestBrewCandidates(unittest.TestCase):
         expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
         self.assertEqual(result, expected)
 
-    @patch("versiontracker.apps.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
     def test_process_brew_batch_empty(self, mock_is_homebrew):
         """Test _process_brew_batch with an empty batch."""
         # Call the function with an empty batch
@@ -155,8 +155,8 @@ class TestBrewCandidates(unittest.TestCase):
         # Verify is_homebrew_available was not called
         mock_is_homebrew.assert_not_called()
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps.is_brew_cask_installable")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main.is_brew_cask_installable")
     @patch("concurrent.futures.ThreadPoolExecutor")
     @patch("versiontracker.config.get_config")
     def test_process_brew_batch_success(
@@ -193,7 +193,7 @@ class TestBrewCandidates(unittest.TestCase):
             batch = [("Firefox", "100.0")]
 
             # Call the function with proper mocking of executor's future result
-            with patch("versiontracker.apps._process_brew_search", return_value="Firefox"):
+            with patch("versiontracker.apps.matcher._process_brew_search", return_value="Firefox"):
                 result = _process_brew_batch(batch, 2, True)
 
             # Verify the result
