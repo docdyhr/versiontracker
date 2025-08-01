@@ -115,7 +115,7 @@ class TestHomebrew(unittest.TestCase):
             versiontracker.apps.get_homebrew_casks()
 
     @patch("versiontracker.config.get_config")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.apps._apps_main.run_command")
     def test_get_homebrew_casks_timeout(self, mock_run_command, mock_get_config):
         """Test timeout error handling."""
         import versiontracker.apps
