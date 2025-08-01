@@ -405,9 +405,11 @@ class TestAppsExtra(unittest.TestCase):
         self.assertTrue(is_brew_cask_installable("firefox"))
 
         # Test with cask not in cache
-        with patch("versiontracker.apps.run_command") as mock_run_command:
-            mock_run_command.return_value = ("No formulae or casks found", 1)
-            self.assertFalse(is_brew_cask_installable("nonexistent"))
+        with patch("versiontracker.apps._execute_brew_search") as mock_execute_search:
+            with patch("versiontracker.apps._handle_brew_search_result") as mock_handle_result:
+                mock_execute_search.return_value = ("No formulae or casks found", 1)
+                mock_handle_result.return_value = False
+                self.assertFalse(is_brew_cask_installable("nonexistent"))
 
     def test_is_brew_cask_installable_found(self):
         """Test is_brew_cask_installable when cask is found."""

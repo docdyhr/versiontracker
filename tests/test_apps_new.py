@@ -65,7 +65,7 @@ class TestApps(unittest.TestCase):
             config.ui = {"adaptive_rate_limiting": True}
 
             # Patch the _process_brew_search function to return "Firefox" for the search
-            with patch("versiontracker.apps._process_brew_search", return_value="Firefox"):
+            with patch("versiontracker.apps.matcher._process_brew_search", return_value="Firefox"):
                 with patch("versiontracker.config.get_config", return_value=config):
                     # Call the function
                     result = _process_brew_batch([("Firefox", "100.0")], 1, True)
@@ -218,15 +218,22 @@ class TestApps(unittest.TestCase):
         result = _process_brew_search(("Firefox", "100.0.0"), mock_rate_limiter)
         self.assertIsNone(result)
 
-    @patch("platform.system")
-    @patch("platform.machine")
-    @patch("versiontracker.apps.run_command")
-    def test_is_homebrew_available_true(self, mock_run_command, mock_machine, mock_system):
+    @patch("versiontracker.apps.finder.platform.system")
+    @patch("versiontracker.apps.finder.platform.machine")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
+    def test_is_homebrew_available_true(self, mock_run_command, mock_get_config, mock_machine, mock_system):
         """Test is_homebrew_available when Homebrew is installed."""
         # Mock platform.system() to return "Darwin" (macOS)
         mock_system.return_value = "Darwin"
         # Mock platform.machine() to return x86_64 (Intel)
         mock_machine.return_value = "x86_64"
+
+        # Mock get_config to return a config without cached brew_path
+        mock_config = MagicMock()
+        mock_config._config = {}  # No cached brew_path
+        mock_get_config.return_value = mock_config
+
         # Mock run_command to return successful output for brew --version
         mock_run_command.return_value = ("Homebrew 3.4.0", 0)
 
@@ -261,15 +268,21 @@ class TestApps(unittest.TestCase):
         # Test that is_homebrew_available returns False on non-macOS platforms
         self.assertFalse(is_homebrew_available())
 
-    @patch("platform.system")
-    @patch("platform.machine")
-    @patch("versiontracker.apps.run_command")
-    def test_is_homebrew_available_arm(self, mock_run_command, mock_machine, mock_system):
+    @patch("versiontracker.apps.finder.platform.system")
+    @patch("versiontracker.apps.finder.platform.machine")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
+    def test_is_homebrew_available_arm(self, mock_run_command, mock_get_config, mock_machine, mock_system):
         """Test is_homebrew_available on ARM macOS (Apple Silicon)."""
         # Mock platform.system() to return "Darwin" (macOS)
         mock_system.return_value = "Darwin"
         # Mock platform.machine() to return arm64 (Apple Silicon)
         mock_machine.return_value = "arm64"
+
+        # Mock get_config to return a config without cached brew_path
+        mock_config = MagicMock()
+        mock_config._config = {}  # No cached brew_path
+        mock_get_config.return_value = mock_config
 
         # Define a side effect to simulate success only with the ARM path
         def command_side_effect(cmd, timeout=None):  # pylint: disable=unused-argument
