@@ -42,7 +42,7 @@ class TestBrewCandidates(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps._process_brew_batch")
-    @patch("versiontracker.apps.smart_progress")
+    @patch("versiontracker.ui.smart_progress")
     def test_check_brew_install_candidates_success(
         self, mock_smart_progress, mock_process_brew_batch, mock_is_homebrew
     ):
@@ -100,7 +100,7 @@ class TestBrewCandidates(unittest.TestCase):
 
     @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps._process_brew_batch")
-    @patch("versiontracker.apps.smart_progress")
+    @patch("versiontracker.ui.smart_progress")
     def test_check_brew_install_candidates_brew_timeout_error(
         self, mock_smart_progress, mock_process_brew_batch, mock_is_homebrew
     ):
@@ -203,7 +203,7 @@ class TestBrewCandidates(unittest.TestCase):
             # Verify is_brew_cask_installable was called with the normalized name
             mock_executor.submit.assert_called_once_with(mock_is_installable, "firefox", True)
 
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.apps.matcher.run_command")
     def test_process_brew_search_match_found(self, mock_run_command):
         """Test _process_brew_search when a match is found."""
         # Mock rate limiter
@@ -221,7 +221,7 @@ class TestBrewCandidates(unittest.TestCase):
         # Verify rate limiter was called
         mock_rate_limiter.wait.assert_called_once()
 
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.apps.matcher.run_command")
     def test_process_brew_search_no_match(self, mock_run_command):
         """Test _process_brew_search when no match is found."""
         # Mock rate limiter
@@ -236,7 +236,7 @@ class TestBrewCandidates(unittest.TestCase):
         # Verify the result is None
         self.assertIsNone(result)
 
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.apps.matcher.run_command")
     def test_process_brew_search_error(self, mock_run_command):
         """Test _process_brew_search error handling."""
         # Mock rate limiter
