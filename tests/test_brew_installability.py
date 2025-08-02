@@ -10,10 +10,10 @@ from versiontracker.apps import is_brew_cask_installable
 class TestBrewCaskInstallability(unittest.TestCase):
     """Test cases for brew cask installability functions."""
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._execute_brew_search")
-    @patch("versiontracker.apps._handle_brew_search_result")
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main._execute_brew_search")
+    @patch("versiontracker.apps._apps_main._handle_brew_search_result")
+    @patch("versiontracker.apps._apps_main.read_cache")
     def test_is_brew_cask_installable_found(
         self,
         mock_read_cache,
@@ -37,10 +37,10 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is True when cask is found
         self.assertTrue(result)
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._execute_brew_search")
-    @patch("versiontracker.apps._handle_brew_search_result")
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main._execute_brew_search")
+    @patch("versiontracker.apps._apps_main._handle_brew_search_result")
+    @patch("versiontracker.apps._apps_main.read_cache")
     def test_is_brew_cask_installable_not_found(
         self,
         mock_read_cache,
@@ -64,9 +64,9 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is False when cask is not found
         self.assertFalse(result)
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._execute_brew_search")
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.apps._apps_main.is_homebrew_available")
+    @patch("versiontracker.apps._apps_main._execute_brew_search")
+    @patch("versiontracker.apps._apps_main.read_cache")
     def test_is_brew_cask_installable_error(self, mock_read_cache, mock_execute_search, mock_is_homebrew_available):
         """Test is_brew_cask_installable error handling."""
         # Mock is_homebrew_available to return True
@@ -74,7 +74,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Mock cache to return None (cache miss)
         mock_read_cache.return_value = None
         # Mock _check_cache_for_cask to return None (cache miss)
-        with patch("versiontracker.apps._check_cache_for_cask", return_value=None):
+        with patch("versiontracker.apps._apps_main._check_cache_for_cask", return_value=None):
             # Mock execute_brew_search to raise an exception
             mock_execute_search.side_effect = Exception("Some error")
 
