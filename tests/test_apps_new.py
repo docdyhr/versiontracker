@@ -508,29 +508,26 @@ class TestApps(unittest.TestCase):
         self.assertIn(("TestApp", "2.0"), apps)
         self.assertIn(("RegularApp", "3.0"), apps)
 
-    @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.apps.run_command")
-    def test_get_cask_version_found(self, mock_run_command):
+    def test_get_cask_version_found(self):
         """Test getting version when it exists."""
+        import versiontracker.apps
+
+        apps_module = versiontracker.apps._apps_main
+
         # Mock brew info output with version information
         brew_output = """==> firefox: 95.0.1
 ==> https://www.mozilla.org/firefox/
 version: 95.0.1"""
-        mock_run_command.return_value = (brew_output, 0)
 
-        # Call the function
-        version = get_cask_version("firefox")
+        with patch.object(apps_module, "run_command", return_value=(brew_output, 0)) as mock_run_command:
+            # Call the function
+            version = get_cask_version("firefox")
 
-        # Debug output
-        print(f"Mock called: {mock_run_command.called}")
-        print(f"Mock call args: {mock_run_command.call_args}")
-        print(f"Version result: {version}")
+            # Verify the result
+            self.assertEqual(version, "95.0.1")
 
-        # Verify the result
-        self.assertEqual(version, "95.0.1")
-
-        # Verify the command that was run
-        mock_run_command.assert_called_once_with("/usr/local/bin/brew info --cask firefox", timeout=30)
+            # Verify the command that was run
+            mock_run_command.assert_called_once_with("brew info --cask firefox", timeout=30)
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
     @patch("versiontracker.utils.run_command")
