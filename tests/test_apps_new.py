@@ -284,7 +284,7 @@ class TestApps(unittest.TestCase):
         self.assertTrue(is_homebrew_available())
 
     @patch("versiontracker.apps._brew_casks_cache", None)
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_success(self, mock_run_command, mock_get_config):
         """Test successful retrieval of Homebrew casks."""
@@ -304,7 +304,7 @@ class TestApps(unittest.TestCase):
         self.assertEqual(casks, ["cask1", "cask2", "cask3"])
 
     @patch("versiontracker.apps._brew_casks_cache", None)
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_empty(self, mock_run_command, mock_get_config):
         """Test when no casks are installed."""
@@ -324,7 +324,7 @@ class TestApps(unittest.TestCase):
         self.assertEqual(casks, [])
 
     @patch("versiontracker.apps._brew_casks_cache", None)
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_error(self, mock_run_command, mock_get_config):
         """Test error handling for Homebrew command failures."""
@@ -342,7 +342,7 @@ class TestApps(unittest.TestCase):
             get_homebrew_casks()
 
     @patch("versiontracker.apps._brew_casks_cache", None)
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_network_error(self, mock_run_command, mock_get_config):
         """Test network error handling."""
@@ -360,7 +360,7 @@ class TestApps(unittest.TestCase):
             get_homebrew_casks()
 
     @patch("versiontracker.apps._brew_casks_cache", None)
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_timeout(self, mock_run_command, mock_get_config):
         """Test timeout error handling."""
@@ -377,7 +377,7 @@ class TestApps(unittest.TestCase):
         with self.assertRaises(HomebrewError):
             get_homebrew_casks()
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_cache(self, mock_run, mock_get_config):
         """Test caching behavior of get_homebrew_casks."""
@@ -402,7 +402,7 @@ class TestApps(unittest.TestCase):
         # Check the result matches our cache
         self.assertEqual(casks, ["cached_cask1", "cached_cask2"])
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     def test_get_applications_from_system_profiler_valid(self, mock_get_config):
         """Test extracting application data from valid system_profiler output."""
         # Mock configuration
@@ -451,7 +451,7 @@ class TestApps(unittest.TestCase):
         self.assertNotIn(("SystemApp", "3.0"), apps)
         self.assertNotIn(("SysPathApp", "4.0"), apps)
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     def test_get_applications_from_system_profiler_empty(self, mock_get_config):
         """Test handling empty system_profiler data."""
         # Mock configuration
@@ -462,7 +462,7 @@ class TestApps(unittest.TestCase):
         apps = get_applications_from_system_profiler(empty_data)
         self.assertEqual(apps, [])
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     def test_get_applications_from_system_profiler_invalid(self, mock_get_config):
         """Test handling invalid data structure."""
         # Mock configuration
@@ -473,7 +473,7 @@ class TestApps(unittest.TestCase):
         with self.assertRaises(DataParsingError):
             get_applications_from_system_profiler(invalid_data)
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     def test_get_applications_from_system_profiler_test_app_normalization(self, mock_get_config):
         """Test normalization of test app names."""
         # Mock configuration
