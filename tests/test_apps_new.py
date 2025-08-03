@@ -513,15 +513,18 @@ class TestApps(unittest.TestCase):
     def test_get_cask_version_found(self, mock_run_command):
         """Test getting version when it exists."""
         # Mock brew info output with version information
-        brew_output = """
-        ==> firefox: 95.0.1
-        ==> https://www.mozilla.org/firefox/
-        version: 95.0.1
-        """
+        brew_output = """==> firefox: 95.0.1
+==> https://www.mozilla.org/firefox/
+version: 95.0.1"""
         mock_run_command.return_value = (brew_output, 0)
 
         # Call the function
         version = get_cask_version("firefox")
+
+        # Debug output
+        print(f"Mock called: {mock_run_command.called}")
+        print(f"Mock call args: {mock_run_command.call_args}")
+        print(f"Version result: {version}")
 
         # Verify the result
         self.assertEqual(version, "95.0.1")
@@ -530,7 +533,7 @@ class TestApps(unittest.TestCase):
         mock_run_command.assert_called_once_with("/usr/local/bin/brew info --cask firefox", timeout=30)
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.utils.run_command")
     def test_get_cask_version_not_found(self, mock_run_command):
         """Test when version is not found in output."""
         # Mock brew info output without version information
@@ -543,7 +546,7 @@ class TestApps(unittest.TestCase):
         self.assertIsNone(version)
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.utils.run_command")
     def test_get_cask_version_latest(self, mock_run_command):
         """Test handling 'latest' version tag."""
         # Mock brew info output with 'latest' as the version
@@ -556,7 +559,7 @@ class TestApps(unittest.TestCase):
         self.assertIsNone(version)
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.utils.run_command")
     def test_get_cask_version_error(self, mock_run_command):
         """Test error handling when brew command fails."""
         # Mock brew info command failure
@@ -569,7 +572,7 @@ class TestApps(unittest.TestCase):
         self.assertIsNone(version)
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.utils.run_command")
     def test_get_cask_version_network_error(self, mock_run_command):
         """Test network error handling."""
         # Mock run_command to raise NetworkError
@@ -580,7 +583,7 @@ class TestApps(unittest.TestCase):
             get_cask_version("firefox")
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.utils.run_command")
     def test_get_cask_version_timeout(self, mock_run_command):
         """Test timeout error handling."""
         # Mock run_command to raise BrewTimeoutError
@@ -591,7 +594,7 @@ class TestApps(unittest.TestCase):
             get_cask_version("firefox")
 
     @patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.utils.run_command")
     def test_get_cask_version_general_exception(self, mock_run_command):
         """Test general exception handling."""
         # Mock run_command to raise a general exception

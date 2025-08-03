@@ -391,7 +391,7 @@ class TestAppsExtra(unittest.TestCase):
             with self.assertRaises(HomebrewError):
                 is_brew_cask_installable("firefox")
 
-    @patch("versiontracker.apps.finder.is_homebrew_available")
+    @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.read_cache")
     def test_is_brew_cask_installable_cached(self, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable with cached data."""
@@ -430,7 +430,7 @@ class TestAppsExtra(unittest.TestCase):
             # Verify the cache was updated
             mock_write_cache.assert_called_once()
 
-    @patch("versiontracker.apps.finder.is_homebrew_available")
+    @patch("versiontracker.apps.is_homebrew_available")
     @patch("versiontracker.apps.read_cache")
     @patch("versiontracker.apps.run_command")
     def test_is_brew_cask_installable_not_found(self, mock_run_command, mock_read_cache, mock_is_homebrew):
