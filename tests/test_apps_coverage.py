@@ -196,6 +196,10 @@ class TestBrewCaskInstallable(unittest.TestCase):
 class TestHomebrewCasksList(unittest.TestCase):
     """Test get_homebrew_casks_list function."""
 
+    def setUp(self):
+        """Clear cache before each test."""
+        clear_homebrew_casks_cache()
+
     def test_get_homebrew_casks_list_no_homebrew(self):
         """Test get_homebrew_casks_list when Homebrew not available."""
         import versiontracker.apps.finder
@@ -204,16 +208,25 @@ class TestHomebrewCasksList(unittest.TestCase):
             with self.assertRaises(HomebrewError):
                 get_homebrew_casks_list()
 
-    @patch("versiontracker.apps.finder.is_homebrew_available")
-    @patch("versiontracker.apps.get_homebrew_casks")
-    def test_get_homebrew_casks_list_with_homebrew(self, mock_get_casks, mock_homebrew_available):
+    def test_get_homebrew_casks_list_with_homebrew(self):
         """Test get_homebrew_casks_list when Homebrew is available."""
-        mock_homebrew_available.return_value = True
-        mock_get_casks.return_value = ["firefox", "chrome", "vscode"]
+        import versiontracker.apps.finder
 
-        result = get_homebrew_casks_list()
-        self.assertEqual(result, ["firefox", "chrome", "vscode"])
-        mock_get_casks.assert_called_once()
+        # Mock the dynamically loaded module
+        mock_module = Mock()
+        mock_module.__name__ = "versiontracker_apps_main"
+        mock_module.get_homebrew_casks = Mock(return_value=["firefox", "chrome", "vscode"])
+
+        # Mock the spec and loader
+        mock_spec = Mock()
+        mock_spec.loader = Mock()
+        mock_spec.loader.exec_module = Mock()
+
+        with patch.object(versiontracker.apps.finder, "is_homebrew_available", return_value=True):
+            with patch("importlib.util.spec_from_file_location", return_value=mock_spec):
+                with patch("importlib.util.module_from_spec", return_value=mock_module):
+                    result = get_homebrew_casks_list()
+                    self.assertEqual(result, ["firefox", "chrome", "vscode"])
 
 
 class TestUtilityFunctions(unittest.TestCase):
