@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Repository Cleanup and Test Fixes (August 4, 2025)
+- **Test Fixes**: Fixed failing `test_get_homebrew_casks_list_with_homebrew` test
+  - Added proper cache clearing in setUp method
+  - Fixed dynamic module import mocking with correct spec and loader
+  - Ensures tests pass in both local and CI environments
+- **Repository Cleanup**: Removed temporary documentation files per CLAUDE.md guidelines
+  - Removed BRANCH_PROTECTION_SUMMARY.md, DEPLOYMENT_SUMMARY.md, etc.
+  - Removed backup files (*.bak) from tests directory
+  - Maintained only core documentation files (README.md, CHANGELOG.md, TODO.md)
+
 ### Critical Fixes and Issue #28 Resolution (August 2, 2025) - COMPLETED ✅
 - **Issue #28 Complete Resolution**: All 5 previously failing tests now pass automatically
   - `test_is_homebrew_available_false`, `test_process_brew_batch_with_adaptive_rate_limiting`
