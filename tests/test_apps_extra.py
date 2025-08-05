@@ -395,19 +395,25 @@ class TestAppsExtra(unittest.TestCase):
     @patch("versiontracker.apps.read_cache")
     def test_is_brew_cask_installable_cached(self, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable with cached data."""
+        import versiontracker.apps
+
+        apps_module = versiontracker.apps._apps_main
+
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
 
         # Mock read_cache to return cached installable casks
         mock_read_cache.return_value = {"installable": ["firefox", "chrome"]}
 
-        # Test with cask in cache
-        self.assertTrue(is_brew_cask_installable("firefox"))
+        # Patch is_homebrew_available in the apps module too
+        with patch.object(apps_module, "is_homebrew_available", return_value=True):
+            # Test with cask in cache
+            self.assertTrue(is_brew_cask_installable("firefox"))
 
-        # Test with cask not in cache
-        with patch("versiontracker.apps.run_command") as mock_run_command:
-            mock_run_command.return_value = ("No formulae or casks found", 1)
-            self.assertFalse(is_brew_cask_installable("nonexistent"))
+            # Test with cask not in cache
+            with patch("versiontracker.apps.run_command") as mock_run_command:
+                mock_run_command.return_value = ("No formulae or casks found", 1)
+                self.assertFalse(is_brew_cask_installable("nonexistent"))
 
     def test_is_brew_cask_installable_found(self):
         """Test is_brew_cask_installable when cask is found."""
@@ -435,6 +441,10 @@ class TestAppsExtra(unittest.TestCase):
     @patch("versiontracker.apps.run_command")
     def test_is_brew_cask_installable_not_found(self, mock_run_command, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable when cask is not found."""
+        import versiontracker.apps
+
+        apps_module = versiontracker.apps._apps_main
+
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
 
@@ -444,11 +454,13 @@ class TestAppsExtra(unittest.TestCase):
         # Mock run_command to return not found error
         mock_run_command.return_value = ("No formulae or casks found", 1)
 
-        # Call the function
-        result = is_brew_cask_installable("nonexistent")
+        # Patch is_homebrew_available in the apps module too
+        with patch.object(apps_module, "is_homebrew_available", return_value=True):
+            # Call the function
+            result = is_brew_cask_installable("nonexistent")
 
-        # Verify False is returned
-        self.assertFalse(result)
+            # Verify False is returned
+            self.assertFalse(result)
 
     def test_is_brew_cask_installable_network_error(self):
         """Test is_brew_cask_installable with network error."""
