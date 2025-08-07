@@ -8,6 +8,7 @@ from versiontracker.apps import (
     SimpleRateLimiter,
     _process_brew_batch,
     _process_brew_search,
+    clear_homebrew_casks_cache,
     filter_out_brews,
     get_applications,
     get_applications_from_system_profiler,
@@ -283,11 +284,16 @@ class TestApps(unittest.TestCase):
         # Test that is_homebrew_available returns True
         self.assertTrue(is_homebrew_available())
 
-    @patch("versiontracker.apps._brew_casks_cache", None)
     @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_success(self, mock_run_command, mock_get_config):
         """Test successful retrieval of Homebrew casks."""
+        # Clear any cached results before testing
+        from versiontracker.apps import get_homebrew_casks
+
+        if hasattr(get_homebrew_casks, "cache_clear"):
+            get_homebrew_casks.cache_clear()
+
         # Mock configuration
         mock_config = MagicMock()
         mock_config.brew_path = "/usr/local/bin/brew"
@@ -297,17 +303,18 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("cask1\ncask2\ncask3", 0)
 
         # Call the function
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
         casks = get_homebrew_casks()
 
         # Check the result
         self.assertEqual(casks, ["cask1", "cask2", "cask3"])
 
-    @patch("versiontracker.apps._brew_casks_cache", None)
     @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_empty(self, mock_run_command, mock_get_config):
         """Test when no casks are installed."""
+        # Clear any cached results before testing
+        clear_homebrew_casks_cache()
+
         # Mock configuration
         mock_config = MagicMock()
         mock_config.brew_path = "/usr/local/bin/brew"
@@ -317,17 +324,18 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("", 0)
 
         # Call the function
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
         casks = get_homebrew_casks()
 
         # Check the result
         self.assertEqual(casks, [])
 
-    @patch("versiontracker.apps._brew_casks_cache", None)
     @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_error(self, mock_run_command, mock_get_config):
         """Test error handling for Homebrew command failures."""
+        # Clear any cached results before testing
+        clear_homebrew_casks_cache()
+
         # Mock configuration
         mock_config = MagicMock()
         mock_config.brew_path = "/usr/local/bin/brew"
@@ -337,15 +345,16 @@ class TestApps(unittest.TestCase):
         mock_run_command.return_value = ("Error: command failed", 1)
 
         # Test that HomebrewError is raised
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
         with self.assertRaises(HomebrewError):
             get_homebrew_casks()
 
-    @patch("versiontracker.apps._brew_casks_cache", None)
     @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_network_error(self, mock_run_command, mock_get_config):
         """Test network error handling."""
+        # Clear any cached results before testing
+        clear_homebrew_casks_cache()
+
         # Mock configuration
         mock_config = MagicMock()
         mock_config.brew_path = "/usr/local/bin/brew"
@@ -355,15 +364,16 @@ class TestApps(unittest.TestCase):
         mock_run_command.side_effect = NetworkError("Network unavailable")
 
         # Test that NetworkError is re-raised
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
         with self.assertRaises(NetworkError):
             get_homebrew_casks()
 
-    @patch("versiontracker.apps._brew_casks_cache", None)
     @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_timeout(self, mock_run_command, mock_get_config):
         """Test timeout error handling."""
+        # Clear any cached results before testing
+        clear_homebrew_casks_cache()
+
         # Mock configuration
         mock_config = MagicMock()
         mock_config.brew_path = "/usr/local/bin/brew"
@@ -373,7 +383,6 @@ class TestApps(unittest.TestCase):
         mock_run_command.side_effect = TimeoutError("Operation timed out")
 
         # Test that TimeoutError is converted to HomebrewError
-        get_homebrew_casks.cache_clear()  # Clear cache to ensure we test the function
         with self.assertRaises(HomebrewError):
             get_homebrew_casks()
 
@@ -381,26 +390,30 @@ class TestApps(unittest.TestCase):
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_cache(self, mock_run, mock_get_config):
         """Test caching behavior of get_homebrew_casks."""
+        # Clear any cached results before testing
+        clear_homebrew_casks_cache()
+
         # Create a mock config
         mock_config = MagicMock()
         mock_config.brew_path = "/usr/local/bin/brew"
         mock_get_config.return_value = mock_config
 
-        # Manually set the cache
-        get_homebrew_casks.cache_clear()  # Clear any existing cache
-        import versiontracker.apps
+        # Mock run_command to return test data
+        mock_run.return_value = ("cask1\ncask2\n", 0)
 
-        # pylint: disable=protected-access
-        versiontracker.apps._brew_casks_cache = ["cached_cask1", "cached_cask2"]
+        # First call should hit the command
+        casks1 = get_homebrew_casks()
+        self.assertEqual(casks1, ["cask1", "cask2"])
+        mock_run.assert_called_once()
 
-        # Call the function which should use the cache
-        casks = get_homebrew_casks()
-
-        # The command should not be called since we're using cached results
+        # Second call should use cached result (command not called again)
+        mock_run.reset_mock()
+        casks2 = get_homebrew_casks()
+        self.assertEqual(casks2, ["cask1", "cask2"])
         mock_run.assert_not_called()
 
-        # Check the result matches our cache
-        self.assertEqual(casks, ["cached_cask1", "cached_cask2"])
+        # Results should be identical
+        self.assertEqual(casks1, casks2)
 
     @patch("versiontracker.config.get_config")
     def test_get_applications_from_system_profiler_valid(self, mock_get_config):

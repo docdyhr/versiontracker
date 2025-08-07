@@ -133,6 +133,12 @@ if _spec is not None and _spec.loader is not None:
         """Get list of installed Homebrew casks."""
         return _apps_main.get_homebrew_casks(*args, **kwargs)
 
+    # Expose the cache_clear method from the original decorated function
+    get_homebrew_casks.cache_clear = _apps_main.get_homebrew_casks.cache_clear
+
+    # Also expose the manual cache clearing function for comprehensive cache management
+    get_homebrew_casks.clear_all_caches = _apps_main.clear_homebrew_casks_cache
+
     def is_brew_cask_installable(*args, **kwargs):
         """Check if a cask can be installed via Homebrew."""
         return _apps_main.is_brew_cask_installable(*args, **kwargs)
@@ -155,7 +161,6 @@ if _spec is not None and _spec.loader is not None:
     BREW_SEARCH = _apps_main.BREW_SEARCH
     HAS_PROGRESS = _apps_main.HAS_PROGRESS
     MAX_ERRORS = _apps_main.MAX_ERRORS
-    _brew_casks_cache = _apps_main._brew_casks_cache
     _brew_search_cache = _apps_main._brew_search_cache
 else:
     # Comprehensive fallback functions if main apps.py cannot be loaded
@@ -273,7 +278,6 @@ else:
     BREW_SEARCH = "brew search --cask"
     HAS_PROGRESS = False
     MAX_ERRORS = 5
-    _brew_casks_cache = {}
     _brew_search_cache = {}
 
 
@@ -328,7 +332,6 @@ __all__ = [
     "BREW_SEARCH",
     "HAS_PROGRESS",
     "MAX_ERRORS",
-    "_brew_casks_cache",
     "_brew_search_cache",
     # Compatibility import for tests
     "partial_ratio",
