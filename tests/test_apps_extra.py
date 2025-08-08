@@ -24,11 +24,7 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_check_brew_install_candidates_no_homebrew(self):
         """Test check_brew_install_candidates when Homebrew is not available."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
-        with patch.object(apps_module, "is_homebrew_available", return_value=False):
+        with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
             # Mock data
             data = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
@@ -41,14 +37,10 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_check_brew_install_candidates_success(self):
         """Test check_brew_install_candidates with successful batch processing."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
         with (
-            patch.object(apps_module, "is_homebrew_available", return_value=True),
-            patch.object(apps_module, "_process_brew_batch") as mock_process_brew_batch,
-            patch.object(apps_module, "smart_progress") as mock_smart_progress,
+            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder._process_brew_batch") as mock_process_brew_batch,
+            patch("versiontracker.app_finder.smart_progress") as mock_smart_progress,
         ):
             # Mock _process_brew_batch to return expected results
             mock_process_brew_batch.return_value = [
@@ -131,17 +123,13 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_process_brew_batch_with_adaptive_rate_limiting(self):
         """Test _process_brew_batch with adaptive rate limiting."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
         with (
-            patch.object(apps_module, "is_homebrew_available", return_value=True),
-            patch.object(apps_module, "is_brew_cask_installable", return_value=True),
+            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder.is_brew_cask_installable", return_value=True),
             patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class,
-            patch.object(apps_module, "_AdaptiveRateLimiter") as mock_rate_limiter_class,
+            patch("versiontracker.app_finder._AdaptiveRateLimiter") as mock_rate_limiter_class,
             patch("concurrent.futures.as_completed") as mock_as_completed,
-            patch.object(apps_module, "get_config") as mock_get_config,
+            patch("versiontracker.app_finder.get_config") as mock_get_config,
         ):
             # Mock ThreadPoolExecutor
             mock_executor = MagicMock()
@@ -253,117 +241,52 @@ class TestAppsExtra(unittest.TestCase):
             get_homebrew_casks_list()
 
     @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
-    def test_get_homebrew_casks_list_cached(self, mock_is_homebrew):
+    @patch("versiontracker.app_finder.get_homebrew_casks", return_value=["firefox", "chrome"])
+    def test_get_homebrew_casks_list_cached(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list with cached data."""
-        with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
-            # Create a mock spec and loader
-            mock_spec = MagicMock()
-            mock_loader = MagicMock()
-            mock_spec.loader = mock_loader
-            mock_spec_from_file.return_value = mock_spec
+        # Call the function
+        result = get_homebrew_casks_list()
 
-            # Create a mock module that will be passed to exec_module
-            def setup_mock_module(module):
-                module.__name__ = "versiontracker_apps_main"
-                module.get_homebrew_casks = MagicMock(return_value=["firefox", "chrome"])
-
-            mock_loader.exec_module.side_effect = setup_mock_module
-
-            # Call the function
-            result = get_homebrew_casks_list()
-
-            # Verify the cached value is returned
-            self.assertEqual(result, ["firefox", "chrome"])
+        # Verify the cached value is returned
+        self.assertEqual(result, ["firefox", "chrome"])
 
     @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
-    def test_get_homebrew_casks_list_no_cache(self, mock_is_homebrew):
+    @patch("versiontracker.app_finder.get_homebrew_casks", return_value=["firefox", "chrome", "python", "node"])
+    def test_get_homebrew_casks_list_no_cache(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list without cached data."""
-        with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
-            # Create a mock spec and loader
-            mock_spec = MagicMock()
-            mock_loader = MagicMock()
-            mock_spec.loader = mock_loader
-            mock_spec_from_file.return_value = mock_spec
+        # Call the function
+        result = get_homebrew_casks_list()
 
-            # Create a mock module that will be passed to exec_module
-            def setup_mock_module(module):
-                module.__name__ = "versiontracker_apps_main"
-                module.get_homebrew_casks = MagicMock(return_value=["firefox", "chrome", "python", "node"])
-
-            mock_loader.exec_module.side_effect = setup_mock_module
-
-            # Call the function
-            result = get_homebrew_casks_list()
-
-            # Verify the combined list is returned
-            expected = ["firefox", "chrome", "python", "node"]
-            self.assertEqual(result, expected)
+        # Verify the combined list is returned
+        expected = ["firefox", "chrome", "python", "node"]
+        self.assertEqual(result, expected)
 
     @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
-    def test_get_homebrew_casks_list_first_command_fails(self, mock_is_homebrew):
+    @patch("versiontracker.app_finder.get_homebrew_casks", return_value=["firefox", "chrome", "python", "node"])
+    def test_get_homebrew_casks_list_first_command_fails(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list when first brew command fails."""
-        with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
-            # Create a mock spec and loader
-            mock_spec = MagicMock()
-            mock_loader = MagicMock()
-            mock_spec.loader = mock_loader
-            mock_spec_from_file.return_value = mock_spec
+        # Call the function
+        result = get_homebrew_casks_list()
 
-            # Create a mock module that will be passed to exec_module
-            def setup_mock_module(module):
-                module.__name__ = "versiontracker_apps_main"
-                module.get_homebrew_casks = MagicMock(return_value=["firefox", "chrome", "python", "node"])
-
-            mock_loader.exec_module.side_effect = setup_mock_module
-
-            # Call the function
-            result = get_homebrew_casks_list()
-
-            # Verify the combined list is returned
-            expected = ["firefox", "chrome", "python", "node"]
-            self.assertEqual(result, expected)
+        # Verify the combined list is returned
+        expected = ["firefox", "chrome", "python", "node"]
+        self.assertEqual(result, expected)
 
     @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
-    def test_get_homebrew_casks_list_all_commands_fail(self, mock_is_homebrew):
+    @patch("versiontracker.app_finder.get_homebrew_casks", side_effect=HomebrewError("Failed to get Homebrew casks"))
+    def test_get_homebrew_casks_list_all_commands_fail(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list when both brew commands fail."""
-        with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
-            # Create a mock spec and loader
-            mock_spec = MagicMock()
-            mock_loader = MagicMock()
-            mock_spec.loader = mock_loader
-            mock_spec_from_file.return_value = mock_spec
-
-            # Create a mock module that will be passed to exec_module
-            def setup_mock_module(module):
-                module.__name__ = "versiontracker_apps_main"
-                module.get_homebrew_casks = MagicMock(side_effect=HomebrewError("Failed to get Homebrew casks"))
-
-            mock_loader.exec_module.side_effect = setup_mock_module
-
-            # Test that HomebrewError is raised
-            with self.assertRaises(HomebrewError):
-                get_homebrew_casks_list()
+        # Test that HomebrewError is raised
+        with self.assertRaises(HomebrewError):
+            get_homebrew_casks_list()
 
     @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
-    def test_get_homebrew_casks_list_permission_error(self, mock_is_homebrew):
+    @patch("versiontracker.app_finder.get_homebrew_casks", side_effect=BrewPermissionError("Permission denied"))
+    def test_get_homebrew_casks_list_permission_error(self, mock_get_homebrew_casks, mock_is_homebrew):
         """Test get_homebrew_casks_list with permission error."""
-        with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
-            # Create a mock spec and loader
-            mock_spec = MagicMock()
-            mock_loader = MagicMock()
-            mock_spec.loader = mock_loader
-            mock_spec_from_file.return_value = mock_spec
-
-            # Create a mock module that will be passed to exec_module
-            def setup_mock_module(module):
-                module.__name__ = "versiontracker_apps_main"
-                module.get_homebrew_casks = MagicMock(side_effect=BrewPermissionError("Permission denied"))
-
-            mock_loader.exec_module.side_effect = setup_mock_module
-
-            # Test that BrewPermissionError is re-raised
-            with self.assertRaises(BrewPermissionError):
-                get_homebrew_casks_list()
+        # Test that BrewPermissionError is re-raised
+        with self.assertRaises(BrewPermissionError):
+            get_homebrew_casks_list()
 
     def test_get_homebrew_casks_list_timeout(self):
         """Test get_homebrew_casks_list with timeout error."""
@@ -374,11 +297,7 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_is_brew_cask_installable_no_homebrew(self):
         """Test is_brew_cask_installable when Homebrew is not available."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
-        with patch.object(apps_module, "is_homebrew_available", return_value=False):
+        with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
             # Call the function and expect HomebrewError
             with self.assertRaises(HomebrewError):
                 is_brew_cask_installable("firefox")
@@ -413,15 +332,11 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_is_brew_cask_installable_found(self):
         """Test is_brew_cask_installable when cask is found."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
         with (
-            patch.object(apps_module, "is_homebrew_available", return_value=True),
-            patch.object(apps_module, "read_cache", return_value=None),
-            patch.object(apps_module, "run_command", return_value=("firefox", 0)),
-            patch.object(apps_module, "write_cache") as mock_write_cache,
+            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder.read_cache", return_value=None),
+            patch("versiontracker.app_finder.run_command", return_value=("firefox", 0)),
+            patch("versiontracker.app_finder.write_cache") as mock_write_cache,
         ):
             # Call the function
             result = is_brew_cask_installable("firefox")

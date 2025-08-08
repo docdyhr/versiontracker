@@ -237,7 +237,8 @@ class TestApps(unittest.TestCase):
     @patch("versiontracker.app_finder.platform.system")
     @patch("versiontracker.app_finder.get_config")
     @patch("versiontracker.app_finder.run_command")
-    def test_is_homebrew_available_false(self, mock_run_command, mock_get_config, mock_system):
+    @patch("os.path.exists")
+    def test_is_homebrew_available_false(self, mock_exists, mock_run_command, mock_get_config, mock_system):
         """Test is_homebrew_available when Homebrew is not installed."""
         # Mock platform.system() to return "Darwin" (macOS)
         mock_system.return_value = "Darwin"
@@ -246,6 +247,9 @@ class TestApps(unittest.TestCase):
         mock_config = MagicMock()
         mock_config._config = {}  # No cached brew_path
         mock_get_config.return_value = mock_config
+
+        # Mock os.path.exists to return False for all brew paths
+        mock_exists.return_value = False
 
         # Mock run_command to raise an exception (brew not found)
         mock_run_command.side_effect = FileNotFoundError("Command not found")
