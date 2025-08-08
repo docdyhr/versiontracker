@@ -73,7 +73,7 @@ def test_get_applications():
     assert ("TestApp", "1.0.0") in result
 
 
-@patch("versiontracker.apps.partial_ratio")
+@patch("versiontracker.app_finder.partial_ratio")
 def test_filter_out_brews(mock_partial_ratio):
     """Test filtering out applications already installed via Homebrew."""
 
@@ -108,7 +108,7 @@ def test_filter_out_brews(mock_partial_ratio):
     assert ("Slack", "4.23.0") in result
 
 
-@patch("versiontracker.apps.matcher.run_command")
+@patch("versiontracker.app_finder.run_command")
 def test_process_brew_search(mock_run_command):
     """Test processing a brew search."""
     # Mock rate limiter
@@ -134,7 +134,7 @@ def test_process_brew_search(mock_run_command):
 
 @patch("platform.system")
 @patch("platform.machine")
-@patch("versiontracker.apps.finder.run_command")
+@patch("versiontracker.app_finder.run_command")
 def test_is_homebrew_available_true(mock_run_command, mock_machine, mock_system):
     """Test is_homebrew_available when Homebrew is installed."""
     # Mock platform.system() to return "Darwin" (macOS)
@@ -149,7 +149,7 @@ def test_is_homebrew_available_true(mock_run_command, mock_machine, mock_system)
 
 
 @patch("platform.system")
-@patch("versiontracker.apps.finder.run_command")
+@patch("versiontracker.app_finder.run_command")
 def test_is_homebrew_available_false(mock_run_command, mock_system):
     """Test is_homebrew_available when Homebrew is not installed."""
     # Mock platform.system() to return "Darwin" (macOS)
@@ -173,7 +173,7 @@ def test_is_homebrew_available_non_macos(mock_system):
 
 @patch("platform.system")
 @patch("platform.machine")
-@patch("versiontracker.apps.finder.run_command")
+@patch("versiontracker.app_finder.run_command")
 def test_is_homebrew_available_arm(mock_run_command, mock_machine, mock_system):
     """Test is_homebrew_available on ARM macOS (Apple Silicon)."""
     # Mock platform.system() to return "Darwin" (macOS)
@@ -639,13 +639,8 @@ def test_get_cask_version_general_exception():
 
 def test_check_brew_install_candidates_no_homebrew():
     """Test check_brew_install_candidates when Homebrew is not available."""
-    # Get the dynamically loaded module
-    import versiontracker.apps
-
-    apps_module = versiontracker.apps._apps_main
-
-    # Mock is_homebrew_available in the loaded module
-    with patch.object(apps_module, "is_homebrew_available", return_value=False):
+    # Mock is_homebrew_available
+    with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
         # Create test data
         data = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
@@ -695,13 +690,8 @@ def test_check_brew_install_candidates_success():
 
 def test_process_brew_batch_no_homebrew():
     """Test _process_brew_batch when Homebrew is not available."""
-    # Get the dynamically loaded module
-    import versiontracker.apps
-
-    apps_module = versiontracker.apps._apps_main
-
-    # Mock is_homebrew_available in the loaded module
-    with patch.object(apps_module, "is_homebrew_available", return_value=False):
+    # Mock is_homebrew_available
+    with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
         # Create test data
         batch = [("Firefox", "100.0"), ("Chrome", "99.0")]
 

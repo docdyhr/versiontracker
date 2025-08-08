@@ -11,7 +11,7 @@ from versiontracker.app_finder import (
 class TestAppStore(unittest.TestCase):
     """Test cases for app store functions."""
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_found(self, mock_read_cache):
         """Test is_app_in_app_store when app is found in App Store."""
         # Mock cache data with the app
@@ -26,7 +26,7 @@ class TestAppStore(unittest.TestCase):
         # Verify the cache was checked
         mock_read_cache.assert_called_once_with("app_store_apps")
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_not_found(self, mock_read_cache):
         """Test is_app_in_app_store when app is not found."""
         # Mock cache with other apps
@@ -38,7 +38,7 @@ class TestAppStore(unittest.TestCase):
         # Verify result is False when app is not found
         self.assertFalse(result)
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_error(self, mock_read_cache):
         """Test is_app_in_app_store when read_cache fails."""
         # Mock read_cache to return None
@@ -50,7 +50,7 @@ class TestAppStore(unittest.TestCase):
         # Verify result is False when cache is unavailable
         self.assertFalse(result)
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_exception(self, mock_read_cache):
         """Test is_app_in_app_store exception handling."""
         # Mock read_cache to raise an exception
