@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Tuple
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from benchmarks import benchmark, benchmark_context, clear_benchmarks, print_benchmark_summary
-from versiontracker.apps import (
+from versiontracker.app_finder import (
     check_brew_install_candidates,
     get_applications,
     get_homebrew_casks_list,

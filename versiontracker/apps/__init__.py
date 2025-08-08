@@ -134,10 +134,10 @@ if _spec is not None and _spec.loader is not None:
         return _apps_main.get_homebrew_casks(*args, **kwargs)
 
     # Expose the cache_clear method from the original decorated function
-    get_homebrew_casks.cache_clear = _apps_main.get_homebrew_casks.cache_clear
+    get_homebrew_casks.cache_clear = _apps_main.get_homebrew_casks.cache_clear  # type: ignore  # type: ignore
 
     # Also expose the manual cache clearing function for comprehensive cache management
-    get_homebrew_casks.clear_all_caches = _apps_main.clear_homebrew_casks_cache
+    get_homebrew_casks.clear_all_caches = _apps_main.clear_homebrew_casks_cache  # type: ignore
 
     def is_brew_cask_installable(*args, **kwargs):
         """Check if a cask can be installed via Homebrew."""

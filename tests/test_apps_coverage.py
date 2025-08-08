@@ -5,7 +5,7 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
-from versiontracker.apps import (
+from versiontracker.app_finder import (
     AdaptiveRateLimiter,
     SimpleRateLimiter,
     _AdaptiveRateLimiter,

@@ -1,47 +1,29 @@
 {
   "recommendations": [
-    // Essential Python Development
     "ms-python.python",
     "charliermarsh.ruff",
     "ms-python.vscode-pylance",
-    
-    // Testing & Quality
     "littlefoxteam.vscode-python-test-adapter",
     "ryanluker.vscode-coverage-gutters",
     "ms-python.bandit",
-    
-    // Code Quality
     "njpwerner.autodocstring",
     "aaron-bond.better-comments",
     "usernamehw.errorlens",
-    
-    // Configuration Files
     "redhat.vscode-yaml",
     "tamasfe.even-better-toml",
-    
-    // Git & Version Control
     "eamodio.gitlens",
     "mhutchie.git-graph",
-    
-    // Shell & Scripts
     "foxundermoon.shell-format",
     "ms-vscode.makefile-tools",
-    
-    // Environment Management
     "ms-python.vscode-environments",
-    
-    // Optional but Useful
     "formulahendry.code-runner",
     "Gruntfuggly.todo-tree",
     "GitHub.vscode-pull-request-github"
   ],
   "unwantedRecommendations": [
-    // These are replaced by Ruff
     "ms-python.black-formatter",
     "ms-python.isort",
     "ms-python.flake8",
-    
-    // Older/conflicting extensions
     "ms-python.pylint"
   ]
 }

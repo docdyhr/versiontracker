@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from tests.mock_adaptive_rate_limiter import MockAdaptiveRateLimiter
-from versiontracker.apps import (
+from versiontracker.app_finder import (
     filter_brew_candidates,
     get_homebrew_casks_list,
 )

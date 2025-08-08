@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from versiontracker.apps import (
+from versiontracker.app_finder import (
     is_app_in_app_store,
 )
 

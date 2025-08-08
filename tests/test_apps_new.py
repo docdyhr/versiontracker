@@ -288,98 +288,103 @@ class TestApps(unittest.TestCase):
         """Test successful retrieval of Homebrew casks."""
         # Test the function by mocking it directly rather than its dependencies
         # This avoids cache-related issues during testing
-        with patch('versiontracker.apps.get_homebrew_casks') as mock_func:
+        with patch("versiontracker.apps.get_homebrew_casks") as mock_func:
             mock_func.return_value = ["cask1", "cask2", "cask3"]
-            
+
             # Import and call the function under test
             from versiontracker.apps import get_homebrew_casks
+
             casks = get_homebrew_casks()
-            
+
             # Verify the result
             self.assertEqual(casks, ["cask1", "cask2", "cask3"])
             mock_func.assert_called_once()
 
     def test_get_homebrew_casks_empty(self):
         """Test when no casks are installed."""
-        with patch('versiontracker.apps.get_homebrew_casks') as mock_func:
+        with patch("versiontracker.apps.get_homebrew_casks") as mock_func:
             mock_func.return_value = []
-            
+
             from versiontracker.apps import get_homebrew_casks
+
             casks = get_homebrew_casks()
-            
+
             self.assertEqual(casks, [])
             mock_func.assert_called_once()
 
     def test_get_homebrew_casks_error(self):
         """Test error handling for Homebrew command failures."""
-        with patch('versiontracker.apps.get_homebrew_casks') as mock_func:
+        with patch("versiontracker.apps.get_homebrew_casks") as mock_func:
             mock_func.side_effect = HomebrewError("Homebrew command failed")
-            
+
             from versiontracker.apps import get_homebrew_casks
+
             with self.assertRaises(HomebrewError):
                 get_homebrew_casks()
-            
+
             mock_func.assert_called_once()
 
     def test_get_homebrew_casks_network_error(self):
         """Test network error handling."""
-        with patch('versiontracker.apps.get_homebrew_casks') as mock_func:
+        with patch("versiontracker.apps.get_homebrew_casks") as mock_func:
             mock_func.side_effect = NetworkError("Network unavailable")
-            
+
             from versiontracker.apps import get_homebrew_casks
+
             with self.assertRaises(NetworkError):
                 get_homebrew_casks()
-            
+
             mock_func.assert_called_once()
 
     def test_get_homebrew_casks_timeout(self):
         """Test timeout error handling."""
-        with patch('versiontracker.apps.get_homebrew_casks') as mock_func:
+        with patch("versiontracker.apps.get_homebrew_casks") as mock_func:
             mock_func.side_effect = BrewTimeoutError("Operation timed out")
-            
+
             from versiontracker.apps import get_homebrew_casks
+
             with self.assertRaises(BrewTimeoutError):
                 get_homebrew_casks()
-            
+
             mock_func.assert_called_once()
 
     def test_get_homebrew_casks_cache(self):
         """Test caching behavior of get_homebrew_casks."""
-        with patch('versiontracker.apps.get_homebrew_casks') as mock_func:
+        with patch("versiontracker.apps.get_homebrew_casks") as mock_func:
             # First call returns data
             mock_func.return_value = ["cask1", "cask2"]
-            
+
             from versiontracker.apps import get_homebrew_casks
+
             casks1 = get_homebrew_casks()
             casks2 = get_homebrew_casks()
-            
+
             # Both calls should return same data
             self.assertEqual(casks1, ["cask1", "cask2"])
             self.assertEqual(casks2, ["cask1", "cask2"])
             self.assertEqual(casks1, casks2)
-            
+
             # Since we're mocking the entire function, it gets called each time
             # but in reality the @lru_cache would prevent multiple actual calls
             self.assertEqual(mock_func.call_count, 2)
 
     def test_homebrew_casks_cache_clearing_api(self):
         """Test that the cache clearing API works correctly."""
-        from versiontracker.apps import get_homebrew_casks, clear_homebrew_casks_cache
-        
+        from versiontracker.app_finder import clear_homebrew_casks_cache, get_homebrew_casks
+
         # Verify cache clearing function exists and is callable
         self.assertTrue(callable(clear_homebrew_casks_cache))
-        
+
         # Verify the function has cache_clear method
-        self.assertTrue(hasattr(get_homebrew_casks, 'cache_clear'))
-        
+        self.assertTrue(hasattr(get_homebrew_casks, "cache_clear"))
+
         # Call cache clearing methods - should not raise errors
         clear_homebrew_casks_cache()
         get_homebrew_casks.cache_clear()
-        
-        # Also test the additional exposed methods from __init__.py
-        if hasattr(get_homebrew_casks, 'clear_all_caches'):
-            get_homebrew_casks.clear_all_caches()
 
+        # Also test the additional exposed methods from __init__.py
+        if hasattr(get_homebrew_casks, "clear_all_caches"):
+            get_homebrew_casks.clear_all_caches()
 
     @patch("versiontracker.config.get_config")
     def test_get_applications_from_system_profiler_valid(self, mock_get_config):

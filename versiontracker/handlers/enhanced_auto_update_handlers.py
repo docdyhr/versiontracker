@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
-from versiontracker.apps import get_homebrew_casks
+from versiontracker.app_finder import get_homebrew_casks
 from versiontracker.config import get_config
 from versiontracker.exceptions import ConfigError, HomebrewError
 from versiontracker.homebrew import get_casks_with_auto_updates
