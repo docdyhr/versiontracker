@@ -120,14 +120,14 @@ class TestAdaptiveRateLimiterAlias(unittest.TestCase):
 class TestAppStoreCheck(unittest.TestCase):
     """Test App Store checking functionality."""
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_cache_hit(self, mock_read_cache):
         """Test is_app_in_app_store with cache hit."""
         mock_read_cache.return_value = {"apps": ["TestApp", "AnotherApp"]}
         result = is_app_in_app_store("TestApp", use_cache=True)
         self.assertTrue(result)
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_cache_miss(self, mock_read_cache):
         """Test is_app_in_app_store with cache miss."""
         mock_read_cache.return_value = None
@@ -139,7 +139,7 @@ class TestAppStoreCheck(unittest.TestCase):
         result = is_app_in_app_store("TestApp", use_cache=False)
         self.assertFalse(result)
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_exception(self, mock_read_cache):
         """Test is_app_in_app_store exception handling."""
         mock_read_cache.side_effect = Exception("Cache error")
@@ -152,24 +152,16 @@ class TestBrewCaskInstallable(unittest.TestCase):
 
     def test_is_brew_cask_installable_no_homebrew(self):
         """Test cask check when Homebrew not available."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
-        with patch.object(apps_module, "is_homebrew_available", return_value=False):
+        with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
             with self.assertRaises(HomebrewError):
                 is_brew_cask_installable("testapp")
 
     def test_is_brew_cask_installable_cache_hit(self):
         """Test cask check with cache hit."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
         with (
-            patch.object(apps_module, "is_homebrew_available", return_value=True),
-            patch.object(apps_module, "read_cache", return_value={"installable": ["testapp"]}),
-            patch.object(apps_module, "_check_cache_for_cask", return_value=True),
+            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder.read_cache", return_value={"installable": ["testapp"]}),
+            patch("versiontracker.app_finder._check_cache_for_cask", return_value=True),
         ):
             result = is_brew_cask_installable("testapp", use_cache=True)
             # When cache returns True (cask is installable), function should return True
@@ -177,13 +169,9 @@ class TestBrewCaskInstallable(unittest.TestCase):
 
     def test_is_brew_cask_installable_cache_miss(self):
         """Test cask check with cache miss."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
         with (
-            patch.object(apps_module, "is_homebrew_available", return_value=True),
-            patch("versiontracker.cache.read_cache") as mock_read_cache,
+            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder.read_cache") as mock_read_cache,
         ):
             mock_read_cache.return_value = None
 
@@ -204,29 +192,18 @@ class TestHomebrewCasksList(unittest.TestCase):
         """Test get_homebrew_casks_list when Homebrew not available."""
         import versiontracker.apps.finder
 
-        with patch.object(versiontracker.apps.finder, "is_homebrew_available", return_value=False):
+        with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
             with self.assertRaises(HomebrewError):
                 get_homebrew_casks_list()
 
     def test_get_homebrew_casks_list_with_homebrew(self):
         """Test get_homebrew_casks_list when Homebrew is available."""
-        import versiontracker.apps.finder
-
-        # Mock the dynamically loaded module
-        mock_module = Mock()
-        mock_module.__name__ = "versiontracker_apps_main"
-        mock_module.get_homebrew_casks = Mock(return_value=["firefox", "chrome", "vscode"])
-
-        # Mock the spec and loader
-        mock_spec = Mock()
-        mock_spec.loader = Mock()
-        mock_spec.loader.exec_module = Mock()
-
-        with patch.object(versiontracker.apps.finder, "is_homebrew_available", return_value=True):
-            with patch("importlib.util.spec_from_file_location", return_value=mock_spec):
-                with patch("importlib.util.module_from_spec", return_value=mock_module):
-                    result = get_homebrew_casks_list()
-                    self.assertEqual(result, ["firefox", "chrome", "vscode"])
+        with (
+            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder.get_homebrew_casks", return_value=["firefox", "chrome", "vscode"]),
+        ):
+            result = get_homebrew_casks_list()
+            self.assertEqual(result, ["firefox", "chrome", "vscode"])
 
 
 class TestUtilityFunctions(unittest.TestCase):

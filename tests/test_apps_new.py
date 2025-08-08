@@ -234,9 +234,9 @@ class TestApps(unittest.TestCase):
         # Test that is_homebrew_available returns True
         self.assertTrue(is_homebrew_available())
 
-    @patch("versiontracker.apps.finder.platform.system")
-    @patch("versiontracker.apps.finder.get_config")
-    @patch("versiontracker.apps.finder.run_command")
+    @patch("versiontracker.app_finder.platform.system")
+    @patch("versiontracker.app_finder.get_config")
+    @patch("versiontracker.app_finder.run_command")
     def test_is_homebrew_available_false(self, mock_run_command, mock_get_config, mock_system):
         """Test is_homebrew_available when Homebrew is not installed."""
         # Mock platform.system() to return "Darwin" (macOS)

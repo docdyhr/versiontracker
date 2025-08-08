@@ -85,14 +85,10 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_check_brew_install_candidates_batch_error_handling(self):
         """Test check_brew_install_candidates handling batch processing errors."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
         with (
-            patch.object(apps_module, "is_homebrew_available", return_value=True),
-            patch.object(apps_module, "_process_brew_batch") as mock_process_brew_batch,
-            patch.object(apps_module, "smart_progress") as mock_smart_progress,
+            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder._process_brew_batch") as mock_process_brew_batch,
+            patch("versiontracker.app_finder.smart_progress") as mock_smart_progress,
         ):
             # Create a batch large enough to split into two
             data = [("App%d" % i, "1.0") for i in range(60)]
@@ -122,11 +118,7 @@ class TestAppsExtra(unittest.TestCase):
 
     def test_process_brew_batch_no_homebrew(self):
         """Test _process_brew_batch when Homebrew is not available."""
-        import versiontracker.apps
-
-        apps_module = versiontracker.apps._apps_main
-
-        with patch.object(apps_module, "is_homebrew_available", return_value=False):
+        with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
             # Mock data
             batch = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
@@ -183,7 +175,7 @@ class TestAppsExtra(unittest.TestCase):
             # Verify AdaptiveRateLimiter was constructed with correct parameters
             mock_rate_limiter_class.assert_called_once()
 
-    @patch("versiontracker.apps.finder.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_cached(self, mock_read_cache):
         """Test is_app_in_app_store with cached data."""
         # Mock read_cache to return cached app store apps
@@ -195,7 +187,7 @@ class TestAppsExtra(unittest.TestCase):
         # Test with app not in cache
         self.assertFalse(is_app_in_app_store("Chrome"))
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_no_cache(self, mock_read_cache):
         """Test is_app_in_app_store without cache."""
         # Mock read_cache to return None (no cache)
@@ -204,7 +196,7 @@ class TestAppsExtra(unittest.TestCase):
         # Test with use_cache=False
         self.assertFalse(is_app_in_app_store("Firefox", use_cache=False))
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_app_in_app_store_exception(self, mock_read_cache):
         """Test exception handling in is_app_in_app_store."""
         # Mock read_cache to raise an exception
@@ -250,7 +242,7 @@ class TestAppsExtra(unittest.TestCase):
         # Allow some timing variance due to thread scheduling
         self.assertGreater(after_second - after_first, 0.15)
 
-    @patch("versiontracker.apps.finder.is_homebrew_available")
+    @patch("versiontracker.app_finder.is_homebrew_available")
     def test_get_homebrew_casks_list_no_homebrew(self, mock_is_homebrew):
         """Test get_homebrew_casks_list when Homebrew is not available."""
         # Mock is_homebrew_available to return False
@@ -260,7 +252,7 @@ class TestAppsExtra(unittest.TestCase):
         with self.assertRaises(HomebrewError):
             get_homebrew_casks_list()
 
-    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
     def test_get_homebrew_casks_list_cached(self, mock_is_homebrew):
         """Test get_homebrew_casks_list with cached data."""
         with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
@@ -283,7 +275,7 @@ class TestAppsExtra(unittest.TestCase):
             # Verify the cached value is returned
             self.assertEqual(result, ["firefox", "chrome"])
 
-    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
     def test_get_homebrew_casks_list_no_cache(self, mock_is_homebrew):
         """Test get_homebrew_casks_list without cached data."""
         with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
@@ -307,7 +299,7 @@ class TestAppsExtra(unittest.TestCase):
             expected = ["firefox", "chrome", "python", "node"]
             self.assertEqual(result, expected)
 
-    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
     def test_get_homebrew_casks_list_first_command_fails(self, mock_is_homebrew):
         """Test get_homebrew_casks_list when first brew command fails."""
         with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
@@ -331,7 +323,7 @@ class TestAppsExtra(unittest.TestCase):
             expected = ["firefox", "chrome", "python", "node"]
             self.assertEqual(result, expected)
 
-    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
     def test_get_homebrew_casks_list_all_commands_fail(self, mock_is_homebrew):
         """Test get_homebrew_casks_list when both brew commands fail."""
         with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
@@ -352,7 +344,7 @@ class TestAppsExtra(unittest.TestCase):
             with self.assertRaises(HomebrewError):
                 get_homebrew_casks_list()
 
-    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
     def test_get_homebrew_casks_list_permission_error(self, mock_is_homebrew):
         """Test get_homebrew_casks_list with permission error."""
         with patch("importlib.util.spec_from_file_location") as mock_spec_from_file:
@@ -392,9 +384,9 @@ class TestAppsExtra(unittest.TestCase):
                 is_brew_cask_installable("firefox")
 
     @unittest.skip("Skip due to complex mocking requirements in CI")
-    @patch("versiontracker.apps.finder.is_homebrew_available")
-    @patch("versiontracker.apps.read_cache")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.app_finder.is_homebrew_available")
+    @patch("versiontracker.app_finder.read_cache")
+    @patch("versiontracker.app_finder.run_command")
     def test_is_brew_cask_installable_cached(self, mock_run_command, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable with cached data."""
         import versiontracker.apps
@@ -440,9 +432,9 @@ class TestAppsExtra(unittest.TestCase):
             # Verify the cache was updated
             mock_write_cache.assert_called_once()
 
-    @patch("versiontracker.apps.finder.is_homebrew_available")
-    @patch("versiontracker.apps.read_cache")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.app_finder.is_homebrew_available")
+    @patch("versiontracker.app_finder.read_cache")
+    @patch("versiontracker.app_finder.run_command")
     def test_is_brew_cask_installable_not_found(self, mock_run_command, mock_read_cache, mock_is_homebrew):
         """Test is_brew_cask_installable when cask is not found."""
         import versiontracker.apps
