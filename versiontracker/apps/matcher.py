@@ -12,7 +12,7 @@ from versiontracker.config import get_config
 from versiontracker.utils import normalise_name, run_command
 
 # Import the main version.py file directly (not the version/ package)
-_version_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version.py")
+_version_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version_legacy.py")
 _spec = importlib.util.spec_from_file_location("versiontracker_version_main", _version_py_path)
 if _spec is not None and _spec.loader is not None:
     _version_main = importlib.util.module_from_spec(_spec)

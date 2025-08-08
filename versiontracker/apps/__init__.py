@@ -40,8 +40,8 @@ from .matcher import (
     search_brew_cask,
 )
 
-# Import the main apps.py file directly (not the apps/ package)
-_apps_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "apps.py")
+# Import the main app_finder.py file directly (not the apps/ package)
+_apps_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "app_finder.py")
 _spec = importlib.util.spec_from_file_location("versiontracker_apps_main", _apps_py_path)
 if _spec is not None and _spec.loader is not None:
     _apps_main = importlib.util.module_from_spec(_spec)
