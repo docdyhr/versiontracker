@@ -16,7 +16,7 @@ import versiontracker.__main__  # noqa: E402
 from versiontracker.__main__ import versiontracker_main  # noqa: E402
 
 # Import handler modules
-from versiontracker.apps import (  # noqa: E402
+from versiontracker.app_finder import (  # noqa: E402
     check_brew_install_candidates,
     filter_out_brews,
     get_applications,

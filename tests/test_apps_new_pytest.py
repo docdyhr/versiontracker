@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from versiontracker.apps import (
+from versiontracker.app_finder import (
     SimpleRateLimiter,
     _process_brew_batch,
     _process_brew_search,

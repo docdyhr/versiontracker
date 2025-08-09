@@ -13,7 +13,7 @@ from pathlib import Path
 # Add the parent directory to the path so we can import versiontracker
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from versiontracker.apps import get_homebrew_casks
+from versiontracker.app_finder import get_homebrew_casks
 from versiontracker.homebrew import (
     get_cask_info,
     get_casks_with_auto_updates,

@@ -3,8 +3,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from versiontracker.app_finder import is_brew_cask_installable
 from versiontracker.apps import get_homebrew_cask_name as get_brew_cask_name
-from versiontracker.apps import is_brew_cask_installable
 
 
 class TestBrewCaskInstallability(unittest.TestCase):

@@ -27,7 +27,7 @@ class TestHomebrew(unittest.TestCase):
         versiontracker.apps.get_homebrew_casks = self.original_get_casks
         versiontracker.apps._brew_casks_cache = self.original_cache
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_success(self, mock_run_command, mock_get_config):
         """Test successful retrieval of Homebrew casks."""
@@ -50,7 +50,7 @@ class TestHomebrew(unittest.TestCase):
         # Check the result
         self.assertEqual(casks, ["cask1", "cask2", "cask3"])
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_empty(self, mock_run_command, mock_get_config):
         """Test when no casks are installed."""
@@ -70,7 +70,7 @@ class TestHomebrew(unittest.TestCase):
         # Check the result
         self.assertEqual(casks, [])
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_error(self, mock_run_command, mock_get_config):
         """Test error handling for Homebrew command failures."""
@@ -88,7 +88,7 @@ class TestHomebrew(unittest.TestCase):
         with self.assertRaises(HomebrewError):
             versiontracker.apps.get_homebrew_casks()
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_network_error(self, mock_run_command, mock_get_config):
         """Test network error handling."""
@@ -106,7 +106,7 @@ class TestHomebrew(unittest.TestCase):
         with self.assertRaises(NetworkError):
             versiontracker.apps.get_homebrew_casks()
 
-    @patch("versiontracker.apps.get_config")
+    @patch("versiontracker.config.get_config")
     @patch("versiontracker.apps.run_command")
     def test_get_homebrew_casks_timeout(self, mock_run_command, mock_get_config):
         """Test timeout error handling."""

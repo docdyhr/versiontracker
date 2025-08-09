@@ -8,7 +8,7 @@ import logging
 import sys
 from typing import Any, List, Tuple
 
-from versiontracker.apps import get_homebrew_casks
+from versiontracker.app_finder import get_homebrew_casks
 from versiontracker.config import get_config
 from versiontracker.homebrew import get_casks_with_auto_updates
 from versiontracker.ui import create_progress_bar
