@@ -221,13 +221,16 @@ class TestApps(unittest.TestCase):
 
     @patch("platform.system")
     @patch("platform.machine")
-    @patch("versiontracker.apps.run_command")
-    def test_is_homebrew_available_true(self, mock_run_command, mock_machine, mock_system):
+    @patch("os.path.exists")
+    @patch("versiontracker.app_finder.run_command")
+    def test_is_homebrew_available_true(self, mock_run_command, mock_exists, mock_machine, mock_system):
         """Test is_homebrew_available when Homebrew is installed."""
         # Mock platform.system() to return "Darwin" (macOS)
         mock_system.return_value = "Darwin"
         # Mock platform.machine() to return x86_64 (Intel)
         mock_machine.return_value = "x86_64"
+        # Mock os.path.exists to return True for brew path
+        mock_exists.return_value = True
         # Mock run_command to return successful output for brew --version
         mock_run_command.return_value = ("Homebrew 3.4.0", 0)
 
@@ -268,13 +271,20 @@ class TestApps(unittest.TestCase):
 
     @patch("platform.system")
     @patch("platform.machine")
-    @patch("versiontracker.apps.run_command")
-    def test_is_homebrew_available_arm(self, mock_run_command, mock_machine, mock_system):
+    @patch("os.path.exists")
+    @patch("versiontracker.app_finder.run_command")
+    def test_is_homebrew_available_arm(self, mock_run_command, mock_exists, mock_machine, mock_system):
         """Test is_homebrew_available on ARM macOS (Apple Silicon)."""
         # Mock platform.system() to return "Darwin" (macOS)
         mock_system.return_value = "Darwin"
         # Mock platform.machine() to return arm64 (Apple Silicon)
         mock_machine.return_value = "arm64"
+
+        # Mock os.path.exists to return True only for ARM path
+        def exists_side_effect(path):
+            return "/opt/homebrew/bin/brew" in path
+
+        mock_exists.side_effect = exists_side_effect
 
         # Define a side effect to simulate success only with the ARM path
         def command_side_effect(cmd, timeout=None):  # pylint: disable=unused-argument
