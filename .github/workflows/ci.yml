@@ -20,10 +20,17 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-        # Allow Python 3.13 to fail temporarily while ecosystem catches up
+        python-version: ["3.13"]
+        # Primary support for Python 3.13, older versions in experimental matrix
         include:
-          - python-version: "3.13"
+          - os: ubuntu-latest
+            python-version: "3.12"
+            experimental: true
+          - os: ubuntu-latest
+            python-version: "3.11"
+            experimental: true
+          - os: ubuntu-latest
+            python-version: "3.10"
             experimental: true
 
     steps:
