@@ -15,7 +15,7 @@ class TestHomebrew(unittest.TestCase):
 
         # Store original function to restore later
         self.original_get_casks = versiontracker.apps.get_homebrew_casks
-        self.original_cache = versiontracker.apps._brew_casks_cache
+        self.original_cache = versiontracker.apps._brew_search_cache
 
         # Clear the cache to ensure it gets called every time
         versiontracker.apps.clear_homebrew_casks_cache()
@@ -25,10 +25,10 @@ class TestHomebrew(unittest.TestCase):
         import versiontracker.apps
 
         versiontracker.apps.get_homebrew_casks = self.original_get_casks
-        versiontracker.apps._brew_casks_cache = self.original_cache
+        versiontracker.apps._brew_search_cache = self.original_cache
 
     @patch("versiontracker.config.get_config")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.app_finder.run_command")
     def test_get_homebrew_casks_success(self, mock_run_command, mock_get_config):
         """Test successful retrieval of Homebrew casks."""
         import versiontracker.apps
@@ -51,7 +51,7 @@ class TestHomebrew(unittest.TestCase):
         self.assertEqual(casks, ["cask1", "cask2", "cask3"])
 
     @patch("versiontracker.config.get_config")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.app_finder.run_command")
     def test_get_homebrew_casks_empty(self, mock_run_command, mock_get_config):
         """Test when no casks are installed."""
         import versiontracker.apps
@@ -71,7 +71,7 @@ class TestHomebrew(unittest.TestCase):
         self.assertEqual(casks, [])
 
     @patch("versiontracker.config.get_config")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.app_finder.run_command")
     def test_get_homebrew_casks_error(self, mock_run_command, mock_get_config):
         """Test error handling for Homebrew command failures."""
         import versiontracker.apps
@@ -89,7 +89,7 @@ class TestHomebrew(unittest.TestCase):
             versiontracker.apps.get_homebrew_casks()
 
     @patch("versiontracker.config.get_config")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.app_finder.run_command")
     def test_get_homebrew_casks_network_error(self, mock_run_command, mock_get_config):
         """Test network error handling."""
         import versiontracker.apps
@@ -107,7 +107,7 @@ class TestHomebrew(unittest.TestCase):
             versiontracker.apps.get_homebrew_casks()
 
     @patch("versiontracker.config.get_config")
-    @patch("versiontracker.apps.run_command")
+    @patch("versiontracker.app_finder.run_command")
     def test_get_homebrew_casks_timeout(self, mock_run_command, mock_get_config):
         """Test timeout error handling."""
         import versiontracker.apps
