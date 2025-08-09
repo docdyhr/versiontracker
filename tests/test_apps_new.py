@@ -522,7 +522,7 @@ version: 95.0.1"""
             # Verify the result
             self.assertEqual(version, "95.0.1")
 
-            # Verify the command that was run
+            # Verify the command that was run (using BREW_PATH which defaults to "brew")
             mock_run_command.assert_called_once_with("brew info --cask firefox", timeout=30)
 
     @unittest.skip("Skip due to complex mocking requirements in CI")
