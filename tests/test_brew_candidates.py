@@ -24,7 +24,7 @@ class TestBrewCandidates(unittest.TestCase):
             # For backward compatibility with existing tests, fall back to direct access
             return getattr(limiter, "_delay", 0.0)
 
-    @patch("versiontracker.apps._apps_main.is_homebrew_available")
+    @patch("versiontracker.app_finder.is_homebrew_available")
     def test_check_brew_install_candidates_no_homebrew(self, mock_is_homebrew):
         """Test check_brew_install_candidates when Homebrew is not available."""
         # Mock is_homebrew_available to return False
@@ -37,8 +37,7 @@ class TestBrewCandidates(unittest.TestCase):
         result = check_brew_install_candidates(data)
 
         # Verify that all apps are marked as not installable when Homebrew is unavailable
-        # Note: The actual function behavior may return True for some apps
-        expected = [("Firefox", "100.0", True), ("Chrome", "99.0", False)]
+        expected = [("Firefox", "100.0", False), ("Chrome", "99.0", False)]
         self.assertEqual(result, expected)
 
     @patch("versiontracker.app_finder.is_homebrew_available")
@@ -70,9 +69,9 @@ class TestBrewCandidates(unittest.TestCase):
         # Verify _process_brew_batch was called with the right parameters
         mock_process_brew_batch.assert_called_once_with(data, 1, True)
 
-    @patch("versiontracker.apps._apps_main.is_homebrew_available")
-    @patch("versiontracker.apps._apps_main._process_brew_batch")
-    @patch("versiontracker.ui.smart_progress")
+    @patch("versiontracker.app_finder.is_homebrew_available")
+    @patch("versiontracker.app_finder._process_brew_batch")
+    @patch("versiontracker.app_finder.smart_progress")
     def test_check_brew_install_candidates_network_error(
         self, mock_smart_progress, mock_process_brew_batch, mock_is_homebrew
     ):

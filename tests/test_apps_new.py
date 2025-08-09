@@ -506,6 +506,7 @@ class TestApps(unittest.TestCase):
         self.assertIn(("TestApp", "2.0"), apps)
         self.assertIn(("RegularApp", "3.0"), apps)
 
+    @patch("versiontracker.app_finder.BREW_PATH", "brew")
     def test_get_cask_version_found(self):
         """Test getting version when it exists."""
         import versiontracker.app_finder as apps_module
