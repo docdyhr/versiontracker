@@ -90,13 +90,13 @@ jobs:
           pytest --maxfail=5 --tb=short --timeout=300 --cov=versiontracker \
             --cov-report=xml --cov-report=term-missing
           echo "::endgroup::"
-        continue-on-error: ${{ matrix.experimental == true }}
+        continue-on-error: false
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 

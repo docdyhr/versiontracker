@@ -209,7 +209,7 @@ jobs:
       id-token: write
       contents: read
     environment:
-      name: release
+      name: pypi
       url: https://pypi.org/project/versiontracker/
     steps:
       - name: Checkout code
@@ -339,21 +339,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Validation | ${{ needs.validate-release.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Quality Checks | ${{ needs.pre-release-checks.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Build & Test | ${{ needs.build-and-test.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Publish | ${{ needs.publish-package.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Verification | ${{ needs.verify-release.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Checks | ${{ needs.pre-release-checks.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build & Test | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Publish | ${{ needs.publish-package.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Verification | ${{ needs.verify-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.publish-package.result }}" == "success" && \
