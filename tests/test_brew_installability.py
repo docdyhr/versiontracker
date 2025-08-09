@@ -10,10 +10,10 @@ from versiontracker.apps import get_homebrew_cask_name as get_brew_cask_name
 class TestBrewCaskInstallability(unittest.TestCase):
     """Test cases for brew cask installability functions."""
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._execute_brew_search")
-    @patch("versiontracker.apps._handle_brew_search_result")
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.app_finder.is_homebrew_available")
+    @patch("versiontracker.app_finder._execute_brew_search")
+    @patch("versiontracker.app_finder._handle_brew_search_result")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_brew_cask_installable_found(
         self,
         mock_read_cache,
@@ -37,10 +37,10 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is True when cask is found
         self.assertTrue(result)
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._execute_brew_search")
-    @patch("versiontracker.apps._handle_brew_search_result")
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.app_finder.is_homebrew_available")
+    @patch("versiontracker.app_finder._execute_brew_search")
+    @patch("versiontracker.app_finder._handle_brew_search_result")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_brew_cask_installable_not_found(
         self,
         mock_read_cache,
@@ -64,9 +64,9 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is False when cask is not found
         self.assertFalse(result)
 
-    @patch("versiontracker.apps.is_homebrew_available")
-    @patch("versiontracker.apps._execute_brew_search")
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.app_finder.is_homebrew_available")
+    @patch("versiontracker.app_finder._execute_brew_search")
+    @patch("versiontracker.app_finder.read_cache")
     def test_is_brew_cask_installable_error(self, mock_read_cache, mock_execute_search, mock_is_homebrew_available):
         """Test is_brew_cask_installable error handling."""
         # Mock is_homebrew_available to return True
@@ -82,7 +82,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is False when an error occurs
         self.assertFalse(result)
 
-    @patch("versiontracker.apps.get_homebrew_cask_name")
+    @patch("versiontracker.app_finder.get_homebrew_cask_name")
     @patch("versiontracker.apps.is_homebrew_available", return_value=True)
     def test_is_brew_cask_installable_with_cache(self, mock_homebrew_available, mock_get_brew_cask_name):
         """Test is_brew_cask_installable with caching."""
@@ -125,9 +125,9 @@ class TestBrewCaskInstallability(unittest.TestCase):
                     self.assertTrue(result3)
                     mock_run.assert_called_once()
 
-    @patch("versiontracker.apps.read_cache")
-    @patch("versiontracker.apps.write_cache")
-    @patch("versiontracker.apps._process_brew_search")
+    @patch("versiontracker.app_finder.read_cache")
+    @patch("versiontracker.app_finder.write_cache")
+    @patch("versiontracker.app_finder._process_brew_search")
     def test_get_brew_cask_name_search_match(self, mock_process_brew_search, mock_write_cache, mock_read_cache):
         """Test get_brew_cask_name when search finds a match."""
         # Mock cache to return None (cache miss)
@@ -151,8 +151,8 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result was cached
         mock_write_cache.assert_called_once()
 
-    @patch("versiontracker.apps.read_cache")
-    @patch("versiontracker.apps._process_brew_search")
+    @patch("versiontracker.app_finder.read_cache")
+    @patch("versiontracker.app_finder._process_brew_search")
     def test_get_brew_cask_name_no_match(self, mock_process_brew_search, mock_read_cache):
         """Test get_brew_cask_name when no match is found."""
         # Mock cache to return None (cache miss)
@@ -170,7 +170,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Verify result is None when no match is found
         self.assertIsNone(result)
 
-    @patch("versiontracker.apps.read_cache")
+    @patch("versiontracker.app_finder.read_cache")
     def test_get_brew_cask_name_from_cache(self, mock_read_cache):
         """Test get_brew_cask_name retrieving from cache."""
         # Mock cache to return a hit with the proper dictionary structure
