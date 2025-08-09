@@ -223,18 +223,17 @@ BREW_PATH = "brew"  # Will be updated based on architecture detection
 
 # Global cache
 _brew_search_cache: Dict[str, List[str]] = {}
-_brew_casks_cache: Optional[List[str]] = None
 
 
 def clear_homebrew_casks_cache() -> None:
-    """Clear all caches for the get_homebrew_casks function.
+    """Clear the cache for the get_homebrew_casks function.
 
     This function is primarily intended for testing purposes.
-    It clears both the module-level cache and the lru_cache.
+    It clears the lru_cache.
     """
-    global _brew_casks_cache
-    _brew_casks_cache = None
-    get_homebrew_casks.cache_clear()
+    # Clear the lru_cache if it exists (function may not have been called yet)
+    if hasattr(get_homebrew_casks, "cache_clear"):
+        get_homebrew_casks.cache_clear()
 
 
 @lru_cache(maxsize=1)
@@ -249,12 +248,6 @@ def get_homebrew_casks() -> List[str]:
         BrewTimeoutError: If the operation times out
         HomebrewError: If there's an error with Homebrew
     """
-    global _brew_casks_cache
-
-    # Return cached results if available
-    if _brew_casks_cache is not None:
-        return _brew_casks_cache
-
     try:
         # Get the brew path from config or use default
         brew_path = getattr(get_config(), "brew_path", BREW_PATH)
@@ -272,9 +265,6 @@ def get_homebrew_casks() -> List[str]:
 
         # Filter out empty lines
         casks = [line.strip() for line in lines if line.strip()]
-
-        # Cache the results
-        _brew_casks_cache = casks
 
         return casks
     except BrewTimeoutError as e:

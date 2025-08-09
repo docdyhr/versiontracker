@@ -86,6 +86,13 @@ using Homebrew casks, making it easier to keep your applications up to date.
 
 ## Installation
 
+### With Homebrew (Recommended)
+
+```bash
+brew tap docdyhr/versiontracker
+brew install versiontracker
+```
+
 ### Option 1: Clone the repository and install
 
 ```shell

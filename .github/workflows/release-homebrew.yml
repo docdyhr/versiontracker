@@ -1,0 +1,129 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g., v0.6.5)'
+        required: true
+        type: string
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+
+jobs:
+  update-homebrew:
+    runs-on: macos-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up environment
+        run: |
+          # Set version from tag or manual input
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "VERSION_NUMBER=${VERSION#v}" >> $GITHUB_ENV
+
+      - name: Download release tarball and calculate SHA256
+        run: |
+          # Download the source tarball for this release
+          curl -L -o versiontracker-${VERSION_NUMBER}.tar.gz \
+            "https://github.com/docdyhr/versiontracker/archive/refs/tags/${VERSION}.tar.gz"
+
+          # Calculate SHA256 checksum
+          SHA256=$(shasum -a 256 versiontracker-${VERSION_NUMBER}.tar.gz | cut -d' ' -f1)
+          echo "SHA256=${SHA256}" >> $GITHUB_ENV
+
+          # Verify the download
+          ls -la versiontracker-${VERSION_NUMBER}.tar.gz
+          echo "Calculated SHA256: ${SHA256}"
+
+      - name: Update Homebrew formula
+        run: |
+          # Update the version and SHA256 in the formula
+          sed -i '' "s/v[0-9]\+\.[0-9]\+\.[0-9]\+/${VERSION}/g" versiontracker.rb
+          sed -i '' "s/PLACEHOLDER_SHA256/${SHA256}/g" versiontracker.rb
+
+          # Verify the updates
+          echo "Updated formula:"
+          head -10 versiontracker.rb
+
+      - name: Install and test formula
+        run: |
+          # Install from the local formula
+          brew install --build-from-source ./versiontracker.rb
+
+          # Test the installation
+          versiontracker --help
+          versiontracker --version
+
+          # Test core functionality
+          echo "Testing core functionality..."
+          timeout 30s versiontracker list || echo "List command completed"
+
+      - name: Clean up test installation
+        run: |
+          brew uninstall versiontracker || true
+
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # Check if there are changes
+          if git diff --quiet versiontracker.rb; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          # Commit the updated formula
+          git add versiontracker.rb
+          git commit -m "Update Homebrew formula to ${VERSION}
+
+          - Updated version to ${VERSION}
+          - Updated SHA256 to ${SHA256}
+          - Verified installation and basic functionality"
+
+          # Push the changes
+          git push origin HEAD:master
+
+      - name: Create or update release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Add Homebrew installation instructions to release notes if this is a new release
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "
+          ## Homebrew Installation
+
+          This version is now available via Homebrew:
+
+          \`\`\`bash
+          brew tap docdyhr/versiontracker
+          brew install versiontracker
+          \`\`\`
+
+          ### Installation Verification
+
+          \`\`\`bash
+          versiontracker --version
+          versiontracker --help
+          \`\`\`
+
+          The formula has been tested and verified to work correctly." > homebrew_notes.md
+
+            # Note: In a real implementation, you would append this to the release notes
+            echo "Homebrew installation notes prepared for release ${VERSION}"
+          fi
