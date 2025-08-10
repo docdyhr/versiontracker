@@ -3,8 +3,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from versiontracker.app_finder import get_homebrew_cask_name as get_brew_cask_name
 from versiontracker.app_finder import is_brew_cask_installable
-from versiontracker.apps import get_homebrew_cask_name as get_brew_cask_name
 
 
 class TestBrewCaskInstallability(unittest.TestCase):
@@ -83,19 +83,19 @@ class TestBrewCaskInstallability(unittest.TestCase):
         self.assertFalse(result)
 
     @patch("versiontracker.app_finder.get_homebrew_cask_name")
-    @patch("versiontracker.apps.is_homebrew_available", return_value=True)
+    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
     def test_is_brew_cask_installable_with_cache(self, mock_homebrew_available, mock_get_brew_cask_name):
         """Test is_brew_cask_installable with caching."""
         # Set up the test
         # We'll mock the read_cache and write_cache functions instead of directly manipulating the cache
-        with patch("versiontracker.apps.read_cache") as mock_read_cache:
-            with patch("versiontracker.apps.write_cache") as mock_write_cache:
+        with patch("versiontracker.app_finder.read_cache") as mock_read_cache:
+            with patch("versiontracker.app_finder.write_cache") as mock_write_cache:
                 # First call - cache miss
                 mock_read_cache.return_value = None
                 mock_get_brew_cask_name.return_value = "firefox"
 
                 # Mock run_command to return success
-                with patch("versiontracker.apps.run_command") as mock_run:
+                with patch("versiontracker.app_finder.run_command") as mock_run:
                     mock_run.return_value = ("firefox\n", 0)
 
                     # First call
@@ -123,8 +123,8 @@ class TestBrewCaskInstallability(unittest.TestCase):
                     mock_run.return_value = ("firefox\n", 0)
                     result3 = is_brew_cask_installable("firefox", use_cache=False)
                     self.assertTrue(result3)
-                    # Function calls run_command twice: once to check brew version, once to search
-                    self.assertEqual(mock_run.call_count, 2)
+                    # Function calls run_command once for the brew search
+                    self.assertEqual(mock_run.call_count, 1)
 
     @patch("versiontracker.app_finder.read_cache")
     @patch("versiontracker.app_finder.write_cache")
@@ -182,6 +182,9 @@ class TestBrewCaskInstallability(unittest.TestCase):
 
         # Verify result matches the cached value
         self.assertEqual(result, "firefox")
+
+        # Verify cache was checked
+        mock_read_cache.assert_called_once_with("brew_cask_name_firefox")
 
 
 if __name__ == "__main__":

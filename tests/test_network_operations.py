@@ -110,7 +110,7 @@ class TestNetworkOperations(unittest.TestCase):
         mock_server.add_cask("firefox", "120.0.1", "Web browser")
 
         # Mock get_homebrew_cask_info to return version info
-        with patch("versiontracker.version.get_homebrew_cask_info") as mock_get_info:
+        with patch("versiontracker.version_legacy.get_homebrew_cask_info") as mock_get_info:
             mock_get_info.return_value = {
                 "name": "firefox",
                 "version": "120.0.1",
@@ -128,7 +128,7 @@ class TestNetworkOperations(unittest.TestCase):
         mock_server.set_timeout(True)
 
         # Mock get_homebrew_cask_info to raise timeout error
-        with patch("versiontracker.version.get_homebrew_cask_info") as mock_get_info:
+        with patch("versiontracker.version_legacy.get_homebrew_cask_info") as mock_get_info:
             mock_get_info.side_effect = VTTimeoutError("Connection timed out")
 
             # Test the function - should raise timeout error
@@ -143,7 +143,7 @@ class TestNetworkOperations(unittest.TestCase):
         mock_server.add_cask("firefox", "120.0.1", "Web browser")
 
         # Mock get_homebrew_cask_info to return version info
-        with patch("versiontracker.version.get_homebrew_cask_info") as mock_get_info:
+        with patch("versiontracker.version_legacy.get_homebrew_cask_info") as mock_get_info:
             mock_get_info.return_value = {
                 "name": "firefox",
                 "version": "120.0.1",
@@ -174,7 +174,7 @@ class TestNetworkOperations(unittest.TestCase):
         mock_server.add_cask("vscode", "1.85.0", "Code editor")
 
         # Mock get_homebrew_cask_info with side effect for different apps
-        with patch("versiontracker.version.get_homebrew_cask_info") as mock_get_info:
+        with patch("versiontracker.version_legacy.get_homebrew_cask_info") as mock_get_info:
 
             def side_effect(app_name):
                 if "firefox" in app_name.lower():
