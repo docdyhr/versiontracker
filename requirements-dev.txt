@@ -11,7 +11,7 @@ ruff>=0.11.12  # Replaces flake8, black, isort
 mypy>=1.16.0
 bandit[toml]>=1.7.5
 pydocstyle>=6.3.0
-# safety>=3.0.0  # TODO: Re-enable when compatible with psutil 7.0.0
+safety>=3.0.0
 pip-audit>=2.6.0
 
 # Build and distribution
