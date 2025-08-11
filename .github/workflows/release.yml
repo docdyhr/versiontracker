@@ -88,7 +88,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           cache: "pip"
 
       - name: Install dependencies
@@ -156,7 +156,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.13"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -193,7 +193,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
         with:
           name: dist-packages
           path: dist/
@@ -209,7 +209,7 @@ jobs:
       id-token: write
       contents: read
     environment:
-      name: release
+      name: pypi
       url: https://pypi.org/project/versiontracker/
     steps:
       - name: Checkout code
@@ -218,7 +218,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
           cache: "pip"
 
       - name: Install build dependencies
@@ -278,7 +278,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Test installation from PyPI
         run: |
@@ -339,21 +339,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Validation | ${{ needs.validate-release.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Quality Checks | ${{ needs.pre-release-checks.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Build & Test | ${{ needs.build-and-test.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Publish | ${{ needs.publish-package.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
-          echo "| Verification | ${{ needs.verify-release.result == \
-            'success' && '✅ Passed' || '❌ Failed' }} |" \
-            >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Checks | ${{ needs.pre-release-checks.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build & Test | ${{ needs.build-and-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Publish | ${{ needs.publish-package.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Verification | ${{ needs.verify-release.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ needs.publish-package.result }}" == "success" && \

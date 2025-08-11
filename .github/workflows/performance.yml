@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        python-version: ["3.11"]  # Use stable version for consistent results
+        python-version: ["3.13"]  # Use stable version for consistent results
 
     steps:
       - name: Checkout code
@@ -122,3 +122,22 @@ jobs:
           # Create trend analysis (placeholder for future enhancement)
           echo "Future enhancement: Trend analysis across multiple runs"
           echo "This job will track performance over time and detect regressions"
+
+  performance-testing:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    needs: [performance-test, performance-analysis]
+    if: always()
+
+    steps:
+      - name: Check performance test status
+        run: |
+          echo "Performance test status: ${{ needs.performance-test.result }}"
+          echo "Performance analysis status: ${{ needs.performance-analysis.result }}"
+
+          if [ "${{ needs.performance-test.result }}" != "success" ]; then
+            echo "Performance test failed"
+            exit 1
+          fi
+
+          echo "All performance tests completed successfully"

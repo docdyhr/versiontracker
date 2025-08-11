@@ -60,8 +60,8 @@ exclude = [
 
 [tool.ruff]
 # Define the target Python version.
-# We support Python 3.10 and later.
-target-version = "py310"
+# We support Python 3.13 and later.
+target-version = "py313"
 
 # Line length configuration - harmonized for AI assistant best practices
 # 120 characters provides good readability while being AI-friendly
@@ -122,7 +122,7 @@ line-ending = "auto"
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.10"  # Use 3.10 as baseline for compatibility
+python_version = "3.13"  # Use 3.13 as baseline for compatibility
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
