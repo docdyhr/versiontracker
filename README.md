@@ -32,7 +32,7 @@
 
 <!-- Platform & Tools -->
 [![macOS](https://img.shields.io/badge/platform-macOS-blue.svg?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10--3.13-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Homebrew Compatible](https://img.shields.io/badge/homebrew-compatible-orange.svg?logo=homebrew&logoColor=white)](https://brew.sh/)
 [![CLI Tool](https://img.shields.io/badge/tool-CLI-brightgreen?logo=terminal&logoColor=white)](https://github.com/docdyhr/versiontracker)
 [![GitHub Repo Size](https://img.shields.io/github/repo-size/docdyhr/versiontracker?logo=github&logoColor=white&label=repo%20size)](https://github.com/docdyhr/versiontracker)

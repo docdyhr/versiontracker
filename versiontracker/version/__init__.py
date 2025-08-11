@@ -8,8 +8,8 @@ import os
 from typing import Optional
 
 from .comparator import compare_versions, get_version_difference, is_version_newer
-from .models import ApplicationInfo, VersionInfo, VersionStatus
 
+# Note: VersionInfo will be set later from the correct ApplicationInfo
 # Import parser functions
 from .parser import parse_version
 
@@ -87,9 +87,18 @@ if _spec is not None and _spec.loader is not None:
     similarity_score = _version_main.similarity_score
 
     # Import ALL existing classes from main version.py
-    # Override the models with the ones from version_legacy to ensure consistency
-    VersionStatus = _version_main.VersionStatus
-    ApplicationInfo = _version_main.ApplicationInfo
+    # Import the classes from version_legacy for consistency
+    # Note: We're intentionally using the version_legacy classes to ensure
+    # consistency with the functions that return them
+    globals()["VersionStatus"] = _version_main.VersionStatus
+    globals()["ApplicationInfo"] = _version_main.ApplicationInfo
+    globals()["VersionInfo"] = _version_main.ApplicationInfo  # Alias for backward compatibility
+
+    # Update the models module to use the consistent VersionStatus
+    # This ensures compatibility between modules
+    from . import models
+
+    models.VersionStatus = _version_main.VersionStatus  # type: ignore[misc]
     # _EarlyReturn = _version_main._EarlyReturn  # Commented out due to
     # duplicate definition issue
 
@@ -101,6 +110,9 @@ if _spec is not None and _spec.loader is not None:
     VERSION_PATTERN_DICT = _version_main.VERSION_PATTERN_DICT
 
 else:
+    # Import fallback classes first
+    from .models import ApplicationInfo, VersionStatus
+
     # Comprehensive fallback functions if main version.py cannot be loaded
     def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
         """Fallback partial ratio function."""
