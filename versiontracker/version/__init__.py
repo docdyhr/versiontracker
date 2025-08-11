@@ -87,6 +87,9 @@ if _spec is not None and _spec.loader is not None:
     similarity_score = _version_main.similarity_score
 
     # Import ALL existing classes from main version.py
+    # Override the models with the ones from version_legacy to ensure consistency
+    VersionStatus = _version_main.VersionStatus
+    ApplicationInfo = _version_main.ApplicationInfo
     # _EarlyReturn = _version_main._EarlyReturn  # Commented out due to
     # duplicate definition issue
 

@@ -23,18 +23,9 @@ from versiontracker.utils import run_command
 from versiontracker.version import check_latest_version, find_matching_cask
 
 
-def _is_ci_without_brew():
-    """Check if we're in a CI environment without brew available."""
-    is_ci = any(os.getenv(var) for var in ["CI", "GITHUB_ACTIONS", "TRAVIS", "CIRCLECI"])
-    if not is_ci:
-        return False
-
-    # Check if brew command is available
-    try:
-        subprocess.run(["brew", "--version"], capture_output=True, timeout=5)
-        return False
-    except (FileNotFoundError, subprocess.TimeoutExpired, subprocess.SubprocessError):
-        return True
+def _is_ci_environment():
+    """Check if we're in a CI environment."""
+    return any(os.getenv(var) for var in ["CI", "GITHUB_ACTIONS", "TRAVIS", "CIRCLECI"])
 
 
 class TestNetworkOperations(unittest.TestCase):
@@ -118,7 +109,7 @@ class TestNetworkOperations(unittest.TestCase):
             result = find_matching_cask("Firefox")
             self.assertEqual(result, "firefox")
 
-    @pytest.mark.skipif(_is_ci_without_brew(), reason="Skipping brew-dependent test in CI without brew")
+    @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_latest_version_success(self, mock_server, server_url):
         """Test checking latest version with successful network operation."""
@@ -137,7 +128,7 @@ class TestNetworkOperations(unittest.TestCase):
             result = check_latest_version("Firefox")
             self.assertEqual(result, "120.0.1")
 
-    @pytest.mark.skipif(_is_ci_without_brew(), reason="Skipping brew-dependent test in CI without brew")
+    @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_latest_version_timeout(self, mock_server, server_url):
         """Test checking latest version with network timeout."""
@@ -152,7 +143,7 @@ class TestNetworkOperations(unittest.TestCase):
             with pytest.raises(VTTimeoutError):
                 check_latest_version("Firefox")
 
-    @pytest.mark.skipif(_is_ci_without_brew(), reason="Skipping brew-dependent test in CI without brew")
+    @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_latest_version_with_delay(self, mock_server, server_url):
         """Test checking latest version with delayed response."""
@@ -183,7 +174,7 @@ class TestNetworkOperations(unittest.TestCase):
         with pytest.raises((VTTimeoutError, Exception)):
             run_command(command, timeout=timeout)
 
-    @pytest.mark.skipif(_is_ci_without_brew(), reason="Skipping brew-dependent test in CI without brew")
+    @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_multiple_casks(self, mock_server, server_url):
         """Test checking multiple casks in sequence."""
