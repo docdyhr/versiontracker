@@ -6,6 +6,7 @@ import textwrap
 from datetime import datetime
 
 from versiontracker import __version__
+from versiontracker.deprecation import warn_deprecated_flag
 
 
 def get_arguments():
@@ -83,9 +84,15 @@ def get_arguments():
 
     # Filtering options
     filter_group = parser.add_argument_group("Filtering options")
+    # Deprecated: --blacklist retained for backward compatibility (use --blocklist)
     filter_group.add_argument(
         "--blacklist",
         dest="blacklist",
+        help="(DEPRECATED) Comma-separated list of applications to ignore (use --blocklist instead)",
+    )
+    filter_group.add_argument(
+        "--blocklist",
+        dest="blocklist",
         help="Comma-separated list of applications to ignore",
     )
     filter_group.add_argument(
@@ -226,11 +233,18 @@ def get_arguments():
         dest="check_outdated",
         help="check for outdated applications compared to Homebrew versions",
     )
+    # Deprecated: --blacklist-auto-updates retained for backward compatibility
     group.add_argument(
         "--blacklist-auto-updates",
         action="store_true",
         dest="blacklist_auto_updates",
-        help="Add all applications with auto-updates to the blacklist",
+        help="(DEPRECATED) Add all applications with auto-updates to the blocklist (use --blocklist-auto-updates)",
+    )
+    group.add_argument(
+        "--blocklist-auto-updates",
+        action="store_true",
+        dest="blocklist_auto_updates",
+        help="Add all applications with auto-updates to the blocklist",
     )
     group.add_argument(
         "--uninstall-auto-updates",
@@ -275,4 +289,23 @@ def get_arguments():
         parser.print_help()
         sys.exit(1)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Deprecation handling / value mapping (centralized via deprecation utility)
+    if getattr(args, "blacklist", None) and not getattr(args, "blocklist", None):
+        args.blocklist = args.blacklist
+        warn_deprecated_flag(
+            flag="--blacklist",
+            replacement="--blocklist",
+            removal_version="0.8.0",
+        )
+
+    if getattr(args, "blacklist_auto_updates", None) and not getattr(args, "blocklist_auto_updates", None):
+        args.blocklist_auto_updates = args.blacklist_auto_updates
+        warn_deprecated_flag(
+            flag="--blacklist-auto-updates",
+            replacement="--blocklist-auto-updates",
+            removal_version="0.8.0",
+        )
+
+    return args

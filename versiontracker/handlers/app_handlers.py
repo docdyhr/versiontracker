@@ -31,10 +31,10 @@ def handle_list_apps(options: Any) -> int:
     """Handle listing applications.
 
     Retrieves and displays installed applications.
-    Can filter by blacklist, Homebrew management, and more.
+    Can filter by blocklist (preferred, legacy: blacklist), Homebrew management, and more.
 
     Args:
-        options: Command line options containing parameters like blacklist,
+        options: Command line options containing parameters like blocklist/blacklist,
                 brew_filter, include_brews, export_format, and output_file.
 
     Returns:
@@ -66,14 +66,23 @@ def handle_list_apps(options: Any) -> int:
             options.additional_dirs.split(",")
 
         # Apply filtering
-        if getattr(options, "blacklist", None):
-            # Create a temporary config with the specified blacklist
+        if getattr(options, "blocklist", None) or getattr(options, "blacklist", None):
+            # Create a temporary config with the specified blocklist / legacy blacklist
             temp_config = Config()
-            temp_config.set("blacklist", options.blacklist.split(","))
-            filtered_apps = [(app, ver) for app, ver in apps if not temp_config.is_blacklisted(app)]
+            # Prefer explicit --blocklist over deprecated --blacklist
+            provided = []
+            if getattr(options, "blocklist", None):
+                provided.extend(options.blocklist.split(","))
+            if getattr(options, "blacklist", None):
+                # Merge while preserving order; avoid duplicates
+                for item in options.blacklist.split(","):
+                    if item not in provided:
+                        provided.append(item)
+            temp_config.set("blacklist", provided)  # config validator currently keyed on 'blacklist'
+            filtered_apps = [(app, ver) for app, ver in apps if not temp_config.is_blocklisted(app)]
         else:
-            # Use global config for blacklisting
-            filtered_apps = [(app, ver) for app, ver in apps if not get_config().is_blacklisted(app)]
+            # Use global config for blocklisting
+            filtered_apps = [(app, ver) for app, ver in apps if not get_config().is_blocklisted(app)]
 
         # Get Homebrew casks if needed for filtering
         if hasattr(options, "brew_filter") and options.brew_filter:
