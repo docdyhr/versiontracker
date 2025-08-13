@@ -122,7 +122,7 @@ line-ending = "auto"
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.13"  # Use 3.13 as baseline for compatibility
+python_version = "3.13"                         # Use 3.13 as baseline for compatibility
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
@@ -186,7 +186,7 @@ addopts = [
     "--cov-report=xml",
     "--cov-report=html",
     "--cov-branch",
-    "--cov-fail-under=10",
+    "--cov-fail-under=15",
     "--strict-markers",
     "--strict-config",
     "--tb=short",
