@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-01-13
+### Documentation Corrections (August 2025)
+- Updated README: corrected overstated "70%+ test coverage" to actual ≈10–11% with rationale tied to heavy mocking strategy.
+- Added "Testing Strategy & Coverage Philosophy" section detailing isolation approach, planned integration test expansion, and future meaningful coverage target (25–30%).
+- Clarified current performance bottleneck (Homebrew operations) and noted upcoming async optimization initiative.
+
+### Terminology Migration (August 2025)
+- Introduced preferred term "blocklist" replacing legacy "blacklist" across CLI and handlers.
+- Added `--blocklist` and `--blocklist-auto-updates` options; legacy flags retained with deprecation warnings for backward compatibility.
+- Implemented new configuration accessors `get_blocklist()` / `is_blocklisted()` while preserving legacy `get_blacklist()` / `is_blacklisted()`.
+- Updated application listing and auto-update handlers to use blocklist terminology internally.
+- No breaking changes: existing scripts using legacy flags continue to function.
+- Upcoming: README and usage examples will be updated to highlight the new terminology and deprecation timeline.
+
+### Async Homebrew Prototype & Integration Test Plan (August 2025)
+- Added experimental asynchronous Homebrew access layer (`async_homebrew_prototype.py`) gated by `VERSIONTRACKER_ASYNC_BREW` feature flag (thread offloading wrapper; future native async support).
+- Introduced `AsyncHomebrewClient` with batch cask retrieval, search, and cache warming capabilities.
+- Provided convenience top-level async functions (`async_get_cask_info`, `async_get_casks_info`, `async_search_casks`) for early adopters; no breaking changes to existing sync paths.
+- Created initial integration test strategy document (`tests/integration_test_plan.md`) outlining phased suites (INT-001–INT-020) targeting coverage lift to 25–30%.
+- Established parity objective & future async regression safeguards (output equivalence baseline).
+- Next steps: implement Phase 1 integration suites (INT-001–INT-005) and begin performance benchmarking of async batching.
+
+
+### Homebrew Formula Preparation (August 2025)
+- Revised `versiontracker.rb` to:
+  - Update Python dependency to `python@3.13` to match project requirement (`requires-python >=3.13`).
+  - Switch to `virtualenv_install_with_resources` pattern.
+  - Add resource stubs for all first-level Python dependencies with TODO hash placeholders where needed.
+  - Insert caveats with checklist for replacing placeholder sha256 values and running `brew audit`.
+- Added detailed Homebrew release preparation checklist to TODO.md (formula checksum, audit, tap creation, automation).
+- Pending actions before publishing:
+  - Compute and replace main tarball sha256 (`PLACEHOLDER_SHA256`).
+  - Fill placeholder resource sha256 values (rapidfuzz, tqdm, and any uncommented transitive dependencies).
+  - Run: `brew audit --new-formula --strict versiontracker`.
+  - Create tap repo `homebrew-versiontracker` and publish formula under `Formula/`.
+- No functional runtime changes to core package; distribution enhancement only.
+
 ### Repository Cleanup and Test Fixes (August 4, 2025)
 - **Test Fixes**: Fixed failing `test_get_homebrew_casks_list_with_homebrew` test
   - Added proper cache clearing in setUp method

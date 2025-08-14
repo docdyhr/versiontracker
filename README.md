@@ -43,7 +43,9 @@
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
 * Release date: 21. Feb 2022 (Updated: January 2025)
-* Code Quality: **70%+ test coverage**, **all complexity issues resolved**, **well-tested**
+* Code Quality: **≈10% unit test line coverage (by design due to heavy mocking)**,
+  **all previously identified high & medium complexity issues resolved**,
+  **targeted integration coverage expansion planned**
 
 ## Overview
 
@@ -69,7 +71,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * **Performance profiling and monitoring** with detailed timing and memory usage metrics
 * **macOS system integration** with scheduled checks, native notifications, and menubar access
 * Parallel processing for faster operation
-* Configurable blacklist to exclude specific applications
+* Configurable blocklist to exclude specific applications (legacy: --blacklist still accepted with deprecation warning)
 * Support for scanning additional application directories
 * Secure command execution
 * Color-coded console output for better readability
@@ -87,6 +89,9 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ## Installation
 
 ### With Homebrew (Recommended)
+
+> Note: Homebrew tap publication pending. These commands will function once the
+> `docdyhr/homebrew-versiontracker` tap repository is created and the formula is pushed.
 
 ```bash
 brew tap docdyhr/versiontracker
@@ -488,6 +493,49 @@ The test suite includes:
 
 This ensures robust functionality across various scenarios and network conditions.
 
+### Testing Strategy & Coverage Philosophy
+
+VersionTracker intentionally uses a heavy mocking approach to:
+
+1. Isolate complex version parsing and comparison logic
+2. Deterministically simulate Homebrew and filesystem behaviors
+3. Keep test execution fast and CI-friendly
+
+Current Coverage Profile:
+
+* Reported line coverage: ≈10–11%
+* Effective logical path coverage for core decision branches: substantially higher (most comparison and
+  matching branches exercised)
+* High mock call volume (5,000+ patched interactions) reduces counted executable lines while still validating behavior
+
+Why Coverage Is Not Higher:
+
+* Many modules rely on guarded platform / network code paths that are mocked out
+* Async and I/O heavy branches prefer behavioral contract tests instead of executing real subprocess or network calls
+* Legacy compatibility layers (fallback logic) are thin wrappers rarely worth direct line coverage
+
+Planned Improvements:
+
+* Add end-to-end integration tests for: discovery → recommendation → outdated flow
+* Introduce cold vs warm cache performance validation tests
+* Add semantic regression test matrix for prerelease/build metadata edge cases
+* Incremental async Homebrew operations tests once migration begins
+* Raise coverage target after integration suite (goal: 25–30% meaningful executable coverage with higher branch coverage)
+
+Quality Guarantees Beyond Coverage:
+
+* All previously high/medium cyclomatic complexity functions refactored below threshold
+* Strict type-aware comparison helpers with malformed/None/empty path handling
+* Deterministic behavior for prerelease, build metadata, and application build number comparisons
+
+If you are contributing:
+
+* Prefer adding branch/path tests over superficial line coverage
+* Mock external commands (brew, filesystem, network) consistently
+* When adding new complex logic, accompany with parameterized tests demonstrating edge cases
+
+This strategy favors maintainability, determinism, and clear behavioral guarantees over a raw percentage metric.
+
 ## Continuous Integration
 
 VersionTracker uses GitHub Actions for continuous integration and deployment:
@@ -542,3 +590,41 @@ All critical and medium-priority complexity issues have been resolved. Key compl
 ## License
 
 [MIT](https://github.com/docdyhr/versiontracker/blob/master/LICENSE)
+
+### Blocklist Terminology Migration
+
+The project is migrating from the legacy term "blacklist" to the preferred term "blocklist" for excluding applications
+from results. This is a non-breaking change.
+
+Current Status:
+
+* New flags: --blocklist, --blocklist-auto-updates
+* Legacy flags (still supported, deprecated): --blacklist, --blacklist-auto-updates
+* Configuration key remains internally stored as "blacklist" for backward compatibility (will accept future "blocklist")
+
+Examples:
+
+```shell
+# New preferred usage
+versiontracker --apps --blocklist "Safari,Firefox"
+
+# Legacy (still works – shows deprecation warning)
+versiontracker --apps --blacklist "Safari,Firefox"
+
+# Blocklist all auto-updating casks
+versiontracker --blocklist-auto-updates
+
+# Legacy form (deprecated but supported)
+versiontracker --blacklist-auto-updates
+```
+
+Deprecation Timeline (planned):
+
+1. Phase 1 (current): Dual support with stderr warnings on legacy flags.
+2. Phase 2 (future): Documentation removal of legacy flags; runtime still accepts them.
+3. Phase 3 (future major release): Possible removal of legacy flags (advance notice in CHANGELOG).
+
+Contributors:
+
+* When adding new filtering-related code, prefer naming like "blocklist"/"is_blocklisted".
+* Retain adapter logic only at the CLI + config boundary layers.

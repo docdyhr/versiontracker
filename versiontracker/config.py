@@ -842,25 +842,60 @@ class Config:
             return False
 
     def get_blacklist(self) -> List[str]:
-        """Get the blacklisted applications.
+        """(DEPRECATED) Get the blacklisted applications.
+
+        This method is retained for backward compatibility. Prefer using
+        get_blocklist() which returns the same underlying data.
 
         Returns:
-            List[str]: List of blacklisted application names
+            List[str]: List of excluded (blacklisted/blocklisted) application names
         """
-        blacklist = cast(List[str], self._config.get("blacklist", []))
-        return blacklist
+        # Support both legacy 'blacklist' and new 'blocklist' keys; merge if both present
+        legacy = cast(List[str], self._config.get("blacklist", []))
+        modern = cast(List[str], self._config.get("blocklist", []))
+        if modern and legacy:
+            # De-duplicate preserving order (modern first)
+            combined: List[str] = []
+            for item in modern + legacy:
+                if item not in combined:
+                    combined.append(item)
+            return combined
+        return modern or legacy
+
+    def get_blocklist(self) -> List[str]:
+        """Get the blocklisted applications (preferred terminology).
+
+        Falls back to legacy 'blacklist' data if 'blocklist' not present.
+
+        Returns:
+            List[str]: List of excluded application names
+        """
+        return self.get_blacklist()
 
     def is_blacklisted(self, app_name: str) -> bool:
-        """Check if an application is blacklisted.
+        """(DEPRECATED) Check if an application is blacklisted.
+
+        Use is_blocklisted() instead. This delegates to the unified list.
 
         Args:
             app_name (str): The application name
 
         Returns:
-            bool: True if the application is blacklisted, False otherwise
+            bool: True if the application is excluded, False otherwise
         """
-        blacklist = self.get_blacklist()
-        return any(app_name.lower() == item.lower() for item in blacklist)
+        return self.is_blocklisted(app_name)
+
+    def is_blocklisted(self, app_name: str) -> bool:
+        """Check if an application is blocklisted (preferred terminology).
+
+        Args:
+            app_name (str): The application name
+
+        Returns:
+            bool: True if the application is excluded, False otherwise
+        """
+        entries = {item.lower() for item in self.get_blocklist()}
+        return app_name.lower() in entries
 
     @property
     def log_dir(self) -> Path:

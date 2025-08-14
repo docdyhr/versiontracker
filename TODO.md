@@ -1,39 +1,120 @@
 # VersionTracker TODO
 
+## Homebrew Release Preparation Checklist (Detailed)
+
+These steps expand the existing high‑level Homebrew release phases to ensure the `versiontracker` formula is
+reproducible, auditable, and automation-ready.
+
+1. Pre‑Release Validation
+   - [ ] Confirm target version tag exists locally & remotely: `git fetch --tags && git tag -l v0.6.5`
+   - [ ] Ensure CHANGELOG has an entry for this version and no "[Unreleased]" items that should be moved.
+   - [ ] Run full test suite locally: `pytest` (ensure exit code 0).
+   - [ ] Validate packaging: `python -m build` (wheel + sdist).
+
+2. Source Tarball & Checksum
+   - [ ] Download canonical GitHub tag archive:
+         `curl -L -o v0.6.5.tar.gz https://github.com/docdyhr/versiontracker/archive/refs/tags/v0.6.5.tar.gz`
+   - [ ] Compute checksum: `shasum -a 256 v0.6.5.tar.gz`
+   - [ ] Replace `PLACEHOLDER_SHA256` in `versiontracker.rb` with the computed value.
+
+3. Formula Dependency Alignment
+   - [ ] Verify Python version in formula matches project requirement (`python@3.13`).
+   - [ ] Cross‑check first‑level runtime deps (fuzzywuzzy, rapidfuzz, tqdm, PyYAML, termcolor, tabulate, psutil,
+         aiohttp) with `pyproject.toml`.
+   - [ ] For any added deps (e.g., rapidfuzz version/hash), resolve exact tarball SHA256 via:
+         `pip download <package>==<version> --no-binary :all:`
+         then `shasum -a 256 <file>.tar.gz`
+   - [ ] Decide if transitive aiohttp deps need explicit resources (run `brew audit` first; only add if required).
+
+4. Formula Integrity & Audit
+   - [ ] Run: `brew audit --new-formula --strict ./versiontracker.rb`
+   - [ ] Address any style / resource / license warnings.
+   - [ ] Test local install:
+         `brew install --build-from-source ./versiontracker.rb`
+   - [ ] Smoke test:
+         `versiontracker --version`
+         `versiontracker --help`
+         `versiontracker --apps --no-progress` (expect graceful run even if environment data minimal)
+
+5. Tap Repository Creation
+   - [ ] Create `homebrew-versiontracker` repository (public).
+   - [ ] Add directory `Formula/` and place `versiontracker.rb` inside.
+   - [ ] Commit with message: `feat: add versiontracker 0.6.5 formula`.
+   - [ ] Push and test tap:
+         `brew tap docdyhr/versiontracker`
+         `brew install versiontracker`
+
+6. Documentation Updates
+   - [ ] README: Update Installation section to prefer:
+         ```
+     brew tap docdyhr/versiontracker
+         brew install versiontracker
+         ```
+   - [ ] Add troubleshooting note (e.g., if Python framework conflicts occur).
+   - [ ] CHANGELOG: Add "Added Homebrew formula distribution" under the released version.
+
+7. Release Publishing
+   - [ ] Draft GitHub Release `v0.6.5` referencing CHANGELOG notes.
+   - [ ] Attach (optional) built artifacts (sdist, wheel) if desired (PyPI already covers distribution).
+   - [ ] Publish release and verify CI release workflow (if applicable).
+
+8. Post‑Publish Validation
+   - [ ] Fresh machine/container test:
+         `brew untap docdyhr/versiontracker || true`
+         `brew tap docdyhr/versiontracker`
+         `brew install versiontracker`
+   - [ ] Run a basic command that triggers version logic:
+         `versiontracker --outdated --no-progress` (should not crash; network-dependent portions may warn gracefully).
+
+9. Automation Setup (Phase 4 Prep)
+   - [ ] Create a workflow in main repo to:
+         - On new tag push: regenerate formula (update url + sha256) in tap repo via authenticated commit or PR.
+   - [ ] (Optional) Add a script `scripts/update_formula.py` to:
+         - Fetch tag
+         - Compute checksum
+         - Patch `versiontracker.rb`
+         - Commit + open PR in tap repository
+   - [ ] Add a status badge for tap installation (optional).
+
+10. Future Enhancements
+
+- [ ] Add bottle support after formula accepted (run `brew test-bot` in CI/macOS runners).
+- [ ] Consider adding a `--json` summary flag to improve future audit automation.
+- [ ] Add integration tests that execute `versiontracker` within the virtualenv created by the formula (separate workflow).
+
+Tracking
+
+- Progress metrics: (a) formula audit success, (b) install success on clean environment, (c) tap latency from push to install.
+- Record completion dates in this checklist as they are executed.
+
+(End of Homebrew release preparation insertion)
+
 This document outlines planned enhancements and future development for the VersionTracker project.
 
 ## 🚨 Immediate Priorities
 
-### 1. Fix Failing Tests (COMPLETED ✅ - August 2, 2025)
+### 1. Clean Up Current Branch (IN PROGRESS)
 
-**Mission Accomplished**: All critical test failures resolved and Issue #28 completely resolved.
+- [ ] Review and commit/stash current uncommitted changes on `dependabot/github_actions/actions/download-artifact-5`
+- [ ] Clean up temporary files (PHASE_1_3_SUMMARY.md, resolve-branches.sh, verify-branch-resolution.sh,
+      homebrew-api.md, final-verification.sh)
+- [ ] Commit blocklist/blacklist deprecation changes (cli.py, config.py, handlers updates)
+- [ ] Commit new integration test files (test_int_001-004)
+- [ ] Commit async_homebrew_prototype.py and deprecation.py
 
-- [x] **Issue #28 Resolution**: All 5 previously failing tests now pass automatically
-  - [x] `test_is_homebrew_available_false`, `test_process_brew_batch_with_adaptive_rate_limiting`
-  - [x] `test_process_brew_search`, `test_check_brew_install_candidates_network_error`
-  - [x] `test_check_brew_install_candidates_no_homebrew` - Fixed by comprehensive mock path updates
-- [x] Fixed mock paths to use correct module references after modularization
-- [x] Updated coverage threshold to realistic 10% (from 15%) matching actual coverage
-- [x] Fixed psutil dependency compatibility for CI/CD environments
+### 2. Address Dependabot PRs
 
-### 2. Merge Feature Branch (COMPLETED ✅)
+- [ ] Fix failing checks in PR #33 (psutil update)
+- [ ] Review and merge PR #34 (types-psutil update) - currently passing
+- [ ] Ensure both PRs maintain compatibility with Python 3.10-3.13
 
-- [x] Complete testing of `refactor/modularize-version-apps` branch
-- [x] Run full test suite to ensure no regressions
-- [x] Successfully merged 12 commits from feature branch to master
-- [x] Resolved merge conflicts and maintained test stability
-- [x] Cleaned up feature branch after successful merge
+### 3. Homebrew Release Preparation (NEXT)
 
-### 3. Dependency Updates (COMPLETED ✅)
-
-- [x] ~~Update aiohttp from 3.12.14 to 3.12.15~~ (Already at 3.12.15)
-- [x] ~~Update coverage from 7.9.2 to 7.10.1~~ (Already at 7.10.1)
-- [x] ~~Update ruff from 0.12.5 to 0.12.7~~ (Already at 0.12.7)
-- [x] Updated mypy from 1.17.0 to 1.17.1
-- [x] Updated rich from 14.0.0 to 14.1.0
-- [x] Updated pip from 25.1.1 to 25.2
-- [x] Verified all critical tests still pass after updates
-- [x] Maintained dependency compatibility (reverted pydantic to avoid conflicts)
+- [ ] Complete Phase 1: Create GitHub Release v0.6.5
+- [ ] Create `homebrew-versiontracker` tap repository
+- [ ] Update versiontracker.rb formula with correct SHA256
+- [ ] Test local installation with `brew install --build-from-source`
+- [ ] Follow detailed checklist at top of this file
 
 ## 🍺 Homebrew Release (IN PROGRESS 🚧)
 
@@ -67,7 +148,7 @@ This document outlines planned enhancements and future development for the Versi
 - [x] Created comprehensive testing strategy documentation
 - [x] Documented why 10.4% coverage is expected and acceptable
 - [x] Explained extensive mocking approach (5,346+ mock calls)
-- [ ] Update README.md with testing methodology section
+- [x] Update README.md with testing methodology section (COMPLETED Aug 2025)
 - [ ] Create contributor guidelines for testing
 
 ### 2.2 Integration Test Suite (PLANNED)
@@ -191,26 +272,29 @@ This document outlines planned enhancements and future development for the Versi
 
 ## 📊 Current Project Status
 
-### Metrics (Updated August 2, 2025)
+### Metrics (Updated January 13, 2025)
 
-- **Tests**: All critical tests passing (Issue #28 resolved - 5 previously failing tests now pass)
-- **Test Coverage**: 10.41% (extensive mocking approach - meets coverage requirement)
+- **Tests**: 1,194 tests collected, 15.16% coverage
+- **Active Development**: Integration tests and async Homebrew prototype in progress
+- **Uncommitted Changes**: 16 modified files, 7 new files (integration tests, async prototype)
+- **Open PRs**: 2 Dependabot updates (#33 failing, #34 passing)
+- **Branch**: `dependabot/github_actions/actions/download-artifact-5` (merged to master)
 - **Code Quality**: Excellent (modular architecture, clean code)
 - **Security**: ✅ Excellent (comprehensive scanning, security workflow operational)
-- **CI/CD Pipeline**: ✅ **FULLY OPERATIONAL** - All workflows passing, security checks operational
+- **CI/CD Pipeline**: ✅ Operational with 1 PR failing checks
 - **Performance**: **MEASURED** - Baseline established, optimization targets identified
   - Fast operations: App discovery (0.54ms), Version parsing (1.02ms)
   - Optimization targets: Homebrew operations (893ms-2.7s, 90% of execution time)
-- **Dependencies**: ✅ Current (all target dependencies updated, compatibility maintained)
+- **Dependencies**: 2 pending updates (psutil, types-psutil)
 
 ### Development Status
 
 - **Production Ready**: ✅ Core functionality stable and tested
-- **Architecture**: ✅ Clean modular design after refactoring
-- **CI/CD**: ✅ **FULLY OPERATIONAL** - All critical issues resolved
-- **Documentation**: ✅ Comprehensive guides and examples
+- **Architecture**: ✅ Clean modular design with async prototype in development
+- **CI/CD**: ⚠️ 1 Dependabot PR failing checks (psutil update)
+- **Documentation**: ✅ Comprehensive guides, Homebrew formula in progress
 - **Community**: 🚀 Ready for contributors
-- **Issue #28**: ✅ **COMPLETELY RESOLVED** - All test failures fixed
+- **Current Focus**: Branch cleanup, dependency updates, Homebrew release preparation
 
 ## 🤝 Contributing
 
@@ -230,11 +314,11 @@ This document outlines planned enhancements and future development for the Versi
 
 ---
 
-**Last Updated**: August 2, 2025  
-**Status**: Issue #28 RESOLVED - All critical test failures fixed  
-**Current Task**: Ready for new development (all blocking issues resolved)  
-**Major Achievement**: CI/CD pipeline fully operational, security workflows passing  
-**Next Phase**: Continue with performance optimization and feature development
+**Last Updated**: January 13, 2025  
+**Status**: Active development on integration tests and async Homebrew prototype  
+**Current Task**: Clean up branch, merge dependency updates, prepare Homebrew release  
+**Major Achievement**: Blocklist terminology migration, integration test framework, async prototype  
+**Next Phase**: Complete Homebrew formula release and continue async optimization
 **Maintainer**: @thoward27
 
 ## 📋 Completed Items Archive

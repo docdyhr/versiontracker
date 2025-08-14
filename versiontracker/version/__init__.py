@@ -394,6 +394,11 @@ else:
     ]
 
 
+# Explicit alias to satisfy static analyzers that don't resolve dynamic globals()
+try:
+    VersionInfo  # type: ignore[name-defined,used-before-def]
+except NameError:
+    VersionInfo = ApplicationInfo  # type: ignore[misc]
 __all__ = [
     # Models from submodules
     "ApplicationInfo",
@@ -471,7 +476,7 @@ __all__ = [
     "partial_ratio",
     "similarity_score",
     # Classes
-    "_EarlyReturn",
+    # _EarlyReturn sentinel kept internal (removed from __all__)
     # Constants
     "HAS_VERSION_PROGRESS",
     "USE_FUZZYWUZZY",

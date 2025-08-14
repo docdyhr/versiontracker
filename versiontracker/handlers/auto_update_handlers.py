@@ -1,6 +1,6 @@
 """Handler functions for managing applications with auto-updates.
 
-This module provides functions to blacklist or uninstall applications
+This module provides functions to blocklist (legacy: blacklist) or uninstall applications
 that have auto-updates enabled, with user feedback and confirmation.
 """
 
@@ -16,7 +16,7 @@ from versiontracker.utils import run_command
 
 
 def handle_blacklist_auto_updates(options: Any) -> int:
-    """Add all applications with auto-updates to the blacklist.
+    """Add all applications with auto-updates to the blocklist (legacy: blacklist).
 
     Args:
         options: Command line options
@@ -44,28 +44,28 @@ def handle_blacklist_auto_updates(options: Any) -> int:
             print(progress_bar.color("yellow")("No casks with auto-updates found."))
             return 0
 
-        # Get current blacklist
+        # Get current blocklist (stored under legacy 'blacklist' key)
         current_blacklist = config.get("blacklist", [])
         new_additions = []
 
-        # Find which casks are not already blacklisted
+        # Find which casks are not already blocklisted
         for cask in auto_update_casks:
             if cask not in current_blacklist:
                 new_additions.append(cask)
 
         if not new_additions:
-            print(progress_bar.color("yellow")("All casks with auto-updates are already blacklisted."))
+            print(progress_bar.color("yellow")("All casks with auto-updates are already blocklisted."))
             return 0
 
         # Show what will be added
         print(progress_bar.color("blue")(f"\nFound {len(auto_update_casks)} casks with auto-updates:"))
         for cask in auto_update_casks:
-            status = " (already blacklisted)" if cask in current_blacklist else " (will be added)"
+            status = " (already blocklisted)" if cask in current_blacklist else " (will be added)"
             color = "yellow" if cask in current_blacklist else "green"
             print(f"  - {progress_bar.color(color)(cask)}{status}")
 
         # Ask for confirmation
-        print(progress_bar.color("yellow")(f"\nThis will add {len(new_additions)} casks to the blacklist."))
+        print(progress_bar.color("yellow")(f"\nThis will add {len(new_additions)} casks to the blocklist."))
         response = input("Do you want to continue? [y/N]: ").strip().lower()
 
         if response != "y":
@@ -78,15 +78,15 @@ def handle_blacklist_auto_updates(options: Any) -> int:
 
         # Save the configuration
         if config.save():
-            print(progress_bar.color("green")(f"\n✓ Successfully added {len(new_additions)} casks to the blacklist."))
-            print(progress_bar.color("blue")(f"Total blacklisted items: {len(updated_blacklist)}"))
+            print(progress_bar.color("green")(f"\n✓ Successfully added {len(new_additions)} casks to the blocklist."))
+            print(progress_bar.color("blue")(f"Total blocklisted items: {len(updated_blacklist)}"))
             return 0
         else:
             print(progress_bar.color("red")("Failed to save configuration. Please check your config file."))
             return 1
 
     except Exception as e:
-        logging.error(f"Error blacklisting auto-update casks: {e}")
+        logging.error(f"Error blocklisting (legacy: blacklisting) auto-update casks: {e}")
         print(create_progress_bar().color("red")(f"Error: {e}"))
         return 1
 

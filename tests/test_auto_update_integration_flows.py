@@ -487,7 +487,7 @@ class TestAutoUpdateProgressReporting(unittest.TestCase):
         self.assertTrue(any("Found 3 casks with auto-updates" in call for call in print_calls))
 
         # Should show how many will be added (excluding already blacklisted)
-        self.assertTrue(any("add 2 casks to the blacklist" in call for call in print_calls))
+        self.assertTrue(any("add 2 casks to the blocklist" in call for call in print_calls))
 
         # Should show final success message
         self.assertTrue(any("Successfully added 2 casks" in call for call in print_calls))

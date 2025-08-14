@@ -63,7 +63,7 @@ jobs:
         run: |
           echo "::group::Safety Dependency Check"
           if command -v safety >/dev/null 2>&1; then
-            safety check --json --output safety-report.json || true
+            safety check --json > safety-report.json || true
             safety check || true
           else
             echo "Safety is temporarily disabled due to psutil 7.0.0 incompatibility"
@@ -85,7 +85,7 @@ jobs:
         continue-on-error: true
         with:
           path: ./
-          base: ${{ github.event_name == 'pull_request' && 'master' || 'HEAD~1' }}
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'HEAD~1' }}
           head: HEAD
           extra_args: --debug --only-verified
 
@@ -128,7 +128,7 @@ jobs:
 
           echo "## Pip-Audit Results" >> security-summary.md
           echo '```' >> security-summary.md
-          pip-audit --format=text >> security-summary.md || true
+          pip-audit --format=columns >> security-summary.md || true
           echo '```' >> security-summary.md
 
       - name: Create security summary

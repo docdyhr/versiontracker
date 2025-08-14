@@ -100,14 +100,9 @@ class TestCLIAutoUpdates(unittest.TestCase):
 class TestMainAutoUpdatesIntegration(unittest.TestCase):
     """Test main module integration with auto-update commands."""
 
-    @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks", return_value=["firefox", "chrome"])
-    @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates", return_value=["firefox"])
-    @patch("versiontracker.handlers.auto_update_handlers.get_config")
     @patch("versiontracker.__main__.handle_blacklist_auto_updates")
     @patch("versiontracker.__main__.get_arguments")
-    def test_main_blacklist_auto_updates(
-        self, mock_get_args, mock_handle_blacklist, mock_get_config, mock_get_auto_updates, mock_get_casks
-    ):
+    def test_main_blacklist_auto_updates(self, mock_get_args, mock_handle_blacklist):
         """Test main function calls blacklist handler correctly."""
         from versiontracker.__main__ import versiontracker_main
 
@@ -144,14 +139,8 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         self.assertEqual(result, 0)
         mock_handle_blacklist.assert_called_once_with(mock_args)
 
-    @patch("versiontracker.handlers.auto_update_handlers.get_homebrew_casks", return_value=["firefox", "chrome"])
-    @patch("versiontracker.handlers.auto_update_handlers.get_casks_with_auto_updates", return_value=["firefox"])
-    @patch("versiontracker.handlers.auto_update_handlers.get_config")
-    @patch("versiontracker.__main__.handle_uninstall_auto_updates")
     @patch("versiontracker.__main__.get_arguments")
-    def test_main_uninstall_auto_updates(
-        self, mock_get_args, mock_handle_uninstall, mock_get_config, mock_get_auto_updates, mock_get_casks
-    ):
+    def test_main_uninstall_auto_updates(self, mock_get_args):
         """Test main function calls uninstall handler correctly."""
         from versiontracker.__main__ import versiontracker_main
 
@@ -166,6 +155,7 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         mock_args.strict_recom = False
         mock_args.check_outdated = False
         mock_args.blacklist_auto_updates = False
+        mock_args.blocklist_auto_updates = False
         mock_args.install_service = False
         mock_args.uninstall_service = False
         mock_args.service_status = False
@@ -176,14 +166,16 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         mock_args.additional_dirs = None
         mock_args.save_filter = None
         mock_get_args.return_value = mock_args
-        mock_handle_uninstall.return_value = 0
 
         with patch("versiontracker.__main__.handle_setup_logging"):
             with patch("versiontracker.__main__.handle_initialize_config"):
                 with patch("versiontracker.__main__.handle_configure_from_options"):
                     with patch("versiontracker.__main__.handle_filter_management", return_value=None):
                         with patch("versiontracker.__main__.handle_save_filter"):
-                            result = versiontracker_main()
+                            with patch(
+                                "versiontracker.__main__.handle_uninstall_auto_updates", return_value=0
+                            ) as mock_handle_uninstall:
+                                result = versiontracker_main()
 
         self.assertEqual(result, 0)
         mock_handle_uninstall.assert_called_once_with(mock_args)

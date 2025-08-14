@@ -84,7 +84,10 @@ def handle_main_actions(options) -> int:
         result = handle_brew_recommendations(options)
     elif hasattr(options, "check_outdated") and options.check_outdated:
         result = handle_outdated_check(options)
-    elif hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates:
+    elif (hasattr(options, "blocklist_auto_updates") and options.blocklist_auto_updates) or (
+        hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates
+    ):
+        # Unified handling for deprecated --blacklist-auto-updates and new --blocklist-auto-updates
         result = handle_blacklist_auto_updates(options)
     elif hasattr(options, "uninstall_auto_updates") and options.uninstall_auto_updates:
         result = handle_uninstall_auto_updates(options)
