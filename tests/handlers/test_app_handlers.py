@@ -119,6 +119,7 @@ class TestAppHandlers(unittest.TestCase):
 
         mock_temp_config = Mock()
         mock_temp_config.is_blacklisted.side_effect = lambda app: app == "BlacklistedApp"
+        mock_temp_config.is_blocklisted.side_effect = lambda app: app == "BlacklistedApp"
         mock_Config.return_value = mock_temp_config
 
         # Create test options
