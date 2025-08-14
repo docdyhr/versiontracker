@@ -66,16 +66,19 @@ def handle_list_apps(options: Any) -> int:
             options.additional_dirs.split(",")
 
         # Apply filtering
-        if getattr(options, "blocklist", None) or getattr(options, "blacklist", None):
+        blocklist_value = getattr(options, "blocklist", None)
+        blacklist_value = getattr(options, "blacklist", None)
+
+        if blocklist_value or blacklist_value:
             # Create a temporary config with the specified blocklist / legacy blacklist
             temp_config = Config()
             # Prefer explicit --blocklist over deprecated --blacklist
             provided = []
-            if getattr(options, "blocklist", None):
-                provided.extend(options.blocklist.split(","))
-            if getattr(options, "blacklist", None):
+            if blocklist_value and isinstance(blocklist_value, str):
+                provided.extend(blocklist_value.split(","))
+            if blacklist_value and isinstance(blacklist_value, str):
                 # Merge while preserving order; avoid duplicates
-                for item in options.blacklist.split(","):
+                for item in blacklist_value.split(","):
                     if item not in provided:
                         provided.append(item)
             temp_config.set("blacklist", provided)  # config validator currently keyed on 'blacklist'
