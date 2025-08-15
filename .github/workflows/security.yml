@@ -80,13 +80,44 @@ jobs:
             echo "Pip-audit found vulnerabilities in system dependencies"
           echo "::endgroup::"
 
+      - name: Set up TruffleHog scan parameters
+        id: trufflehog_params
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PRs, use the actual base and head commits
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+
+            # If base and head are the same (shouldn't happen), skip scan
+            if [ "$BASE" == "$HEAD" ]; then
+              echo "::warning::Base and head commits are the same. Skipping TruffleHog scan."
+              echo "skip_scan=true" >> $GITHUB_OUTPUT
+            else
+              echo "base=$BASE" >> $GITHUB_OUTPUT
+              echo "head=$HEAD" >> $GITHUB_OUTPUT
+              echo "skip_scan=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # For push events, scan the commit range
+            if [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+              echo "base=${{ github.event.before }}" >> $GITHUB_OUTPUT
+              echo "head=${{ github.sha }}" >> $GITHUB_OUTPUT
+              echo "skip_scan=false" >> $GITHUB_OUTPUT
+            else
+              # For initial commits or when before is not available
+              echo "::warning::No previous commit to compare. Skipping TruffleHog scan."
+              echo "skip_scan=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
       - name: Check for secrets with TruffleHog
+        if: steps.trufflehog_params.outputs.skip_scan != 'true'
         uses: trufflesecurity/trufflehog@main
         continue-on-error: true
         with:
           path: ./
-          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'HEAD~1' }}
-          head: HEAD
+          base: ${{ steps.trufflehog_params.outputs.base }}
+          head: ${{ steps.trufflehog_params.outputs.head }}
           extra_args: --debug --only-verified
 
       - name: Upload security reports
@@ -163,19 +194,25 @@ jobs:
               >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR (if applicable)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
             if (fs.existsSync('security-summary.md')) {
               const report = fs.readFileSync('security-summary.md', 'utf8');
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `## 🔒 Security Analysis Report\n\n${report}`
-              });
+              try {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: `## 🔒 Security Analysis Report\n\n${report}`
+                });
+              } catch (error) {
+                console.log('Could not post comment:', error.message);
+                // Don't fail the workflow if we can't comment
+              }
             }
 
       - name: Fail on critical vulnerabilities
