@@ -88,16 +88,18 @@ using Homebrew casks, making it easier to keep your applications up to date.
 
 ## Installation
 
-### With PyPI (Recommended)
+### With Homebrew (Recommended)
+
+```bash
+brew tap docdyhr/versiontracker
+brew install versiontracker
+```
+
+### With PyPI
 
 ```bash
 pip install macos-versiontracker
 ```
-
-### With Homebrew
-
-> Note: Homebrew tap publication pending. These commands will function once the
-> `docdyhr/homebrew-versiontracker` tap repository is created and the formula is pushed.
 
 ```bash
 brew tap docdyhr/versiontracker

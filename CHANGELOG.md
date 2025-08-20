@@ -8,7 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.7.1] - 2025-01-14
+
+### Added
+
+- **NEW**: Homebrew formula distribution via `docdyhr/versiontracker` tap
+- Added complete Homebrew release infrastructure with automated workflows
+- Added comprehensive Homebrew installation documentation
+
 ### Fixed
+
 - **BREAKING**: Fixed PyPI package naming conflict by changing from `versiontracker` to `macos-versiontracker`
 - Fixed CI/CD release workflow version mismatch issue
 - Corrected package version in `__init__.py` to allow for new releases
@@ -16,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Homebrew formula repository reference
 
 ### Changed
+
 - **BREAKING**: Package name changed from `versiontracker` to `macos-versiontracker` on PyPI
 - Updated installation command: `pip install macos-versiontracker`
 - Added both `versiontracker` and `macos-versiontracker` CLI commands for compatibility
@@ -24,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced Python version compatibility (Python 3.9+ instead of 3.13+)
 
 ### Migration Guide
+
 - **Old installation**: `pip install versiontracker` (conflicts with existing package)
 - **New installation**: `pip install macos-versiontracker`
 - CLI commands remain the same: `versiontracker` or use new `macos-versiontracker`
