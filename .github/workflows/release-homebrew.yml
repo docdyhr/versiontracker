@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to update (e.g., v0.6.5)'
+        description: "Version to update (e.g., v0.6.5)"
         required: true
         type: string
 
@@ -37,7 +37,7 @@ jobs:
         run: |
           # Download the source tarball for this release
           curl -L -o versiontracker-${VERSION_NUMBER}.tar.gz \
-            "https://github.com/docdyhr/versiontracker/archive/refs/tags/${VERSION}.tar.gz"
+            "https://github.com/thomas/versiontracker/archive/refs/tags/${VERSION}.tar.gz"
 
           # Calculate SHA256 checksum
           SHA256=$(shasum -a 256 versiontracker-${VERSION_NUMBER}.tar.gz | cut -d' ' -f1)
@@ -111,7 +111,7 @@ jobs:
           This version is now available via Homebrew:
 
           \`\`\`bash
-          brew tap docdyhr/versiontracker
+          brew tap thomas/versiontracker
           brew install versiontracker
           \`\`\`
 

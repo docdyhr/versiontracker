@@ -8,7 +8,7 @@ name = "versiontracker"
 dynamic = ["version"]
 description = "CLI versiontracker and update tool for macOS"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 license = "MIT"
 authors = [{ name = "docdyhr", email = "thomas@dyhr.com" }]
 keywords = ["versiontracker", "macos", "update", "homebrew"]
@@ -19,6 +19,10 @@ classifiers = [
     "Intended Audience :: System Administrators",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: System :: Systems Administration",
     "Topic :: Utilities",
@@ -61,7 +65,7 @@ exclude = [
 [tool.ruff]
 # Define the target Python version.
 # We support Python 3.13 and later.
-target-version = "py313"
+target-version = "py39"
 
 # Line length configuration - harmonized for AI assistant best practices
 # 120 characters provides good readability while being AI-friendly
@@ -122,7 +126,7 @@ line-ending = "auto"
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.13"                         # Use 3.13 as baseline for compatibility
+python_version = "3.9"                          # Use 3.9 as baseline for compatibility
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false

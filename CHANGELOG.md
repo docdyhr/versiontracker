@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2025-01-14
+### Fixed
+- Fixed CI/CD release workflow version mismatch issue
+- Corrected package version in `__init__.py` to allow for new releases
+- Resolved Python version compatibility issues in release pipeline
+- Fixed Homebrew formula repository reference
+
+### Changed
+- Updated version from 0.7.0 to 0.7.1 to resolve PyPI publishing conflicts
+- Improved release workflow error handling and validation
+
 ## [0.7.0] - 2025-01-13
 ### Documentation Corrections (August 2025)
 - Updated README: corrected overstated "70%+ test coverage" to actual ≈10–11% with rationale tied to heavy mocking strategy.

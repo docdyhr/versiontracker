@@ -88,7 +88,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
           cache: "pip"
 
       - name: Install dependencies
@@ -156,7 +156,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.13"]
+        python-version: ["3.11"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -193,7 +193,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         with:
           name: dist-packages
           path: dist/
@@ -218,7 +218,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
           cache: "pip"
 
       - name: Install build dependencies
@@ -278,7 +278,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
 
       - name: Test installation from PyPI
         run: |
