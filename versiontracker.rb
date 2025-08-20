@@ -2,10 +2,9 @@ require "language/python/virtualenv"
 
 class Versiontracker < Formula
   desc "Track and update third-party (non-App Store) software on macOS with Homebrew awareness"
-  homepage "https://github.com/thomas/versiontracker"
-  url "https://github.com/thomas/versiontracker/archive/refs/tags/v0.7.1.tar.gz"
-  # TODO: Replace the placeholder below with the real tarball sha256 (run: shasum -a 256 v0.7.1.tar.gz)
-  sha256 "PLACEHOLDER_SHA256"  # pragma: allowlist secret
+  homepage "https://github.com/docdyhr/versiontracker"
+  url "https://github.com/docdyhr/versiontracker/archive/refs/tags/v0.7.1.tar.gz"
+  sha256 "7b9afa5f8c04031231ebce24b07edea766b0dd07a90b8130bee1c11de50058a7"  # pragma: allowlist secret
   license "MIT"
 
   # Project requires Python >= 3.9, use 3.11 for broad compatibility
