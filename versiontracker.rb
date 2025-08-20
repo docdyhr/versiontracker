@@ -8,12 +8,12 @@ class Versiontracker < Formula
   sha256 "PLACEHOLDER_SHA256"  # pragma: allowlist secret
   license "MIT"
 
-  # Project requires Python >= 3.9
+  # Project requires Python >= 3.9, use 3.11 for broad compatibility
   depends_on "python@3.11"
 
   # Runtime Python dependencies (mirrors requirements.txt / pyproject dependencies)
-  # NOTE: Some transitive dependencies (e.g., certifi, charset-normalizer, multidict, yarl, attrs, frozenlist, aiosignal)
-  # may be auto-resolved by pip; explicitly pin only first-level project dependencies here.
+  # NOTE: Package is published on PyPI as "macos-versiontracker" to avoid naming conflicts
+  # Some transitive dependencies may be auto-resolved by pip; explicitly pin only first-level project dependencies here.
   resource "fuzzywuzzy" do
     url "https://files.pythonhosted.org/packages/source/f/fuzzywuzzy/fuzzywuzzy-0.18.0.tar.gz"
     sha256 "a0d013fb62b5e21658ab4b63a62cb2a7ab3392a1b3f7f004b586eaf8b22302fe"  # pragma: allowlist secret # TODO: verify hash
