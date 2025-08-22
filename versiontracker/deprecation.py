@@ -67,7 +67,7 @@ _message_cache: Dict[str, str] = {}
 _TRUTHY = {"1", "true", "yes", "on"}
 
 
-@dataclass(slots=True)
+@dataclass
 class DeprecationRecord:
     """Structured representation of a deprecation event.
 

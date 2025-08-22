@@ -83,7 +83,7 @@ DEFAULT_TIMEOUT = 30.0  # seconds (placeholder; not strictly enforced yet)
 LOG_NAMESPACE = "versiontracker.async_homebrew"
 
 
-@dataclass(slots=True)
+@dataclass
 class CaskResult:
     """Container for a single cask operation result.
 
