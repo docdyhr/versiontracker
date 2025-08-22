@@ -83,7 +83,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ## Requirements
 
 * macOS (tested on 10.15 Catalina and later)
-* Python 3.9 or later
+* Python 3.10 or later
 * Homebrew package manager (optional)
 
 ## Installation
