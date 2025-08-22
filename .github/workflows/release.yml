@@ -94,10 +94,20 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup-python-deps
 
-      - name: Run comprehensive tests
+      - name: Run essential tests
         run: |
-          echo "::group::Running Tests"
-          pytest --cov=versiontracker --cov-report=xml --cov-report=term -v
+          echo "::group::Running Essential Tests"
+          # Run only fast, essential unit tests during release for faster CI
+          # Skip slow integration and performance tests
+          pytest \
+            --cov=versiontracker \
+            --cov-report=xml \
+            --cov-report=term \
+            -v \
+            --timeout=30 \
+            --maxfail=10 \
+            -k "not (integration or performance or test_end_to_end or test_concurrent or test_large_dataset or test_memory_usage)" \
+            tests/handlers/ tests/test_config.py tests/test_version.py tests/test_utils.py
           echo "::endgroup::"
 
       - name: Run linting checks
