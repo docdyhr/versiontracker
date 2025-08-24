@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated Python compatibility from 3.9+ to 3.10+ (breaking change)
   - Fixed README Python version badge to match actual requirements (3.10+)
   - Enhanced MyPy configuration with consistent Python 3.10 baseline
+- **📦 Package Naming**: Changed PyPI package name from `macos-versiontracker` to `homebrew-versiontracker`
+  - Better reflects the project's primary focus on Homebrew integration
+  - Avoids confusion with existing versiontracker packages on PyPI
+  - Maintains CLI command names (`versiontracker` and `macos-versiontracker`)
 
 ### Infrastructure
 
@@ -57,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Migration Guide
 
 - **Python Environment**: Ensure Python 3.10+ is installed
+- **Package Installation**: Use `pip install homebrew-versiontracker` (was `macos-versiontracker`)
+- **CLI Commands**: No change - still use `versiontracker` or `macos-versiontracker`
 - **CI/CD**: The setuptools>=64 fix resolves version detection issues in automated environments
 - **Development**: New Claude Code hooks system available for enhanced development workflow
 - **No Code Changes Required**: All existing functionality remains compatible

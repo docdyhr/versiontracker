@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 # This section is defined by PEP 621
-name = "macos-versiontracker"
+name = "homebrew-versiontracker"
 dynamic = ["version"]
 description = "CLI versiontracker and update tool for macOS"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "docdyhr", email = "thomas@dyhr.com" }]
-keywords = ["versiontracker", "macos", "update", "homebrew", "mac-apps"]
+keywords = ["homebrew", "versiontracker", "macos", "update", "cask", "mac-apps"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",

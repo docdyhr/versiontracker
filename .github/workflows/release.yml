@@ -220,7 +220,7 @@ jobs:
       contents: read
     environment:
       name: pypi
-      url: https://pypi.org/project/macos-versiontracker/
+      url: https://pypi.org/project/homebrew-versiontracker/
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -289,7 +289,7 @@ jobs:
           echo "🔍 Testing installation of versiontracker==$VERSION from PyPI..."
 
           # Try installing the specific version
-          pip install --no-cache-dir "macos-versiontracker==$VERSION"
+          pip install --no-cache-dir "homebrew-versiontracker==$VERSION"
 
           # Verify version
           python -c "
@@ -354,9 +354,9 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "The package is now available on PyPI:" >> $GITHUB_STEP_SUMMARY
             echo "- **Install**: \`pip install \
-              macos-versiontracker==${{ needs.validate-release.outputs.version }}\`" \
+              homebrew-versiontracker==${{ needs.validate-release.outputs.version }}\`" \
             >> $GITHUB_STEP_SUMMARY
-            echo "- **PyPI**: https://pypi.org/project/macos-versiontracker/" \
+            echo "- **PyPI**: https://pypi.org/project/homebrew-versiontracker/" \
               >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ **Release encountered issues. \
