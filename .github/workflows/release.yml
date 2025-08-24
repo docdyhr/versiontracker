@@ -250,16 +250,8 @@ jobs:
           python -m tarfile -l dist/*.tar.gz
 
           if ls dist/*.whl 1> /dev/null 2>&1; then
-            python -c "
-            import zipfile
-            import glob
-            whl_files = glob.glob('dist/*.whl')
-            if whl_files:
-                with zipfile.ZipFile(whl_files[0], 'r') as z:
-                    print('🎯 Wheel contents:')
-                    for name in z.namelist():
-                        print(f'  {name}')
-            "
+            echo "🎯 Wheel contents:"
+            python -m zipfile -l dist/*.whl | head -20
           fi
           echo "::endgroup::"
 
