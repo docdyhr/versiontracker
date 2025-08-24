@@ -98,7 +98,7 @@ jobs:
         run: |
           echo "::group::Running Essential Tests"
           # Run only fast, essential unit tests during release for faster CI
-          # Skip slow integration and performance tests
+          # Skip slow integration and performance tests using pytest markers
           pytest \
             --cov=versiontracker \
             --cov-report=xml \
@@ -106,7 +106,7 @@ jobs:
             -v \
             --timeout=30 \
             --maxfail=10 \
-            -k "not (integration or performance or test_end_to_end or test_concurrent or test_large_dataset or test_memory_usage)" \
+            -m "not slow and not integration and not network" \
             tests/handlers/ tests/test_config.py tests/test_version.py tests/test_utils.py
           echo "::endgroup::"
 
