@@ -33,7 +33,7 @@ available but loaded on-demand.
 
 from typing import Any
 
-__version__ = "0.7.1"
+__version__ = "0.8.0"
 
 # Explicitly define what should be imported with "from versiontracker import *"
 # Note: Items marked with lazy loading are imported on-demand via __getattr__
