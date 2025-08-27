@@ -3,7 +3,6 @@
 import logging
 import sys
 from argparse import Namespace
-from typing import Optional
 
 from versiontracker.macos_integration import (
     LaunchdService,

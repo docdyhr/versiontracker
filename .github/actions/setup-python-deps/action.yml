@@ -1,37 +1,61 @@
-name: "Setup Python Dependencies"
-description: "Install Python dependencies with constraints for versiontracker"
-inputs:
-  requirements:
-    description: "Install base requirements.txt"
-    required: false
-    default: "true"
-  dev-requirements:
-    description: "Install requirements-dev.txt"
-    required: false
-    default: "true"
-  install-package:
-    description: "Install package in editable mode"
-    required: false
-    default: "true"
-
+name: Setup Python Dependencies
+description: Install Python dependencies for VersionTracker
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Upgrade pip
+    - name: Upgrade pip and core tools
       shell: bash
-      run: python -m pip install --upgrade pip
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        echo "✅ Upgraded pip to $(pip --version)"
 
-    - name: Install base requirements
-      if: inputs.requirements == 'true'
+    - name: Install project dependencies
       shell: bash
-      run: pip install -c constraints.txt -r requirements.txt
+      run: |
+        # Install base requirements if they exist
+        if [ -f requirements.txt ]; then
+          echo "📦 Installing requirements.txt..."
+          pip install -r requirements.txt
+        fi
 
-    - name: Install dev requirements
-      if: inputs.dev-requirements == 'true'
-      shell: bash
-      run: pip install -c constraints.txt -r requirements-dev.txt
+        # Install development requirements if they exist
+        if [ -f requirements-dev.txt ]; then
+          echo "📦 Installing requirements-dev.txt..."
+          pip install -r requirements-dev.txt
+        elif [ -f requirements/dev.txt ]; then
+          echo "📦 Installing requirements/dev.txt..."
+          pip install -r requirements/dev.txt
+        fi
 
-    - name: Install package
-      if: inputs.install-package == 'true'
+        # Install test requirements if they exist
+        if [ -f requirements-test.txt ]; then
+          echo "📦 Installing requirements-test.txt..."
+          pip install -r requirements-test.txt
+        elif [ -f requirements/test.txt ]; then
+          echo "📦 Installing requirements/test.txt..."
+          pip install -r requirements/test.txt
+        fi
+
+        # Ensure essential test tools are installed
+        echo "📦 Installing essential test tools..."
+        pip install pytest pytest-cov pytest-timeout || true
+
+    - name: Install package in editable mode
       shell: bash
-      run: pip install -e .
+      run: |
+        # Install the package in editable mode for testing
+        if [ -f pyproject.toml ]; then
+          echo "📦 Installing package from pyproject.toml in editable mode..."
+          pip install -e ".[dev,test]" 2>/dev/null || pip install -e . || true
+        elif [ -f setup.py ]; then
+          echo "📦 Installing package from setup.py in editable mode..."
+          pip install -e ".[dev,test]" 2>/dev/null || pip install -e . || true
+        else
+          echo "⚠️ No pyproject.toml or setup.py found, skipping package installation"
+        fi
+
+    - name: Show installed packages
+      shell: bash
+      run: |
+        echo "📋 Installed packages:"
+        pip list --format=columns

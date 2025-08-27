@@ -1,8 +1,6 @@
 """Tests for the profiling module."""
 
-import time
 import unittest
-from unittest.mock import Mock, patch
 
 from versiontracker.profiling import (
     FunctionTimingInfo,

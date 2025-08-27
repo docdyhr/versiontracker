@@ -1,8 +1,6 @@
 """Tests for enhanced fuzzy matching functionality."""
 
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import patch
 
 from versiontracker.enhanced_matching import (
     EnhancedMatcher,

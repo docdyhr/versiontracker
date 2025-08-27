@@ -50,12 +50,14 @@ Testing Strategy:
 from __future__ import annotations
 
 import asyncio
-import concurrent.futures
 import logging
 import os
 import time
+from collections.abc import Callable, Coroutine, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+)
 
 # Fail-safe imports: these modules are expected to exist in the project.
 # They are imported lazily in methods where possible to reduce import-time cost
@@ -95,8 +97,8 @@ class CaskResult:
     """
 
     name: str
-    data: Optional[Dict[str, Any]]
-    error: Optional[Exception]
+    data: dict[str, Any] | None
+    error: Exception | None
     elapsed: float
 
 
@@ -120,7 +122,7 @@ class AsyncHomebrewClient:
         self,
         enabled: bool,
         max_concurrency: int = DEFAULT_CONCURRENCY,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         """Initialize the async Homebrew client."""
         if max_concurrency < 1:
@@ -166,7 +168,7 @@ class AsyncHomebrewClient:
     # --------------------------------------------------------------------- #
     # Public async API methods
     # --------------------------------------------------------------------- #
-    async def get_cask_info(self, cask: str, timeout: float = DEFAULT_TIMEOUT) -> Optional[Dict[str, Any]]:
+    async def get_cask_info(self, cask: str, timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any] | None:
         """Get information about a single Homebrew cask.
 
         Delegates to the synchronous `homebrew.get_homebrew_cask_info` function.
@@ -204,9 +206,9 @@ class AsyncHomebrewClient:
     async def get_casks_info(
         self,
         casks: Sequence[str],
-        concurrency: Optional[int] = None,
+        concurrency: int | None = None,
         timeout: float = DEFAULT_TIMEOUT,
-    ) -> Dict[str, CaskResult]:
+    ) -> dict[str, CaskResult]:
         """Fetch multiple cask infos in parallel.
 
         Args:
@@ -222,7 +224,7 @@ class AsyncHomebrewClient:
             raise ValueError("concurrency must be >= 1")
 
         semaphore = asyncio.Semaphore(limit)
-        results: Dict[str, CaskResult] = {}
+        results: dict[str, CaskResult] = {}
 
         async def worker(name: str) -> None:
             async with semaphore:
@@ -236,7 +238,7 @@ class AsyncHomebrewClient:
         await asyncio.gather(*(worker(c) for c in casks))
         return results
 
-    async def search_casks(self, term: str) -> List[str]:
+    async def search_casks(self, term: str) -> list[str]:
         """Search for casks matching a term using underlying sync logic.
 
         Args:
@@ -261,7 +263,7 @@ class AsyncHomebrewClient:
             self._logger.error("Search failed for term %s: %s", term, exc)
             return []
 
-    async def warm_cache(self, casks: Sequence[str], concurrency: Optional[int] = None) -> Dict[str, bool]:
+    async def warm_cache(self, casks: Sequence[str], concurrency: int | None = None) -> dict[str, bool]:
         """Prime underlying cache layers by pre-fetching info for specified casks.
 
         Args:
@@ -277,7 +279,7 @@ class AsyncHomebrewClient:
     # --------------------------------------------------------------------- #
     # Convenience synchronous-style wrappers
     # --------------------------------------------------------------------- #
-    def run(self, coro: "Coroutine[Any, Any, Any]") -> Any:
+    def run(self, coro: Coroutine[Any, Any, Any]) -> Any:
         """Run a coroutine, creating a loop if needed.
 
         If an event loop is already running, the coroutine is scheduled
@@ -302,7 +304,7 @@ class AsyncHomebrewClient:
     # --------------------------------------------------------------------- #
     # Future extension hooks
     # --------------------------------------------------------------------- #
-    def with_concurrency(self, max_concurrency: int) -> "AsyncHomebrewClient":
+    def with_concurrency(self, max_concurrency: int) -> AsyncHomebrewClient:
         """Return a shallow clone with a different concurrency limit."""
         return AsyncHomebrewClient(
             enabled=self._enabled,
@@ -314,7 +316,7 @@ class AsyncHomebrewClient:
 # ------------------------------------------------------------------------- #
 # Module-level helpers
 # ------------------------------------------------------------------------- #
-def is_async_brew_enabled(env: Optional[Dict[str, str]] = None) -> bool:
+def is_async_brew_enabled(env: dict[str, str] | None = None) -> bool:
     """Check whether the async prototype feature is enabled.
 
     Args:
@@ -330,7 +332,7 @@ def is_async_brew_enabled(env: Optional[Dict[str, str]] = None) -> bool:
 
 def get_async_client(
     max_concurrency: int = DEFAULT_CONCURRENCY,
-    force: Optional[bool] = None,
+    force: bool | None = None,
 ) -> AsyncHomebrewClient:
     """Factory for the async Homebrew client.
 
@@ -348,7 +350,7 @@ def get_async_client(
 # ------------------------------------------------------------------------- #
 # Convenience top-level async functions (thin wrappers)
 # ------------------------------------------------------------------------- #
-async def async_get_cask_info(cask: str) -> Optional[Dict[str, Any]]:
+async def async_get_cask_info(cask: str) -> dict[str, Any] | None:
     """Convenience function to get a single cask's info asynchronously."""
     client = get_async_client()
     return await client.get_cask_info(cask)
@@ -356,14 +358,14 @@ async def async_get_cask_info(cask: str) -> Optional[Dict[str, Any]]:
 
 async def async_get_casks_info(
     casks: Sequence[str],
-    concurrency: Optional[int] = None,
-) -> Dict[str, CaskResult]:
+    concurrency: int | None = None,
+) -> dict[str, CaskResult]:
     """Convenience function to fetch multiple casks' info asynchronously."""
     client = get_async_client()
     return await client.get_casks_info(casks, concurrency=concurrency)
 
 
-async def async_search_casks(term: str) -> List[str]:
+async def async_search_casks(term: str) -> list[str]:
     """Convenience function to search casks asynchronously."""
     client = get_async_client()
     return await client.search_casks(term)

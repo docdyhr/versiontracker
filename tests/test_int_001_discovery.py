@@ -18,7 +18,7 @@ Future Suites (INT-002+):
 from __future__ import annotations
 
 import types
-from typing import Any, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -33,7 +33,7 @@ def test_int_001_discovery_basic(monkeypatch, capsys):
     from versiontracker.handlers import app_handlers
 
     # Stub applications list
-    apps: List[Tuple[str, str]] = [
+    apps: list[tuple[str, str]] = [
         ("AppOne", "1.0"),
         ("AppTwo", "2.3"),
         ("AppThree", "0.9.1"),
@@ -84,7 +84,7 @@ def test_int_001_discovery_blocklist_filters(monkeypatch, capsys):
     """INT-001.2: Blocklist (preferred terminology) filters applications."""
     from versiontracker.handlers import app_handlers
 
-    apps: List[Tuple[str, str]] = [
+    apps: list[tuple[str, str]] = [
         ("AppOne", "1.0"),
         ("AppTwo", "2.3"),
         ("AppThree", "0.9.1"),
@@ -103,7 +103,7 @@ def test_int_001_discovery_blocklist_filters(monkeypatch, capsys):
     # Patch Config with a minimal stub implementing set() and is_blocklisted().
     class StubConfig:
         def __init__(self) -> None:
-            self._entries: List[str] = []
+            self._entries: list[str] = []
 
         def set(self, key: str, value: Any) -> None:  # noqa: D401
             if key == "blacklist":
@@ -151,7 +151,7 @@ def test_int_001_discovery_legacy_blacklist(monkeypatch, capsys):
     """INT-001.3: Legacy blacklist option continues to function (backward compatibility)."""
     from versiontracker.handlers import app_handlers
 
-    apps: List[Tuple[str, str]] = [
+    apps: list[tuple[str, str]] = [
         ("AlphaApp", "1.0"),
         ("BetaApp", "2.0"),
     ]

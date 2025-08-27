@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 # Internal imports (imported after optional libraries are set up below)
 # These will be imported conditionally after the fuzzy library setup
@@ -63,7 +63,7 @@ if not USE_RAPIDFUZZ and not USE_FUZZYWUZZY:
         """Minimal implementation of fuzzy process matching."""
 
         @staticmethod
-        def extractOne(query: str, choices: List[str]) -> Optional[Tuple[str, int]]:
+        def extractOne(query: str, choices: list[str]) -> tuple[str, int] | None:
             """Extract the best match from choices."""
             if not choices:
                 return None
@@ -117,18 +117,18 @@ class ApplicationInfo:
 
     name: str
     version_string: str
-    bundle_id: Optional[str] = None
-    path: Optional[str] = None
-    homebrew_name: Optional[str] = None
-    latest_version: Optional[str] = None
-    latest_parsed: Optional[Tuple[int, ...]] = None
+    bundle_id: str | None = None
+    path: str | None = None
+    homebrew_name: str | None = None
+    latest_version: str | None = None
+    latest_parsed: tuple[int, ...] | None = None
     status: VersionStatus = VersionStatus.UNKNOWN
-    error_message: Optional[str] = None
-    outdated_by: Optional[Tuple[int, ...]] = None
-    newer_by: Optional[Tuple[int, ...]] = None
+    error_message: str | None = None
+    outdated_by: tuple[int, ...] | None = None
+    newer_by: tuple[int, ...] | None = None
 
     @property
-    def parsed(self) -> Optional[Tuple[int, ...]]:
+    def parsed(self) -> tuple[int, ...] | None:
         """Get the parsed version tuple."""
         if not self.version_string or not self.version_string.strip():
             return None
@@ -168,7 +168,7 @@ def _clean_version_string(version_str: str) -> str:
     return cleaned
 
 
-def _extract_build_metadata(cleaned: str) -> Tuple[Optional[int], str]:
+def _extract_build_metadata(cleaned: str) -> tuple[int | None, str]:
     """Extract build metadata from version string."""
     build_metadata = None
 
@@ -198,7 +198,7 @@ def _extract_build_metadata(cleaned: str) -> Tuple[Optional[int], str]:
     return build_metadata, cleaned
 
 
-def _handle_special_beta_format(version_str: str) -> Optional[Tuple[int, ...]]:
+def _handle_special_beta_format(version_str: str) -> tuple[int, ...] | None:
     """Handle special format like '1.2.3.beta4'."""
     special_beta_format = re.search(r"\d+\.\d+\.\d+\.[a-zA-Z]+\d+", version_str)
     if special_beta_format:
@@ -209,7 +209,7 @@ def _handle_special_beta_format(version_str: str) -> Optional[Tuple[int, ...]]:
     return None
 
 
-def _extract_prerelease_info(cleaned: str, version_str: str) -> Tuple[bool, Optional[int], bool, str]:
+def _extract_prerelease_info(cleaned: str, version_str: str) -> tuple[bool, int | None, bool, str]:
     """Extract prerelease information from version string."""
     has_prerelease = False
     prerelease_num = None
@@ -248,7 +248,7 @@ def _extract_prerelease_info(cleaned: str, version_str: str) -> Tuple[bool, Opti
     return has_prerelease, prerelease_num, has_text_suffix, cleaned
 
 
-def _parse_numeric_parts(cleaned: str) -> List[int]:
+def _parse_numeric_parts(cleaned: str) -> list[int]:
     """Parse numeric parts from cleaned version string."""
     cleaned = re.sub(r"[-_/]", ".", cleaned)
     all_numbers = re.findall(r"\d+", cleaned)
@@ -267,13 +267,13 @@ def _parse_numeric_parts(cleaned: str) -> List[int]:
 
 
 def _build_final_version_tuple(
-    parts: List[int],
+    parts: list[int],
     has_prerelease: bool,
-    prerelease_num: Optional[int],
+    prerelease_num: int | None,
     has_text_suffix: bool,
-    build_metadata: Optional[int],
+    build_metadata: int | None,
     version_str: str,
-) -> Tuple[int, ...]:
+) -> tuple[int, ...]:
     """Build the final version tuple based on all extracted information."""
     if not parts:
         return (0, 0, 0)
@@ -295,18 +295,18 @@ def _build_final_version_tuple(
     return _normalize_to_three_components(parts)
 
 
-def _is_multi_component_version(parts: List[int], has_prerelease: bool, build_metadata: Optional[int]) -> bool:
+def _is_multi_component_version(parts: list[int], has_prerelease: bool, build_metadata: int | None) -> bool:
     """Check if this is a 4+ component version without special suffixes."""
     return len(parts) >= 4 and not has_prerelease and build_metadata is None
 
 
-def _build_with_metadata(parts: List[int], build_metadata: int) -> Tuple[int, ...]:
+def _build_with_metadata(parts: list[int], build_metadata: int) -> tuple[int, ...]:
     """Build version tuple with build metadata."""
     padded_parts = _normalize_to_three_components(parts)
     return padded_parts[:3] + (build_metadata,)
 
 
-def _is_mixed_format(version_str: str, parts: List[int]) -> bool:
+def _is_mixed_format(version_str: str, parts: list[int]) -> bool:
     """Check if version uses mixed format like '1.beta.0'."""
     original_str = version_str.lower()
     has_keywords = any(k in original_str for k in ["beta", "alpha", "rc"])
@@ -314,17 +314,17 @@ def _is_mixed_format(version_str: str, parts: List[int]) -> bool:
     return has_keywords and len(parts) >= 2 and has_pattern is not None
 
 
-def _handle_mixed_format(parts: List[int]) -> Tuple[int, ...]:
+def _handle_mixed_format(parts: list[int]) -> tuple[int, ...]:
     """Handle mixed format versions."""
     return (parts[0], 0, parts[-1])
 
 
 def _build_prerelease_tuple(
-    parts: List[int],
-    prerelease_num: Optional[int],
+    parts: list[int],
+    prerelease_num: int | None,
     has_text_suffix: bool,
     version_str: str,
-) -> Tuple[int, ...]:
+) -> tuple[int, ...]:
     """Build version tuple for prerelease versions."""
     padded_parts = _normalize_to_three_components(parts)
 
@@ -342,7 +342,7 @@ def _build_prerelease_tuple(
         return padded_parts[:3]
 
 
-def _normalize_to_three_components(parts: List[int]) -> Tuple[int, ...]:
+def _normalize_to_three_components(parts: list[int]) -> tuple[int, ...]:
     """Ensure version has at least 3 components."""
     result = parts.copy()
     while len(result) < 3:
@@ -350,7 +350,7 @@ def _normalize_to_three_components(parts: List[int]) -> Tuple[int, ...]:
     return tuple(result)
 
 
-def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
+def parse_version(version_string: str | None) -> tuple[int, ...] | None:
     """Parse a version string into a tuple of integers for comparison.
 
     Args:
@@ -406,9 +406,9 @@ def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
 
 
 def _handle_none_and_empty_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Handle None and empty version cases.
 
     Returns:
@@ -438,7 +438,7 @@ def _handle_none_and_empty_versions(
     return None
 
 
-def _is_version_malformed(version: Union[str, Tuple[int, ...], None]) -> bool:
+def _is_version_malformed(version: str | tuple[int, ...] | None) -> bool:
     """Check if a version is malformed (no digits found)."""
     if isinstance(version, tuple):
         return False
@@ -451,9 +451,9 @@ def _is_version_malformed(version: Union[str, Tuple[int, ...], None]) -> bool:
 
 
 def _handle_malformed_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Handle malformed version comparisons.
 
     Returns:
@@ -486,9 +486,9 @@ def _has_application_build_pattern(version_str: str) -> bool:
 def _handle_semver_build_metadata(
     v1_str: str,
     v2_str: str,
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Handle semantic versioning build metadata (+build.X)."""
     v1_has_semver_build = isinstance(version1, str) and "+" in version1
     v2_has_semver_build = isinstance(version2, str) and "+" in version2
@@ -510,9 +510,9 @@ def _handle_semver_build_metadata(
 def _compare_application_builds(
     v1_str: str,
     v2_str: str,
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Compare versions with application-specific build patterns."""
     # Check if both versions have application build patterns
     if not _both_have_app_builds(version1, version2):
@@ -536,8 +536,8 @@ def _compare_application_builds(
 
 
 def _both_have_app_builds(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
 ) -> bool:
     """Check if both versions have application build patterns."""
     v1_has = isinstance(version1, str) and _has_application_build_pattern(version1)
@@ -545,7 +545,7 @@ def _both_have_app_builds(
     return v1_has and v2_has
 
 
-def _parse_or_default(version: Union[str, Tuple[int, ...], None]) -> Tuple[int, ...]:
+def _parse_or_default(version: str | tuple[int, ...] | None) -> tuple[int, ...]:
     """Parse version string or return default tuple."""
     if isinstance(version, str):
         parsed = parse_version(version)
@@ -553,7 +553,7 @@ def _parse_or_default(version: Union[str, Tuple[int, ...], None]) -> Tuple[int, 
     return (0, 0, 0)
 
 
-def _compare_base_versions(v1_tuple: Tuple[int, ...], v2_tuple: Tuple[int, ...]) -> int:
+def _compare_base_versions(v1_tuple: tuple[int, ...], v2_tuple: tuple[int, ...]) -> int:
     """Compare base version tuples (first 3 components)."""
     v1_base = v1_tuple[:3] if len(v1_tuple) >= 3 else v1_tuple + (0,) * (3 - len(v1_tuple))
     v2_base = v2_tuple[:3] if len(v2_tuple) >= 3 else v2_tuple + (0,) * (3 - len(v2_tuple))
@@ -565,7 +565,7 @@ def _compare_base_versions(v1_tuple: Tuple[int, ...], v2_tuple: Tuple[int, ...])
     return 0
 
 
-def _compare_build_numbers(v1_build: Optional[int], v2_build: Optional[int]) -> int:
+def _compare_build_numbers(v1_build: int | None, v2_build: int | None) -> int:
     """Compare build numbers, handling None values."""
     if v1_build is not None and v2_build is not None:
         if v1_build < v2_build:
@@ -592,7 +592,7 @@ def _normalize_app_version_string(v_str: str) -> str:
     return cleaned.strip()
 
 
-def _handle_application_prefixes(v1_str: str, v2_str: str) -> Optional[int]:
+def _handle_application_prefixes(v1_str: str, v2_str: str) -> int | None:
     """Handle versions with application name prefixes."""
     # Only apply app name prefix logic if the versions actually contain application names
     has_app_name_v1 = bool(
@@ -626,9 +626,9 @@ def _handle_application_prefixes(v1_str: str, v2_str: str) -> Optional[int]:
 
 
 def _convert_to_version_tuples(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     """Convert versions to tuples for comparison."""
     # Convert to tuples if needed
     if isinstance(version1, str):
@@ -649,8 +649,8 @@ def _convert_to_version_tuples(
 
 
 def _compare_base_and_prerelease_versions(
-    v1_tuple: Tuple[int, ...],
-    v2_tuple: Tuple[int, ...],
+    v1_tuple: tuple[int, ...],
+    v2_tuple: tuple[int, ...],
     v1_str: str,
     v2_str: str,
 ) -> int:
@@ -698,8 +698,8 @@ def _compare_base_and_prerelease_versions(
 
 
 def compare_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
 ) -> int:
     """Compare two version strings or tuples.
 
@@ -749,7 +749,7 @@ def compare_versions(
     return _compare_base_and_prerelease_versions(v1_tuple, v2_tuple, v1_str, v2_str)
 
 
-def _extract_build_number(version_str: str) -> Optional[int]:
+def _extract_build_number(version_str: str) -> int | None:
     """Extract build number from version string with application-specific patterns."""
     # Look for patterns like "build 1234", "(1234)", "-dev-1234"
     patterns = [
@@ -780,7 +780,7 @@ def _is_prerelease(version_str: str) -> bool:
     )
 
 
-def _compare_prerelease(version1: Union[str, Tuple[int, ...]], version2: Union[str, Tuple[int, ...]]) -> int:
+def _compare_prerelease(version1: str | tuple[int, ...], version2: str | tuple[int, ...]) -> int:
     """Compare two pre-release versions."""
     v1_str = str(version1) if not isinstance(version1, str) else version1
     v2_str = str(version2) if not isinstance(version2, str) else version2
@@ -804,13 +804,13 @@ def _compare_prerelease(version1: Union[str, Tuple[int, ...]], version2: Union[s
         return _compare_prerelease_suffixes(v1_suffix, v2_suffix)
 
 
-def _get_unicode_priority(suffix: Union[int, str, None]) -> Optional[int]:
+def _get_unicode_priority(suffix: int | str | None) -> int | None:
     """Get priority value for Unicode Greek letters."""
     unicode_priority = {"α": 1, "β": 2, "γ": 3, "δ": 4}
     return unicode_priority.get(str(suffix)) if suffix is not None else None
 
 
-def _compare_unicode_suffixes(suffix1: Union[int, str, None], suffix2: Union[int, str, None]) -> Optional[int]:
+def _compare_unicode_suffixes(suffix1: int | str | None, suffix2: int | str | None) -> int | None:
     """Compare Unicode Greek letter suffixes. Returns None if not applicable."""
     p1 = _get_unicode_priority(suffix1)
     p2 = _get_unicode_priority(suffix2)
@@ -828,7 +828,7 @@ def _compare_unicode_suffixes(suffix1: Union[int, str, None], suffix2: Union[int
     return None  # Neither is Unicode
 
 
-def _compare_none_suffixes(suffix1: Union[int, str, None], suffix2: Union[int, str, None]) -> Optional[int]:
+def _compare_none_suffixes(suffix1: int | str | None, suffix2: int | str | None) -> int | None:
     """Compare None values. Returns None if not applicable."""
     if suffix1 is None and suffix2 is not None:
         return -1
@@ -857,7 +857,7 @@ def _compare_string_suffixes(suffix1: str, suffix2: str) -> int:
             return -1 if suffix1 < suffix2 else (1 if suffix1 > suffix2 else 0)
 
 
-def _compare_prerelease_suffixes(suffix1: Union[int, str, None], suffix2: Union[int, str, None]) -> int:
+def _compare_prerelease_suffixes(suffix1: int | str | None, suffix2: int | str | None) -> int:
     """Compare pre-release suffixes (numbers, strings, or None)."""
     # Handle Unicode Greek letters
     unicode_result = _compare_unicode_suffixes(suffix1, suffix2)
@@ -886,9 +886,39 @@ def _compare_prerelease_suffixes(suffix1: Union[int, str, None], suffix2: Union[
     return 0
 
 
+def _normalize_unicode_prerelease_type(prerelease_type: str) -> str:
+    """Normalize Unicode prerelease types to English equivalents."""
+    unicode_mapping = {"α": "alpha", "β": "beta"}
+    return unicode_mapping.get(prerelease_type, prerelease_type)
+
+
+def _parse_prerelease_suffix(suffix: str | None) -> int | str | None:
+    """Parse prerelease suffix, converting to int if possible."""
+    if not suffix:
+        return None
+
+    try:
+        return int(suffix)
+    except ValueError:
+        return suffix
+
+
+def _extract_standalone_unicode_prerelease(version_str: str) -> tuple[str, str] | None:
+    """Extract standalone Unicode prerelease characters."""
+    unicode_match = re.search(r"[-.](?P<unicode>[αβγδ])", version_str)
+    if not unicode_match:
+        return None
+
+    unicode_char = unicode_match.group("unicode")
+    unicode_to_type = {"α": "alpha", "β": "beta", "γ": "gamma", "δ": "delta"}
+
+    prerelease_type = unicode_to_type.get(unicode_char, "beta")
+    return prerelease_type, unicode_char
+
+
 def _extract_prerelease_type_and_suffix(
     version_str: str,
-) -> Tuple[str, Union[int, str, None]]:
+) -> tuple[str, int | str | None]:
     """Extract pre-release type and number/suffix from version string."""
     # Look for alpha, beta, rc, final with optional number or suffix, including Unicode
     match = re.search(
@@ -896,38 +926,16 @@ def _extract_prerelease_type_and_suffix(
         version_str,
         re.IGNORECASE,
     )
+
     if match:
-        prerelease_type = match.group("type").lower()
-
-        # Map Unicode characters to English equivalents
-        if prerelease_type == "α":
-            prerelease_type = "alpha"
-        elif prerelease_type == "β":
-            prerelease_type = "beta"
-
-        suffix = match.group("suffix")
-        if suffix:
-            # Try to convert to int, otherwise keep as string
-            try:
-                return prerelease_type, int(suffix)
-            except ValueError:
-                return prerelease_type, suffix
-        else:
-            # No suffix means it's the base pre-release (None to distinguish from 0)
-            return prerelease_type, None
+        prerelease_type = _normalize_unicode_prerelease_type(match.group("type").lower())
+        suffix = _parse_prerelease_suffix(match.group("suffix"))
+        return prerelease_type, suffix
 
     # Check for standalone Unicode characters (1.0.0-α)
-    unicode_match = re.search(r"[-.](?P<unicode>[αβγδ])", version_str)
-    if unicode_match:
-        unicode_char = unicode_match.group("unicode")
-        if unicode_char == "α":
-            return "alpha", unicode_char
-        elif unicode_char == "β":
-            return "beta", unicode_char
-        elif unicode_char == "γ":
-            return "gamma", unicode_char
-        elif unicode_char == "δ":
-            return "delta", unicode_char
+    unicode_result = _extract_standalone_unicode_prerelease(version_str)
+    if unicode_result:
+        return unicode_result
 
     return "beta", None  # default
 
@@ -946,7 +954,7 @@ def is_version_newer(current: str, latest: str) -> bool:
 
 
 @lru_cache(maxsize=128)
-def get_homebrew_cask_info(app_name: str, use_enhanced: bool = True) -> Optional[Dict[str, str]]:
+def get_homebrew_cask_info(app_name: str, use_enhanced: bool = True) -> dict[str, str] | None:
     """Get Homebrew cask information for an application.
 
     Args:
@@ -993,18 +1001,9 @@ def get_homebrew_cask_info(app_name: str, use_enhanced: bool = True) -> Optional
         return None
 
 
-def _search_homebrew_casks(app_name: str, use_enhanced: bool = True) -> Optional[Dict[str, str]]:
-    """Search for Homebrew casks using fuzzy matching.
-
-    Args:
-        app_name: Name of the application to search for
-        use_enhanced: Whether to use enhanced matching (default: True)
-
-    Returns:
-        Dictionary with cask information or None if not found
-    """
+def _get_homebrew_casks_list() -> list[str] | None:
+    """Get list of all available Homebrew casks."""
     try:
-        # Get list of all casks
         # brew is a known system command, using list args is safe (enhanced search)
         result = subprocess.run(  # nosec B603 B607
             ["brew", "search", "--cask"],
@@ -1020,40 +1019,75 @@ def _search_homebrew_casks(app_name: str, use_enhanced: bool = True) -> Optional
         casks = result.stdout.strip().split("\n")
         casks = [cask.strip() for cask in casks if cask.strip()]
 
+        return casks if casks else None
+
+    except subprocess.TimeoutExpired:
+        logger.warning("Timeout while fetching Homebrew casks list")
+        raise VTTimeoutError("Homebrew search timed out") from None
+    except (OSError, subprocess.SubprocessError) as e:
+        logger.error("Error fetching Homebrew casks list: %s", e)
+        return None
+
+
+def _try_enhanced_cask_matching(app_name: str, casks: list[str]) -> str | None:
+    """Try enhanced matching for cask search."""
+    try:
+        from versiontracker.enhanced_matching import find_best_enhanced_match
+
+        match_result = find_best_enhanced_match(app_name, casks, threshold=70)
+        if match_result:
+            return match_result[0]
+    except ImportError:
+        logger.debug("Enhanced matching not available, falling back to basic matching")
+
+    return None
+
+
+def _basic_fuzzy_cask_matching(app_name: str, casks: list[str]) -> str | None:
+    """Perform basic fuzzy matching for cask search."""
+    normalized_app_name = normalise_name(app_name)
+    best_match: str | None = None
+    best_score = 0
+
+    for cask in casks:
+        normalized_cask = normalise_name(cask)
+
+        # Calculate similarity score
+        if fuzz:
+            score = fuzz.ratio(normalized_app_name, normalized_cask)
+            if score > best_score and score > 70:  # Minimum threshold
+                best_score = score
+                best_match = cask
+
+    return best_match
+
+
+def _search_homebrew_casks(app_name: str, use_enhanced: bool = True) -> dict[str, str] | None:
+    """Search for Homebrew casks using fuzzy matching.
+
+    Args:
+        app_name: Name of the application to search for
+        use_enhanced: Whether to use enhanced matching (default: True)
+
+    Returns:
+        Dictionary with cask information or None if not found
+    """
+    try:
+        casks = _get_homebrew_casks_list()
         if not casks:
             return None
 
-        # Use enhanced matching if available and enabled
+        # Try enhanced matching first if enabled
+        best_match = None
         if use_enhanced:
-            try:
-                from versiontracker.enhanced_matching import find_best_enhanced_match
+            best_match = _try_enhanced_cask_matching(app_name, casks)
 
-                match_result = find_best_enhanced_match(app_name, casks, threshold=70)
-                if match_result:
-                    best_match = match_result[0]
-                    # Get detailed info for the best match
-                    return get_homebrew_cask_info(best_match)
-            except ImportError:
-                logger.debug("Enhanced matching not available, falling back to basic matching")
+        # Fallback to basic fuzzy matching if enhanced didn't work
+        if not best_match:
+            best_match = _basic_fuzzy_cask_matching(app_name, casks)
 
-        # Fallback to basic fuzzy matching
-        normalized_app_name = normalise_name(app_name)
-        fallback_best_match: Optional[str] = None
-        best_score = 0
-
-        for cask in casks:
-            normalized_cask = normalise_name(cask)
-
-            # Calculate similarity score
-            if fuzz:
-                score = fuzz.ratio(normalized_app_name, normalized_cask)
-                if score > best_score and score > 70:  # Minimum threshold
-                    best_score = score
-                    fallback_best_match = cask
-
-        if fallback_best_match:
-            # Get detailed info for the best match
-            return get_homebrew_cask_info(fallback_best_match)
+        if best_match:
+            return get_homebrew_cask_info(best_match)
 
         return None
 
@@ -1065,7 +1099,7 @@ def _search_homebrew_casks(app_name: str, use_enhanced: bool = True) -> Optional
         return None
 
 
-def _get_config_settings() -> Tuple[bool, int]:
+def _get_config_settings() -> tuple[bool, int]:
     """Get configuration settings for version checking.
 
     Returns:
@@ -1086,7 +1120,7 @@ def _get_config_settings() -> Tuple[bool, int]:
         return True, min(4, multiprocessing.cpu_count())
 
 
-def _process_single_app(app_info: Tuple[str, str], use_enhanced_matching: bool = True) -> ApplicationInfo:
+def _process_single_app(app_info: tuple[str, str], use_enhanced_matching: bool = True) -> ApplicationInfo:
     """Process a single application to check its version status.
 
     Args:
@@ -1148,7 +1182,7 @@ def _process_single_app(app_info: Tuple[str, str], use_enhanced_matching: bool =
         )
 
 
-def _process_app_batch(apps: List[Tuple[str, str]], use_enhanced_matching: bool = True) -> List[ApplicationInfo]:
+def _process_app_batch(apps: list[tuple[str, str]], use_enhanced_matching: bool = True) -> list[ApplicationInfo]:
     """Process a batch of applications.
 
     Args:
@@ -1161,7 +1195,7 @@ def _process_app_batch(apps: List[Tuple[str, str]], use_enhanced_matching: bool 
     return [_process_single_app(app, use_enhanced_matching) for app in apps]
 
 
-def _create_app_batches(apps: List[Tuple[str, str]], batch_size: int) -> List[List[Tuple[str, str]]]:
+def _create_app_batches(apps: list[tuple[str, str]], batch_size: int) -> list[list[tuple[str, str]]]:
     """Create batches of applications for parallel processing.
 
     Args:
@@ -1174,7 +1208,7 @@ def _create_app_batches(apps: List[Tuple[str, str]], batch_size: int) -> List[Li
     return [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]
 
 
-def _handle_batch_result(future, results: List[ApplicationInfo], error_count: int, max_errors: int):
+def _handle_batch_result(future, results: list[ApplicationInfo], error_count: int, max_errors: int):
     """Handle the result of a batch processing future.
 
     Args:
@@ -1202,10 +1236,10 @@ def _handle_batch_result(future, results: List[ApplicationInfo], error_count: in
 
 
 def check_outdated_apps(
-    apps: List[Tuple[str, str]],
+    apps: list[tuple[str, str]],
     batch_size: int = 50,
     use_enhanced_matching: bool = True,
-) -> List[Tuple[str, Dict[str, str], VersionStatus]]:
+) -> list[tuple[str, dict[str, str], VersionStatus]]:
     """Check which applications are outdated compared to their Homebrew versions.
 
     Args:
@@ -1230,7 +1264,7 @@ def check_outdated_apps(
     # Create batches for parallel processing
     batches = _create_app_batches(apps, batch_size)
 
-    results: List[ApplicationInfo] = []
+    results: list[ApplicationInfo] = []
     error_count = 0
     max_errors = 3
 
@@ -1271,7 +1305,7 @@ def check_outdated_apps(
     ]
 
 
-def similarity_score(s1: Optional[str], s2: Optional[str]) -> int:
+def similarity_score(s1: str | None, s2: str | None) -> int:
     """Calculate similarity score between two strings.
 
     This function provides a similarity score between 0-100 for two strings,
@@ -1305,7 +1339,7 @@ def similarity_score(s1: Optional[str], s2: Optional[str]) -> int:
     return 100 if s1.lower() == s2.lower() else (70 if s1.lower() in s2.lower() or s2.lower() in s1.lower() else 0)
 
 
-def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
+def partial_ratio(s1: str, s2: str, score_cutoff: int | None = None) -> int:
     """Calculate partial ratio between two strings.
 
     Provides compatibility between rapidfuzz and fuzzywuzzy, with fallbacks.
@@ -1370,9 +1404,9 @@ class _EarlyReturn:
 
 
 def _handle_empty_and_malformed_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Union[Tuple[int, ...], _EarlyReturn, None]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[int, ...] | _EarlyReturn | None:
     """Handle empty and malformed version cases.
 
     Returns _EarlyReturn() if should return None, None if should continue processing.
@@ -1405,9 +1439,9 @@ def _handle_empty_and_malformed_versions(
 
 
 def _convert_versions_to_tuples(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     """Convert versions to tuples for comparison."""
     if isinstance(version1, str):
         v1_tuple = parse_version(version1)
@@ -1431,9 +1465,9 @@ def _convert_versions_to_tuples(
 
 
 def _check_version_metadata(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Tuple[bool, bool]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[bool, bool]:
     """Check if versions have build metadata or prerelease patterns."""
     v1_has_build_metadata = isinstance(version1, str) and (
         "+build." in version1 or bool(re.search(r"\+.*\d+", version1))
@@ -1452,12 +1486,12 @@ def _check_version_metadata(
 
 
 def _apply_version_truncation(
-    v1_padded: Tuple[int, ...],
-    v2_padded: Tuple[int, ...],
+    v1_padded: tuple[int, ...],
+    v2_padded: tuple[int, ...],
     max_len: int,
     both_have_build_metadata: bool,
     both_have_prerelease: bool,
-) -> Tuple[Tuple[int, ...], Tuple[int, ...], int]:
+) -> tuple[tuple[int, ...], tuple[int, ...], int]:
     """Apply truncation rules for build metadata and prerelease versions."""
     # If both versions have build metadata, compare only first 3 components
     if both_have_build_metadata:
@@ -1474,9 +1508,9 @@ def _apply_version_truncation(
 
 
 def get_version_difference(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[Tuple[int, ...]]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[int, ...] | None:
     """Get the signed difference between two versions (v1 - v2).
 
     Args:
@@ -1515,7 +1549,7 @@ def get_version_difference(
     return differences
 
 
-def get_version_info(current_version: Optional[str], latest_version: Optional[str] = None) -> ApplicationInfo:
+def get_version_info(current_version: str | None, latest_version: str | None = None) -> ApplicationInfo:
     """Get information about version(s) and comparison.
 
     Args:
@@ -1580,7 +1614,7 @@ def _perform_version_comparison(
     return app_info
 
 
-def _handle_empty_version_cases(current_version: str, latest_version: str) -> Optional[VersionStatus]:
+def _handle_empty_version_cases(current_version: str, latest_version: str) -> VersionStatus | None:
     """Handle cases where one or both versions are empty strings.
 
     Args:
@@ -1625,7 +1659,7 @@ def _set_version_comparison_status(app_info: ApplicationInfo, current_version: s
             app_info.newer_by = tuple(abs(x) for x in diff)
 
 
-def check_latest_version(app_name: str) -> Optional[str]:
+def check_latest_version(app_name: str) -> str | None:
     """Check the latest version available for an application.
 
     Args:
@@ -1640,7 +1674,7 @@ def check_latest_version(app_name: str) -> Optional[str]:
     return None
 
 
-def find_matching_cask(app_name: str, threshold: int = 70, use_enhanced: bool = True) -> Optional[str]:
+def find_matching_cask(app_name: str, threshold: int = 70, use_enhanced: bool = True) -> str | None:
     """Find a matching Homebrew cask for an application.
 
     Args:
@@ -1684,7 +1718,7 @@ def find_matching_cask(app_name: str, threshold: int = 70, use_enhanced: bool = 
 
         # Fallback to basic fuzzy matching
         normalized_app_name = normalise_name(app_name)
-        fallback_best_match: Optional[str] = None
+        fallback_best_match: str | None = None
         best_score = 0
 
         for cask in casks:
@@ -1705,7 +1739,7 @@ def find_matching_cask(app_name: str, threshold: int = 70, use_enhanced: bool = 
 
 
 # Additional internal functions that tests might expect
-def _parse_version_components(version_string: str) -> Dict[str, int]:
+def _parse_version_components(version_string: str) -> dict[str, int]:
     """Parse version string into components dictionary.
 
     Args:
@@ -1727,7 +1761,7 @@ def _parse_version_components(version_string: str) -> Dict[str, int]:
 
 def _parse_version_to_dict(
     version_string: str,
-) -> Dict[str, Union[str, int, Tuple[int, ...], None]]:
+) -> dict[str, str | int | tuple[int, ...] | None]:
     """Parse version string to dictionary format.
 
     Args:
@@ -1759,7 +1793,7 @@ def _parse_version_to_dict(
     }
 
 
-def _dict_to_tuple(version_dict: Optional[Dict[str, int]]) -> Optional[Tuple[int, ...]]:
+def _dict_to_tuple(version_dict: dict[str, int] | None) -> tuple[int, ...] | None:
     """Convert version dictionary to tuple.
 
     Args:
@@ -1779,7 +1813,7 @@ def _dict_to_tuple(version_dict: Optional[Dict[str, int]]) -> Optional[Tuple[int
     )
 
 
-def _tuple_to_dict(version_tuple: Optional[Tuple[int, ...]]) -> Dict[str, int]:
+def _tuple_to_dict(version_tuple: tuple[int, ...] | None) -> dict[str, int]:
     """Convert version tuple to dictionary.
 
     Args:
@@ -1821,7 +1855,7 @@ def compare_fuzzy(version1: str, version2: str, threshold: int = 80) -> float:
     return 100.0 if version1.lower() == version2.lower() else 0.0
 
 
-def compose_version_tuple(*components: int) -> Tuple[int, ...]:
+def compose_version_tuple(*components: int) -> tuple[int, ...]:
     """Compose a version tuple from individual components.
 
     Args:
@@ -1833,7 +1867,7 @@ def compose_version_tuple(*components: int) -> Tuple[int, ...]:
     return tuple(components)
 
 
-def decompose_version(version_string: Optional[str]) -> Optional[Dict[str, int]]:
+def decompose_version(version_string: str | None) -> dict[str, int] | None:
     """Decompose a version string into components.
 
     Args:
@@ -1866,7 +1900,7 @@ def decompose_version(version_string: Optional[str]) -> Optional[Dict[str, int]]
     }
 
 
-def get_compiled_pattern(pattern: str) -> Optional[re.Pattern]:
+def get_compiled_pattern(pattern: str) -> re.Pattern | None:
     """Get a compiled regex pattern from a pattern string.
 
     Args:

@@ -1,7 +1,5 @@
 """Additional tests for the apps module to improve coverage."""
 
-import importlib.util
-import os
 import unittest
 from unittest.mock import MagicMock, patch
 

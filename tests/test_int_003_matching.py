@@ -38,7 +38,7 @@ Markers:
 from __future__ import annotations
 
 import types
-from typing import Any, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -50,7 +50,7 @@ class DummyProgressBar:
         return lambda s: s
 
 
-def _build_base_apps() -> List[Tuple[str, str]]:
+def _build_base_apps() -> list[tuple[str, str]]:
     """Return a deterministic minimal application list."""
     return [
         ("AlphaApp", "1.0"),
@@ -72,7 +72,7 @@ def test_int_003_matching_enhanced_enabled(monkeypatch, capsys):
     monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
 
     # Track internal calls
-    call_log: List[Any] = []
+    call_log: list[Any] = []
 
     # Simulated filter_out_brews simply returns all apps as candidates
     def mock_filter_out_brews(app_list, casks_list, strict_flag):
@@ -145,7 +145,7 @@ def test_int_003_matching_enhanced_disabled(monkeypatch, capsys):
     monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
     monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
 
-    call_log: List[Any] = []
+    call_log: list[Any] = []
 
     def mock_filter_out_brews(app_list, casks_list, strict_flag):
         call_log.append(("filter_out_brews", strict_flag, len(app_list)))

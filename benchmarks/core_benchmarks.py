@@ -6,24 +6,25 @@ to establish baseline performance metrics and identify optimization opportunitie
 """
 
 import json
-import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
 
 # Add the parent directory to the path to import VersionTracker modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from benchmarks import benchmark, benchmark_context, clear_benchmarks, print_benchmark_summary
+from benchmarks import (
+    benchmark,
+    benchmark_context,
+    clear_benchmarks,
+    print_benchmark_summary,
+)
 from versiontracker.app_finder import (
     check_brew_install_candidates,
     get_applications,
-    get_homebrew_casks_list,
     is_brew_cask_installable,
 )
 from versiontracker.config import get_config
-from versiontracker.utils import run_command
 from versiontracker.version import compare_versions, parse_version
 
 # Mock data for consistent benchmarking

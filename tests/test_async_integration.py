@@ -10,12 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.mock_aiohttp_session import create_mock_session_factory, mock_aiohttp_session
 from versiontracker.async_homebrew import (
-    HomebrewBatchProcessor,
-    async_check_brew_install_candidates,
-    async_check_brew_update_candidates,
-    async_get_cask_version,
     fetch_cask_info,
     search_casks,
 )

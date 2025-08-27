@@ -384,7 +384,6 @@ class TestApps(unittest.TestCase):
 
     def test_homebrew_casks_cache_clearing_api(self):
         """Test that the cache clearing API works correctly."""
-        from versiontracker.app_finder import clear_homebrew_casks_cache, get_homebrew_casks
 
         # Verify cache clearing function exists and is callable
         self.assertTrue(callable(clear_homebrew_casks_cache))

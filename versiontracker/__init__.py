@@ -1,48 +1,47 @@
-"""VersionTracker - CLI versiontracker and update tool for macOS.
+"""VersionTracker - Application version management for macOS.
 
-This package provides tools to track and manage application versions on macOS,
-with a focus on applications installed outside of the App Store. It helps
-identify which applications can be managed via Homebrew, checks for outdated
-applications, and provides recommendations for better application management.
-
-Key features:
-- List applications in /Applications/ not updated by the App Store
-- List all currently installed Homebrew casks
-- Recommend which applications could be managed through Homebrew
-- Check for outdated applications by comparing with latest Homebrew versions
-- Export results in machine-readable formats (JSON and CSV)
-
-This package is designed for macOS users who want to keep their applications
-up to date and well-managed, especially those who use a mix of App Store and
-non-App Store applications.
-
-Main components:
-- apps.py: Core functionality for application discovery and version checking
-- cli.py: Command-line interface parsing and handling
-- config.py: Configuration management and validation
-- handlers/: Command handler implementations
-- ui.py: User interface components including progress bars and colored output
-
-For detailed usage instructions, see the README.md or run:
-    versiontracker --help
-
-Note: This module uses lazy loading via __getattr__ to avoid importing heavy
-submodules until they are actually needed. All exports listed in __all__ are
-available but loaded on-demand.
+A command-line tool for tracking and managing applications installed
+outside of the Mac App Store, with Homebrew cask integration.
 """
 
 from typing import Any
 
-__version__ = "0.8.0"
+__version__ = "0.1.0-alpha.1"
 
-# Explicitly define what should be imported with "from versiontracker import *"
-# Note: Items marked with lazy loading are imported on-demand via __getattr__
-# The following items are available through lazy loading but trigger false positive warnings
+from versiontracker.config import Config, get_config
+from versiontracker.exceptions import (
+    ApplicationError,
+    CacheError,
+    ConfigError,
+    HandlerError,
+    HomebrewError,
+    NetworkError,
+    TimeoutError,
+    VersionError,
+    VersionTrackerError,
+)
+from versiontracker.version import (
+    compare_versions,
+    is_version_newer,
+    parse_version,
+)
+
 __all__ = [
     "__version__",
-    "get_applications",  # type: ignore[attr-defined]  # Lazy loaded from .apps
-    "get_homebrew_casks",  # type: ignore[attr-defined]  # Lazy loaded from .apps
-    "Config",  # type: ignore[attr-defined]  # Lazy loaded from .config
+    "Config",
+    "get_config",
+    "VersionTrackerError",
+    "ConfigError",
+    "VersionError",
+    "NetworkError",
+    "TimeoutError",
+    "HomebrewError",
+    "ApplicationError",
+    "CacheError",
+    "HandlerError",
+    "parse_version",
+    "compare_versions",
+    "is_version_newer",
     "get_config",  # type: ignore[attr-defined]  # Lazy loaded from .config
     "VersionTrackerError",  # type: ignore[attr-defined]  # Lazy loaded from .exceptions
 ]

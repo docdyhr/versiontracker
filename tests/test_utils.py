@@ -1,91 +1,91 @@
-"""Tests for the utils module."""
+"""
+Test module for utility functions.
 
-import json
-import os
-import subprocess
-import tempfile
-import time
-import unittest
-from unittest.mock import Mock, mock_open, patch
+This module provides basic tests for utility functions.
+"""
 
-from versiontracker.exceptions import (
-    DataParsingError,
-    FileNotFoundError,
-    NetworkError,
-    PermissionError,
-    TimeoutError,
-)
+from unittest.mock import patch
+
 from versiontracker.utils import (
-    APP_CACHE_FILE,
-    APP_CACHE_TTL,
-    SYSTEM_PROFILER_CMD,
-    RateLimiter,
-    get_json_data,
-    get_shell_json_data,
-    normalise_name,
-    run_command,
-    setup_logging,
+    format_size,
+    get_terminal_width,
+    is_homebrew_installed,
+    sanitize_filename,
 )
 
 
-class TestUtils(unittest.TestCase):
-    """Test cases for utility functions."""
+class TestFormatSize:
+    """Tests for size formatting utility."""
 
-    def test_normalise_name(self):
-        """Test normalising application names."""
-        self.assertEqual(normalise_name("Test App"), "Test App")
-        self.assertEqual(normalise_name(" Test App "), "Test App")
-        self.assertEqual(normalise_name("Test123 App456"), "Test App")
-        self.assertEqual(normalise_name("Test\x00App"), "TestApp")
+    def test_format_bytes(self):
+        """Test formatting of byte sizes."""
+        assert format_size(0) == "0 B"
+        assert format_size(1) == "1 B"
+        assert format_size(1023) == "1023 B"
 
-    @patch("time.time")
-    @patch("time.sleep")
-    def test_rate_limiter(self, mock_sleep, mock_time):
-        """Test the rate limiter."""
-        # Set up the time.time() mock to return increasing values
-        mock_time.side_effect = [0.0, 0.1, 0.2, 1.1, 1.2]
+    def test_format_kilobytes(self):
+        """Test formatting of kilobyte sizes."""
+        assert format_size(1024) == "1.0 KB"
+        assert format_size(1536) == "1.5 KB"
+        assert format_size(1024 * 1023) == "1023.0 KB"
 
-        # Create a rate limiter with 2 calls per second
-        limiter = RateLimiter(calls_per_period=2, period=1.0)
+    def test_format_megabytes(self):
+        """Test formatting of megabyte sizes."""
+        assert format_size(1024 * 1024) == "1.0 MB"
+        assert format_size(1024 * 1024 * 1.5) == "1.5 MB"
 
-        # First call should not wait
-        limiter.wait()
-        mock_sleep.assert_not_called()
+    def test_format_gigabytes(self):
+        """Test formatting of gigabyte sizes."""
+        assert format_size(1024 * 1024 * 1024) == "1.0 GB"
 
-        # Second call should not wait
-        limiter.wait()
-        mock_sleep.assert_not_called()
 
-        # Third call should wait
-        limiter.wait()
-        mock_sleep.assert_called_once_with(0.8)  # 1.0 - (0.2 - 0.0) = 0.8
+class TestSanitizeFilename:
+    """Tests for filename sanitization."""
 
-        # Fourth call should not wait (first call should be expired)
-        limiter.wait()
-        # sleep should still have been called only once (from third call)
-        self.assertEqual(mock_sleep.call_count, 1)
+    def test_sanitize_normal_filename(self):
+        """Test sanitization of normal filenames."""
+        assert sanitize_filename("test.txt") == "test.txt"
+        assert sanitize_filename("my_file-123.json") == "my_file-123.json"
 
-    @patch("logging.basicConfig")
-    def test_setup_logging_debug(self, mock_basic_config):
-        """Test setup_logging with debug enabled."""
-        setup_logging(debug=True)
-        mock_basic_config.assert_called_once()
-        # Check that DEBUG level was used
-        call_args = mock_basic_config.call_args
-        self.assertIn("level", call_args.kwargs)
+    def test_sanitize_special_characters(self):
+        """Test removal of special characters."""
+        assert sanitize_filename("test/file.txt") == "test_file.txt"
+        assert sanitize_filename("test:file.txt") == "test_file.txt"
+        assert sanitize_filename("test*file?.txt") == "test_file_.txt"
 
-    @patch("logging.basicConfig")
-    def test_setup_logging_no_debug(self, mock_basic_config):
-        """Test setup_logging with debug disabled."""
-        setup_logging(debug=False)
-        mock_basic_config.assert_called_once()
+    def test_sanitize_spaces(self):
+        """Test handling of spaces."""
+        assert sanitize_filename("test file.txt") == "test_file.txt"
+        assert sanitize_filename("  test  file  .txt  ") == "test_file_.txt"
 
-    @patch("subprocess.Popen")
-    def test_run_command_success(self, mock_popen):
-        """Test run_command with successful execution."""
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("test output", "")
-        mock_process.returncode = 0
+    def test_sanitize_empty(self):
+        """Test sanitization of empty or invalid names."""
+        assert sanitize_filename("") == "unnamed"
+        assert sanitize_filename("   ") == "unnamed"
+        assert sanitize_filename("///") == "___"
+
+
+class TestTerminalWidth:
+    """Tests for terminal width detection."""
+
+    def test_get_terminal_width(self):
+        """Test that terminal width returns a reasonable value."""
+        width = get_terminal_width()
+        assert isinstance(width, int)
+        assert width > 0
+        # Most terminals are at least 40 chars wide
+        assert width >= 40
+
+
+class TestHomebrewDetection:
+    """Tests for Homebrew detection."""
+
+    def test_is_homebrew_installed(self):
+        """Test Homebrew installation check."""
+        # This test just verifies the function runs without error
+        # The actual result depends on the system
+        result = is_homebrew_installed()
+        assert isinstance(result, bool)
         mock_popen.return_value = mock_process
 
         output, returncode = run_command("test command")

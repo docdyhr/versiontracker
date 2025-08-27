@@ -10,7 +10,8 @@ Returns:
     None: This module doesn't return anything directly.
 """
 
-from typing import Any, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 from versiontracker.ui import create_progress_bar
 
@@ -53,7 +54,7 @@ def get_status_icon(status: str) -> str:
         return ""
 
 
-def get_status_color(status: str) -> Callable[[str], Union[str, Any]]:
+def get_status_color(status: str) -> Callable[[str], str | Any]:
     """Get a color function for the given version status.
 
     Returns a function that applies the appropriate color to text based on

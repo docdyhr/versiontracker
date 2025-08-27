@@ -15,7 +15,7 @@ import logging
 import sys
 import time
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, TypedDict
+from typing import Any, TypedDict
 
 from versiontracker.app_finder import (
     check_brew_install_candidates,
@@ -34,8 +34,8 @@ from versiontracker.utils import get_json_data
 class BrewOptions(TypedDict, total=False):
     """Type definition for brew command options."""
 
-    export_format: Optional[str]
-    output_file: Optional[str]
+    export_format: str | None
+    output_file: str | None
     debug: bool
 
 
@@ -125,19 +125,19 @@ class RecommendOptions(TypedDict, total=False):
     strict_recommend: bool
     strict_recom: bool
     debug: bool
-    rate_limit: Optional[int]
-    export_format: Optional[str]
-    output_file: Optional[str]
+    rate_limit: int | None
+    export_format: str | None
+    output_file: str | None
 
 
 def _setup_options_compatibility(options: Any) -> bool:
     """Set up backward compatibility attributes for options."""
     # Set attribute for backward compatibility with tests
     if not hasattr(options, "recommend"):
-        setattr(options, "recommend", True)
+        options.recommend = True
 
     if hasattr(options, "strict_recommend"):
-        setattr(options, "strict_recom", options.strict_recommend)
+        options.strict_recom = options.strict_recommend
 
     return _determine_strict_mode(options)
 
@@ -159,7 +159,7 @@ def _determine_strict_mode(options: Any) -> bool:
     return False
 
 
-def _get_application_data() -> List[Tuple[str, str]]:
+def _get_application_data() -> list[tuple[str, str]]:
     """Get and filter application data."""
     print(create_progress_bar().color("green")("Getting application data..."))
     raw_data = get_json_data(
@@ -172,14 +172,14 @@ def _get_application_data() -> List[Tuple[str, str]]:
     apps_folder = get_applications(raw_data)
 
     # Apply blacklist filtering
-    filtered_apps: List[Tuple[str, str]] = [
+    filtered_apps: list[tuple[str, str]] = [
         (item[0], item[1]) for item in apps_folder if not get_config().is_blacklisted(item[0])
     ]
 
     return filtered_apps
 
 
-def _get_homebrew_casks() -> List[str]:
+def _get_homebrew_casks() -> list[str]:
     """Get installed Homebrew casks with error handling."""
     print(create_progress_bar().color("green")("Getting installed Homebrew casks..."))
 
@@ -198,9 +198,9 @@ def _get_homebrew_casks() -> List[str]:
 
 def _log_debug_info(
     options: Any,
-    filtered_apps: List[Tuple[str, str]],
-    apps_homebrew: List[str],
-    search_list: List[Tuple[str, str]],
+    filtered_apps: list[tuple[str, str]],
+    apps_homebrew: list[str],
+    search_list: list[tuple[str, str]],
 ) -> None:
     """Log debug information if requested."""
     if not options.debug:
@@ -234,7 +234,7 @@ def _get_rate_limit(options: Any) -> int:
     return rate_limit_int
 
 
-def _search_brew_candidates(search_list: List[Tuple[str, str]], rate_limit_int: int, strict_mode: bool) -> List[str]:
+def _search_brew_candidates(search_list: list[tuple[str, str]], rate_limit_int: int, strict_mode: bool) -> list[str]:
     """Search for Homebrew installation candidates."""
     print(
         create_progress_bar().color("green")(
@@ -263,8 +263,8 @@ def _search_brew_candidates(search_list: List[Tuple[str, str]], rate_limit_int: 
 
 
 def _display_results(
-    search_list: List[Tuple[str, str]],
-    installables: List[str],
+    search_list: list[tuple[str, str]],
+    installables: list[str],
     elapsed_time: float,
     options: Any,
 ) -> None:
@@ -303,12 +303,12 @@ def _display_results(
             print(create_progress_bar().color("yellow")("No applications found that can be installed with Homebrew."))
 
 
-def _handle_export_output(installables: List[str], options: Any) -> None:
+def _handle_export_output(installables: list[str], options: Any) -> None:
     """Handle export output if requested."""
     if not options.export_format:
         return
 
-    export_data_dict: Dict[str, Any] = {
+    export_data_dict: dict[str, Any] = {
         "installable_with_homebrew": installables,
         "total_installable": len(installables),
     }
@@ -352,7 +352,7 @@ def handle_brew_recommendations(options: Any) -> int:
 
         # Get installable candidates
         # Search for brew candidates
-        search_list: List[Tuple[str, str]] = filter_out_brews(filtered_apps, apps_homebrew, strict_mode)
+        search_list: list[tuple[str, str]] = filter_out_brews(filtered_apps, apps_homebrew, strict_mode)
 
         # Log debug information
         _log_debug_info(options, filtered_apps, apps_homebrew, search_list)

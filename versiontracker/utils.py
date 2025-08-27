@@ -1,4 +1,8 @@
-"""Utility functions for VersionTracker."""
+"""
+Utility functions for VersionTracker.
+
+This module provides common utility functions used throughout the application.
+"""
 
 import functools
 import json
@@ -12,7 +16,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, NoReturn, Optional, Tuple, cast
+from typing import Any, NoReturn, cast
 
 from versiontracker import __version__
 from versiontracker.exceptions import (
@@ -118,7 +122,7 @@ def _ensure_cache_dir() -> None:
         # Continue without caching if directory creation fails
 
 
-def _read_cache_file() -> Dict[str, Any]:
+def _read_cache_file() -> dict[str, Any]:
     """Read the application data cache file.
 
     Returns:
@@ -126,12 +130,12 @@ def _read_cache_file() -> Dict[str, Any]:
     """
     try:
         if os.path.exists(APP_CACHE_FILE):
-            with open(APP_CACHE_FILE, "r") as f:
+            with open(APP_CACHE_FILE) as f:
                 cache_data = json.load(f)
 
             # Check if cache has timestamp and is still valid
             if "timestamp" in cache_data and time.time() - cache_data["timestamp"] <= APP_CACHE_TTL:
-                return cast(Dict[str, Any], cache_data)
+                return cast(dict[str, Any], cache_data)
 
             logging.info("Cache expired, will refresh application data")
     except Exception as e:
@@ -140,7 +144,7 @@ def _read_cache_file() -> Dict[str, Any]:
     return {}
 
 
-def _write_cache_file(data: Dict[str, Any]) -> None:
+def _write_cache_file(data: dict[str, Any]) -> None:
     """Write data to the application cache file.
 
     Args:
@@ -161,17 +165,17 @@ def _write_cache_file(data: Dict[str, Any]) -> None:
 
 
 @functools.lru_cache(maxsize=4)
-def _check_system_profiler_cache(command: str) -> Optional[Dict[str, Any]]:
+def _check_system_profiler_cache(command: str) -> dict[str, Any] | None:
     """Check if system_profiler data is cached and return it if valid."""
     if SYSTEM_PROFILER_CMD in command:
         cache = _read_cache_file()
         if cache and "data" in cache:
             logging.info("Using cached application data")
-            return cast(Dict[str, Any], cache["data"])
+            return cast(dict[str, Any], cache["data"])
     return None
 
 
-def _parse_json_output(stdout: str, command: str) -> Dict[str, Any]:
+def _parse_json_output(stdout: str, command: str) -> dict[str, Any]:
     """Parse JSON output from command stdout."""
     if not stdout:
         raise DataParsingError(f"Command '{command}' produced no output")
@@ -207,7 +211,7 @@ def _handle_unexpected_error(e: Exception, command: str) -> NoReturn:
     raise DataParsingError(f"Error processing command output: {e}") from e
 
 
-def get_json_data(command: str) -> Dict[str, Any]:
+def get_json_data(command: str) -> dict[str, Any]:
     """Execute a command and return the JSON output, with caching.
 
     Executes the given command, parses its JSON output, and optionally
@@ -262,7 +266,7 @@ def get_json_data(command: str) -> Dict[str, Any]:
         _handle_unexpected_error(e, command)
 
 
-def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
+def get_shell_json_data(cmd: str, timeout: int = 30) -> dict[str, Any]:
     """Run a shell command and parse the output as JSON.
 
     Args:
@@ -287,7 +291,7 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
         # Parse JSON data
         try:
             data = json.loads(output)
-            return cast(Dict[str, Any], data)
+            return cast(dict[str, Any], data)
         except json.JSONDecodeError as e:
             logging.error(f"Invalid JSON data: {e}")
             raise DataParsingError(f"Invalid JSON data: {e}")
@@ -305,7 +309,7 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> Dict[str, Any]:
         raise DataParsingError(f"Failed to get JSON data: {e}") from e
 
 
-def run_command_secure(command_parts: List[str], timeout: Optional[int] = None) -> Tuple[str, int]:
+def run_command_secure(command_parts: list[str], timeout: int | None = None) -> tuple[str, int]:
     """Run a command securely without shell=True.
 
     This function executes commands without using shell=True, which eliminates
@@ -391,7 +395,7 @@ def run_command_secure(command_parts: List[str], timeout: Optional[int] = None) 
         raise Exception(f"Error executing command {' '.join(command_parts)}: {e}") from e
 
 
-def shell_command_to_args(cmd: str) -> List[str]:
+def shell_command_to_args(cmd: str) -> list[str]:
     """Convert a shell command string to a secure argument list.
 
     This function uses shlex.split() to properly parse shell commands into
@@ -416,7 +420,7 @@ def shell_command_to_args(cmd: str) -> List[str]:
         return cmd.split()
 
 
-def _execute_subprocess(cmd_list: List[str], timeout: Optional[int]) -> subprocess.Popen:
+def _execute_subprocess(cmd_list: list[str], timeout: int | None) -> subprocess.Popen:
     """Execute subprocess and return the process object."""
     # Using Popen with shell=False and list args is secure
     return subprocess.Popen(  # nosec B603
@@ -451,7 +455,7 @@ def _classify_command_error(stderr: str, cmd: str) -> None:
         raise NetworkError(f"Network error: {stderr}")
 
 
-def _handle_process_output(stdout: str, stderr: str, return_code: int, cmd: str) -> Tuple[str, int]:
+def _handle_process_output(stdout: str, stderr: str, return_code: int, cmd: str) -> tuple[str, int]:
     """Handle process output and return appropriate result."""
     if return_code != 0:
         if _is_expected_homebrew_failure(stderr):
@@ -472,7 +476,7 @@ def _handle_process_output(stdout: str, stderr: str, return_code: int, cmd: str)
     return stdout, return_code
 
 
-def _handle_timeout_error(process: Optional[subprocess.Popen], timeout: Optional[int], cmd: str) -> NoReturn:
+def _handle_timeout_error(process: subprocess.Popen | None, timeout: int | None, cmd: str) -> NoReturn:
     """Handle timeout errors and cleanup process."""
     if process:
         try:
@@ -500,7 +504,7 @@ def _handle_network_error_check(e: Exception, cmd: str) -> None:
         raise NetworkError(f"Network error running command: {cmd}") from e
 
 
-def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
+def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
     """Run a command and return the output.
 
     ⚠️  SECURITY WARNING: This function uses shell=True which can be vulnerable
@@ -558,7 +562,7 @@ def run_command(cmd: str, timeout: Optional[int] = None) -> Tuple[str, int]:
         raise Exception(f"Error executing command '{cmd}': {e}") from e
 
 
-def run_command_original(command: str, timeout: int = 30) -> List[str]:
+def run_command_original(command: str, timeout: int = 30) -> list[str]:
     """Execute a command and return the output as a list of lines.
 
     ⚠️  SECURITY WARNING: This function uses shell=True which can be vulnerable
@@ -652,7 +656,7 @@ class RateLimiter:
         """
         self.calls_per_period = calls_per_period
         self.period = period
-        self.timestamps: List[float] = []
+        self.timestamps: list[float] = []
         self._lock = threading.Lock()
 
     def wait(self) -> None:
@@ -682,3 +686,176 @@ class RateLimiter:
 
             # Record the timestamp for this call
             self.timestamps.append(current_time)
+
+
+def format_size(size_bytes: float) -> str:
+    """
+    Format a byte size into a human-readable string.
+
+    Args:
+        size_bytes: Size in bytes.
+
+    Returns:
+        Formatted size string (e.g., "1.5 MB").
+    """
+    if size_bytes == 0:
+        return "0 B"
+
+    units = ["B", "KB", "MB", "GB", "TB"]
+    unit_index = 0
+    size = float(size_bytes)
+
+    while size >= 1024 and unit_index < len(units) - 1:
+        size /= 1024
+        unit_index += 1
+
+    if unit_index == 0:
+        return f"{int(size)} {units[unit_index]}"
+    else:
+        return f"{size:.1f} {units[unit_index]}"
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize a filename to be safe for filesystem use.
+
+    Args:
+        filename: The filename to sanitize.
+
+    Returns:
+        Sanitized filename safe for filesystem use.
+    """
+    if not filename:
+        return "unnamed"
+
+    # Remove or replace invalid characters
+    filename = re.sub(r'[<>:"/\\|?*]', "_", filename)
+
+    # Replace spaces with underscores
+    filename = filename.replace(" ", "_")
+
+    # Remove multiple underscores
+    filename = re.sub(r"_+", "_", filename)
+
+    # Strip leading/trailing whitespace and underscores
+    filename = filename.strip("_. ")
+
+    return filename if filename else "unnamed"
+
+
+def get_terminal_width() -> int:
+    """
+    Get the terminal width in characters.
+
+    Returns:
+        Terminal width in characters, defaults to 80 if cannot be determined.
+    """
+    try:
+        return shutil.get_terminal_size().columns
+    except Exception:
+        return 80
+
+
+def is_homebrew_installed() -> bool:
+    """
+    Check if Homebrew is installed on the system.
+
+    Returns:
+        True if Homebrew is installed, False otherwise.
+    """
+    brew_paths = [
+        "/usr/local/bin/brew",  # Intel Mac default
+        "/opt/homebrew/bin/brew",  # Apple Silicon Mac default
+        "/home/linuxbrew/.linuxbrew/bin/brew",  # Linux
+    ]
+
+    # Check common paths first
+    for brew_path in brew_paths:
+        if Path(brew_path).exists():
+            return True
+
+    # Fall back to checking PATH
+    try:
+        result = subprocess.run(["which", "brew"], capture_output=True, text=True, timeout=5)
+        return result.returncode == 0
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return False
+
+
+def get_homebrew_prefix() -> str | None:
+    """
+    Get the Homebrew installation prefix.
+
+    Returns:
+        The Homebrew prefix path, or None if not found.
+    """
+    if not is_homebrew_installed():
+        return None
+
+    try:
+        result = subprocess.run(["brew", "--prefix"], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (subprocess.SubprocessError, FileNotFoundError):
+        pass
+
+    # Fall back to common defaults
+    if Path("/opt/homebrew").exists():
+        return "/opt/homebrew"
+    elif Path("/usr/local").exists():
+        return "/usr/local"
+
+    return None
+
+
+def run_command(command: list[str], timeout: int | None = 30, check: bool = True) -> subprocess.CompletedProcess:
+    """
+    Run a shell command with timeout and error handling.
+
+    Args:
+        command: Command and arguments as a list.
+        timeout: Command timeout in seconds.
+        check: Whether to raise CalledProcessError on non-zero exit.
+
+    Returns:
+        CompletedProcess instance with the result.
+
+    Raises:
+        subprocess.TimeoutExpired: If the command times out.
+        subprocess.CalledProcessError: If check=True and command fails.
+    """
+    try:
+        return subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=check)
+    except subprocess.TimeoutExpired as e:
+        raise TimeoutError(f"Command timed out after {timeout}s: {' '.join(command)}") from e
+
+
+def ensure_directory(path: Path) -> None:
+    """
+    Ensure a directory exists, creating it if necessary.
+
+    Args:
+        path: Path to the directory.
+    """
+    path = Path(path)
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def human_readable_time(seconds: float) -> str:
+    """
+    Convert seconds to a human-readable time format.
+
+    Args:
+        seconds: Time in seconds.
+
+    Returns:
+        Human-readable time string.
+    """
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    elif seconds < 3600:
+        minutes = seconds / 60
+        return f"{minutes:.1f}m"
+    else:
+        hours = seconds / 3600
+        return f"{hours:.1f}h"

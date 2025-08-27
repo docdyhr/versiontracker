@@ -5,8 +5,7 @@ that have auto-updates enabled, with user feedback and confirmation.
 """
 
 import logging
-import sys
-from typing import Any, List, Tuple
+from typing import Any
 
 from versiontracker.app_finder import get_homebrew_casks
 from versiontracker.config import get_config

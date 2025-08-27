@@ -1,53 +1,62 @@
-"""Custom exceptions for VersionTracker.
+"""Custom exception hierarchy for VersionTracker.
 
-This module defines the exception hierarchy used by VersionTracker.
-All exceptions derive from VersionTrackerError, which is the base exception class.
-Specific error types are organized into categories based on the component they relate to.
+This module defines all custom exceptions used throughout the application,
+following the established error handling patterns.
 """
-
-from typing import Optional
 
 
 class VersionTrackerError(Exception):
-    """Base exception for all VersionTracker errors.
+    """Base exception for all VersionTracker errors."""
 
-    All custom exceptions in VersionTracker should inherit from this class.
-    This allows applications to catch all VersionTracker-specific errors with
-    a single except clause.
-    """
+    pass
 
-    def __init__(self, message: str = "", cause: Optional[Exception] = None) -> None:
-        """Initialize the exception.
 
-        Args:
-            message: Description of the error
-            cause: Optional underlying exception that caused this error
-        """
-        super().__init__(message)
-        self.cause = cause
+class ConfigError(VersionTrackerError):
+    """Raised when there's an error in configuration."""
+
+    pass
+
+
+class VersionError(VersionTrackerError):
+    """Raised when there's an error parsing or comparing versions."""
+
+    pass
 
 
 class NetworkError(VersionTrackerError):
-    """Network-related errors.
+    """Raised when network operations fail."""
 
-    This exception is raised when network operations fail, such as:
-    - Connection failures
-    - DNS resolution errors
-    - API request failures
-    """
+    pass
+
+
+class TimeoutError(VersionTrackerError):
+    """Raised when an operation times out."""
 
     pass
 
 
 class HomebrewError(VersionTrackerError):
-    """Homebrew-related errors.
+    """Raised when Homebrew operations fail."""
 
-    This exception is raised when operations involving Homebrew fail, such as:
-    - Homebrew command execution failures
-    - Homebrew not being installed or not found
-    - Issues with Homebrew packages or casks
-    """
+    pass
 
+
+class ApplicationError(VersionTrackerError):
+    """Raised when there's an error with application detection or processing."""
+
+    pass
+
+
+class CacheError(VersionTrackerError):
+    """Raised when cache operations fail."""
+
+    pass
+
+
+class HandlerError(VersionTrackerError):
+    """Raised when a command handler encounters an error."""
+
+    pass
     pass
 
 

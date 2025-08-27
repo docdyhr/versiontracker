@@ -25,7 +25,7 @@ on stable summary lines to remain resilient to cosmetic changes.
 from __future__ import annotations
 
 import types
-from typing import Any, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -43,7 +43,7 @@ def test_int_002_recommendation_basic(monkeypatch, capsys):
     from versiontracker.handlers import brew_handlers
 
     # Stub application + brew environment
-    apps: List[Tuple[str, str]] = [
+    apps: list[tuple[str, str]] = [
         ("AlphaApp", "1.0"),
         ("BetaApp", "2.1"),
         ("GammaApp", "3.0"),
@@ -55,7 +55,7 @@ def test_int_002_recommendation_basic(monkeypatch, capsys):
     monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
 
     # Track calls to validate strict flag propagation
-    calls: List[Any] = []
+    calls: list[Any] = []
 
     def mock_filter_out_brews(app_list, casks_list, strict_flag):
         # Record arguments for later assertions
@@ -125,7 +125,7 @@ def test_int_002_recommendation_strict(monkeypatch, capsys):
     from versiontracker.handlers import brew_handlers
 
     # Stub data (same as basic to isolate strict effect)
-    apps: List[Tuple[str, str]] = [
+    apps: list[tuple[str, str]] = [
         ("AlphaApp", "1.0"),
         ("BetaApp", "2.1"),
         ("GammaApp", "3.0"),
@@ -135,7 +135,7 @@ def test_int_002_recommendation_strict(monkeypatch, capsys):
     monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
     monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
 
-    calls: List[Any] = []
+    calls: list[Any] = []
 
     def mock_filter_out_brews(app_list, casks_list, strict_flag):
         calls.append(("filter_out_brews", strict_flag))

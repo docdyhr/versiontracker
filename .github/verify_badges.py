@@ -7,7 +7,6 @@ a comprehensive status report for CI/CD pipeline health.
 
 import sys
 import time
-from typing import Dict, List
 
 import requests
 
@@ -21,7 +20,7 @@ class BadgeVerifier:
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "VersionTracker-Badge-Verifier/1.0"})
 
-    def check_badge(self, name: str, url: str, expected_status: int = 200) -> Dict:
+    def check_badge(self, name: str, url: str, expected_status: int = 200) -> dict:
         """Check a single badge URL and return status information."""
         try:
             response = self.session.get(url, timeout=10)
@@ -65,7 +64,7 @@ class BadgeVerifier:
         self.results.append(result)
         return result
 
-    def verify_all_badges(self) -> List[Dict]:
+    def verify_all_badges(self) -> list[dict]:
         """Verify all badges defined in the project."""
         badges = [
             # GitHub Actions Badges (shields.io format)

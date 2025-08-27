@@ -51,17 +51,16 @@ import logging
 import os
 import threading
 from dataclasses import dataclass
-from typing import Dict, Optional, Set
 
 # Module-level logger
 LOGGER = logging.getLogger("versiontracker.deprecation")
 
 # Thread-safe registry to ensure single emission per key
 _registry_lock = threading.Lock()
-_emitted: Set[str] = set()
+_emitted: set[str] = set()
 
 # Cache of formatted messages for potential future retrieval (e.g., diagnostics)
-_message_cache: Dict[str, str] = {}
+_message_cache: dict[str, str] = {}
 
 # Truthy values for environment flag
 _TRUTHY = {"1", "true", "yes", "on"}
@@ -80,11 +79,11 @@ class DeprecationRecord:
 
     key: str
     message: str
-    replacement: Optional[str]
-    removal_version: Optional[str]
+    replacement: str | None
+    removal_version: str | None
 
 
-def _is_suppressed(env: Optional[dict] = None) -> bool:
+def _is_suppressed(env: dict | None = None) -> bool:
     """Determine if deprecation warnings are globally suppressed.
 
     Args:
@@ -100,8 +99,8 @@ def _is_suppressed(env: Optional[dict] = None) -> bool:
 
 def _format_flag_message(
     flag: str,
-    replacement: Optional[str],
-    removal_version: Optional[str],
+    replacement: str | None,
+    removal_version: str | None,
 ) -> str:
     """Format a standardized deprecation message.
 
@@ -123,8 +122,8 @@ def _format_flag_message(
 
 def warn_deprecated_flag(
     flag: str,
-    replacement: Optional[str] = None,
-    removal_version: Optional[str] = None,
+    replacement: str | None = None,
+    removal_version: str | None = None,
     emit_console_hint: bool = True,
 ) -> None:
     """Emit a deprecation warning for a CLI flag (only once per process).
@@ -192,7 +191,7 @@ def reset_deprecation_registry() -> None:
         _message_cache.clear()
 
 
-def get_emitted_deprecations() -> Dict[str, str]:
+def get_emitted_deprecations() -> dict[str, str]:
     """Retrieve a mapping of emitted deprecation keys to messages.
 
     Returns:

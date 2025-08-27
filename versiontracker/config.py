@@ -1,7 +1,8 @@
-"""Configuration management for VersionTracker.
+"""
+Configuration management for VersionTracker.
 
-This module handles configuration loading, validation and access for VersionTracker.
-Configuration can be sourced from YAML files, environment variables, or defaults.
+This module handles configuration loading from multiple sources including
+YAML files, environment variables, and command-line arguments.
 """
 
 import logging
@@ -9,215 +10,242 @@ import os
 import platform
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 import yaml
 
 from versiontracker.exceptions import ConfigError
-from versiontracker.utils import run_command
 
-logger = logging.getLogger(__name__)
+
+class Config:
+    """
+    Configuration manager for VersionTracker.
+
+    Handles loading configuration from files and environment variables
+    with proper priority ordering.
+    """
+
+    DEFAULT_CONFIG = {
+        "max_workers": 5,
+        "cache_dir": "~/.versiontracker/cache",
+        "cache_ttl": 3600,  # 1 hour in seconds
+        "timeout": 30,
+        "batch_size": 10,
+        "use_progress": True,
+        "use_color": True,
+        "homebrew_prefix": "/usr/local",
+        "rate_limit": 100,  # requests per minute
+        "log_level": "INFO",
+    }
+
+    def __init__(self, config_file: str | None = None) -> None:
+        """
+        Initialize configuration.
+
+        Args:
+            config_file: Optional path to YAML configuration file.
+        """
+        self._config: dict[str, Any] = self.DEFAULT_CONFIG.copy()
+
+        # Load from config file if provided
+        if config_file:
+            self._load_from_file(config_file)
+        else:
+            # Try default locations
+            self._load_default_config()
+
+        # Override with environment variables
+        self._load_from_env()
+
+        # Expand paths
+        self._expand_paths()
+
+    def _load_from_file(self, config_file: str) -> None:
+        """
+        Load configuration from a YAML file.
+
+        Args:
+            config_file: Path to the configuration file.
+
+        Raises:
+            ConfigError: If the file cannot be loaded or parsed.
+        """
+        try:
+            with open(config_file) as f:
+                file_config = yaml.safe_load(f) or {}
+                self._config.update(file_config)
+        except FileNotFoundError:
+            raise ConfigError(f"Configuration file not found: {config_file}")
+        except yaml.YAMLError as e:
+            raise ConfigError(f"Error parsing configuration file: {e}")
+
+    def _load_default_config(self) -> None:
+        """Load configuration from default locations."""
+        config_paths = [
+            Path.home() / ".versiontracker" / "config.yml",
+            Path.home() / ".config" / "versiontracker" / "config.yml",
+            Path("/etc/versiontracker/config.yml"),
+        ]
+
+        for path in config_paths:
+            if path.exists():
+                try:
+                    self._load_from_file(str(path))
+                    break
+                except ConfigError:
+                    continue
+
+    def _load_from_env(self) -> None:
+        """Load configuration from environment variables."""
+        env_mapping = {
+            "VERSIONTRACKER_MAX_WORKERS": ("max_workers", int),
+            "VERSIONTRACKER_CACHE_DIR": ("cache_dir", str),
+            "VERSIONTRACKER_CACHE_TTL": ("cache_ttl", int),
+            "VERSIONTRACKER_TIMEOUT": ("timeout", int),
+            "VERSIONTRACKER_BATCH_SIZE": ("batch_size", int),
+            "VERSIONTRACKER_USE_PROGRESS": ("use_progress", lambda x: x.lower() == "true"),
+            "VERSIONTRACKER_USE_COLOR": ("use_color", lambda x: x.lower() == "true"),
+            "VERSIONTRACKER_HOMEBREW_PREFIX": ("homebrew_prefix", str),
+            "VERSIONTRACKER_RATE_LIMIT": ("rate_limit", int),
+            "VERSIONTRACKER_LOG_LEVEL": ("log_level", str),
+        }
+
+        for env_var, (config_key, converter) in env_mapping.items():
+            value = os.environ.get(env_var)
+            if value is not None:
+                try:
+                    self._config[config_key] = converter(value)
+                except (ValueError, TypeError):
+                    # Skip invalid environment variables
+                    pass
+
+    def _expand_paths(self) -> None:
+        """Expand user home directory in paths."""
+        path_keys = ["cache_dir", "homebrew_prefix"]
+        for key in path_keys:
+            if key in self._config and isinstance(self._config[key], str):
+                self._config[key] = os.path.expanduser(self._config[key])
+
+    def __getattr__(self, name: str) -> Any:
+        """
+        Get configuration value by attribute access.
+
+        Args:
+            name: Configuration key name.
+
+        Returns:
+            The configuration value.
+
+        Raises:
+            AttributeError: If the configuration key doesn't exist.
+        """
+        if name in self._config:
+            return self._config[name]
+        raise AttributeError(f"Configuration key '{name}' not found")
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get configuration value with optional default.
+
+        Args:
+            key: Configuration key name.
+            default: Default value if key doesn't exist.
+
+        Returns:
+            The configuration value or default.
+        """
+        return self._config.get(key, default)
+
+    def set(self, key: str, value: Any) -> None:
+        """
+        Set a configuration value.
+
+        Args:
+            key: Configuration key name.
+            value: The value to set.
+        """
+        self._config[key] = value
+
+
+# Singleton instance
+_config: Config | None = None
+
+
+def get_config() -> Config:
+    """
+    Get the singleton configuration instance.
+
+    Returns:
+        The global configuration instance.
+    """
+    global _config
+    if _config is None:
+        _config = Config()
+    return _config
 
 
 class ConfigValidator:
-    """Validates configuration parameters against defined rules."""
+    """Configuration validation utilities."""
 
     @staticmethod
-    def validate_int_range(value: int, min_value: int, max_value: int) -> bool:
-        """Validate an integer is within the specified range.
-
-        Args:
-            value: The integer value to validate
-            min_value: The minimum allowed value (inclusive)
-            max_value: The maximum allowed value (inclusive)
-
-        Returns:
-            bool: True if the value is valid, False otherwise
-        """
-        return min_value <= value <= max_value
-
-    @staticmethod
-    def validate_float_range(value: float, min_value: float, max_value: float) -> bool:
-        """Validate a float is within the specified range.
-
-        Args:
-            value: The float value to validate
-            min_value: The minimum allowed value (inclusive)
-            max_value: The maximum allowed value (inclusive)
-
-        Returns:
-            bool: True if the value is valid, False otherwise
-        """
-        return min_value <= value <= max_value
-
-    @staticmethod
-    def validate_string_list(value: List[str]) -> bool:
-        """Validate a list contains only strings.
-
-        Args:
-            value: The list to validate
-
-        Returns:
-            bool: True if the list contains only strings, False otherwise
-        """
-        return all(isinstance(item, str) for item in value)
-
-    @staticmethod
-    def validate_path_list(value: List[str]) -> bool:
-        """Validate a list contains valid directory paths.
-
-        Args:
-            value: The list of directory paths to validate
-
-        Returns:
-            bool: True if all paths are valid directories, False otherwise
-        """
-        # Allow empty list
-        if not value:
-            return True
-
-        # Check all items are strings and exist as directories
-        if not ConfigValidator.validate_string_list(value):
+    def validate_percentage(value: Any) -> bool:
+        """Validate that value is a percentage (0-100)."""
+        try:
+            num_val = float(value)
+            return 0 <= num_val <= 100
+        except (ValueError, TypeError):
             return False
 
-        # Don't require directories to exist; just validate format
-        return True
+    @staticmethod
+    def validate_float_range(value: float, min_val: float, max_val: float) -> bool:
+        """Validate that value is within specified range."""
+        return min_val <= value <= max_val
 
     @staticmethod
-    def validate_positive_int(value: int) -> bool:
-        """Validate an integer is positive.
-
-        Args:
-            value: The integer value to validate
-
-        Returns:
-            bool: True if the value is positive, False otherwise
-        """
-        return isinstance(value, int) and value > 0
-
-    @staticmethod
-    def validate_non_negative_int(value: int) -> bool:
-        """Validate an integer is non-negative.
-
-        Args:
-            value: The integer value to validate
-
-        Returns:
-            bool: True if the value is non-negative, False otherwise
-        """
-        return isinstance(value, int) and value >= 0
-
-    @staticmethod
-    def validate_percentage(value: int) -> bool:
-        """Validate a value is a valid percentage (0-100).
-
-        Args:
-            value: The value to validate
-
-        Returns:
-            bool: True if the value is a valid percentage, False otherwise
-        """
-        return isinstance(value, (int, float)) and 0 <= value <= 100
-
-    @staticmethod
-    def _get_validation_rules():
-        """Get all validation rules organized by section."""
+    def _get_validation_rules() -> dict[str, Any]:
+        """Get validation rules for configuration parameters."""
         return {
             "top_level": {
-                "api_rate_limit": [
-                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                    (
-                        lambda v: ConfigValidator.validate_float_range(float(v), 0, 60),
-                        "Must be between 0 and 60 seconds",
-                    ),
-                ],
                 "max_workers": [
                     (lambda v: isinstance(v, int), "Must be an integer"),
-                    (
-                        lambda v: ConfigValidator.validate_int_range(v, 1, 100),
-                        "Must be between 1 and 100",
-                    ),
-                ],
-                "similarity_threshold": [
-                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                    (
-                        lambda v: ConfigValidator.validate_percentage(v),
-                        "Must be between 0 and 100",
-                    ),
-                ],
-                "additional_app_dirs": [
-                    (lambda v: isinstance(v, list), "Must be a list"),
-                    (
-                        lambda v: ConfigValidator.validate_path_list(v),
-                        "Must be a list of directory paths",
-                    ),
-                ],
-                "blacklist": [
-                    (lambda v: isinstance(v, list), "Must be a list"),
-                    (
-                        lambda v: ConfigValidator.validate_string_list(v),
-                        "Must be a list of application names",
-                    ),
-                ],
-                "log_level": [
-                    (lambda v: isinstance(v, int), "Must be an integer"),
-                    (
-                        lambda v: v
-                        in [
-                            logging.DEBUG,
-                            logging.INFO,
-                            logging.WARNING,
-                            logging.ERROR,
-                            logging.CRITICAL,
-                        ],
-                        "Must be a valid logging level",
-                    ),
-                ],
-                "show_progress": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-            },
-            "ui": {
-                "use_color": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-                "monitor_resources": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-                "adaptive_rate_limiting": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-                "enhanced_progress": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-            },
-            "version_comparison": {
-                "rate_limit": [
-                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                    (
-                        lambda v: ConfigValidator.validate_float_range(float(v), 0, 60),
-                        "Must be between 0 and 60 seconds",
-                    ),
+                    (lambda v: v > 0, "Must be greater than 0"),
                 ],
                 "cache_ttl": [
                     (lambda v: isinstance(v, (int, float)), "Must be a number"),
                     (lambda v: v > 0, "Must be greater than 0"),
                 ],
-                "similarity_threshold": [
+                "timeout": [
                     (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                    (
-                        lambda v: ConfigValidator.validate_percentage(v),
-                        "Must be between 0 and 100",
-                    ),
+                    (lambda v: v > 0, "Must be greater than 0"),
                 ],
+                "batch_size": [
+                    (lambda v: isinstance(v, int), "Must be an integer"),
+                    (lambda v: v > 0, "Must be greater than 0"),
+                ],
+                "rate_limit": [
+                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (lambda v: v > 0, "Must be greater than 0"),
+                ],
+            },
+            "ui": {
+                "use_progress": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+                "use_color": [(lambda v: isinstance(v, bool), "Must be a boolean")],
+            },
+            "version_comparison": {
                 "include_beta_versions": [(lambda v: isinstance(v, bool), "Must be a boolean")],
                 "sort_by_outdated": [(lambda v: isinstance(v, bool), "Must be a boolean")],
             },
             "outdated_detection": {
                 "enabled": [(lambda v: isinstance(v, bool), "Must be a boolean")],
-                "min_version_diff": [
-                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
-                    (lambda v: v >= 0, "Must be non-negative"),
-                ],
                 "include_pre_releases": [(lambda v: isinstance(v, bool), "Must be a boolean")],
             },
         }
 
     @staticmethod
     def _validate_rules_for_config(
-        config: Dict[str, Any],
-        rules: Dict[str, List],
-        errors: Dict[str, List[str]],
+        config: dict[str, Any],
+        rules: dict[str, list],
+        errors: dict[str, list[str]],
         prefix: str = "",
     ) -> None:
         """Apply validation rules to a configuration section."""
@@ -231,10 +259,10 @@ class ConfigValidator:
 
     @staticmethod
     def _validate_nested_section(
-        config: Dict[str, Any],
+        config: dict[str, Any],
         section_name: str,
-        rules: Dict[str, List],
-        errors: Dict[str, List[str]],
+        rules: dict[str, list],
+        errors: dict[str, list[str]],
     ) -> None:
         """Validate a nested configuration section."""
         if section_name in config:
@@ -244,7 +272,7 @@ class ConfigValidator:
                 ConfigValidator._validate_rules_for_config(config[section_name], rules, errors, section_name)
 
     @staticmethod
-    def validate_config(config: Dict[str, Any]) -> Dict[str, List[str]]:
+    def validate_config(config: dict[str, Any]) -> dict[str, list[str]]:
         """Validate configuration values against rules.
 
         Args:
@@ -253,7 +281,7 @@ class ConfigValidator:
         Returns:
             Dict[str, List[str]]: Dictionary of validation errors by parameter
         """
-        errors: Dict[str, List[str]] = {}
+        errors: dict[str, list[str]] = {}
         validation_rules = ConfigValidator._get_validation_rules()
 
         # Apply top-level validation rules
@@ -270,13 +298,13 @@ class ConfigValidator:
 class Config:
     """Configuration manager for VersionTracker."""
 
-    def __init__(self, config_file: Optional[str] = None):
+    def __init__(self, config_file: str | None = None):
         """Initialize the configuration.
 
         Args:
             config_file: Optional path to a configuration file to use instead of the default
         """
-        self._config: Dict[str, Any] = {
+        self._config: dict[str, Any] = {
             # Default API rate limiting in seconds
             "api_rate_limit": 3,
             # Default log level
@@ -383,7 +411,13 @@ class Config:
                     continue
 
                 cmd = f"{path} --version"
-                _, returncode = run_command(cmd, timeout=2)
+                import subprocess
+
+                try:
+                    result = subprocess.run(cmd.split(), capture_output=True, timeout=2, check=False)
+                    returncode = result.returncode
+                except subprocess.TimeoutExpired:
+                    returncode = 1
                 if returncode == 0:
                     logging.debug("Found working Homebrew at: %s", path)
                     return path
@@ -418,7 +452,7 @@ class Config:
             return
 
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 yaml_config = yaml.safe_load(f)
 
             if not yaml_config:
@@ -447,14 +481,14 @@ class Config:
         except yaml.YAMLError as e:
             logging.error(f"YAML parsing error in configuration file {config_path}: {e}")
             raise ConfigError(f"Invalid YAML in configuration file: {str(e)}")
-        except IOError as e:
+        except OSError as e:
             logging.error(f"Error reading configuration file {config_path}: {e}")
             raise ConfigError(f"Error loading configuration: {str(e)}")
         except Exception as e:
             logging.error(f"Unexpected error loading configuration from {config_path}: {e}")
             raise ConfigError(f"Error in configuration processing: {str(e)}")
 
-    def _normalize_config_keys(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_config_keys(self, config: dict[str, Any]) -> dict[str, Any]:
         """Normalize configuration keys from kebab-case to snake_case recursively.
 
         Args:
@@ -500,7 +534,7 @@ class Config:
         env_var: str,
         config_key: str,
         env_config: dict,
-        nested_key: Optional[str] = None,
+        nested_key: str | None = None,
     ) -> None:
         """Load and validate a boolean environment variable."""
         if os.environ.get(env_var, "").lower() in ("0", "false", "no"):
@@ -677,7 +711,7 @@ class Config:
         Environment variables are in the format VERSIONTRACKER_UPPER_SNAKE_CASE,
         which maps to the configuration keys in lower_snake_case.
         """
-        env_config: Dict[str, Any] = {}
+        env_config: dict[str, Any] = {}
 
         # Load different categories of environment variables
         self._load_basic_env_vars(env_config)
@@ -758,9 +792,9 @@ class Config:
         # Apply the validated value
         self._apply_value(key, value)
 
-    def _create_validation_fragment(self, key: str, value: Any) -> Dict[str, Any]:
+    def _create_validation_fragment(self, key: str, value: Any) -> dict[str, Any]:
         """Create a config fragment for validation."""
-        config_fragment: Dict[str, Any] = {}
+        config_fragment: dict[str, Any] = {}
 
         if "." in key:
             # Build nested structure for validation
@@ -775,14 +809,14 @@ class Config:
 
         return config_fragment
 
-    def _validate_and_raise(self, config_fragment: Dict[str, Any], key: str) -> None:
+    def _validate_and_raise(self, config_fragment: dict[str, Any], key: str) -> None:
         """Validate config fragment and raise error if invalid."""
         validation_errors = ConfigValidator.validate_config(config_fragment)
         if validation_errors:
             error_msg = self._format_validation_errors(key, validation_errors)
             raise ConfigError(error_msg)
 
-    def _format_validation_errors(self, key: str, validation_errors: Dict[str, List[str]]) -> str:
+    def _format_validation_errors(self, key: str, validation_errors: dict[str, list[str]]) -> str:
         """Format validation errors into readable message."""
         error_msg = f"Configuration validation failed for '{key}':"
         for param, errors in validation_errors.items():
@@ -841,7 +875,7 @@ class Config:
             logging.error(f"Failed to save configuration: {e}")
             return False
 
-    def get_blacklist(self) -> List[str]:
+    def get_blacklist(self) -> list[str]:
         """(DEPRECATED) Get the blacklisted applications.
 
         This method is retained for backward compatibility. Prefer using
@@ -851,18 +885,18 @@ class Config:
             List[str]: List of excluded (blacklisted/blocklisted) application names
         """
         # Support both legacy 'blacklist' and new 'blocklist' keys; merge if both present
-        legacy = cast(List[str], self._config.get("blacklist", []))
-        modern = cast(List[str], self._config.get("blocklist", []))
+        legacy = cast(list[str], self._config.get("blacklist", []))
+        modern = cast(list[str], self._config.get("blocklist", []))
         if modern and legacy:
             # De-duplicate preserving order (modern first)
-            combined: List[str] = []
+            combined: list[str] = []
             for item in modern + legacy:
                 if item not in combined:
                     combined.append(item)
             return combined
         return modern or legacy
 
-    def get_blocklist(self) -> List[str]:
+    def get_blocklist(self) -> list[str]:
         """Get the blocklisted applications (preferred terminology).
 
         Falls back to legacy 'blacklist' data if 'blocklist' not present.
@@ -942,7 +976,7 @@ class Config:
         """
         return not self.no_progress
 
-    def generate_default_config(self, path: Optional[Path] = None) -> str:
+    def generate_default_config(self, path: Path | None = None) -> str:
         """Generate a default configuration file.
 
         Args:
@@ -1021,15 +1055,6 @@ def check_dependencies() -> bool:
 # Global configuration instance - we create a default instance that can be
 # replaced by any module that needs a custom configuration
 _config_instance = Config()
-
-
-def get_config() -> Config:
-    """Get the global configuration instance.
-
-    Returns:
-        Config: The global configuration instance
-    """
-    return _config_instance
 
 
 def setup_logging(debug: bool = False):

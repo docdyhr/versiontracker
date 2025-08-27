@@ -13,10 +13,11 @@ Returns:
 import logging
 import sys
 import warnings
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 
-def setup_logging(level: int, log_file: Optional[str] = None, warnings_file: Optional[str] = None) -> None:
+def setup_logging(level: int, log_file: str | None = None, warnings_file: str | None = None) -> None:
     """Configure logging for the application.
 
     Sets up root logger, formatters, and handlers for console and file logging.

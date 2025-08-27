@@ -70,7 +70,7 @@ class TestExport(unittest.TestCase):
             self.assertTrue(os.path.exists(result_path))
 
             # Check the file content
-            with open(result_path, "r") as f:
+            with open(result_path) as f:
                 data = json.load(f)
                 self.assertEqual(len(data["applications"]), 3)
                 self.assertEqual(len(data["homebrew_casks"]), 2)
@@ -105,7 +105,7 @@ class TestExport(unittest.TestCase):
             self.assertTrue(os.path.exists(result_path))
 
             # Check the file content
-            with open(result_path, "r", newline="") as f:
+            with open(result_path, newline="") as f:
                 reader = csv.reader(f)
                 rows = list(reader)
                 self.assertTrue(len(rows) > 1)  # Header + data rows
@@ -204,7 +204,7 @@ class TestExport(unittest.TestCase):
     def test_export_to_csv_with_version_status(self):
         """Test exporting data with version status to CSV."""
         result = export_to_csv(self.version_data)
-        lines = result.strip().split("\n")
+        result.strip().split("\n")
 
         # Convert to list of rows for easier checking
         # Use csv module to handle carriage returns properly

@@ -3,7 +3,7 @@
 import os
 import sys
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 # Add the parent directory to sys.path to enable imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -12,22 +12,13 @@ if parent_dir not in sys.path:
 
 # Import the main module - this approach is more resilient to directory changes
 # Import main module for patching
-import versiontracker.__main__  # noqa: E402
-from versiontracker.__main__ import versiontracker_main  # noqa: E402
 
 # Import handler modules
-from versiontracker.app_finder import (  # noqa: E402
-    check_brew_install_candidates,
-    filter_out_brews,
-    get_applications,
-    get_homebrew_casks,
-)
 from versiontracker.handlers.app_handlers import handle_list_apps  # noqa: E402
 from versiontracker.handlers.brew_handlers import (  # noqa: E402
     handle_brew_recommendations,
     handle_list_brews,
 )
-from versiontracker.utils import get_json_data  # noqa: E402
 
 
 class TestIntegration(unittest.TestCase):
@@ -476,7 +467,6 @@ class TestIntegration(unittest.TestCase):
     def test_concurrent_operations(self, mock_get_casks, mock_get_apps, mock_check_deps):
         """Test that concurrent operations work correctly."""
         import threading
-        import time
 
         # Mock data
         mock_get_apps.return_value = [("TestApp", "1.0.0")]
@@ -662,7 +652,6 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.config.check_dependencies", return_value=True)
     def test_debug_mode_integration(self, mock_check_deps):
         """Test that debug mode works across all operations."""
-        import logging
 
         # Test debug mode with different operations
         operations = [
@@ -677,7 +666,7 @@ class TestIntegration(unittest.TestCase):
                     mock_get_casks.return_value = ["test-app"]
 
                     with patch("builtins.print"):
-                        with patch("logging.basicConfig") as mock_logging:
+                        with patch("logging.basicConfig"):
                             try:
                                 operation()
                                 # Debug mode should configure logging

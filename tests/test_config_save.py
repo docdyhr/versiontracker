@@ -1,10 +1,9 @@
 """Test cases for Config save method functionality."""
 
-import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 import yaml
 
@@ -56,7 +55,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(result)
 
         # Read and verify the saved content
-        with open(self.config_file, "r") as f:
+        with open(self.config_file) as f:
             saved_data = yaml.safe_load(f)
 
         self.assertEqual(saved_data["blacklist"], ["app1", "app2", "app3"])
@@ -76,7 +75,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(result)
 
         # Read and verify the saved content
-        with open(self.config_file, "r") as f:
+        with open(self.config_file) as f:
             saved_data = yaml.safe_load(f)
 
         # These should not be in the saved file
@@ -98,7 +97,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(result)
 
         # Read and verify the saved content
-        with open(self.config_file, "r") as f:
+        with open(self.config_file) as f:
             saved_data = yaml.safe_load(f)
 
         self.assertEqual(saved_data["custom_path"], "/some/test/path")
@@ -117,7 +116,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(result)
 
         # Read and verify the saved content
-        with open(self.config_file, "r") as f:
+        with open(self.config_file) as f:
             saved_data = yaml.safe_load(f)
 
         self.assertEqual(saved_data["version_comparison"]["rate_limit"], 3)
@@ -155,7 +154,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(self.config_file.exists())
 
         # Read and verify the content
-        with open(self.config_file, "r") as f:
+        with open(self.config_file) as f:
             saved_data = yaml.safe_load(f)
 
         # Should have default values but not config_file or log_dir
@@ -175,7 +174,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(result)
 
         # Read the raw file content
-        with open(self.config_file, "r") as f:
+        with open(self.config_file) as f:
             content = f.read()
 
         # Keys should appear in alphabetical order
@@ -203,7 +202,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(result)
 
         # Read and verify the updated content
-        with open(self.config_file, "r") as f:
+        with open(self.config_file) as f:
             saved_data = yaml.safe_load(f)
 
         # Should have new values
@@ -236,7 +235,7 @@ class TestConfigSave(unittest.TestCase):
         self.assertTrue(result)
 
         # Read and verify the saved content
-        with open(self.config_file, "r", encoding="utf-8") as f:
+        with open(self.config_file, encoding="utf-8") as f:
             saved_data = yaml.safe_load(f)
 
         self.assertEqual(len(saved_data["blacklist"]), 3)

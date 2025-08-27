@@ -10,8 +10,8 @@ import json
 import re
 import threading
 import time
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Callable, Dict, Optional, Tuple
 
 # Default cask data for testing
 DEFAULT_CASKS = {
@@ -63,7 +63,7 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
     """Request handler for the mock Homebrew server."""
 
     # Class variables to control server behavior
-    casks_data: Dict[str, Dict[str, str]] = DEFAULT_CASKS.copy()
+    casks_data: dict[str, dict[str, str]] = DEFAULT_CASKS.copy()
     delay_seconds: float = 0.0
     should_timeout: bool = False
     should_return_malformed: bool = False
@@ -135,7 +135,7 @@ class MockHomebrewHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
-            self.wfile.write(f"Cask '{cask_name}' not found".encode("utf-8"))
+            self.wfile.write(f"Cask '{cask_name}' not found".encode())
 
     def handle_all_casks_request(self) -> None:
         """Handle request for all casks."""
@@ -197,11 +197,11 @@ class MockHomebrewServer:
         """
         self.host = host
         self.port = port
-        self.server: Optional[HTTPServer] = None
-        self.server_thread: Optional[threading.Thread] = None
+        self.server: HTTPServer | None = None
+        self.server_thread: threading.Thread | None = None
         self._original_casks = MockHomebrewHandler.casks_data.copy()
 
-    def start(self) -> Tuple[str, int]:
+    def start(self) -> tuple[str, int]:
         """Start the mock server.
 
         Returns:
@@ -241,7 +241,7 @@ class MockHomebrewServer:
         MockHomebrewHandler.error_code = 500
         MockHomebrewHandler.error_message = "Internal Server Error"
 
-    def set_casks(self, casks: Dict[str, Dict[str, str]]) -> None:
+    def set_casks(self, casks: dict[str, dict[str, str]]) -> None:
         """Set custom cask data.
 
         Args:

@@ -7,10 +7,11 @@ across different components of the VersionTracker application.
 import statistics
 import threading
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import psutil
 
@@ -26,7 +27,7 @@ class BenchmarkResult:
     memory_end: int  # bytes
     cpu_percent_avg: float
     iterations: int = 1
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def memory_delta(self) -> int:
@@ -38,7 +39,7 @@ class BenchmarkResult:
         """Duration in milliseconds."""
         return self.duration * 1000
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "name": self.name,
@@ -59,9 +60,9 @@ class PerformanceMonitor:
         """Initialize performance monitor with sampling interval."""
         self.interval = interval
         self.monitoring = False
-        self.memory_samples: List[int] = []
-        self.cpu_samples: List[float] = []
-        self._thread: Optional[threading.Thread] = None
+        self.memory_samples: list[int] = []
+        self.cpu_samples: list[float] = []
+        self._thread: threading.Thread | None = None
         self.process = psutil.Process()
 
     def start(self) -> None:
@@ -75,7 +76,7 @@ class PerformanceMonitor:
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
 
-    def stop(self) -> Dict[str, Any]:
+    def stop(self) -> dict[str, Any]:
         """Stop monitoring and return collected metrics."""
         self.monitoring = False
         if self._thread:
@@ -106,7 +107,7 @@ class PerformanceMonitor:
 
 
 @contextmanager
-def benchmark_context(name: str, metadata: Optional[Dict[str, Any]] = None):
+def benchmark_context(name: str, metadata: dict[str, Any] | None = None):
     """Context manager for benchmarking code blocks."""
     monitor = PerformanceMonitor()
     process = psutil.Process()
@@ -139,7 +140,7 @@ def benchmark_context(name: str, metadata: Optional[Dict[str, Any]] = None):
         BenchmarkCollector.instance().add_result(result)
 
 
-def benchmark(name: Optional[str] = None, iterations: int = 1):
+def benchmark(name: str | None = None, iterations: int = 1):
     """Decorator for benchmarking functions."""
 
     def decorator(func: Callable) -> Callable:
@@ -200,7 +201,7 @@ class BenchmarkCollector:
 
     def __init__(self):
         """Initialize benchmark result collector."""
-        self.results: List[BenchmarkResult] = []
+        self.results: list[BenchmarkResult] = []
 
     @classmethod
     def instance(cls) -> "BenchmarkCollector":
@@ -213,7 +214,7 @@ class BenchmarkCollector:
         """Add a benchmark result."""
         self.results.append(result)
 
-    def get_results(self, name_filter: Optional[str] = None) -> List[BenchmarkResult]:
+    def get_results(self, name_filter: str | None = None) -> list[BenchmarkResult]:
         """Get results, optionally filtered by name."""
         if name_filter:
             return [r for r in self.results if name_filter in r.name]
@@ -223,7 +224,7 @@ class BenchmarkCollector:
         """Clear all collected results."""
         self.results.clear()
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get summary statistics of all benchmarks."""
         if not self.results:
             return {}
@@ -280,7 +281,7 @@ def clear_benchmarks() -> None:
     BenchmarkCollector.instance().clear()
 
 
-def get_benchmark_results() -> List[BenchmarkResult]:
+def get_benchmark_results() -> list[BenchmarkResult]:
     """Get all collected benchmark results."""
     return BenchmarkCollector.instance().get_results()
 

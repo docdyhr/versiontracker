@@ -45,7 +45,7 @@ def get_current_version():
 
 def update_version_in_file(file_path, pattern, version_str, template=None):
     """Update version in a file."""
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         content = f.read()
 
     if template:
@@ -64,7 +64,7 @@ def update_changelog(version_str):
     today = datetime.now().strftime("%Y-%m-%d")
     changelog_path = Path(__file__).parent / "CHANGELOG.md"
 
-    with open(changelog_path, "r", encoding="utf-8") as f:
+    with open(changelog_path, encoding="utf-8") as f:
         content = f.readlines()
 
     # Find the position to insert the new version
