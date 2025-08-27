@@ -11,6 +11,7 @@ import os
 import platform
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import threading
@@ -808,7 +809,7 @@ def get_homebrew_prefix() -> str | None:
     return None
 
 
-def run_command(command: list[str], timeout: int | None = 30, check: bool = True) -> subprocess.CompletedProcess:
+def run_command_subprocess(command: list[str], timeout: int | None = 30, check: bool = True) -> subprocess.CompletedProcess:
     """
     Run a shell command with timeout and error handling.
 

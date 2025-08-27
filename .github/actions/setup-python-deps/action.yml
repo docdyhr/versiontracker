@@ -38,7 +38,7 @@ runs:
 
         # Ensure essential test tools are installed
         echo "📦 Installing essential test tools..."
-        pip install pytest pytest-cov pytest-timeout || true
+        pip install pytest pytest-cov pytest-timeout pytest-mock tabulate || true
 
     - name: Install package in editable mode
       shell: bash

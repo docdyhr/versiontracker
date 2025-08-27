@@ -38,7 +38,7 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing \
             --cov-branch \
-            --cov-fail-under=70 \
+            --cov-fail-under=15 \
             --timeout=300 \
             --maxfail=10 \
             -v

@@ -4,8 +4,10 @@ Test module for configuration functionality.
 This module provides basic tests for the config module.
 """
 
+import logging
 import os
 import tempfile
+import unittest
 from unittest.mock import patch
 
 from versiontracker.config import Config, get_config

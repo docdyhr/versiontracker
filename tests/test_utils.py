@@ -4,12 +4,18 @@ Test module for utility functions.
 This module provides basic tests for utility functions.
 """
 
-from unittest.mock import patch
+import subprocess
+import unittest
+from unittest.mock import Mock, patch
 
+from versiontracker.exceptions import DataParsingError
 from versiontracker.utils import (
     format_size,
+    get_json_data,
+    get_shell_json_data,
     get_terminal_width,
     is_homebrew_installed,
+    run_command,
     sanitize_filename,
 )
 
