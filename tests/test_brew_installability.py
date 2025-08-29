@@ -89,7 +89,7 @@ class TestBrewCaskInstallability(unittest.TestCase):
         # Set up the test
         # We'll mock the read_cache and write_cache functions instead of directly manipulating the cache
         with patch("versiontracker.app_finder.read_cache") as mock_read_cache:
-            with patch("versiontracker.app_finder.write_cache") as mock_write_cache:
+            with patch("versiontracker.app_finder.write_cache"):
                 # First call - cache miss
                 mock_read_cache.return_value = None
                 mock_get_brew_cask_name.return_value = "firefox"

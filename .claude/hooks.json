@@ -1,0 +1,155 @@
+{
+  "hooks": [
+    {
+      "command": [
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "${file_path}"
+      ],
+      "continueOnError": false,
+      "description": "Run ruff linting before editing Python files",
+      "event": "PreToolUse",
+      "matcher": {
+        "args": {
+          "file_path": "*.py"
+        },
+        "tool": "Edit"
+      },
+      "name": "pre-code-quality-check",
+      "timeout": 10000
+    },
+    {
+      "command": [
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "${file_path}"
+      ],
+      "continueOnError": true,
+      "description": "Auto-format Python files after editing",
+      "event": "PostToolUse",
+      "matcher": {
+        "args": {
+          "file_path": "*.py"
+        },
+        "tool": "Edit"
+      },
+      "name": "post-python-format",
+      "timeout": 10000
+    },
+    {
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests/",
+        "-x",
+        "--tb=no",
+        "-q",
+        "--no-cov"
+      ],
+      "continueOnError": true,
+      "description": "Run quick tests after editing core modules",
+      "event": "PostToolUse",
+      "matcher": {
+        "args": {
+          "file_path": "versiontracker/*.py"
+        },
+        "tool": "Edit"
+      },
+      "name": "post-test-validation",
+      "timeout": 30000
+    },
+    {
+      "command": [
+        "pre-commit",
+        "run",
+        "--all-files"
+      ],
+      "continueOnError": false,
+      "description": "Run pre-commit hooks before Git commits",
+      "event": "PreToolUse",
+      "matcher": {
+        "args": {
+          "command": "git commit*"
+        },
+        "tool": "Bash"
+      },
+      "name": "pre-commit-validation",
+      "timeout": 60000
+    },
+    {
+      "command": [
+        "./scripts/validate-dev-environment.sh"
+      ],
+      "continueOnError": true,
+      "description": "Validate development environment on session start",
+      "event": "SessionStart",
+      "matcher": {
+        "tool": "*"
+      },
+      "name": "session-environment-check",
+      "timeout": 15000
+    },
+    {
+      "command": [
+        "python",
+        "-m",
+        "safety",
+        "check",
+        "--json"
+      ],
+      "continueOnError": true,
+      "description": "Run security scan when dependencies are modified",
+      "event": "PostToolUse",
+      "matcher": {
+        "args": {
+          "file_path": "requirements*.txt"
+        },
+        "tool": "Edit"
+      },
+      "name": "security-scan-on-deps",
+      "timeout": 20000
+    },
+    {
+      "command": [
+        "python",
+        "-m",
+        "mypy",
+        "${file_path}",
+        "--ignore-missing-imports"
+      ],
+      "continueOnError": true,
+      "description": "Type check critical files after editing",
+      "event": "PostToolUse",
+      "matcher": {
+        "args": {
+          "file_path": "versiontracker/{__init__.py,config.py,app_finder.py}"
+        },
+        "tool": "Edit"
+      },
+      "name": "type-check-critical-files",
+      "timeout": 15000
+    },
+    {
+      "command": [
+        "echo",
+        "\u26a0\ufe0f  Release-critical file modified. Consider version bump and changelog update."
+      ],
+      "continueOnError": true,
+      "description": "Notify when release-critical files are modified",
+      "event": "PostToolUse",
+      "matcher": {
+        "args": {
+          "file_path": "{CHANGELOG.md,pyproject.toml,versiontracker/__init__.py}"
+        },
+        "tool": "Edit"
+      },
+      "name": "notification-on-release-files",
+      "timeout": 1000
+    }
+  ]
+}

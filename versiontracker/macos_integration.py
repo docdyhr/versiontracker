@@ -6,15 +6,10 @@ This module provides macOS-specific integration features including:
 - System integration utilities
 """
 
-import json
 import logging
 import os
 import subprocess
-import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-
-from versiontracker.exceptions import HomebrewError
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +32,7 @@ class LaunchdService:
         self.plist_path = LAUNCHD_USER_AGENTS_DIR / VERSIONTRACKER_PLIST
         self.log_dir = VERSIONTRACKER_LOG_DIR
 
-    def create_plist(self, command_args: Optional[List[str]] = None) -> Dict:
+    def create_plist(self, command_args: list[str] | None = None) -> dict:
         """Create the launchd plist configuration.
 
         Args:
@@ -74,7 +69,7 @@ class LaunchdService:
 
         return plist_config
 
-    def install_service(self, command_args: Optional[List[str]] = None) -> bool:
+    def install_service(self, command_args: list[str] | None = None) -> bool:
         """Install the launchd service.
 
         Args:
@@ -153,7 +148,7 @@ class LaunchdService:
         """
         return self.plist_path.exists()
 
-    def get_status(self) -> Dict[str, str]:
+    def get_status(self) -> dict[str, str]:
         """Get the status of the launchd service.
 
         Returns:
@@ -184,7 +179,7 @@ class LaunchdService:
             logger.error(f"Failed to get service status: {e}")
             return {"status": "error", "error": str(e)}
 
-    def _dict_to_plist_xml(self, data: Dict) -> str:
+    def _dict_to_plist_xml(self, data: dict) -> str:
         """Convert a dictionary to plist XML format.
 
         Args:
@@ -260,7 +255,7 @@ class MacOSNotifications:
             return False
 
     @staticmethod
-    def notify_outdated_apps(outdated_apps: List[Dict[str, str]]) -> bool:
+    def notify_outdated_apps(outdated_apps: list[dict[str, str]]) -> bool:
         """Send notification about outdated applications.
 
         Args:
@@ -301,7 +296,7 @@ class MacOSNotifications:
             return MacOSNotifications.send_notification("VersionTracker", message)
 
 
-def install_scheduled_checker(interval_hours: int = 24, command_args: Optional[List[str]] = None) -> bool:
+def install_scheduled_checker(interval_hours: int = 24, command_args: list[str] | None = None) -> bool:
     """Install the scheduled application checker service.
 
     Args:
@@ -335,7 +330,7 @@ def uninstall_scheduled_checker() -> bool:
     return success
 
 
-def get_service_status() -> Dict[str, Union[str, bool]]:
+def get_service_status() -> dict[str, str | bool]:
     """Get the status of the scheduled checker service.
 
     Returns:
@@ -354,7 +349,6 @@ def check_and_notify() -> None:
     """
     try:
         from versiontracker.app_finder import get_applications
-        from versiontracker.homebrew import get_installed_homebrew_casks
         from versiontracker.version import check_outdated_apps
 
         logger.info("Starting scheduled application check")

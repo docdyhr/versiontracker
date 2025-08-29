@@ -42,7 +42,6 @@ from __future__ import annotations
 
 import os
 import types
-from typing import Any, List, Tuple
 
 import pytest
 
@@ -64,7 +63,7 @@ def test_int_004_async_parity(monkeypatch, capsys):
     from versiontracker.handlers import brew_handlers
 
     # Canonical deterministic application list
-    apps: List[Tuple[str, str]] = [
+    apps: list[tuple[str, str]] = [
         ("AlphaApp", "1.0"),
         ("BetaApp", "2.2"),
         ("GammaApp", "3.1"),

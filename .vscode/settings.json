@@ -5,6 +5,16 @@
   "python.linting.flake8Enabled": false,
   "python.linting.pylintEnabled": false,
   "python.linting.ruffEnabled": true,
+  "python.testing.autoTestDiscoverOnSaveEnabled": true,
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.testing.pytestArgs": [
+    "--verbose",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "-ra"
+  ],
   "python.testing.pytestEnabled": true,
+  "python.testing.pytestPath": "pytest",
   "python.testing.unittestEnabled": false
 }

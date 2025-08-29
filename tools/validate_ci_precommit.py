@@ -11,7 +11,6 @@ This script ensures that:
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
 import yaml
 
@@ -37,8 +36,8 @@ class CIPrecommitValidator:
     def __init__(self, project_root: Path):
         """Initialize validator with project root path."""
         self.project_root = project_root
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
 
     def validate_all(self) -> bool:
         """Run all validation checks."""
@@ -77,7 +76,7 @@ class CIPrecommitValidator:
         """Check mypy version consistency across configuration files."""
         self._check_tool_versions("mypy", ["mirrors-mypy"])
 
-    def _check_tool_versions(self, tool_name: str, repo_patterns: List[str]) -> None:
+    def _check_tool_versions(self, tool_name: str, repo_patterns: list[str]) -> None:
         """Generic method to check tool version consistency."""
         versions: dict[str, str] = {}
 
@@ -122,7 +121,7 @@ class CIPrecommitValidator:
                     version_part = line.split(">=")[1].split("#")[0].strip()
                     versions["requirements-dev.txt"] = f"{tool_name}>={version_part}"
 
-    def _check_precommit_config(self, tool_name: str, repo_patterns: List[str], versions: dict) -> None:
+    def _check_precommit_config(self, tool_name: str, repo_patterns: list[str], versions: dict) -> None:
         """Check tool version in pre-commit config."""
         precommit_file = self.project_root / ".pre-commit-config.yaml"
         if not precommit_file.exists():

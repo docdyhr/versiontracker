@@ -13,7 +13,7 @@ Returns:
 
 import logging
 import traceback
-from typing import Any, Optional, Union
+from typing import Any
 
 from versiontracker.config import get_config
 from versiontracker.exceptions import ExportError
@@ -24,8 +24,8 @@ from versiontracker.ui import create_progress_bar
 def handle_export(
     data: Any,
     format_type: str,
-    filename: Optional[str] = None,
-) -> Union[int, str]:
+    filename: str | None = None,
+) -> int | str:
     """Handle exporting data in the specified format.
 
     Exports data to JSON or CSV format, either to a file or as a string.

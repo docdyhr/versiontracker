@@ -4,16 +4,12 @@ import logging
 import shutil
 import sys
 import time
+from collections.abc import Iterable, Iterator
 from types import ModuleType
 from typing import (
     Any,
-    Dict,
     Generic,
-    Iterable,
-    Iterator,
-    List,
     Literal,
-    Optional,
     TypeVar,
     Union,
 )
@@ -28,7 +24,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     class _PsutilFallback:
         @staticmethod
-        def cpu_percent(interval: Optional[float] = None) -> float:
+        def cpu_percent(interval: float | None = None) -> float:
             _ = interval  # Acknowledge unused parameter
             return 0.0
 
@@ -141,12 +137,12 @@ except ImportError:
     # Fallback implementation if termcolor is not available
     def colored(  # type: ignore[misc]
         text: object,
-        color: Optional[str] = None,
-        on_color: Optional[str] = None,
-        attrs: Optional[Iterable[str]] = None,
+        color: str | None = None,
+        on_color: str | None = None,
+        attrs: Iterable[str] | None = None,
         *,
-        no_color: Optional[bool] = None,
-        force_color: Optional[bool] = None,
+        no_color: bool | None = None,
+        force_color: bool | None = None,
     ) -> str:
         """Fallback implementation of colored.
 
@@ -168,12 +164,12 @@ except ImportError:
 
     def cprint(  # type: ignore[misc]
         text: object,
-        color: Optional[str] = None,
-        on_color: Optional[str] = None,
-        attrs: Optional[Iterable[str]] = None,
+        color: str | None = None,
+        on_color: str | None = None,
+        attrs: Iterable[str] | None = None,
         *,
-        no_color: Optional[bool] = None,
-        force_color: Optional[bool] = None,
+        no_color: bool | None = None,
+        force_color: bool | None = None,
         **kwargs: Any,
     ) -> None:
         """Fallback implementation of cprint.
@@ -259,9 +255,9 @@ class SmartProgress(Generic[T]):
 
     def __init__(
         self,
-        iterable: Optional[Iterable[T]] = None,
+        iterable: Iterable[T] | None = None,
         desc: str = "",
-        total: Optional[int] = None,
+        total: int | None = None,
         monitor_resources: bool = True,
         update_interval: float = 0.5,
         **kwargs,
@@ -290,7 +286,7 @@ class SmartProgress(Generic[T]):
         # Check if we're in a terminal that supports progress bars
         self.use_tqdm = HAS_TQDM and sys.stdout.isatty()
 
-    def color(self, color_name: Optional[str]):
+    def color(self, color_name: str | None):
         """Return a function that applies the specified color to a string.
 
         Args:
@@ -360,9 +356,9 @@ def create_progress_bar():
 
 # Enhanced version of tqdm with smart capabilities
 def smart_progress(
-    iterable: Optional[Iterable[T]] = None,
+    iterable: Iterable[T] | None = None,
     desc: str = "",
-    total: Optional[int] = None,
+    total: int | None = None,
     monitor_resources: bool = True,
     **kwargs,
 ) -> Iterator[T]:
@@ -478,7 +474,7 @@ class QueryFilterManager:
         # Create the filters directory if it doesn't exist
         self.filters_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_filter(self, name: str, filter_data: Dict[str, Any]) -> bool:
+    def save_filter(self, name: str, filter_data: dict[str, Any]) -> bool:
         """Save a filter configuration.
 
         Args:
@@ -505,7 +501,7 @@ class QueryFilterManager:
             print(f"Error saving filter: {e}")
             return False
 
-    def load_filter(self, name: str) -> Optional[Dict[str, Any]]:
+    def load_filter(self, name: str) -> dict[str, Any] | None:
         """Load a filter configuration.
 
         Args:
@@ -527,14 +523,14 @@ class QueryFilterManager:
                 return None
 
             # Read the filter data from the JSON file
-            with open(filter_path, "r") as f:
-                data: Dict[str, Any] = json.load(f)
+            with open(filter_path) as f:
+                data: dict[str, Any] = json.load(f)
                 return data
         except Exception as e:
             print(f"Error loading filter: {e}")
             return None
 
-    def list_filters(self) -> List[str]:
+    def list_filters(self) -> list[str]:
         """List all available filters.
 
         Returns:

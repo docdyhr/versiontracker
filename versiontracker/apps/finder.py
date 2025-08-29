@@ -2,7 +2,7 @@
 
 import logging
 import platform
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from versiontracker.cache import read_cache
 from versiontracker.config import get_config
@@ -19,7 +19,7 @@ from versiontracker.utils import normalise_name, run_command
 BREW_PATH = "brew"  # Will be updated based on architecture detection
 
 
-def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
+def get_applications(data: dict[str, Any]) -> list[tuple[str, str]]:
     """Return a list of applications with versions not updated by App Store.
 
     Args:
@@ -31,7 +31,7 @@ def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
     logging.info("Getting Apps from Applications/...")
     print("Getting Apps from Applications/...")
 
-    apps: List[Tuple[str, str]] = []
+    apps: list[tuple[str, str]] = []
     for app in data["SPApplicationsDataType"]:
         # Skip Apple and Mac App Store applications
         if not app["path"].startswith("/Applications/"):
@@ -64,8 +64,8 @@ def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
 
 
 def get_applications_from_system_profiler(
-    apps_data: Dict[str, Any],
-) -> List[Tuple[str, str]]:
+    apps_data: dict[str, Any],
+) -> list[tuple[str, str]]:
     """Extract applications from system profiler data.
 
     Args:
@@ -114,10 +114,10 @@ def get_applications_from_system_profiler(
         return apps_list
     except Exception as e:
         logging.error("Error parsing application data: %s", e)
-        raise DataParsingError("Error parsing application data: %s" % e) from e
+        raise DataParsingError(f"Error parsing application data: {e}") from e
 
 
-def get_homebrew_casks_list() -> List[str]:
+def get_homebrew_casks_list() -> list[str]:
     """Get list of installed Homebrew casks.
 
     Returns:
@@ -254,7 +254,7 @@ def is_homebrew_available() -> bool:
         return False
 
 
-def _create_batches(data: List[Tuple[str, str]], batch_size: int = 50) -> List[List[Tuple[str, str]]]:
+def _create_batches(data: list[tuple[str, str]], batch_size: int = 50) -> list[list[tuple[str, str]]]:
     """Split data into batches of specified size.
 
     Args:

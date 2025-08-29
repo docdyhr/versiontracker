@@ -1,10 +1,7 @@
 """Integration tests for auto-update confirmation flows and real-world scenarios."""
 
-import json
-import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, patch
 
 from versiontracker.handlers.auto_update_handlers import (
     handle_blacklist_auto_updates,

@@ -5,8 +5,7 @@ integration scenarios, and performance testing for the auto-update feature.
 """
 
 import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, patch
 
 from versiontracker.handlers.auto_update_handlers import (
     handle_blacklist_auto_updates,

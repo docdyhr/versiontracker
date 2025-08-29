@@ -5,7 +5,6 @@ import platform
 import sys
 import tempfile
 import unittest
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -151,7 +150,7 @@ class TestCICompatibility(unittest.TestCase):
 
         with patch("versiontracker.utils._execute_subprocess") as mock_exec:
             mock_process = MagicMock()
-            mock_process.communicate.return_value = ("test\n".encode(), b"")
+            mock_process.communicate.return_value = (b"test\n", b"")
             mock_process.returncode = 0
             mock_exec.return_value = mock_process
 

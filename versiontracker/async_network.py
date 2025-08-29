@@ -6,10 +6,12 @@ dealing with multiple Homebrew API calls or other network operations.
 """
 
 import asyncio
+import builtins
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, cast
+from typing import Any, Generic, TypeVar, cast
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -32,10 +34,10 @@ CACHE_EXPIRY = 86400  # 1 day in seconds
 
 async def fetch_json(
     url: str,
-    cache_key: Optional[str] = None,
+    cache_key: str | None = None,
     timeout: int = DEFAULT_TIMEOUT,
     use_cache: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fetch JSON data from a URL asynchronously.
 
     Args:
@@ -79,7 +81,7 @@ async def fetch_json(
 
                 return data
 
-    except asyncio.TimeoutError as e:
+    except builtins.TimeoutError as e:
         logging.error(f"Request to {url} timed out after {timeout}s: {e}")
         raise TimeoutError(f"Request timed out: {url}") from e
     except ClientResponseError as e:
@@ -94,12 +96,12 @@ async def fetch_json(
 
 
 async def batch_fetch_json(
-    urls: List[str],
-    cache_keys: Optional[List[str]] = None,
+    urls: list[str],
+    cache_keys: list[str] | None = None,
     timeout: int = DEFAULT_TIMEOUT,
     use_cache: bool = True,
-    max_concurrency: Optional[int] = None,
-) -> List[Dict[str, Any]]:
+    max_concurrency: int | None = None,
+) -> list[dict[str, Any]]:
     """Fetch multiple JSON resources concurrently.
 
     Args:
@@ -135,7 +137,7 @@ async def batch_fetch_json(
     # Create semaphore to limit concurrency
     semaphore = asyncio.Semaphore(max_concurrency)
 
-    async def fetch_with_semaphore(url: str, cache_key: str) -> Dict[str, Any]:
+    async def fetch_with_semaphore(url: str, cache_key: str) -> dict[str, Any]:
         """Fetch a URL with concurrency limiting."""
         async with semaphore:
             # Add a small delay to avoid overwhelming the server
@@ -143,13 +145,13 @@ async def batch_fetch_json(
             return await fetch_json(url, cache_key, timeout, use_cache)
 
     # Create tasks for all URLs
-    tasks = [fetch_with_semaphore(url, cache_key) for url, cache_key in zip(urls, cache_keys)]
+    tasks = [fetch_with_semaphore(url, cache_key) for url, cache_key in zip(urls, cache_keys, strict=False)]
 
     # Execute all tasks concurrently and gather results
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     # Process results, re-raising any exceptions
-    processed_results: List[Dict[str, Any]] = []
+    processed_results: list[dict[str, Any]] = []
     for i, result in enumerate(results):
         if isinstance(result, Exception):
             logging.error(f"Error fetching {urls[i]}: {result}")
@@ -162,7 +164,7 @@ async def batch_fetch_json(
                 raise NetworkError(f"Error fetching {urls[i]}: {str(result)}") from result
         else:
             # result is guaranteed to be Dict[str, Any] here since exceptions were handled above
-            processed_results.append(cast(Dict[str, Any], result))
+            processed_results.append(cast(dict[str, Any], result))
 
     return processed_results
 
@@ -240,7 +242,7 @@ class AsyncBatchProcessor(Generic[T, R]):
         self.rate_limit = rate_limit
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
-    def create_batches(self, data: List[T]) -> List[List[T]]:
+    def create_batches(self, data: list[T]) -> list[list[T]]:
         """Split data into batches.
 
         Args:
@@ -268,7 +270,7 @@ class AsyncBatchProcessor(Generic[T, R]):
         """
         raise NotImplementedError("Subclasses must implement process_item")
 
-    async def process_batch(self, batch: List[T]) -> List[R]:
+    async def process_batch(self, batch: list[T]) -> list[R]:
         """Process a batch of items with rate limiting.
 
         Args:
@@ -292,7 +294,7 @@ class AsyncBatchProcessor(Generic[T, R]):
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Process results, logging any exceptions
-        processed_results: List[R] = []
+        processed_results: list[R] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logging.error(f"Error processing item {batch[i]}: {result}")
@@ -320,7 +322,7 @@ class AsyncBatchProcessor(Generic[T, R]):
         raise NotImplementedError("Subclasses must implement handle_error")
 
     @async_to_sync
-    async def process_all(self, data: List[T]) -> List[R]:
+    async def process_all(self, data: list[T]) -> list[R]:
         """Process all data in batches.
 
         Args:

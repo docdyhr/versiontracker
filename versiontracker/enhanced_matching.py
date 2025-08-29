@@ -6,7 +6,7 @@ the accuracy of matching application names with package manager entries.
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 # Try to import fuzzy matching libraries
 USE_RAPIDFUZZ = False
@@ -172,7 +172,7 @@ class EnhancedMatcher:
 
         return normalized
 
-    def tokenize(self, name: str) -> List[str]:
+    def tokenize(self, name: str) -> list[str]:
         """Tokenize name into meaningful parts.
 
         Args:
@@ -192,7 +192,7 @@ class EnhancedMatcher:
 
         return tokens
 
-    def calculate_token_similarity(self, tokens1: List[str], tokens2: List[str]) -> float:
+    def calculate_token_similarity(self, tokens1: list[str], tokens2: list[str]) -> float:
         """Calculate similarity based on token overlap.
 
         Args:
@@ -225,7 +225,7 @@ class EnhancedMatcher:
 
         return jaccard * 100
 
-    def check_known_aliases(self, name1: str, name2: str) -> Optional[float]:
+    def check_known_aliases(self, name1: str, name2: str) -> float | None:
         """Check if names are known aliases of each other.
 
         Args:
@@ -309,7 +309,7 @@ class EnhancedMatcher:
         # Return the highest score
         return max(scores) if scores else 0.0
 
-    def find_best_match(self, target: str, candidates: List[str]) -> Optional[Tuple[str, float]]:
+    def find_best_match(self, target: str, candidates: list[str]) -> tuple[str, float] | None:
         """Find the best matching candidate for a target name.
 
         Args:
@@ -341,7 +341,7 @@ class EnhancedMatcher:
 
         return None
 
-    def find_all_matches(self, target: str, candidates: List[str]) -> List[Tuple[str, float]]:
+    def find_all_matches(self, target: str, candidates: list[str]) -> list[tuple[str, float]]:
         """Find all candidates matching above the threshold.
 
         Args:
@@ -364,7 +364,7 @@ class EnhancedMatcher:
 
         return matches
 
-    def explain_match(self, name1: str, name2: str) -> Dict[str, Union[float, str, List[str], bool, Dict[str, float]]]:
+    def explain_match(self, name1: str, name2: str) -> dict[str, float | str | list[str] | bool | dict[str, float]]:
         """Explain why two names match or don't match.
 
         Args:
@@ -374,7 +374,7 @@ class EnhancedMatcher:
         Returns:
             Dictionary with match explanation
         """
-        result: Dict[str, Union[float, str, List[str], bool, Dict[str, float]]] = {
+        result: dict[str, float | str | list[str] | bool | dict[str, float]] = {
             "name1": name1,
             "name2": name2,
             "normalized1": self.normalize_advanced(name1),
@@ -420,7 +420,7 @@ class EnhancedMatcher:
 
 
 # Global instance for convenience
-_default_matcher: Optional[EnhancedMatcher] = None
+_default_matcher: EnhancedMatcher | None = None
 
 
 def get_enhanced_matcher(threshold: int = 75) -> EnhancedMatcher:
@@ -455,7 +455,7 @@ def enhanced_match(name1: str, name2: str, threshold: int = 75) -> float:
     return matcher.calculate_similarity(name1, name2)
 
 
-def find_best_enhanced_match(target: str, candidates: List[str], threshold: int = 75) -> Optional[Tuple[str, float]]:
+def find_best_enhanced_match(target: str, candidates: list[str], threshold: int = 75) -> tuple[str, float] | None:
     """Find the best matching candidate using enhanced matching.
 
     Args:

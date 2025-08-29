@@ -4,7 +4,6 @@ import json
 import os
 import tempfile
 import unittest
-from typing import Any, Dict, List
 from unittest.mock import MagicMock, call, patch
 
 from versiontracker.handlers.auto_update_handlers import (
@@ -35,7 +34,7 @@ class TestAutoUpdateRollbackMechanisms(unittest.TestCase):
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def create_config_backup(self, blacklist: List[str]) -> str:
+    def create_config_backup(self, blacklist: list[str]) -> str:
         """Create a configuration backup file."""
         backup_data = {"blacklist": blacklist, "timestamp": "2025-07-26T10:00:00Z", "version": "0.6.5"}
         with open(self.backup_file, "w") as f:

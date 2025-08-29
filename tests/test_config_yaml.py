@@ -68,7 +68,7 @@ class TestConfigFile(TestCase):
             self.assertTrue(config_path.exists())
 
             # Read the generated configuration file and verify its contents
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 yaml_config = yaml.safe_load(f)
 
             self.assertEqual(yaml_config["api-rate-limit"], test_config.get("api_rate_limit"))

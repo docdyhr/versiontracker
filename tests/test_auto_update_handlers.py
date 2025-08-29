@@ -1,7 +1,6 @@
 """Test cases for auto-update management handlers."""
 
 import unittest
-from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
 from versiontracker.handlers.auto_update_handlers import (

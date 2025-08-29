@@ -4,7 +4,7 @@
 import importlib.util
 import logging
 import os
-from typing import List, Optional, Tuple, cast
+from typing import cast
 
 # Import from main version module (partial_ratio wasn't moved to submodules)
 from versiontracker.cache import read_cache, write_cache
@@ -28,7 +28,7 @@ from .cache import RateLimiterProtocol
 BREW_PATH = "brew"  # Will be updated based on architecture detection
 
 
-def search_brew_cask(search_term: str) -> List[str]:
+def search_brew_cask(search_term: str) -> list[str]:
     """Search for a cask on Homebrew.
 
     Args:
@@ -55,7 +55,7 @@ def search_brew_cask(search_term: str) -> List[str]:
 
         # Escape search term for shell safety
         search_term_escaped = search_term.replace('"', '\\"').replace("'", "\\'")
-        cmd = '%s search --casks "%s"' % (brew_path, search_term_escaped)
+        cmd = f'{brew_path} search --casks "{search_term_escaped}"'
 
         logging.debug("Running search command: %s", cmd)
         output, return_code = run_command(cmd, timeout=30)
@@ -65,7 +65,7 @@ def search_brew_cask(search_term: str) -> List[str]:
             return []
 
         # Process the output
-        results: List[str] = []
+        results: list[str] = []
         for line in output.strip().split("\n"):
             line = line.strip()
             if line and not line.startswith("==>"):
@@ -79,7 +79,7 @@ def search_brew_cask(search_term: str) -> List[str]:
         return []
 
 
-def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimiterProtocol] = None) -> Optional[str]:
+def _process_brew_search(app: tuple[str, str], rate_limiter: RateLimiterProtocol | None = None) -> str | None:
     """Process a single brew search for an application.
 
     Args:
@@ -102,7 +102,7 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimite
         # Get brew path and run search
         brew_path = getattr(get_config(), "brew_path", BREW_PATH)
         search_term_escaped = search_term.replace('"', '\\"')
-        brew_search = '%s search --casks "%s"' % (brew_path, search_term_escaped)
+        brew_search = f'{brew_path} search --casks "{search_term_escaped}"'
 
         try:
             stdout, return_code = run_command(brew_search)
@@ -132,7 +132,7 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimite
     return None
 
 
-def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterProtocol] = None) -> Optional[str]:
+def get_homebrew_cask_name(app_name: str, rate_limiter: RateLimiterProtocol | None = None) -> str | None:
     """Get the Homebrew cask name for an application.
 
     Searches Homebrew for a cask matching the given application name,
@@ -170,8 +170,8 @@ def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterProt
 
 
 def filter_brew_candidates(
-    candidates: List[Tuple[str, str, bool]], installable: Optional[bool] = None
-) -> List[Tuple[str, str, bool]]:
+    candidates: list[tuple[str, str, bool]], installable: bool | None = None
+) -> list[tuple[str, str, bool]]:
     """Filter brew candidates by installability.
 
     Args:
@@ -190,8 +190,8 @@ def filter_brew_candidates(
 
 
 def filter_out_brews(
-    applications: List[Tuple[str, str]], brews: List[str], strict_mode: bool = False
-) -> List[Tuple[str, str]]:
+    applications: list[tuple[str, str]], brews: list[str], strict_mode: bool = False
+) -> list[tuple[str, str]]:
     """Filter out applications that are already managed by Homebrew.
 
     Args:

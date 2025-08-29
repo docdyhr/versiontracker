@@ -15,7 +15,7 @@ import logging
 import sys
 import time
 import traceback
-from typing import Any, Dict, List, Tuple, Union, cast
+from typing import Any, cast
 
 try:
     from tabulate import tabulate  # type: ignore[import]
@@ -86,7 +86,7 @@ def _update_config_from_options(options: Any) -> None:
             config.set("show_progress", False)
 
 
-def _get_installed_applications() -> List[Tuple[str, str]]:
+def _get_installed_applications() -> list[tuple[str, str]]:
     """Get installed applications from the system.
 
     Returns:
@@ -109,7 +109,7 @@ def _get_installed_applications() -> List[Tuple[str, str]]:
     return get_applications(apps_data)
 
 
-def _get_homebrew_casks() -> List[str]:
+def _get_homebrew_casks() -> list[str]:
     """Get installed Homebrew casks.
 
     Returns:
@@ -124,7 +124,7 @@ def _get_homebrew_casks() -> List[str]:
     return get_homebrew_casks()
 
 
-def _filter_applications(apps: List[Tuple[str, str]], brews: List[str], include_brews: bool) -> List[Tuple[str, str]]:
+def _filter_applications(apps: list[tuple[str, str]], brews: list[str], include_brews: bool) -> list[tuple[str, str]]:
     """Filter applications based on whether they're managed by Homebrew.
 
     Args:
@@ -145,8 +145,8 @@ def _filter_applications(apps: List[Tuple[str, str]], brews: List[str], include_
 
 
 def _check_outdated_apps(
-    apps: List[Tuple[str, str]], use_enhanced_matching: bool = True
-) -> List[Tuple[str, Dict[str, str], Any]]:
+    apps: list[tuple[str, str]], use_enhanced_matching: bool = True
+) -> list[tuple[str, dict[str, str], Any]]:
     """Check which applications are outdated.
 
     Args:
@@ -164,14 +164,14 @@ def _check_outdated_apps(
     batch_size = getattr(get_config(), "batch_size", 50)
     # Use cast to handle the return type properly
     return cast(
-        List[Tuple[str, Dict[str, str], Any]],
+        list[tuple[str, dict[str, str], Any]],
         check_outdated_apps(apps, batch_size=batch_size, use_enhanced_matching=use_enhanced_matching),
     )
 
 
 def _process_outdated_info(
-    outdated_info: List[Tuple[str, Dict[str, str], Any]],
-) -> Tuple[List[List[Union[str, Any]]], Dict[str, int]]:
+    outdated_info: list[tuple[str, dict[str, str], Any]],
+) -> tuple[list[list[str | Any]], dict[str, int]]:
     """Process outdated information into a table and counters.
 
     Args:
@@ -223,8 +223,8 @@ def _process_outdated_info(
 
 
 def _display_results(
-    table: List[List[Union[str, Any]]],
-    status_counts: Dict[str, int],
+    table: list[list[str | Any]],
+    status_counts: dict[str, int],
     app_count: int,
     elapsed_time: float,
 ) -> None:
@@ -279,7 +279,7 @@ def _display_results(
 
 
 def _send_notification_if_available(
-    outdated_info: List[Tuple[str, Dict[str, str], str]], status_counts: Dict[str, int]
+    outdated_info: list[tuple[str, dict[str, str], str]], status_counts: dict[str, int]
 ) -> None:
     """Send notification about outdated applications if macOS notifications are available.
 
@@ -321,7 +321,7 @@ def _send_notification_if_available(
         print(create_progress_bar().color("yellow")(f"Warning: Failed to send notification: {e}"))
 
 
-def _export_data(outdated_info: List[Tuple[str, Dict[str, str], str]], options: Any) -> int:
+def _export_data(outdated_info: list[tuple[str, dict[str, str], str]], options: Any) -> int:
     """Export data to the specified format.
 
     Args:

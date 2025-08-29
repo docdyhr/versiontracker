@@ -1,0 +1,67 @@
+---
+name: Coverage Analysis
+
+"on":
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  PYTHONUNBUFFERED: 1
+  FORCE_COLOR: 1
+
+jobs:
+  coverage:
+    name: Test Coverage Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        uses: ./.github/actions/setup-python-deps
+
+      - name: Run comprehensive tests with coverage
+        run: |
+          echo "::group::Full Test Suite with Coverage"
+          pytest \
+            --cov=versiontracker \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term-missing \
+            --cov-branch \
+            --cov-fail-under=15 \
+            --timeout=300 \
+            --maxfail=10 \
+            -v
+          echo "::endgroup::"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-html-report
+          path: htmlcov/
+
+      - name: Coverage summary
+        run: |
+          echo "## 📊 Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage report uploaded to:" >> $GITHUB_STEP_SUMMARY  
+          echo "- [Codecov](https://codecov.io/gh/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
+          echo "- HTML report in workflow artifacts" >> $GITHUB_STEP_SUMMARY

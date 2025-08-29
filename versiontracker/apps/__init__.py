@@ -4,8 +4,6 @@
 # Import legacy functions from main apps.py file that weren't refactored
 import importlib.util
 import os
-import sys
-from typing import List
 
 # Import cache functions that tests depend on
 from ..cache import read_cache
@@ -224,7 +222,7 @@ else:
     def _handle_batch_error(*args, **kwargs):
         """Fallback: Handle batch processing errors."""
         # Extract arguments for backward compatibility
-        error = args[0] if len(args) > 0 else kwargs.get("error")
+        args[0] if len(args) > 0 else kwargs.get("error")
         error_count = args[1] if len(args) > 1 else kwargs.get("error_count", 0)
         batch = args[2] if len(args) > 2 else kwargs.get("batch", [])
         # Return proper tuple structure: (results, error_count, exception)
@@ -238,7 +236,7 @@ else:
     def _handle_future_result(*args, **kwargs):
         """Fallback: Handle future execution result."""
         # Extract arguments for backward compatibility
-        future = args[0] if len(args) > 0 else kwargs.get("future")
+        args[0] if len(args) > 0 else kwargs.get("future")
         name = args[1] if len(args) > 1 else kwargs.get("name", "unknown")
         version = args[2] if len(args) > 2 else kwargs.get("version", "0.0.0")
         # Return proper tuple structure: ((name, version, result), exception)

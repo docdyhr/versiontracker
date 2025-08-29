@@ -1,7 +1,6 @@
 """Version parsing functionality."""
 
 import re
-from typing import List, Optional, Tuple
 
 
 def _clean_version_string(version_str: str) -> str:
@@ -17,7 +16,7 @@ def _clean_version_string(version_str: str) -> str:
     return cleaned
 
 
-def _extract_build_metadata(cleaned: str) -> Tuple[Optional[int], str]:
+def _extract_build_metadata(cleaned: str) -> tuple[int | None, str]:
     """Extract build metadata from version string."""
     build_metadata = None
 
@@ -47,7 +46,7 @@ def _extract_build_metadata(cleaned: str) -> Tuple[Optional[int], str]:
     return build_metadata, cleaned
 
 
-def _handle_special_beta_format(version_str: str) -> Optional[Tuple[int, ...]]:
+def _handle_special_beta_format(version_str: str) -> tuple[int, ...] | None:
     """Handle special format like '1.2.3.beta4'."""
     special_beta_format = re.search(r"\d+\.\d+\.\d+\.[a-zA-Z]+\d+", version_str)
     if special_beta_format:
@@ -58,7 +57,7 @@ def _handle_special_beta_format(version_str: str) -> Optional[Tuple[int, ...]]:
     return None
 
 
-def _extract_prerelease_info(cleaned: str, version_str: str) -> Tuple[bool, Optional[int], bool, str]:
+def _extract_prerelease_info(cleaned: str, version_str: str) -> tuple[bool, int | None, bool, str]:
     """Extract prerelease information from version string."""
     has_prerelease = False
     prerelease_num = None
@@ -97,7 +96,7 @@ def _extract_prerelease_info(cleaned: str, version_str: str) -> Tuple[bool, Opti
     return has_prerelease, prerelease_num, has_text_suffix, cleaned
 
 
-def _parse_numeric_parts(cleaned: str) -> List[int]:
+def _parse_numeric_parts(cleaned: str) -> list[int]:
     """Parse numeric parts from cleaned version string."""
     cleaned = re.sub(r"[-_/]", ".", cleaned)
     all_numbers = re.findall(r"\d+", cleaned)
@@ -116,13 +115,13 @@ def _parse_numeric_parts(cleaned: str) -> List[int]:
 
 
 def _build_final_version_tuple(
-    parts: List[int],
+    parts: list[int],
     has_prerelease: bool,
-    prerelease_num: Optional[int],
+    prerelease_num: int | None,
     has_text_suffix: bool,
-    build_metadata: Optional[int],
+    build_metadata: int | None,
     version_str: str,
-) -> Tuple[int, ...]:
+) -> tuple[int, ...]:
     """Build the final version tuple based on all extracted information."""
     if not parts:
         return (0, 0, 0)
@@ -144,18 +143,18 @@ def _build_final_version_tuple(
     return _normalize_to_three_components(parts)
 
 
-def _is_multi_component_version(parts: List[int], has_prerelease: bool, build_metadata: Optional[int]) -> bool:
+def _is_multi_component_version(parts: list[int], has_prerelease: bool, build_metadata: int | None) -> bool:
     """Check if this is a 4+ component version without special suffixes."""
     return len(parts) >= 4 and not has_prerelease and build_metadata is None
 
 
-def _build_with_metadata(parts: List[int], build_metadata: int) -> Tuple[int, ...]:
+def _build_with_metadata(parts: list[int], build_metadata: int) -> tuple[int, ...]:
     """Build version tuple with build metadata."""
     padded_parts = _normalize_to_three_components(parts)
     return padded_parts[:3] + (build_metadata,)
 
 
-def _is_mixed_format(version_str: str, parts: List[int]) -> bool:
+def _is_mixed_format(version_str: str, parts: list[int]) -> bool:
     """Check if version uses mixed format like '1.beta.0'."""
     original_str = version_str.lower()
     has_keywords = any(k in original_str for k in ["beta", "alpha", "rc"])
@@ -163,17 +162,17 @@ def _is_mixed_format(version_str: str, parts: List[int]) -> bool:
     return has_keywords and len(parts) >= 2 and has_pattern is not None
 
 
-def _handle_mixed_format(parts: List[int]) -> Tuple[int, ...]:
+def _handle_mixed_format(parts: list[int]) -> tuple[int, ...]:
     """Handle mixed format versions."""
     return (parts[0], 0, parts[-1])
 
 
 def _build_prerelease_tuple(
-    parts: List[int],
-    prerelease_num: Optional[int],
+    parts: list[int],
+    prerelease_num: int | None,
     has_text_suffix: bool,
     version_str: str,
-) -> Tuple[int, ...]:
+) -> tuple[int, ...]:
     """Build version tuple for prerelease versions."""
     padded_parts = _normalize_to_three_components(parts)
 
@@ -191,7 +190,7 @@ def _build_prerelease_tuple(
         return padded_parts[:3]
 
 
-def _normalize_to_three_components(parts: List[int]) -> Tuple[int, ...]:
+def _normalize_to_three_components(parts: list[int]) -> tuple[int, ...]:
     """Ensure version has at least 3 components."""
     result = parts.copy()
     while len(result) < 3:
@@ -199,7 +198,7 @@ def _normalize_to_three_components(parts: List[int]) -> Tuple[int, ...]:
     return tuple(result)
 
 
-def parse_version(version_string: Optional[str]) -> Optional[Tuple[int, ...]]:
+def parse_version(version_string: str | None) -> tuple[int, ...] | None:
     """Parse a version string into a tuple of integers for comparison.
 
     Args:

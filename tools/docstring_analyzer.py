@@ -12,7 +12,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional
+from typing import NamedTuple
 
 
 class DocstringInfo(NamedTuple):
@@ -25,10 +25,10 @@ class DocstringInfo(NamedTuple):
     has_returns_section: bool
     has_raises_section: bool
     needs_raises: bool
-    docstring: Optional[str] = None
+    docstring: str | None = None
 
 
-def extract_docstring(node: ast.AST) -> Optional[str]:
+def extract_docstring(node: ast.AST) -> str | None:
     """Extract the docstring from an AST node.
 
     Args:
@@ -111,7 +111,7 @@ def check_raises_needed(node: ast.AST) -> bool:
     return visitor.has_raise
 
 
-def analyze_file(file_path: Path) -> List[DocstringInfo]:
+def analyze_file(file_path: Path) -> list[DocstringInfo]:
     """Analyze docstrings in a Python file.
 
     Args:
@@ -120,7 +120,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
     Returns:
         List of DocstringInfo objects with analysis results
     """
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         file_content = f.read()
 
     try:
@@ -129,7 +129,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
         print(f"Syntax error in {file_path}: {e}")
         return []
 
-    results: List[DocstringInfo] = []
+    results: list[DocstringInfo] = []
 
     # Check module docstring
     module_docstring = ast.get_docstring(tree)
@@ -200,7 +200,7 @@ def analyze_file(file_path: Path) -> List[DocstringInfo]:
     return results
 
 
-def analyze_directory(directory: Path, exclude_dirs: Optional[List[str]] = None) -> Dict[Path, List[DocstringInfo]]:
+def analyze_directory(directory: Path, exclude_dirs: list[str] | None = None) -> dict[Path, list[DocstringInfo]]:
     """Analyze all Python files in a directory.
 
     Args:
@@ -221,7 +221,7 @@ def analyze_directory(directory: Path, exclude_dirs: Optional[List[str]] = None)
             "node_modules",
         ]
 
-    results: Dict[Path, List[DocstringInfo]] = {}
+    results: dict[Path, list[DocstringInfo]] = {}
 
     for root, dirs, files in os.walk(directory):
         # Skip excluded directories
@@ -238,7 +238,7 @@ def analyze_directory(directory: Path, exclude_dirs: Optional[List[str]] = None)
     return results
 
 
-def format_results(results: Dict[Path, List[DocstringInfo]], show_all: bool = False) -> str:
+def format_results(results: dict[Path, list[DocstringInfo]], show_all: bool = False) -> str:
     """Format analysis results into a readable report.
 
     Args:
@@ -248,16 +248,16 @@ def format_results(results: Dict[Path, List[DocstringInfo]], show_all: bool = Fa
     Returns:
         Formatted report as a string
     """
-    report_lines: List[str] = []
+    report_lines: list[str] = []
     file_count = 0
     problem_count = 0
 
     for file_path, file_results in sorted(results.items()):
         file_problems = False
-        file_lines: List[str] = []
+        file_lines: list[str] = []
 
         for result in file_results:
-            problems: List[str] = []
+            problems: list[str] = []
 
             if not result.has_docstring:
                 problems.append("Missing docstring")
@@ -337,7 +337,7 @@ def main() -> None:
     except FileNotFoundError:
         print(f"Error: Directory '{directory_path}' not found.")
         sys.exit(1)
-    except (IOError, OSError) as e:
+    except OSError as e:
         print(f"Error resolving path: {e}")
         sys.exit(1)
 

@@ -190,7 +190,6 @@ class TestHomebrewCasksList(unittest.TestCase):
 
     def test_get_homebrew_casks_list_no_homebrew(self):
         """Test get_homebrew_casks_list when Homebrew not available."""
-        import versiontracker.apps.finder
 
         with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
             with self.assertRaises(HomebrewError):
