@@ -489,7 +489,7 @@ class TestIntegration(unittest.TestCase):
 
         # Run multiple operations concurrently
         threads = []
-        for i in range(5):
+        for _ in range(5):
             for op in ["apps", "brews"]:
                 thread = threading.Thread(target=run_operation, args=(op,))
                 threads.append(thread)

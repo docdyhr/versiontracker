@@ -11,7 +11,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import psutil
 

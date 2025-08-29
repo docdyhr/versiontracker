@@ -117,7 +117,7 @@ class TestBrewCandidates(unittest.TestCase):
         mock_smart_progress.side_effect = lambda x, **kwargs: x
 
         # Create test data with multiple batches
-        data = [("App%d" % i, "1.0") for i in range(60)]
+        data = [(f"App{i}", "1.0") for i in range(60)]
 
         # Call the function - should handle the error and add all apps as not installable
         result = check_brew_install_candidates(data)

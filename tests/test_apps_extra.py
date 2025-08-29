@@ -81,7 +81,7 @@ class TestAppsExtra(unittest.TestCase):
             patch("versiontracker.app_finder.smart_progress") as mock_smart_progress,
         ):
             # Create a batch large enough to split into two
-            data = [("App%d" % i, "1.0") for i in range(60)]
+            data = [(f"App{i}", "1.0") for i in range(60)]
 
             # Make _process_brew_batch fail on first batch but succeed on second
             def side_effect(batch, rate_limit, use_cache):
@@ -100,7 +100,7 @@ class TestAppsExtra(unittest.TestCase):
 
         # Verify first 50 items are False, rest are True
         self.assertEqual(len(result), 60)
-        for i, (name, _, installable) in enumerate(result):
+        for i, (_, _, installable) in enumerate(result):
             if i < 50:
                 self.assertEqual(installable, False)
             else:
