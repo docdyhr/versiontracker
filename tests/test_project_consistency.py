@@ -3,7 +3,7 @@
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 import toml
@@ -15,7 +15,7 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent
 
 
-def load_pyproject_toml() -> Dict[str, Any]:
+def load_pyproject_toml() -> dict[str, Any]:
     """Load pyproject.toml configuration."""
     project_root = get_project_root()
     pyproject_path = project_root / "pyproject.toml"
@@ -49,7 +49,7 @@ def check_mypy_version() -> str:
     return mypy_version_match.group(1)
 
 
-def check_setup_cfg_version() -> Optional[str]:
+def check_setup_cfg_version() -> str | None:
     """Check Python version in setup.cfg if it exists."""
     project_root = get_project_root()
     setup_cfg_path = project_root / "setup.cfg"
@@ -89,9 +89,9 @@ def check_ruff_target_version() -> str:
     return ruff_target
 
 
-def extract_supported_versions(classifiers: List[str]) -> List[str]:
+def extract_supported_versions(classifiers: list[str]) -> list[str]:
     """Extract supported Python versions from classifiers."""
-    supported_versions: List[str] = []
+    supported_versions: list[str] = []
     python_pattern = r"Programming Language :: Python :: (\d+\.\d+)"
 
     for classifier in classifiers:
@@ -132,7 +132,7 @@ class TestProjectConsistency:
         error_msg = f"mypy.ini has {mypy_version}, expected {min_version}"
         assert mypy_version == min_version, error_msg
 
-    def _assert_setup_cfg_version(self, setup_version: Optional[str], min_version: str) -> None:
+    def _assert_setup_cfg_version(self, setup_version: str | None, min_version: str) -> None:
         """Assert setup.cfg version matches expected if it exists."""
         if setup_version is not None:
             msg = f"setup.cfg has {setup_version}, expected {min_version}"
@@ -180,16 +180,16 @@ class TestProjectConsistency:
         # Validate all supported versions are tested
         self._validate_ci_versions(supported_versions, ci_versions)
 
-    def _assert_version_in_ci(self, version: str, ci_versions: List[str]) -> None:
+    def _assert_version_in_ci(self, version: str, ci_versions: list[str]) -> None:
         """Assert that a specific version is tested in CI."""
         error_msg = f"Python {version} is supported but not tested in CI"
         assert version in ci_versions, error_msg
 
-    def _get_missing_versions(self, supported: List[str], ci_versions: List[str]) -> List[str]:
+    def _get_missing_versions(self, supported: list[str], ci_versions: list[str]) -> list[str]:
         """Get list of supported versions missing from CI."""
         return [version for version in supported if version not in ci_versions]
 
-    def _validate_ci_versions(self, supported: List[str], ci_versions: List[str]) -> None:
+    def _validate_ci_versions(self, supported: list[str], ci_versions: list[str]) -> None:
         """Validate that all supported versions are tested in CI."""
         missing_versions = self._get_missing_versions(supported, ci_versions)
         msg = f"Python versions not tested in CI: {missing_versions}"

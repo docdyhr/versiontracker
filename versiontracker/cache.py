@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 
 from versiontracker.exceptions import CacheError
 
@@ -22,7 +22,7 @@ def _ensure_cache_dir():
         raise CacheError(f"Failed to create cache directory: {e}")
 
 
-def read_cache(cache_name: str, max_age_seconds: int = 86400) -> Optional[Dict[str, Any]]:
+def read_cache(cache_name: str, max_age_seconds: int = 86400) -> dict[str, Any] | None:
     """Read data from cache.
 
     Args:
@@ -51,10 +51,10 @@ def read_cache(cache_name: str, max_age_seconds: int = 86400) -> Optional[Dict[s
             return None
 
         # Read cache
-        with open(cache_file, "r") as f:
+        with open(cache_file) as f:
             data = json.load(f)
 
-        return cast(Dict[str, Any], data)
+        return cast(dict[str, Any], data)
     except json.JSONDecodeError as e:
         logging.warning(f"Invalid JSON in cache {cache_name}: {e}")
         return None
@@ -63,7 +63,7 @@ def read_cache(cache_name: str, max_age_seconds: int = 86400) -> Optional[Dict[s
         return None
 
 
-def write_cache(cache_name: str, data: Dict[str, Any]) -> bool:
+def write_cache(cache_name: str, data: dict[str, Any]) -> bool:
     """Write data to cache.
 
     Args:
@@ -91,7 +91,7 @@ def write_cache(cache_name: str, data: Dict[str, Any]) -> bool:
         raise CacheError(f"Failed to write to cache {cache_name}: {e}")
 
 
-def clear_cache(cache_name: Optional[str] = None) -> bool:
+def clear_cache(cache_name: str | None = None) -> bool:
     """Clear cache.
 
     Args:

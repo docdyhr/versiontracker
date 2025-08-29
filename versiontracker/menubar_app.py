@@ -9,7 +9,6 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class MenubarApp:
     def __init__(self):
         """Initialize the menubar application."""
         self.running = False
-        self.last_check_time: Optional[float] = None
+        self.last_check_time: float | None = None
         self.outdated_count = 0
 
     def show_menu(self) -> None:
@@ -163,28 +162,6 @@ class MenubarApp:
         """
         try:
             # Create a simple status bar script that shows the menu when clicked
-            script_content = f"""#!/usr/bin/env python3
-import subprocess
-import sys
-
-# Show VersionTracker in menubar
-print("📦|size=14")
-print("---")
-print("VersionTracker")
-print("Check for Updates | terminal=false bash='{sys.executable}' param1='-m' "
-      "param2='versiontracker' param3='--outdated' param4='--notify'")
-print("Show All Apps | terminal=false bash='{sys.executable}' param1='-m' "
-      "param2='versiontracker' param3='--apps'")
-print("Show Homebrew Casks | terminal=false bash='{sys.executable}' param1='-m' "
-      "param2='versiontracker' param3='--brews'")
-print("---")
-print("Install Service | terminal=false bash='{sys.executable}' param1='-m' "
-      "param2='versiontracker' param3='--install-service'")
-print("Service Status | terminal=false bash='{sys.executable}' param1='-m' "
-      "param2='versiontracker' param3='--service-status'")
-print("---")
-print("Quit | quit=true")
-"""
 
             # For now, just show the menu directly since we don't have SwiftBar
             # In a real implementation, this would integrate with a menubar framework

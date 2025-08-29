@@ -5,7 +5,6 @@
 # Import legacy functions from main version.py file that weren't refactored
 import importlib.util
 import os
-from typing import Optional
 
 from .comparator import compare_versions, get_version_difference, is_version_newer
 
@@ -114,7 +113,7 @@ else:
     from .models import ApplicationInfo, VersionStatus
 
     # Comprehensive fallback functions if main version.py cannot be loaded
-    def partial_ratio(s1: str, s2: str, score_cutoff: Optional[int] = None) -> int:
+    def partial_ratio(s1: str, s2: str, score_cutoff: int | None = None) -> int:
         """Fallback partial ratio function."""
         return 100 if s1.lower() in s2.lower() or s2.lower() in s1.lower() else 0
 

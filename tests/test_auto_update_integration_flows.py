@@ -1,15 +1,11 @@
 """Integration tests for auto-update confirmation flows and complete workflows."""
 
-import os
 import sys
 import tempfile
 import unittest
-from io import StringIO
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, call, patch
 
 from versiontracker.__main__ import versiontracker_main
-from versiontracker.cli import get_arguments
 from versiontracker.handlers.auto_update_handlers import (
     handle_blacklist_auto_updates,
     handle_list_auto_updates,

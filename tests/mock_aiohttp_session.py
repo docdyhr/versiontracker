@@ -4,12 +4,9 @@ This module provides a comprehensive mock for aiohttp.ClientSession
 that can be used as a context manager in async tests.
 """
 
-import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Dict, Optional, Union
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-
-import aiohttp
 
 
 class MockResponse:
@@ -17,11 +14,11 @@ class MockResponse:
 
     def __init__(
         self,
-        json_data: Optional[Dict[str, Any]] = None,
-        text_data: Optional[str] = None,
+        json_data: dict[str, Any] | None = None,
+        text_data: str | None = None,
         status: int = 200,
-        headers: Optional[Dict[str, str]] = None,
-        raise_for_status_exception: Optional[Exception] = None,
+        headers: dict[str, str] | None = None,
+        raise_for_status_exception: Exception | None = None,
     ):
         self.json_data = json_data or {}
         self.text_data = text_data or ""
@@ -63,11 +60,11 @@ class MockSession:
         self,
         url: str,
         method: str = "GET",
-        json_data: Optional[Dict[str, Any]] = None,
-        text_data: Optional[str] = None,
+        json_data: dict[str, Any] | None = None,
+        text_data: str | None = None,
         status: int = 200,
-        headers: Optional[Dict[str, str]] = None,
-        raise_for_status_exception: Optional[Exception] = None,
+        headers: dict[str, str] | None = None,
+        raise_for_status_exception: Exception | None = None,
     ):
         """Add a mock response for a specific URL and method."""
         key = f"{method.upper()}:{url}"

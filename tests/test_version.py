@@ -1,7 +1,14 @@
-"""Tests for the version comparison functionality."""
+"""
+Test module for version functionality.
+
+This module provides basic tests for the version module to ensure
+proper version parsing and comparison.
+"""
 
 import pytest
 
+from versiontracker import __version__
+from versiontracker.exceptions import VersionError
 from versiontracker.version import (
     VersionInfo,
     VersionStatus,
@@ -9,6 +16,81 @@ from versiontracker.version import (
     get_version_difference,
     parse_version,
 )
+
+
+class TestVersionParsing:
+    """Tests for version parsing functionality."""
+
+    def test_parse_simple_version(self):
+        """Test parsing of simple semantic versions."""
+        assert parse_version("1.2.3") == (1, 2, 3)
+        assert parse_version("0.1.0") == (0, 1, 0)
+        assert parse_version("10.20.30") == (10, 20, 30)
+
+    def test_parse_version_with_v_prefix(self):
+        """Test parsing versions with 'v' prefix."""
+        assert parse_version("v1.2.3") == (1, 2, 3)
+        assert parse_version("V1.2.3") == (1, 2, 3)
+
+    def test_parse_version_with_prerelease(self):
+        """Test parsing versions with prerelease tags."""
+        # Basic prerelease versions
+        assert parse_version("1.2.3-alpha") == (1, 2, 3, "alpha")
+        assert parse_version("1.2.3-beta.1") == (1, 2, 3, "beta", 1)
+        assert parse_version("1.2.3-rc.2") == (1, 2, 3, "rc", 2)
+
+    def test_parse_invalid_version(self):
+        """Test that invalid versions raise VersionError."""
+        with pytest.raises(VersionError):
+            parse_version("not.a.version")
+        with pytest.raises(VersionError):
+            parse_version("")
+        with pytest.raises(VersionError):
+            parse_version("1.2")
+
+
+class TestVersionComparison:
+    """Tests for version comparison functionality."""
+
+    def test_compare_equal_versions(self):
+        """Test comparison of equal versions."""
+        assert compare_versions("1.2.3", "1.2.3") == 0
+        assert compare_versions("v1.2.3", "1.2.3") == 0
+
+    def test_compare_different_versions(self):
+        """Test comparison of different versions."""
+        assert compare_versions("1.2.3", "1.2.4") < 0
+        assert compare_versions("1.2.4", "1.2.3") > 0
+        assert compare_versions("2.0.0", "1.9.9") > 0
+        assert compare_versions("1.0.0", "1.0.1") < 0
+
+    def test_compare_with_prerelease(self):
+        """Test comparison with prerelease versions."""
+        # Prerelease versions are considered less than release versions
+        assert compare_versions("1.2.3-alpha", "1.2.3") < 0
+        assert compare_versions("1.2.3", "1.2.3-alpha") > 0
+        assert compare_versions("1.2.3-alpha", "1.2.3-beta") < 0
+
+
+class TestPackageVersion:
+    """Tests for the package version."""
+
+    def test_version_format(self):
+        """Test that the package version is properly formatted."""
+        assert __version__ is not None
+        assert isinstance(__version__, str)
+        # Version should be parseable
+        try:
+            parse_version(__version__)
+        except VersionError:
+            pytest.fail(f"Package version '{__version__}' is not valid")
+
+    def test_version_not_dev(self):
+        """Test that version is not a dev version in releases."""
+        # This test can be skipped for dev builds
+        if "dev" not in __version__ and "alpha" not in __version__:
+            parts = parse_version(__version__)
+            assert len(parts) >= 3  # At least major.minor.patch
 
 
 @pytest.mark.parametrize(

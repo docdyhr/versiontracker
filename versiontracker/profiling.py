@@ -11,15 +11,16 @@ import io
 import logging
 import pstats
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Any, Callable, Dict, Optional, Set, TypeVar
+from typing import Any, TypeVar
 
 try:
     import psutil
 
     HAS_PSUTIL = True
-    psutil_module: Optional[ModuleType] = psutil
+    psutil_module: ModuleType | None = psutil
 except ImportError:
     HAS_PSUTIL = False
     psutil_module = None
@@ -54,9 +55,9 @@ class PerformanceProfiler:
         """
         self.enabled = enabled
         self.profiler = None if not enabled else cProfile.Profile()
-        self.function_timings: Dict[str, FunctionTimingInfo] = {}
-        self._active_functions: Set[str] = set()
-        self._nested_calls: Dict[str, int] = {}
+        self.function_timings: dict[str, FunctionTimingInfo] = {}
+        self._active_functions: set[str] = set()
+        self._nested_calls: dict[str, int] = {}
 
     def start(self) -> None:
         """Start profiling."""
@@ -68,7 +69,7 @@ class PerformanceProfiler:
         if self.enabled and self.profiler:
             self.profiler.disable()
 
-    def get_stats(self) -> Optional[str]:
+    def get_stats(self) -> str | None:
         """Get profiling statistics as a string.
 
         Returns:
@@ -82,7 +83,7 @@ class PerformanceProfiler:
         ps.print_stats(20)  # Top 20 functions by cumulative time
         return s.getvalue()
 
-    def time_function(self, func_name: Optional[str] = None) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    def time_function(self, func_name: str | None = None) -> Callable[[Callable[..., T]], Callable[..., T]]:
         """Create a timing decorator for a function.
 
         Args:
@@ -173,7 +174,7 @@ class PerformanceProfiler:
 
         return decorator
 
-    def report(self) -> Dict[str, Any]:
+    def report(self) -> dict[str, Any]:
         """Generate a performance report.
 
         Returns:
@@ -259,7 +260,7 @@ def disable_profiling() -> None:
 
 
 def profile_function(
-    func_name: Optional[str] = None,
+    func_name: str | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Create a profiling decorator for a function.
 
@@ -272,7 +273,7 @@ def profile_function(
     return _global_profiler.time_function(func_name)
 
 
-def generate_report() -> Dict[str, Any]:
+def generate_report() -> dict[str, Any]:
     """Generate a performance report.
 
     Returns:

@@ -1,0 +1,49 @@
+{
+  "configurations": [
+    {
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "name": "Python: Current File",
+      "program": "${file}",
+      "request": "launch",
+      "type": "python"
+    },
+    {
+      "args": [
+        "-vv",
+        "--tb=short",
+        "${file}"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "module": "pytest",
+      "name": "Python: Debug Tests",
+      "request": "launch",
+      "type": "python"
+    },
+    {
+      "args": [
+        "-vv",
+        "--tb=short",
+        "--cov=versiontracker",
+        "--cov-report=term-missing"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "module": "pytest",
+      "name": "Python: All Tests",
+      "request": "launch",
+      "type": "python"
+    },
+    {
+      "args": [],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "name": "Python: VersionTracker CLI",
+      "program": "${workspaceFolder}/versiontracker-cli.py",
+      "request": "launch",
+      "type": "python"
+    }
+  ],
+  "version": "0.2.0"
+}

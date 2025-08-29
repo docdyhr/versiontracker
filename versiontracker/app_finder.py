@@ -30,17 +30,12 @@ import logging
 import platform
 import threading
 import time
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from collections.abc import Iterable, Iterator
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
 from typing import (
     Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
     Protocol,
-    Tuple,
     TypeVar,
     Union,
     cast,
@@ -204,9 +199,9 @@ except ImportError:
     HAS_PROGRESS = False
 
     def smart_progress(
-        iterable: Optional[Iterable[T]] = None,
+        iterable: Iterable[T] | None = None,
         desc: str = "",
-        total: Optional[int] = None,
+        total: int | None = None,
         monitor_resources: bool = True,
         **kwargs: Any,
     ) -> Iterator[T]:
@@ -222,7 +217,7 @@ BREW_SEARCH = "brew search --casks"
 BREW_PATH = "brew"  # Will be updated based on architecture detection
 
 # Global cache
-_brew_search_cache: Dict[str, List[str]] = {}
+_brew_search_cache: dict[str, list[str]] = {}
 
 
 def clear_homebrew_casks_cache() -> None:
@@ -237,7 +232,7 @@ def clear_homebrew_casks_cache() -> None:
 
 
 @lru_cache(maxsize=1)
-def get_homebrew_casks() -> List[str]:
+def get_homebrew_casks() -> list[str]:
     """Get a list of all installed Homebrew casks.
 
     Returns:
@@ -258,7 +253,7 @@ def get_homebrew_casks() -> List[str]:
 
         if returncode != 0:
             logging.warning("Error getting Homebrew casks: %s", output)
-            raise HomebrewError("Failed to get Homebrew casks: %s" % output)
+            raise HomebrewError(f"Failed to get Homebrew casks: {output}")
 
         # Parse the output to extract cask names
         lines = output.split("\n")
@@ -281,7 +276,7 @@ def get_homebrew_casks() -> List[str]:
         raise HomebrewError("Failed to get Homebrew casks") from e
 
 
-def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
+def get_applications(data: dict[str, Any]) -> list[tuple[str, str]]:
     """Return a list of applications with versions not updated by App Store.
 
     Args:
@@ -293,7 +288,7 @@ def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
     logging.info("Getting Apps from Applications/...")
     print("Getting Apps from Applications/...")
 
-    apps: List[Tuple[str, str]] = []
+    apps: list[tuple[str, str]] = []
     for app in data["SPApplicationsDataType"]:
         # Skip Apple and Mac App Store applications
         if not app["path"].startswith("/Applications/"):
@@ -326,8 +321,8 @@ def get_applications(data: Dict[str, Any]) -> List[Tuple[str, str]]:
 
 
 def get_applications_from_system_profiler(
-    apps_data: Dict[str, Any],
-) -> List[Tuple[str, str]]:
+    apps_data: dict[str, Any],
+) -> list[tuple[str, str]]:
     """Extract applications from system profiler data.
 
     Args:
@@ -376,10 +371,10 @@ def get_applications_from_system_profiler(
         return apps_list
     except Exception as e:
         logging.error("Error parsing application data: %s", e)
-        raise DataParsingError("Error parsing application data: %s" % e) from e
+        raise DataParsingError(f"Error parsing application data: {e}") from e
 
 
-def get_homebrew_casks_list() -> List[str]:
+def get_homebrew_casks_list() -> list[str]:
     """Get list of installed Homebrew casks.
 
     Returns:
@@ -432,7 +427,7 @@ def is_app_in_app_store(app_name: str, use_cache: bool = True) -> bool:
         return False
 
 
-def _check_cache_for_cask(cask_name: str, cache_data: Optional[dict]) -> Optional[bool]:
+def _check_cache_for_cask(cask_name: str, cache_data: dict | None) -> bool | None:
     """Check if cask is in cache. Returns None if not found."""
     if not cache_data:
         return None
@@ -447,10 +442,10 @@ def _check_cache_for_cask(cask_name: str, cache_data: Optional[dict]) -> Optiona
     return None
 
 
-def _execute_brew_search(cask_name: str) -> Tuple[str, int]:
+def _execute_brew_search(cask_name: str) -> tuple[str, int]:
     """Execute brew search command and return output and return code."""
     brew_command = getattr(get_config(), "brew_path", "brew")
-    cmd = '%s search --cask "%s"' % (brew_command, cask_name)
+    cmd = f'{brew_command} search --cask "{cask_name}"'
     return run_command(cmd, timeout=30)
 
 
@@ -473,7 +468,7 @@ def _handle_brew_search_result(output: str, returncode: int, cask_name: str) -> 
     return False
 
 
-def _update_cache_with_installable(cask_name: str, cache_data: Optional[dict]) -> None:
+def _update_cache_with_installable(cask_name: str, cache_data: dict | None) -> None:
     """Update cache with installable cask."""
     if not cache_data:
         cache_data = {"installable": []}
@@ -626,7 +621,7 @@ def is_homebrew_available() -> bool:
         return False
 
 
-def _create_batches(data: List[Tuple[str, str]], batch_size: int = 50) -> List[List[Tuple[str, str]]]:
+def _create_batches(data: list[tuple[str, str]], batch_size: int = 50) -> list[list[tuple[str, str]]]:
     """Split data into batches of specified size.
 
     Args:
@@ -643,8 +638,8 @@ def _create_batches(data: List[Tuple[str, str]], batch_size: int = 50) -> List[L
 
 
 def _handle_batch_error(
-    error: Exception, error_count: int, batch: List[Tuple[str, str]]
-) -> Tuple[List[Tuple[str, str, bool]], int, Optional[Exception]]:
+    error: Exception, error_count: int, batch: list[tuple[str, str]]
+) -> tuple[list[tuple[str, str, bool]], int, Exception | None]:
     """Handle errors during batch processing.
 
     Args:
@@ -692,8 +687,8 @@ def _handle_batch_error(
 
 
 def check_brew_install_candidates(
-    data: List[Tuple[str, str]], rate_limit: Union[int, Any] = 1, use_cache: bool = True
-) -> List[Tuple[str, str, bool]]:
+    data: list[tuple[str, str]], rate_limit: int | Any = 1, use_cache: bool = True
+) -> list[tuple[str, str, bool]]:
     """Check which applications can be installed with Homebrew.
 
     Determines which of the provided applications have corresponding
@@ -737,7 +732,7 @@ def check_brew_install_candidates(
     # Create batches
     batches = _create_batches(data)
 
-    results: List[Tuple[str, str, bool]] = []
+    results: list[tuple[str, str, bool]] = []
     error_count = 0  # Counter for consecutive errors
 
     # Process each batch
@@ -755,7 +750,7 @@ def check_brew_install_candidates(
     return results
 
 
-def _create_rate_limiter(rate_limit: Union[int, Any]) -> RateLimiterProtocol:
+def _create_rate_limiter(rate_limit: int | Any) -> RateLimiterProtocol:
     """Create a rate limiter based on configuration.
 
     Args:
@@ -773,7 +768,7 @@ def _create_rate_limiter(rate_limit: Union[int, Any]) -> RateLimiterProtocol:
         elif hasattr(rate_limit, "api_rate_limit"):
             if rate_limit.api_rate_limit is not None:
                 rate_limit_seconds = int(rate_limit.api_rate_limit)
-        elif hasattr(rate_limit, "get") and callable(getattr(rate_limit, "get")):
+        elif hasattr(rate_limit, "get") and callable(rate_limit.get):
             rate_limit_seconds = int(rate_limit.get("api_rate_limit", 1))
     except (AttributeError, ValueError, TypeError):
         logging.debug("Using default rate limit: %d second(s)", rate_limit_seconds)
@@ -791,7 +786,7 @@ def _create_rate_limiter(rate_limit: Union[int, Any]) -> RateLimiterProtocol:
 
 def _handle_future_result(
     future: concurrent.futures.Future, name: str, version: str
-) -> Tuple[Tuple[str, str, bool], Optional[Exception]]:
+) -> tuple[tuple[str, str, bool], Exception | None]:
     """Process the result of a future.
 
     Args:
@@ -843,7 +838,7 @@ def _handle_future_result(
         return (name, version, False), e
 
 
-def _process_brew_batch(batch: List[Tuple[str, str]], rate_limit: int, use_cache: bool) -> List[Tuple[str, str, bool]]:
+def _process_brew_batch(batch: list[tuple[str, str]], rate_limit: int, use_cache: bool) -> list[tuple[str, str, bool]]:
     """Process a batch of applications to check if they can be installed with Homebrew.
 
     Searches for each application name in Homebrew casks to determine
@@ -862,7 +857,7 @@ def _process_brew_batch(batch: List[Tuple[str, str]], rate_limit: int, use_cache
         NetworkError: If there's a network issue during checks
         BrewTimeoutError: If operations timeout
     """
-    batch_results: List[Tuple[str, str, bool]] = []
+    batch_results: list[tuple[str, str, bool]] = []
 
     # Skip empty batch
     if not batch:
@@ -931,8 +926,8 @@ def _process_brew_batch(batch: List[Tuple[str, str]], rate_limit: int, use_cache
 
 
 def filter_out_brews(
-    applications: List[Tuple[str, str]], brews: List[str], strict_mode: bool = False
-) -> List[Tuple[str, str]]:
+    applications: list[tuple[str, str]], brews: list[str], strict_mode: bool = False
+) -> list[tuple[str, str]]:
     """Filter out applications that are already managed by Homebrew.
 
     Args:
@@ -969,7 +964,7 @@ def filter_out_brews(
     return search_list
 
 
-def search_brew_cask(search_term: str) -> List[str]:
+def search_brew_cask(search_term: str) -> list[str]:
     """Search for a cask on Homebrew.
 
     Args:
@@ -992,7 +987,7 @@ def search_brew_cask(search_term: str) -> List[str]:
 
         # Escape search term for shell safety
         search_term_escaped = search_term.replace('"', '\\"').replace("'", "\\'")
-        cmd = '%s search --casks "%s"' % (brew_path, search_term_escaped)
+        cmd = f'{brew_path} search --casks "{search_term_escaped}"'
 
         logging.debug("Running search command: %s", cmd)
         output, return_code = run_command(cmd, timeout=30)
@@ -1002,7 +997,7 @@ def search_brew_cask(search_term: str) -> List[str]:
             return []
 
         # Process the output
-        results: List[str] = []
+        results: list[str] = []
         for line in output.strip().split("\n"):
             line = line.strip()
             if line and not line.startswith("==>"):
@@ -1016,7 +1011,7 @@ def search_brew_cask(search_term: str) -> List[str]:
         return []
 
 
-def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimiterProtocol] = None) -> Optional[str]:
+def _process_brew_search(app: tuple[str, str], rate_limiter: RateLimiterProtocol | None = None) -> str | None:
     """Process a single brew search for an application.
 
     Args:
@@ -1039,7 +1034,7 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimite
         # Get brew path and run search
         brew_path = getattr(get_config(), "brew_path", BREW_PATH)
         search_term_escaped = search_term.replace('"', '\\"')
-        brew_search = '%s search --casks "%s"' % (brew_path, search_term_escaped)
+        brew_search = f'{brew_path} search --casks "{search_term_escaped}"'
 
         try:
             stdout, return_code = run_command(brew_search)
@@ -1069,7 +1064,7 @@ def _process_brew_search(app: Tuple[str, str], rate_limiter: Optional[RateLimite
     return None
 
 
-def _batch_process_brew_search(apps_batch: List[Tuple[str, str]], rate_limiter: object) -> List[str]:
+def _batch_process_brew_search(apps_batch: list[tuple[str, str]], rate_limiter: object) -> list[str]:
     """Process a batch of brew searches to reduce API calls.
 
     Args:
@@ -1079,7 +1074,7 @@ def _batch_process_brew_search(apps_batch: List[Tuple[str, str]], rate_limiter: 
     Returns:
         List of Homebrew cask names that could be used to install the applications
     """
-    results: List[str] = []
+    results: list[str] = []
 
     for app in apps_batch:
         app_name, _ = app
@@ -1135,13 +1130,13 @@ def _batch_process_brew_search(apps_batch: List[Tuple[str, str]], rate_limiter: 
     return results
 
 
-def _get_existing_brews() -> List[str]:
+def _get_existing_brews() -> list[str]:
     """Get list of installed Homebrew casks.
 
     Returns:
         List of installed cask names in lowercase
     """
-    existing_brews: List[str] = []
+    existing_brews: list[str] = []
     try:
         existing_brews = [brew.lower() for brew in get_homebrew_casks_list()]
     except HomebrewError as e:
@@ -1153,8 +1148,8 @@ def _get_existing_brews() -> List[str]:
 
 
 def check_brew_update_candidates(
-    data: List[Tuple[str, str]], rate_limit: Union[int, Config] = 2
-) -> Dict[str, Dict[str, Union[str, float]]]:
+    data: list[tuple[str, str]], rate_limit: int | Config = 2
+) -> dict[str, dict[str, str | float]]:
     """Check which Homebrew formulae might be used to update installed applications.
 
     Compares installed applications with available Homebrew casks to identify
@@ -1209,11 +1204,11 @@ def check_brew_update_candidates(
 
 
 def _process_brew_search_batches(
-    batches: List[List[Tuple[str, str]]],
+    batches: list[list[tuple[str, str]]],
     rate_limiter: Any,
     max_workers: int,
-    existing_brews: List[str],
-) -> Dict[str, Dict[str, Union[str, float]]]:
+    existing_brews: list[str],
+) -> dict[str, dict[str, str | float]]:
     """Process brew search batches in parallel.
 
     Args:
@@ -1225,7 +1220,7 @@ def _process_brew_search_batches(
     Returns:
         Dictionary of installable casks
     """
-    installers: Dict[str, Dict[str, Union[str, float]]] = {}
+    installers: dict[str, dict[str, str | float]] = {}
     show_progress = _should_show_progress()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -1248,9 +1243,9 @@ def _should_show_progress() -> bool:
 
 
 def _process_with_progress_bar(
-    future_to_batch: Dict[Any, Any],
-    installers: Dict[str, Dict[str, Union[str, float]]],
-    existing_brews: List[str],
+    future_to_batch: dict[Any, Any],
+    installers: dict[str, dict[str, str | float]],
+    existing_brews: list[str],
 ) -> None:
     """Process futures with progress bar."""
     for future in smart_progress(
@@ -1265,9 +1260,9 @@ def _process_with_progress_bar(
 
 
 def _process_without_progress_bar(
-    future_to_batch: Dict[Any, Any],
-    installers: Dict[str, Dict[str, Union[str, float]]],
-    existing_brews: List[str],
+    future_to_batch: dict[Any, Any],
+    installers: dict[str, dict[str, str | float]],
+    existing_brews: list[str],
 ) -> None:
     """Process futures without progress bar."""
     for future in concurrent.futures.as_completed(future_to_batch):
@@ -1276,8 +1271,8 @@ def _process_without_progress_bar(
 
 def _process_batch_result(
     future: Any,
-    installers: Dict[str, Dict[str, Union[str, float]]],
-    existing_brews: List[str],
+    installers: dict[str, dict[str, str | float]],
+    existing_brews: list[str],
 ) -> None:
     """Process the result of a batch future."""
     try:
@@ -1290,7 +1285,7 @@ def _process_batch_result(
 
 
 def _populate_cask_versions(
-    installers: Dict[str, Dict[str, Union[str, float]]],
+    installers: dict[str, dict[str, str | float]],
 ) -> None:
     """Populate version information for installable casks."""
     for cask in installers:
@@ -1302,7 +1297,7 @@ def _populate_cask_versions(
             logging.error("Error getting version for %s: %s", cask, e)
 
 
-def get_cask_version(cask_name: str) -> Optional[str]:
+def get_cask_version(cask_name: str) -> str | None:
     """Get the latest version of a Homebrew cask.
 
     Args:
@@ -1348,10 +1343,10 @@ def get_cask_version(cask_name: str) -> Optional[str]:
         raise
     except Exception as e:
         logging.error("Error getting cask version for %s: %s", cask_name, e)
-        raise HomebrewError("Failed to get cask version for %s: %s" % (cask_name, e)) from e
+        raise HomebrewError(f"Failed to get cask version for {cask_name}: {e}") from e
 
 
-def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterProtocol] = None) -> Optional[str]:
+def get_homebrew_cask_name(app_name: str, rate_limiter: RateLimiterProtocol | None = None) -> str | None:
     """Get the Homebrew cask name for an application.
 
     Searches Homebrew for a cask matching the given application name,
@@ -1384,8 +1379,8 @@ def get_homebrew_cask_name(app_name: str, rate_limiter: Optional[RateLimiterProt
 
 
 def filter_brew_candidates(
-    candidates: List[Tuple[str, str, bool]], installable: Optional[bool] = None
-) -> List[Tuple[str, str, bool]]:
+    candidates: list[tuple[str, str, bool]], installable: bool | None = None
+) -> list[tuple[str, str, bool]]:
     """Filter brew candidates by installability.
 
     Args:

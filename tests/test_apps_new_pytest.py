@@ -1,27 +1,10 @@
 """Tests for the apps module."""
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from versiontracker.app_finder import (
-    SimpleRateLimiter,
-    _process_brew_batch,
-    _process_brew_search,
-    check_brew_install_candidates,
-    clear_homebrew_casks_cache,
     filter_out_brews,
     get_applications,
-    get_applications_from_system_profiler,
-    get_cask_version,
-    get_homebrew_casks,
-    is_homebrew_available,
-)
-from versiontracker.exceptions import (
-    BrewTimeoutError,
-    DataParsingError,
-    HomebrewError,
-    NetworkError,
 )
 
 

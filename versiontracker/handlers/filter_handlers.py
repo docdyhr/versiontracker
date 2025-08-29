@@ -12,13 +12,13 @@ Returns:
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from versiontracker.config import get_config
 from versiontracker.ui import QueryFilterManager, create_progress_bar
 
 
-def handle_filter_management(options: Any, filter_manager: QueryFilterManager) -> Optional[int]:
+def handle_filter_management(options: Any, filter_manager: QueryFilterManager) -> int | None:
     """Handle filter management operations.
 
     Args:

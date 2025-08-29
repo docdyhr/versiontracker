@@ -4,13 +4,11 @@ import json
 import os
 import tempfile
 import unittest
-from typing import List
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from versiontracker.handlers.enhanced_auto_update_handlers import (
     BlacklistBackup,
     EnhancedAutoUpdateHandler,
-    OperationResult,
     UninstallResult,
     handle_blacklist_auto_updates_enhanced,
     handle_uninstall_auto_updates_enhanced,
@@ -45,7 +43,7 @@ class TestEnhancedAutoUpdateHandler(unittest.TestCase):
             self.assertTrue(os.path.exists(backup.backup_file))
 
             # Verify backup file contents
-            with open(backup.backup_file, "r") as f:
+            with open(backup.backup_file) as f:
                 backup_data = json.load(f)
 
             self.assertEqual(backup_data["blacklist"], test_blacklist)

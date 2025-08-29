@@ -1,6 +1,5 @@
 """Tests for additional functions in the apps module."""
 
-import sys
 import unittest
 from unittest.mock import patch
 

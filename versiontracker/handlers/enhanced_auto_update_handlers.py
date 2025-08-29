@@ -14,11 +14,10 @@ import tempfile
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any
 
 from versiontracker.app_finder import get_homebrew_casks
 from versiontracker.config import get_config
-from versiontracker.exceptions import ConfigError, HomebrewError
 from versiontracker.homebrew import get_casks_with_auto_updates
 from versiontracker.ui import create_progress_bar
 from versiontracker.utils import run_command
@@ -40,7 +39,7 @@ class UninstallResult:
 
     app_name: str
     success: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
     is_critical: bool = False
 
 
@@ -48,8 +47,8 @@ class UninstallResult:
 class BlacklistBackup:
     """Backup information for blacklist operations."""
 
-    original_blacklist: List[str]
-    backup_file: Optional[str] = None
+    original_blacklist: list[str]
+    backup_file: str | None = None
     timestamp: float = 0.0
 
 
@@ -61,7 +60,7 @@ class EnhancedAutoUpdateHandler:
         self.progress_bar = create_progress_bar()
         self.config = get_config()
 
-    def _create_blacklist_backup(self, current_blacklist: List[str]) -> BlacklistBackup:
+    def _create_blacklist_backup(self, current_blacklist: list[str]) -> BlacklistBackup:
         """Create a backup of the current blacklist configuration.
 
         Args:
@@ -242,7 +241,7 @@ class EnhancedAutoUpdateHandler:
 
             return 1
 
-    def _classify_uninstall_error(self, error_output: str, return_code: int) -> Tuple[bool, str]:
+    def _classify_uninstall_error(self, error_output: str, return_code: int) -> tuple[bool, str]:
         """Classify uninstall error to determine if it's critical.
 
         Args:
@@ -333,7 +332,7 @@ class EnhancedAutoUpdateHandler:
                 return 0
 
             # Uninstall each cask with detailed tracking
-            results: List[UninstallResult] = []
+            results: list[UninstallResult] = []
             critical_errors = []
 
             print(self.progress_bar.color("blue")("\nUninstalling casks with detailed progress..."))
@@ -396,7 +395,7 @@ class EnhancedAutoUpdateHandler:
                 print(self.progress_bar.color("red")(f"✗ Failed to uninstall: {len(failed)}"))
 
                 # Group failures by error type
-                error_groups: Dict[str, List[str]] = {}
+                error_groups: dict[str, list[str]] = {}
                 for result in failed:
                     error_msg = result.error_message or "Unknown error"
                     if error_msg not in error_groups:

@@ -1,12 +1,8 @@
 """Comprehensive test suite for auto-update edge cases and failure scenarios."""
 
-import os
-import sys
 import tempfile
 import unittest
-from io import StringIO
-from typing import List, Tuple
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, patch
 
 from versiontracker.config import Config
 from versiontracker.exceptions import HomebrewError, NetworkError
@@ -226,7 +222,7 @@ class TestAutoUpdateConfirmationFlows(unittest.TestCase):
                 else:
                     try:
                         self.mock_config.save.assert_not_called()
-                    except AssertionError as e:
+                    except AssertionError:
                         print(f"Save was called for input {repr(user_input)} when it shouldn't have been")
                         raise
 

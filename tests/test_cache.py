@@ -142,7 +142,7 @@ class TestCache(unittest.TestCase):
 
         # Check the file was created with the correct data
         cache_file = os.path.join(self.temp_dir, "test_cache.json")
-        with open(cache_file, "r") as f:
+        with open(cache_file) as f:
             data = json.load(f)
         self.assertEqual(data, test_data)
 

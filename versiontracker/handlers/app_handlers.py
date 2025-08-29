@@ -113,7 +113,7 @@ def handle_list_apps(options: Any) -> int:
 
         # Display results
         if table:
-            print(create_progress_bar().color("green")("\nFound {} applications:\n".format(len(table))))
+            print(create_progress_bar().color("green")(f"\nFound {len(table)} applications:\n"))
             print(tabulate(table, headers=["Application", "Version"], tablefmt="pretty"))
         else:
             print(create_progress_bar().color("yellow")("\nNo applications found matching the criteria."))

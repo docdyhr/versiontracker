@@ -2,7 +2,6 @@
 
 import logging
 import re
-from typing import List, Optional, Tuple, Union
 
 # Import parse_version from parser module
 from .parser import parse_version
@@ -15,9 +14,9 @@ class _EarlyReturn:
 
 
 def _handle_none_and_empty_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Handle None and empty version cases.
 
     Returns:
@@ -47,7 +46,7 @@ def _handle_none_and_empty_versions(
     return None
 
 
-def _is_version_malformed(version: Union[str, Tuple[int, ...], None]) -> bool:
+def _is_version_malformed(version: str | tuple[int, ...] | None) -> bool:
     """Check if a version is malformed (no digits found)."""
     if isinstance(version, tuple):
         return False
@@ -60,9 +59,9 @@ def _is_version_malformed(version: Union[str, Tuple[int, ...], None]) -> bool:
 
 
 def _handle_malformed_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Handle malformed version comparisons.
 
     Returns:
@@ -95,9 +94,9 @@ def _has_application_build_pattern(version_str: str) -> bool:
 def _handle_semver_build_metadata(
     v1_str: str,
     v2_str: str,
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Handle semantic versioning build metadata (+build.X)."""
     v1_has_semver_build = isinstance(version1, str) and "+" in version1
     v2_has_semver_build = isinstance(version2, str) and "+" in version2
@@ -119,9 +118,9 @@ def _handle_semver_build_metadata(
 def _compare_application_builds(
     v1_str: str,
     v2_str: str,
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[int]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> int | None:
     """Compare versions with application-specific build patterns."""
     # Check if both versions have application build patterns
     if not _both_have_app_builds(version1, version2):
@@ -145,8 +144,8 @@ def _compare_application_builds(
 
 
 def _both_have_app_builds(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
 ) -> bool:
     """Check if both versions have application build patterns."""
     v1_has = isinstance(version1, str) and _has_application_build_pattern(version1)
@@ -154,7 +153,7 @@ def _both_have_app_builds(
     return v1_has and v2_has
 
 
-def _parse_or_default(version: Union[str, Tuple[int, ...], None]) -> Tuple[int, ...]:
+def _parse_or_default(version: str | tuple[int, ...] | None) -> tuple[int, ...]:
     """Parse version string or return default tuple."""
     if isinstance(version, str):
         parsed = parse_version(version)
@@ -162,7 +161,7 @@ def _parse_or_default(version: Union[str, Tuple[int, ...], None]) -> Tuple[int, 
     return (0, 0, 0)
 
 
-def _compare_base_versions(v1_tuple: Tuple[int, ...], v2_tuple: Tuple[int, ...]) -> int:
+def _compare_base_versions(v1_tuple: tuple[int, ...], v2_tuple: tuple[int, ...]) -> int:
     """Compare base version tuples (first 3 components)."""
     v1_base = v1_tuple[:3] if len(v1_tuple) >= 3 else v1_tuple + (0,) * (3 - len(v1_tuple))
     v2_base = v2_tuple[:3] if len(v2_tuple) >= 3 else v2_tuple + (0,) * (3 - len(v2_tuple))
@@ -174,7 +173,7 @@ def _compare_base_versions(v1_tuple: Tuple[int, ...], v2_tuple: Tuple[int, ...])
     return 0
 
 
-def _compare_build_numbers(v1_build: Optional[int], v2_build: Optional[int]) -> int:
+def _compare_build_numbers(v1_build: int | None, v2_build: int | None) -> int:
     """Compare build numbers, handling None values."""
     if v1_build is not None and v2_build is not None:
         if v1_build < v2_build:
@@ -201,7 +200,7 @@ def _normalize_app_version_string(v_str: str) -> str:
     return cleaned.strip()
 
 
-def _handle_application_prefixes(v1_str: str, v2_str: str) -> Optional[int]:
+def _handle_application_prefixes(v1_str: str, v2_str: str) -> int | None:
     """Handle versions with application name prefixes."""
     # Only apply app name prefix logic if the versions actually contain application names
     has_app_name_v1 = bool(
@@ -235,9 +234,9 @@ def _handle_application_prefixes(v1_str: str, v2_str: str) -> Optional[int]:
 
 
 def _convert_to_version_tuples(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     """Convert versions to tuples for comparison."""
     # Convert to tuples if needed
     if isinstance(version1, str):
@@ -258,8 +257,8 @@ def _convert_to_version_tuples(
 
 
 def _compare_base_and_prerelease_versions(
-    v1_tuple: Tuple[int, ...],
-    v2_tuple: Tuple[int, ...],
+    v1_tuple: tuple[int, ...],
+    v2_tuple: tuple[int, ...],
     v1_str: str,
     v2_str: str,
 ) -> int:
@@ -307,8 +306,8 @@ def _compare_base_and_prerelease_versions(
 
 
 def compare_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
 ) -> int:
     """Compare two version strings or tuples.
 
@@ -380,7 +379,7 @@ def compare_versions(
     return _compare_base_and_prerelease_versions(v1_tuple, v2_tuple, v1_str, v2_str)
 
 
-def _extract_build_number(version_str: str) -> Optional[int]:
+def _extract_build_number(version_str: str) -> int | None:
     """Extract build number from version string with application-specific patterns."""
     # Look for patterns like "build 1234", "(1234)", "-dev-1234"
     patterns = [
@@ -411,7 +410,7 @@ def _is_prerelease(version_str: str) -> bool:
     )
 
 
-def _compare_prerelease(version1: Union[str, Tuple[int, ...]], version2: Union[str, Tuple[int, ...]]) -> int:
+def _compare_prerelease(version1: str | tuple[int, ...], version2: str | tuple[int, ...]) -> int:
     """Compare two pre-release versions."""
     v1_str = str(version1) if not isinstance(version1, str) else version1
     v2_str = str(version2) if not isinstance(version2, str) else version2
@@ -443,13 +442,13 @@ def _compare_prerelease(version1: Union[str, Tuple[int, ...]], version2: Union[s
         return _compare_prerelease_suffixes(v1_suffix, v2_suffix)
 
 
-def _get_unicode_priority(suffix: Union[int, str, None]) -> Optional[int]:
+def _get_unicode_priority(suffix: int | str | None) -> int | None:
     """Get priority value for Unicode Greek letters."""
     unicode_priority = {"α": 1, "β": 2, "γ": 3, "δ": 4}
     return unicode_priority.get(str(suffix)) if suffix is not None else None
 
 
-def _compare_unicode_suffixes(suffix1: Union[int, str, None], suffix2: Union[int, str, None]) -> Optional[int]:
+def _compare_unicode_suffixes(suffix1: int | str | None, suffix2: int | str | None) -> int | None:
     """Compare Unicode Greek letter suffixes. Returns None if not applicable."""
     p1 = _get_unicode_priority(suffix1)
     p2 = _get_unicode_priority(suffix2)
@@ -467,7 +466,7 @@ def _compare_unicode_suffixes(suffix1: Union[int, str, None], suffix2: Union[int
     return None  # Neither is Unicode
 
 
-def _compare_none_suffixes(suffix1: Union[int, str, None], suffix2: Union[int, str, None]) -> Optional[int]:
+def _compare_none_suffixes(suffix1: int | str | None, suffix2: int | str | None) -> int | None:
     """Compare None values. Returns None if not applicable."""
     if suffix1 is None and suffix2 is not None:
         return -1
@@ -496,7 +495,7 @@ def _compare_string_suffixes(suffix1: str, suffix2: str) -> int:
             return -1 if suffix1 < suffix2 else (1 if suffix1 > suffix2 else 0)
 
 
-def _compare_prerelease_suffixes(suffix1: Union[int, str, None], suffix2: Union[int, str, None]) -> int:
+def _compare_prerelease_suffixes(suffix1: int | str | None, suffix2: int | str | None) -> int:
     """Compare pre-release suffixes (numbers, strings, or None)."""
     # Handle Unicode Greek letters
     unicode_result = _compare_unicode_suffixes(suffix1, suffix2)
@@ -527,7 +526,7 @@ def _compare_prerelease_suffixes(suffix1: Union[int, str, None], suffix2: Union[
 
 def _extract_prerelease_type_and_suffix(
     version_str: str,
-) -> Tuple[str, Union[int, str, None]]:
+) -> tuple[str, int | str | None]:
     """Extract pre-release type and number/suffix from version string."""
     # Look for alpha, beta, rc, final with optional number or suffix, including Unicode
     match = re.search(
@@ -587,9 +586,9 @@ def is_version_newer(current: str, latest: str) -> bool:
 
 # Helper functions for get_version_difference
 def _handle_empty_and_malformed_versions(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Union[Tuple[int, ...], _EarlyReturn, None]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[int, ...] | _EarlyReturn | None:
     """Handle empty and malformed version cases.
 
     Returns _EarlyReturn() if should return None, None if should continue processing.
@@ -622,9 +621,9 @@ def _handle_empty_and_malformed_versions(
 
 
 def _convert_versions_to_tuples(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     """Convert versions to tuples for comparison."""
     if isinstance(version1, str):
         v1_tuple = parse_version(version1)
@@ -648,9 +647,9 @@ def _convert_versions_to_tuples(
 
 
 def _check_version_metadata(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Tuple[bool, bool]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[bool, bool]:
     """Check if versions have build metadata or prerelease patterns."""
     v1_has_build_metadata = isinstance(version1, str) and (
         "+build." in version1 or bool(re.search(r"\+.*\d+", version1))
@@ -669,12 +668,12 @@ def _check_version_metadata(
 
 
 def _apply_version_truncation(
-    v1_padded: Tuple[int, ...],
-    v2_padded: Tuple[int, ...],
+    v1_padded: tuple[int, ...],
+    v2_padded: tuple[int, ...],
     max_len: int,
     both_have_build_metadata: bool,
     both_have_prerelease: bool,
-) -> Tuple[Tuple[int, ...], Tuple[int, ...], int]:
+) -> tuple[tuple[int, ...], tuple[int, ...], int]:
     """Apply truncation rules for build metadata and prerelease versions."""
     # If both versions have build metadata, compare only first 3 components
     if both_have_build_metadata:
@@ -691,9 +690,9 @@ def _apply_version_truncation(
 
 
 def get_version_difference(
-    version1: Union[str, Tuple[int, ...], None],
-    version2: Union[str, Tuple[int, ...], None],
-) -> Optional[Tuple[int, ...]]:
+    version1: str | tuple[int, ...] | None,
+    version2: str | tuple[int, ...] | None,
+) -> tuple[int, ...] | None:
     """Get the signed difference between two versions (v1 - v2).
 
     Args:

@@ -1,7 +1,5 @@
 """Comprehensive tests for version module."""
 
-from typing import Dict, Union
-
 import pytest
 
 from versiontracker.version import (
@@ -317,7 +315,7 @@ class TestUtilityFunctions:
 
     def test_compose_version_tuple(self):
         """Test compose_version_tuple function."""
-        version_dict: Dict[str, Union[int, str]] = {"major": 1, "minor": 2, "patch": 3}
+        version_dict: dict[str, int | str] = {"major": 1, "minor": 2, "patch": 3}
         result = compose_version_tuple(version_dict)
         assert result is not None
 

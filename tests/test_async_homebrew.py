@@ -4,8 +4,7 @@ This module contains tests for the asynchronous Homebrew operations
 provided by the async_homebrew.py module.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

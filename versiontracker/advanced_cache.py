@@ -20,10 +20,11 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from versiontracker.exceptions import CacheError
 
@@ -100,8 +101,8 @@ class AdvancedCache:
             CacheError: If cache initialization fails
         """
         self._cache_dir = Path(cache_dir)
-        self._memory_cache: Dict[str, Any] = {}
-        self._metadata: Dict[str, CacheMetadata] = {}
+        self._memory_cache: dict[str, Any] = {}
+        self._metadata: dict[str, CacheMetadata] = {}
         self._memory_cache_size = memory_cache_size
         self._disk_cache_size_mb = disk_cache_size_mb
         self._default_ttl = default_ttl
@@ -139,7 +140,7 @@ class AdvancedCache:
         metadata_file = self._cache_dir / "metadata.json"
         if metadata_file.exists():
             try:
-                with open(metadata_file, "r", encoding="utf-8") as f:
+                with open(metadata_file, encoding="utf-8") as f:
                     metadata_dict = json.load(f)
 
                 # Convert the dictionary back to CacheMetadata objects
@@ -379,8 +380,8 @@ class AdvancedCache:
         self,
         key: str,
         level: CacheLevel = CacheLevel.ALL,
-        ttl: Optional[int] = None,
-    ) -> Optional[Any]:
+        ttl: int | None = None,
+    ) -> Any | None:
         """Get item from cache.
 
         Args:
@@ -575,7 +576,7 @@ class AdvancedCache:
                 msg = f"Failed to delete from cache {key}: {e}"
                 raise CacheError(msg) from e
 
-    def clear(self, source: Optional[str] = None) -> bool:
+    def clear(self, source: str | None = None) -> bool:
         """Clear cache.
 
         Args:
@@ -631,7 +632,7 @@ class AdvancedCache:
             self._update_cache_size()
         return self._stats
 
-    def get_keys(self, source: Optional[str] = None) -> List[str]:
+    def get_keys(self, source: str | None = None) -> list[str]:
         """Get all cache keys.
 
         Args:
@@ -684,7 +685,7 @@ class AdvancedCache:
         key: str,
         getter_func: Callable[[], Any],
         level: CacheLevel = CacheLevel.ALL,
-        ttl: Optional[int] = None,
+        ttl: int | None = None,
         priority: CachePriority = CachePriority.NORMAL,
         source: str = "",
     ) -> Any:
@@ -716,10 +717,10 @@ class AdvancedCache:
 
     def batch_get(
         self,
-        keys: List[str],
+        keys: list[str],
         level: CacheLevel = CacheLevel.ALL,
-        ttl: Optional[int] = None,
-    ) -> Dict[str, Optional[Any]]:
+        ttl: int | None = None,
+    ) -> dict[str, Any | None]:
         """Get multiple items from cache.
 
         Args:
@@ -730,14 +731,14 @@ class AdvancedCache:
         Returns:
             Dict[str, Optional[T]]: Dictionary of cache keys to values
         """
-        result: Dict[str, Optional[Any]] = {}
+        result: dict[str, Any | None] = {}
         for key in keys:
             result[key] = self.get(key, level, ttl)
         return result
 
     def batch_put(
         self,
-        items: Dict[str, Any],
+        items: dict[str, Any],
         level: CacheLevel = CacheLevel.ALL,
         priority: CachePriority = CachePriority.NORMAL,
         source: str = "",
@@ -793,7 +794,7 @@ class AdvancedCache:
 class CacheManager:
     """Singleton manager for cache instances."""
 
-    _instance: Optional[AdvancedCache] = None
+    _instance: AdvancedCache | None = None
     _lock = threading.Lock()
 
     @classmethod

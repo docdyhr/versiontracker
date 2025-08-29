@@ -3,7 +3,7 @@
 import threading
 import time
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Protocol
 
 
 # Rate limiter protocols
@@ -134,8 +134,8 @@ class AdaptiveRateLimiter(_AdaptiveRateLimiter):
 
 
 # Global cache variables
-_brew_search_cache: Dict[str, List[str]] = {}
-_brew_casks_cache: Optional[List[str]] = None
+_brew_search_cache: dict[str, list[str]] = {}
+_brew_casks_cache: list[str] | None = None
 
 
 def clear_homebrew_casks_cache() -> None:
@@ -150,7 +150,7 @@ def clear_homebrew_casks_cache() -> None:
 
 
 @lru_cache(maxsize=1)
-def get_homebrew_casks_cached() -> List[str]:
+def get_homebrew_casks_cached() -> list[str]:
     """Cached version of homebrew casks retrieval.
 
     This is a placeholder that will be replaced by the actual implementation

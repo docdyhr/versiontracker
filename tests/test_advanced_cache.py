@@ -143,7 +143,7 @@ class TestAdvancedCache:
         """Test cache directory creation."""
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir) / "new_cache_dir"
-            cache = AdvancedCache(cache_dir=str(cache_dir))
+            AdvancedCache(cache_dir=str(cache_dir))
 
             assert cache_dir.exists()
             assert cache_dir.is_dir()

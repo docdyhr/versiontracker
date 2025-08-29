@@ -5,7 +5,7 @@ import json
 import logging
 
 # File export/import functionality
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, cast
 
 from versiontracker.exceptions import ExportError
 from versiontracker.version import VersionStatus
@@ -16,14 +16,12 @@ FORMAT_OPTIONS = ("json", "csv")
 
 
 def export_data(
-    data: Union[
-        Dict[str, Any],
-        List[Tuple[str, Dict[str, str], VersionStatus]],
-        List[Tuple[str, Dict[str, str], str]],
-        List[Dict[str, str]],
-    ],
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
     format_type: str,
-    filename: Optional[str] = None,
+    filename: str | None = None,
 ) -> str:
     """Export data to a file or return as string.
 
@@ -70,12 +68,10 @@ def export_data(
 
 
 def _export_to_json(
-    data: Union[
-        Dict[str, Any],
-        List[Tuple[str, Dict[str, str], VersionStatus]],
-        List[Tuple[str, Dict[str, str], str]],
-        List[Dict[str, str]],
-    ],
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
 ) -> str:
     """Export data to JSON format.
 
@@ -114,7 +110,7 @@ def _export_to_json(
             output_data = {"applications": apps_list}
         else:
             # Use cast to ensure type compatibility
-            output_data = cast(Dict[str, Any], data)
+            output_data = cast(dict[str, Any], data)
 
         return json.dumps(output_data, indent=2)
     except Exception as e:
@@ -123,7 +119,7 @@ def _export_to_json(
 
 
 def _export_to_csv(
-    data: Union[Dict[str, Any], List[Tuple[str, Dict[str, str], VersionStatus]]],
+    data: dict[str, Any] | list[tuple[str, dict[str, str], VersionStatus]],
 ) -> str:
     """Export data to CSV format.
 

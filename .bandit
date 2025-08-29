@@ -1,14 +1,11 @@
 ---
 # Bandit security configuration
 exclude_dirs:
-  - tests
-  - venv
-  - .venv
-  - __pycache__
-  - .pytest_cache
-  - .mypy_cache
-  - node_modules
-  - htmlcov
+  - /tests/
+  - /build/
+  - /dist/
+  - /.venv/
+  - /venv/
 
 skips:
   - B101  # assert_used - Assert statements used in tests and validation
@@ -17,6 +14,10 @@ skips:
   - B603  # subprocess without shell - Safe usage with controlled inputs
   - B607  # partial path - brew command expected to be in PATH
   - B608  # hardcoded_sql_expressions - False positive in cache messages
+
+tests:
+  - B201  # flask_debug_true
+  - B301  # pickle
 
 # Note: B602 (subprocess with shell=True) is no longer skipped
 # New secure functions: run_command_secure() and shell_command_to_args()

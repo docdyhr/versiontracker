@@ -13,11 +13,6 @@ from unittest.mock import patch
 import pytest
 
 from tests.mock_homebrew_server import with_mock_homebrew_server
-from versiontracker.exceptions import (
-    DataParsingError,
-    HomebrewError,
-    NetworkError,
-)
 from versiontracker.exceptions import TimeoutError as VTTimeoutError
 from versiontracker.utils import run_command
 from versiontracker.version import check_latest_version, find_matching_cask

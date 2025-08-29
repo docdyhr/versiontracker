@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Forward reference for parse_version to avoid circular imports
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     pass
@@ -27,18 +27,18 @@ class ApplicationInfo:
 
     name: str
     version_string: str
-    bundle_id: Optional[str] = None
-    path: Optional[str] = None
-    homebrew_name: Optional[str] = None
-    latest_version: Optional[str] = None
-    latest_parsed: Optional[Tuple[int, ...]] = None
+    bundle_id: str | None = None
+    path: str | None = None
+    homebrew_name: str | None = None
+    latest_version: str | None = None
+    latest_parsed: tuple[int, ...] | None = None
     status: VersionStatus = VersionStatus.UNKNOWN
-    error_message: Optional[str] = None
-    outdated_by: Optional[Tuple[int, ...]] = None
-    newer_by: Optional[Tuple[int, ...]] = None
+    error_message: str | None = None
+    outdated_by: tuple[int, ...] | None = None
+    newer_by: tuple[int, ...] | None = None
 
     @property
-    def parsed(self) -> Optional[Tuple[int, ...]]:
+    def parsed(self) -> tuple[int, ...] | None:
         """Get the parsed version tuple."""
         if not self.version_string or not self.version_string.strip():
             return None

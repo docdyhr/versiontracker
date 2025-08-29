@@ -10,10 +10,10 @@
 [![Release](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=release&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
 
 <!-- Package Info -->
-[![PyPI - Version](https://img.shields.io/pypi/v/versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/versiontracker/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/versiontracker?logo=python&logoColor=white)](https://pypi.org/project/versiontracker/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/versiontracker?logo=pypi&logoColor=white&label=downloads)](https://pypi.org/project/versiontracker/)
-[![PyPI Status](https://img.shields.io/pypi/status/versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/versiontracker/)
+[![PyPI - Version](https://img.shields.io/pypi/v/macos-versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/macos-versiontracker/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/macos-versiontracker?logo=python&logoColor=white)](https://pypi.org/project/macos-versiontracker/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/macos-versiontracker?logo=pypi&logoColor=white&label=downloads)](https://pypi.org/project/macos-versiontracker/)
+[![PyPI Status](https://img.shields.io/pypi/status/macos-versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/macos-versiontracker/)
 
 <!-- Quality & Coverage -->
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white)](https://codecov.io/gh/docdyhr/versiontracker)
@@ -32,13 +32,13 @@
 
 <!-- Platform & Tools -->
 [![macOS](https://img.shields.io/badge/platform-macOS-blue.svg?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Homebrew Compatible](https://img.shields.io/badge/homebrew-compatible-orange.svg?logo=homebrew&logoColor=white)](https://brew.sh/)
 [![CLI Tool](https://img.shields.io/badge/tool-CLI-brightgreen?logo=terminal&logoColor=white)](https://github.com/docdyhr/versiontracker)
 [![GitHub Repo Size](https://img.shields.io/github/repo-size/docdyhr/versiontracker?logo=github&logoColor=white&label=repo%20size)](https://github.com/docdyhr/versiontracker)
 
 * Name: Versiontracker
-* Version: 0.6.5
+* Version: 0.7.1
 * Programming language: Python 3
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
@@ -83,15 +83,23 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ## Requirements
 
 * macOS (tested on 10.15 Catalina and later)
-* Python 3.13 or later
-* Homebrew package manager
+* Python 3.10 or later
+* Homebrew package manager (optional)
 
 ## Installation
 
 ### With Homebrew (Recommended)
 
-> Note: Homebrew tap publication pending. These commands will function once the
-> `docdyhr/homebrew-versiontracker` tap repository is created and the formula is pushed.
+```bash
+brew tap docdyhr/versiontracker
+brew install versiontracker
+```
+
+### With PyPI
+
+```bash
+pip install macos-versiontracker
+```
 
 ```bash
 brew tap docdyhr/versiontracker

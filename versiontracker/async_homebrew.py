@@ -4,10 +4,10 @@ This module provides asynchronous implementations of Homebrew operations,
 using asyncio for improved performance and resource utilization.
 """
 
-import asyncio
+import builtins
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -31,7 +31,7 @@ DEFAULT_TIMEOUT = 10  # seconds
 CACHE_EXPIRY = 86400  # 1 day in seconds
 
 
-async def fetch_cask_info(cask_name: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> Dict[str, Any]:
+async def fetch_cask_info(cask_name: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> dict[str, Any]:
     """Fetch information about a Homebrew cask asynchronously.
 
     Args:
@@ -52,7 +52,7 @@ async def fetch_cask_info(cask_name: str, timeout: int = DEFAULT_TIMEOUT, use_ca
     return await fetch_json(url, cache_key, timeout, use_cache)
 
 
-async def search_casks(query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> List[Dict[str, Any]]:
+async def search_casks(query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> list[dict[str, Any]]:
     """Search for Homebrew casks asynchronously.
 
     Args:
@@ -99,7 +99,7 @@ async def search_casks(query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bo
 
                 return casks
 
-    except asyncio.TimeoutError as e:
+    except builtins.TimeoutError as e:
         logging.error(f"Search request to {url} timed out after {timeout}s: {e}")
         raise TimeoutError(f"Search request timed out: {query}") from e
     except ClientResponseError as e:
@@ -113,7 +113,7 @@ async def search_casks(query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bo
         raise NetworkError(f"Unexpected error: {str(e)}") from e
 
 
-class HomebrewBatchProcessor(AsyncBatchProcessor[Tuple[str, str], Tuple[str, str, bool]]):
+class HomebrewBatchProcessor(AsyncBatchProcessor[tuple[str, str], tuple[str, str, bool]]):
     """Process batches of applications to check for Homebrew installability."""
 
     def __init__(
@@ -137,7 +137,7 @@ class HomebrewBatchProcessor(AsyncBatchProcessor[Tuple[str, str], Tuple[str, str
         self.use_cache = use_cache
         self.strict_match = strict_match
 
-    async def process_item(self, item: Tuple[str, str]) -> Tuple[str, str, bool]:
+    async def process_item(self, item: tuple[str, str]) -> tuple[str, str, bool]:
         """Check if an application can be installed with Homebrew.
 
         Args:
@@ -240,7 +240,7 @@ class HomebrewBatchProcessor(AsyncBatchProcessor[Tuple[str, str], Tuple[str, str
 
         return False
 
-    def handle_error(self, item: Tuple[str, str], error: Exception) -> Tuple[str, str, bool]:
+    def handle_error(self, item: tuple[str, str], error: Exception) -> tuple[str, str, bool]:
         """Handle an error that occurred during processing.
 
         Args:
@@ -257,8 +257,8 @@ class HomebrewBatchProcessor(AsyncBatchProcessor[Tuple[str, str], Tuple[str, str
 
 @async_to_sync
 async def async_check_brew_install_candidates(
-    data: List[Tuple[str, str]], rate_limit: float = 1.0, strict_match: bool = False
-) -> List[Tuple[str, str, bool]]:
+    data: list[tuple[str, str]], rate_limit: float = 1.0, strict_match: bool = False
+) -> list[tuple[str, str, bool]]:
     """Check which applications can be installed via Homebrew (async version).
 
     Args:
@@ -286,7 +286,7 @@ async def async_check_brew_install_candidates(
 
 
 @async_to_sync
-async def async_get_cask_version(cask_name: str, use_cache: bool = True) -> Optional[str]:
+async def async_get_cask_version(cask_name: str, use_cache: bool = True) -> str | None:
     """Get the latest version of a Homebrew cask asynchronously.
 
     Args:
@@ -315,7 +315,7 @@ async def async_get_cask_version(cask_name: str, use_cache: bool = True) -> Opti
         raise HomebrewError(f"Error getting cask version: {e}") from e
 
 
-class HomebrewVersionChecker(AsyncBatchProcessor[Tuple[str, str, str], Tuple[str, str, str, Optional[str]]]):
+class HomebrewVersionChecker(AsyncBatchProcessor[tuple[str, str, str], tuple[str, str, str, str | None]]):
     """Process batches of applications to check for updates via Homebrew."""
 
     def __init__(
@@ -336,7 +336,7 @@ class HomebrewVersionChecker(AsyncBatchProcessor[Tuple[str, str, str], Tuple[str
         super().__init__(batch_size, max_concurrency, rate_limit)
         self.use_cache = use_cache
 
-    async def process_item(self, item: Tuple[str, str, str]) -> Tuple[str, str, str, Optional[str]]:
+    async def process_item(self, item: tuple[str, str, str]) -> tuple[str, str, str, str | None]:
         """Check for updates to a Homebrew-installed application.
 
         Args:
@@ -358,7 +358,7 @@ class HomebrewVersionChecker(AsyncBatchProcessor[Tuple[str, str, str], Tuple[str
             logging.error(f"Error checking version for {app_name} ({cask_name}): {e}")
             return (app_name, version, cask_name, None)
 
-    def handle_error(self, item: Tuple[str, str, str], error: Exception) -> Tuple[str, str, str, Optional[str]]:
+    def handle_error(self, item: tuple[str, str, str], error: Exception) -> tuple[str, str, str, str | None]:
         """Handle an error that occurred during processing.
 
         Args:
@@ -375,8 +375,8 @@ class HomebrewVersionChecker(AsyncBatchProcessor[Tuple[str, str, str], Tuple[str
 
 @async_to_sync
 async def async_check_brew_update_candidates(
-    data: List[Tuple[str, str, str]], rate_limit: float = 1.0
-) -> List[Tuple[str, str, str, Optional[str]]]:
+    data: list[tuple[str, str, str]], rate_limit: float = 1.0
+) -> list[tuple[str, str, str, str | None]]:
     """Check for updates to Homebrew-installed applications (async version).
 
     Args:

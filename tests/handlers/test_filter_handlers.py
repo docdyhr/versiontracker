@@ -152,8 +152,8 @@ class TestFilterHandlers:
         # Assert
         # The handler returns None when it loads a filter successfully
         assert result is None
-        assert getattr(mock_options, "option1") == "value1"
-        assert getattr(mock_options, "option2") == "value2"
+        assert mock_options.option1 == "value1"
+        assert mock_options.option2 == "value2"
         assert mock_config._config["test_key"] == "new_value"
         mock_color.assert_called_with("green")
         mock_color.return_value.assert_called_with("Loaded filter: test-filter")

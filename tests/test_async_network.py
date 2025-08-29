@@ -4,11 +4,11 @@ This module contains tests for the asynchronous network operations
 provided by the async_network.py module.
 """
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+import builtins
+from unittest.mock import MagicMock, patch
 
 import pytest
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientResponseError
 
 from tests.mock_aiohttp_session import create_mock_session_factory, mock_aiohttp_session
 from versiontracker.async_network import (
@@ -87,7 +87,7 @@ async def test_fetch_json_timeout():
     """Test handling of timeouts."""
     async with mock_aiohttp_session() as mock_session:
         # Override the get method to raise timeout
-        mock_session.get = MagicMock(side_effect=asyncio.TimeoutError("Timeout"))
+        mock_session.get = MagicMock(side_effect=builtins.TimeoutError("Timeout"))
 
         session_factory = create_mock_session_factory(mock_session)
 

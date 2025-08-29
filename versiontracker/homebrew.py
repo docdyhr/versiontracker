@@ -11,7 +11,7 @@ import os
 import re
 import subprocess
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from versiontracker.advanced_cache import (
     CacheLevel,
@@ -102,7 +102,7 @@ def get_brew_command() -> str:
     return get_homebrew_path()
 
 
-def get_all_homebrew_casks() -> List[Dict[str, Any]]:
+def get_all_homebrew_casks() -> list[dict[str, Any]]:
     """Get a list of all available Homebrew casks with advanced caching.
 
     Returns:
@@ -167,7 +167,7 @@ def get_all_homebrew_casks() -> List[Dict[str, Any]]:
         raise HomebrewError(error_msg)
 
 
-def get_cask_info(cask_name: str) -> Dict[str, Any]:
+def get_cask_info(cask_name: str) -> dict[str, Any]:
     """Get detailed information about a specific Homebrew cask.
 
     Args:
@@ -237,7 +237,7 @@ def get_cask_info(cask_name: str) -> Dict[str, Any]:
         raise HomebrewError(error_msg)
 
 
-def search_casks(query: str) -> List[Dict[str, Any]]:
+def search_casks(query: str) -> list[dict[str, Any]]:
     """Search for Homebrew casks matching a query.
 
     Args:
@@ -302,7 +302,7 @@ def search_casks(query: str) -> List[Dict[str, Any]]:
         raise HomebrewError(error_msg)
 
 
-def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
+def batch_get_cask_info(cask_names: list[str]) -> dict[str, dict[str, Any]]:
     """Get information for multiple casks in a batch operation.
 
     Args:
@@ -318,8 +318,8 @@ def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
         return {}
 
     cache = get_cache()
-    result: Dict[str, Dict[str, Any]] = {}
-    casks_to_fetch: List[str] = []
+    result: dict[str, dict[str, Any]] = {}
+    casks_to_fetch: list[str] = []
 
     # Check cache first for all casks
     for cask_name in cask_names:
@@ -398,7 +398,7 @@ def batch_get_cask_info(cask_names: List[str]) -> Dict[str, Dict[str, Any]]:
     return result
 
 
-def get_installed_homebrew_casks() -> List[Dict[str, Any]]:
+def get_installed_homebrew_casks() -> list[dict[str, Any]]:
     """Get a list of all installed Homebrew casks.
 
     Returns:
@@ -451,7 +451,7 @@ def clear_homebrew_cache() -> bool:
     return cache.clear(source="homebrew")
 
 
-def get_outdated_homebrew_casks() -> List[Dict[str, Any]]:
+def get_outdated_homebrew_casks() -> list[dict[str, Any]]:
     """Get a list of outdated Homebrew casks.
 
     Returns:
@@ -571,7 +571,7 @@ def has_auto_updates(cask_name: str) -> bool:
         return False
 
 
-def get_casks_with_auto_updates(cask_names: List[str]) -> List[str]:
+def get_casks_with_auto_updates(cask_names: list[str]) -> list[str]:
     """Get a list of cask names that have auto-updates enabled.
 
     Args:
