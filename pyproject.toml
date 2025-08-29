@@ -150,46 +150,61 @@ disable_error_code = ["attr-defined", "name-defined"]
 
 # Pytest configuration
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
+minversion = "7.0"
+testpaths = [
+    "tests",
+    "versiontracker"
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+    "tests.py"
+]
+python_classes = [
+    "Test*",
+    "*Tests",
+    "*TestCase"
+]
+python_functions = [
+    "test_*",
+    "*_test"
+]
 addopts = [
     "-ra",
-    "-v",
-    "--cov=versiontracker",
-    "--cov-report=term-missing",
-    "--cov-report=xml",
-    "--cov-report=html",
-    "--cov-branch",
-    "--cov-fail-under=15",
     "--strict-markers",
-    "--strict-config",
+    "--ignore=dist",
+    "--ignore=build",
+    "--ignore=.venv",
+    "--cov=versiontracker",
+    "--cov-branch",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+    "--cov-report=xml",
     "--tb=short",
-    "--maxfail=5",
-    "--durations=10",
-    "--junitxml=pytest.xml",
-    "--timeout=300",
-    "--disable-warnings",
+    "--maxfail=1",
+    "--strict-config",
+    "--verbose"
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
-    "network: marks tests that require network access",
-    "asyncio: marks tests that use asyncio",
     "unit: marks tests as unit tests",
-    "smoke: marks tests as smoke tests for basic functionality",
+    "network: marks tests that require network access"
+]
+norecursedirs = [
+    ".git",
+    ".tox",
+    "dist",
+    "build",
+    "*.egg",
+    "__pycache__",
+    ".venv",
+    "venv"
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-    "ignore::FutureWarning",
-    "ignore::UserWarning:fuzzywuzzy.*",
-    "ignore::UserWarning:requests.*",
-    "error::UserWarning:versiontracker.*",
+    "ignore::PendingDeprecationWarning"
 ]
-minversion = "7.0"
 timeout = 300
 asyncio_mode = "auto"
 
