@@ -189,7 +189,7 @@ class RateLimiterProtocol(Protocol):
 
 
 # Rate limiter type alias
-RateLimiterType = Union[SimpleRateLimiter, _AdaptiveRateLimiter]
+RateLimiterType = SimpleRateLimiter | _AdaptiveRateLimiter
 
 # Progress bar availability
 HAS_PROGRESS = True
@@ -198,7 +198,7 @@ try:
 except ImportError:
     HAS_PROGRESS = False
 
-    def smart_progress(
+    def smart_progress[T](
         iterable: Iterable[T] | None = None,
         desc: str = "",
         total: int | None = None,
@@ -499,55 +499,60 @@ def is_brew_cask_installable(cask_name: str, use_cache: bool = True) -> bool:
     logging.debug("Checking if %s is installable", cask_name)
 
     try:
-        # Fast path for non-homebrew systems
-        if not is_homebrew_available():
-            raise HomebrewError(f"Homebrew is not available for checking cask: {cask_name}")
-
-        # Check cache first
-        cache_data = read_cache("brew_installable")
-        if use_cache:
-            cached_result = _check_cache_for_cask(cask_name, cache_data)
-            if cached_result is not None:
-                return cached_result
-
-        # Execute brew search
-        try:
-            output, returncode = _execute_brew_search(cask_name)
-            is_installable = _handle_brew_search_result(output, returncode, cask_name)
-
-            # Update cache if installable
-            if is_installable:
-                _update_cache_with_installable(cask_name, cache_data)
-
-            return is_installable
-
-        except Exception as e:
-            error_details = _get_error_message(e)
-            logging.warning("Exception checking if %s is installable: %s", cask_name, error_details)
-            return False
-
-    except BrewTimeoutError as e:
-        error_msg = _get_error_message(e)
-        logging.warning("Timeout checking if %s is installable: %s", cask_name, error_msg)
+        return _check_cask_installable_with_cache(cask_name, use_cache)
+    except (BrewTimeoutError, NetworkError, HomebrewError):
+        # Re-raise specific exceptions
         raise
-    except NetworkError as e:
-        error_msg = _get_error_message(e)
-        logging.warning("Network error checking if %s is installable: %s", cask_name, error_msg)
-        raise
-    except HomebrewError as e:
-        error_msg = _get_error_message(e)
-        logging.warning("Homebrew error checking if %s is installable: %s", cask_name, error_msg)
-        raise
+    except Exception as e:
+        return _handle_cask_installable_error(cask_name, e)
+
+
+def _check_cask_installable_with_cache(cask_name: str, use_cache: bool) -> bool:
+    """Check cask installability with cache support."""
+    # Fast path for non-homebrew systems
+    if not is_homebrew_available():
+        raise HomebrewError(f"Homebrew is not available for checking cask: {cask_name}")
+
+    # Check cache first
+    cache_data = read_cache("brew_installable")
+    if use_cache:
+        cached_result = _check_cache_for_cask(cask_name, cache_data)
+        if cached_result is not None:
+            return cached_result
+
+    return _execute_cask_installable_check(cask_name, cache_data)
+
+
+def _execute_cask_installable_check(cask_name: str, cache_data: dict) -> bool:
+    """Execute the actual cask installability check."""
+    try:
+        output, returncode = _execute_brew_search(cask_name)
+        is_installable = _handle_brew_search_result(output, returncode, cask_name)
+
+        # Update cache if installable
+        if is_installable:
+            _update_cache_with_installable(cask_name, cache_data)
+
+        return is_installable
+
     except Exception as e:
         error_details = _get_error_message(e)
         logging.warning("Exception checking if %s is installable: %s", cask_name, error_details)
+        return False
 
-        # Check if it's a network-related exception
-        if "network" in str(e).lower() or "connection" in str(e).lower():
-            raise NetworkError(f"Network unavailable when checking homebrew cask: {cask_name}") from e
 
-        # Re-raise with improved error message
-        raise HomebrewError(f"Error checking if {cask_name} is installable: {error_details}") from e
+def _handle_cask_installable_error(cask_name: str, error: Exception) -> bool:
+    """Handle general errors during cask installability checks."""
+    error_details = _get_error_message(error)
+    logging.warning("Exception checking if %s is installable: %s", cask_name, error_details)
+
+    # Check if it's a network-related exception
+    error_str = str(error).lower()
+    if "network" in error_str or "connection" in error_str:
+        raise NetworkError(f"Network unavailable when checking homebrew cask: {cask_name}") from error
+
+    # Re-raise with improved error message
+    raise HomebrewError(f"Error checking if {cask_name} is installable: {error_details}") from error
 
 
 def is_homebrew_available() -> bool:
@@ -745,7 +750,7 @@ def check_brew_install_candidates(
             batch_results, error_count, exception_to_raise = _handle_batch_error(e, error_count, batch)
             results.extend(batch_results)
             if exception_to_raise:
-                raise exception_to_raise
+                raise exception_to_raise from e
 
     return results
 
@@ -885,7 +890,7 @@ def _process_brew_batch(batch: list[tuple[str, str]], rate_limit: int, use_cache
                 # Check if the future has an exception directly
                 if future.exception() is not None:
                     exception = future.exception()
-                    if isinstance(exception, (BrewTimeoutError, NetworkError, HomebrewError)):
+                    if isinstance(exception, BrewTimeoutError | NetworkError | HomebrewError):
                         # Re-raise these specific exceptions for proper handling
                         raise exception
                     else:
@@ -1080,7 +1085,7 @@ def _batch_process_brew_search(apps_batch: list[tuple[str, str]], rate_limiter: 
         app_name, _ = app
 
         # Wait for rate limit if needed
-        if rate_limiter is not None and isinstance(rate_limiter, (SimpleRateLimiter, _AdaptiveRateLimiter)):
+        if rate_limiter is not None and isinstance(rate_limiter, SimpleRateLimiter | _AdaptiveRateLimiter):
             rate_limiter.wait()
 
         try:
