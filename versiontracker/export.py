@@ -62,7 +62,7 @@ def export_data(
             raise PermissionError(f"Permission denied writing to {filename}") from e
         except Exception as e:
             logging.error(f"Error writing to {filename}: {e}")
-            raise ExportError(f"Failed to write to {filename}: {e}") from e
+            raise ExportError(f"Failed to write to {filename}: {e}") from e from e
     else:
         return cast(str, content)
 
@@ -212,7 +212,7 @@ def export_to_json(data, filename=None):
             return filename
         except Exception as e:
             logging.error(f"Error writing to {filename}: {e}")
-            raise ExportError(f"Failed to write to {filename}: {e}")
+            raise ExportError(f"Failed to write to {filename}: {e}") from e
 
     return content
 
@@ -240,6 +240,6 @@ def export_to_csv(data, filename=None):
             return filename
         except Exception as e:
             logging.error(f"Error writing to {filename}: {e}")
-            raise ExportError(f"Failed to write to {filename}: {e}")
+            raise ExportError(f"Failed to write to {filename}: {e}") from e
 
     return content
