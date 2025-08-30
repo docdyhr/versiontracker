@@ -20,6 +20,13 @@ from versiontracker.handlers import (
     handle_setup_logging,
     handle_uninstall_auto_updates,
 )
+from versiontracker.profiling import (
+    disable_profiling,
+    enable_profiling,
+    print_report,
+    profile_function,
+)
+from versiontracker.ui import QueryFilterManager, create_progress_bar
 
 # Import macOS handlers if available
 _MACOS_HANDLERS_AVAILABLE = False
@@ -43,13 +50,6 @@ try:
     }
 except ImportError:
     pass
-from versiontracker.profiling import (
-    disable_profiling,
-    enable_profiling,
-    print_report,
-    profile_function,
-)
-from versiontracker.ui import QueryFilterManager, create_progress_bar
 
 # Logging, configuration, and filter management functions have been moved to handlers modules
 
