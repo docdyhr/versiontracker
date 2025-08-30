@@ -77,6 +77,15 @@ def get_arguments() -> Any:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    # Global options
+    parser.add_argument(
+        "--version",
+        "-V",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show program's version number and exit",
+    )
+
     # Main action flags (mutually exclusive for actions)
     action_group = parser.add_mutually_exclusive_group()
     action_group.add_argument(

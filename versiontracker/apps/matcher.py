@@ -11,6 +11,8 @@ from versiontracker.cache import read_cache, write_cache
 from versiontracker.config import get_config
 from versiontracker.utils import normalise_name, run_command
 
+from .cache import RateLimiterProtocol
+
 # Import the main version.py file directly (not the version/ package)
 _version_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version_legacy.py")
 _spec = importlib.util.spec_from_file_location("versiontracker_version_main", _version_py_path)
@@ -20,9 +22,6 @@ if _spec is not None and _spec.loader is not None:
     partial_ratio = _version_main.partial_ratio
 else:
     raise ImportError("Could not load version.py module")
-
-
-from .cache import RateLimiterProtocol
 
 # Module constants
 BREW_PATH = "brew"  # Will be updated based on architecture detection

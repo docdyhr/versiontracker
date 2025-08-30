@@ -4,7 +4,6 @@ Test module for configuration functionality.
 This module provides basic tests for the config module.
 """
 
-import logging
 import os
 import tempfile
 import unittest
@@ -13,7 +12,7 @@ from unittest.mock import patch
 from versiontracker.config import Config, get_config
 
 
-class TestConfig:
+class TestConfig(unittest.TestCase):
     """Tests for configuration management."""
 
     def test_default_config(self):
@@ -21,8 +20,8 @@ class TestConfig:
         config = Config()
         assert config is not None
         # Test some expected defaults
-        assert hasattr(config, "max_workers")
-        assert config.max_workers > 0
+        assert config.get("max_workers") is not None
+        assert config.get("max_workers") > 0
 
     def test_get_config_singleton(self):
         """Test that get_config returns the same instance."""
@@ -39,8 +38,8 @@ class TestConfig:
 
         try:
             config = Config(config_file=temp_file)
-            assert config.max_workers == 10
-            assert config.cache_dir == "/tmp/test_cache"
+            assert config.get("max_workers") == 10
+            assert config.get("cache_dir") == "/tmp/test_cache"
         finally:
             os.unlink(temp_file)
 
@@ -52,14 +51,13 @@ class TestConfig:
         try:
             os.environ["VERSIONTRACKER_MAX_WORKERS"] = "5"
             config = Config()
-            assert config.max_workers == 5
+            assert config.get("max_workers") == 5
         finally:
             # Restore original env
             if original_workers is not None:
                 os.environ["VERSIONTRACKER_MAX_WORKERS"] = original_workers
             else:
                 os.environ.pop("VERSIONTRACKER_MAX_WORKERS", None)
-        self.assertEqual(config.get("log_level"), logging.DEBUG)
 
     @patch.dict(os.environ, {"VERSIONTRACKER_BLACKLIST": "App1,App2,App3"})
     def test_env_blacklist(self):

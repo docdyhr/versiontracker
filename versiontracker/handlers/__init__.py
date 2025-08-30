@@ -34,15 +34,16 @@ from versiontracker.handlers.ui_handlers import get_status_color, get_status_ico
 # Import macOS handlers only if available
 try:
     from versiontracker.handlers.macos_handlers import (
-        handle_install_service,
-        handle_menubar_app,
-        handle_service_status,
-        handle_test_notification,
-        handle_uninstall_service,
+        handle_install_service,  # noqa: F401
+        handle_menubar_app,  # noqa: F401
+        handle_service_status,  # noqa: F401
+        handle_test_notification,  # noqa: F401
+        handle_uninstall_service,  # noqa: F401
     )
 
     _MACOS_HANDLERS_AVAILABLE = True
 except ImportError:
+    # Create stub handlers if macOS handlers aren't available
     _MACOS_HANDLERS_AVAILABLE = False
 
 __all__ = [
@@ -60,6 +61,8 @@ __all__ = [
     "handle_initialize_config",
     "handle_configure_from_options",
     "handle_setup_logging",
+    "get_status_color",
+    "get_status_icon",
 ]
 
 # Add macOS handlers to __all__ if available

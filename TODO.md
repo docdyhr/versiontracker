@@ -95,7 +95,7 @@ This document outlines planned enhancements and future development for the Versi
 
 ### 1. Version 0.8.0 Release Preparation (NEXT)
 
-- [ ] Update version in `versiontracker/__init__.py` from 0.7.1 to 0.8.0
+- [ ] Update version in `versiontracker/__init__.py` from 0.7.2 to 0.8.0
 - [ ] Update CHANGELOG.md with comprehensive 0.8.0 release notes
 - [ ] Test setuptools>=64 dynamic versioning fix in CI environment
 - [ ] Verify all CI checks pass with Python 3.10-3.13
@@ -275,8 +275,8 @@ This document outlines planned enhancements and future development for the Versi
 ### Metrics (Updated August 24, 2025)
 
 - **Tests**: 962 passing tests, 70.88% coverage
-- **Version**: 0.7.1 (next: 0.8.0)
-- **Branch**: `release/v0.7.1-homebrew-prep` (main: `master`)
+- **Version**: 0.7.2 (next: 0.8.0)
+- **Branch**: `release/v0.7.2-homebrew-prep` (main: `master`)
 - **Code Quality**: ✅ Excellent (modular architecture, clean code)
 - **Security**: ✅ Excellent (comprehensive scanning, security workflow operational)  
 - **CI/CD Pipeline**: ✅ Fully operational and optimized (3 seconds vs 76+ seconds)

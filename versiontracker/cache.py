@@ -12,7 +12,7 @@ from versiontracker.exceptions import CacheError
 CACHE_DIR = os.path.expanduser("~/.versiontracker/cache")
 
 
-def _ensure_cache_dir():
+def _ensure_cache_dir() -> None:
     """Ensure cache directory exists."""
     try:
         if not os.path.exists(CACHE_DIR):

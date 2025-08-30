@@ -3,13 +3,12 @@ class Versiontracker < Formula
 
   desc "Track and update third-party (non-App Store) software on macOS with Homebrew awareness"
   homepage "https://github.com/docdyhr/versiontracker"
-  url "https://github.com/docdyhr/versiontracker/archive/refs/tags/v0.7.1.tar.gz"
-  sha256 "7b9afa5f8c04031231ebce24b07edea766b0dd07a90b8130bee1c11de50058a7"  # pragma: allowlist secret
+  url "https://github.com/docdyhr/versiontracker/archive/refs/tags/v0.7.2.tar.gz"
+  sha256 "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"  # pragma: allowlist secret
   license "MIT"
 
-  # Project requires Python >= 3.9, use 3.11 for broad compatibility
-  depends_on "python@3.11"
-
+  # Project requires Python >= 3.12
+  depends_on "python@3.12"
   resource "fuzzywuzzy" do
     url "https://files.pythonhosted.org/packages/source/f/fuzzywuzzy/fuzzywuzzy-0.18.0.tar.gz"
     sha256 "a0d013fb62b5e21658ab4b63a62cb2a7ab3392a1b3f7f004b586eaf8b22302fe"  # pragma: allowlist secret
@@ -60,6 +59,6 @@ class Versiontracker < Formula
     assert_match "versiontracker", help_output
 
     version_output = shell_output("#{bin}/versiontracker --version")
-    assert_match "0.7.1", version_output
+  assert_match "0.7.2", version_output
   end
 end

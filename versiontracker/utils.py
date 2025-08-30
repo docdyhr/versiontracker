@@ -809,7 +809,9 @@ def get_homebrew_prefix() -> str | None:
     return None
 
 
-def run_command_subprocess(command: list[str], timeout: int | None = 30, check: bool = True) -> subprocess.CompletedProcess:
+def run_command_subprocess(
+    command: list[str], timeout: int | None = 30, check: bool = True
+) -> subprocess.CompletedProcess:
     """
     Run a shell command with timeout and error handling.
 

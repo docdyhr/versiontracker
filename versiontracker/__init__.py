@@ -6,7 +6,7 @@ outside of the Mac App Store, with Homebrew cask integration.
 
 from typing import Any
 
-__version__ = "0.1.0-alpha.1"
+__version__ = "0.7.2"
 
 from versiontracker.config import Config, get_config
 from versiontracker.exceptions import (
