@@ -221,7 +221,7 @@ def run_async_in_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> 
         return future.result()
 
 
-class AsyncBatchProcessor(Generic[T, R]):
+class AsyncBatchProcessor[T, R]:
     """Process batches of data asynchronously with rate limiting."""
 
     def __init__(

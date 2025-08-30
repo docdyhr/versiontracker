@@ -37,7 +37,6 @@ from typing import (
     Any,
     Protocol,
     TypeVar,
-    Union,
     cast,
 )
 

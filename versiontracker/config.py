@@ -74,10 +74,10 @@ class Config:
             with open(config_file) as f:
                 file_config = yaml.safe_load(f) or {}
                 self._config.update(file_config)
-        except FileNotFoundError:
-            raise ConfigError(f"Configuration file not found: {config_file}")
+        except FileNotFoundError as e:
+            raise ConfigError(f"Configuration file not found: {config_file}") from e
         except yaml.YAMLError as e:
-            raise ConfigError(f"Error parsing configuration file: {e}")
+            raise ConfigError(f"Error parsing configuration file: {e}") from e
 
     def _load_default_config(self) -> None:
         """Load configuration from default locations."""
