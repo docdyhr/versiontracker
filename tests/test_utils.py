@@ -83,7 +83,7 @@ class TestTerminalWidth:
         assert width >= 40
 
 
-class TestHomebrewDetection:
+class TestHomebrewDetection(unittest.TestCase):
     """Tests for Homebrew detection."""
 
     def test_is_homebrew_installed(self):
@@ -92,6 +92,13 @@ class TestHomebrewDetection:
         # The actual result depends on the system
         result = is_homebrew_installed()
         assert isinstance(result, bool)
+
+    @patch("subprocess.Popen")
+    def test_run_command_success(self, mock_popen):
+        """Test run_command with successful execution."""
+        mock_process = Mock()
+        mock_process.communicate.return_value = (b"test output", b"")
+        mock_process.returncode = 0
         mock_popen.return_value = mock_process
 
         output, returncode = run_command("test command")

@@ -15,7 +15,6 @@ fuzz: Any = None
 
 try:
     import rapidfuzz.fuzz as rapidfuzz_fuzz
-    import rapidfuzz.process as rapidfuzz_process
 
     fuzz = rapidfuzz_fuzz
     USE_RAPIDFUZZ = True
