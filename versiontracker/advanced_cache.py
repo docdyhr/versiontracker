@@ -376,6 +376,93 @@ class AdvancedCache:
                 source=source,
             )
 
+    def _get_from_memory(self, key: str, ttl: int) -> Any | None:
+        """Get item from memory cache.
+
+        Args:
+            key: Cache key
+            ttl: Time-to-live in seconds
+
+        Returns:
+            Cached value or None if not found/expired
+        """
+        if key not in self._memory_cache:
+            return None
+
+        if self._is_expired(key, ttl):
+            del self._memory_cache[key]
+            if self._stats_enabled:
+                self._stats.misses += 1
+            return None
+
+        # Update access metadata
+        self._update_metadata(key, 0, "", CachePriority.NORMAL, is_access=True)
+        if self._stats_enabled:
+            self._stats.hits += 1
+        return self._memory_cache[key]
+
+    def _load_and_decompress_data(self, cache_path: Path) -> Any | None:
+        """Load and decompress data from disk cache file.
+
+        Args:
+            cache_path: Path to cache file
+
+        Returns:
+            Deserialized value or None if invalid
+        """
+        with open(cache_path, "rb") as f:
+            data = f.read()
+
+        try:
+            if data[:2] == b"\x1f\x8b":  # gzip magic number
+                data = self._decompress_data(data)
+            return json.loads(data.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            logging.warning("Invalid data in cache %s: %s", cache_path, e)
+            if self._stats_enabled:
+                self._stats.errors += 1
+            return None
+
+    def _get_from_disk(self, key: str, ttl: int, level: CacheLevel) -> Any | None:
+        """Get item from disk cache.
+
+        Args:
+            key: Cache key
+            ttl: Time-to-live in seconds
+            level: Cache level (to determine if should store in memory)
+
+        Returns:
+            Cached value or None if not found/expired
+        """
+        cache_path = self._get_cache_path(key)
+
+        if not cache_path.exists():
+            return None
+
+        if self._is_expired(key, ttl):
+            cache_path.unlink()
+            if key in self._metadata:
+                del self._metadata[key]
+            if self._stats_enabled:
+                self._stats.misses += 1
+            return None
+
+        value = self._load_and_decompress_data(cache_path)
+        if value is None:
+            return None
+
+        # Update access metadata
+        self._update_metadata(key, 0, "", CachePriority.NORMAL, is_access=True)
+
+        # Store in memory cache for faster access next time
+        if level == CacheLevel.ALL:
+            self._memory_cache[key] = value
+            self._evict_if_needed()
+
+        if self._stats_enabled:
+            self._stats.hits += 1
+        return value
+
     def get(
         self,
         key: str,
@@ -400,69 +487,17 @@ class AdvancedCache:
         with self._lock:
             # Check memory cache first if requested
             memory_levels = (CacheLevel.MEMORY, CacheLevel.ALL)
-            if level in memory_levels and key in self._memory_cache:
-                if self._is_expired(key, ttl):
-                    # Item is expired, remove it
-                    del self._memory_cache[key]
-                    if self._stats_enabled:
-                        self._stats.misses += 1
-                    return None
-
-                # Update access metadata
-                self._update_metadata(key, 0, "", CachePriority.NORMAL, is_access=True)
-
-                if self._stats_enabled:
-                    self._stats.hits += 1
-
-                return self._memory_cache[key]
+            if level in memory_levels:
+                result = self._get_from_memory(key, ttl)
+                if result is not None:
+                    return result
 
             # Check disk cache if requested
             if level in (CacheLevel.DISK, CacheLevel.ALL):
-                cache_path = self._get_cache_path(key)
                 try:
-                    if cache_path.exists():
-                        if self._is_expired(key, ttl):
-                            # Item is expired, remove it
-                            cache_path.unlink()
-                            if key in self._metadata:
-                                del self._metadata[key]
-                            if self._stats_enabled:
-                                self._stats.misses += 1
-                            return None
-
-                        # Read data from disk
-                        with open(cache_path, "rb") as f:
-                            data = f.read()
-
-                        # Check if data is compressed
-                        try:
-                            if data[:2] == b"\x1f\x8b":  # gzip magic number
-                                data = self._decompress_data(data)
-                            value = json.loads(data.decode("utf-8"))
-                        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                            logging.warning("Invalid data in cache %s: %s", key, e)
-                            if self._stats_enabled:
-                                self._stats.errors += 1
-                            return None
-
-                        # Update access metadata
-                        self._update_metadata(
-                            key,
-                            len(data),
-                            "",
-                            CachePriority.NORMAL,
-                            is_access=True,
-                        )
-
-                        # Store in memory cache for faster access next time
-                        if level == CacheLevel.ALL:
-                            self._memory_cache[key] = value
-                            self._evict_if_needed()
-
-                        if self._stats_enabled:
-                            self._stats.hits += 1
-
-                        return value
+                    result = self._get_from_disk(key, ttl, level)
+                    if result is not None:
+                        return result
                 except Exception as e:
                     logging.error("Error reading cache %s: %s", key, e)
                     if self._stats_enabled:
@@ -472,7 +507,6 @@ class AdvancedCache:
 
             if self._stats_enabled:
                 self._stats.misses += 1
-
             return None
 
     def put(
