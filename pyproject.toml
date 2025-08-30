@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "homebrew-versiontracker"
-version = "0.1.0-alpha.1"
+version = "0.7.2"
 description = "A command-line tool for tracking and managing applications installed outside of the Mac App Store"
 readme = "README.md"
 license = {text = "MIT"}
@@ -70,14 +70,19 @@ Homepage = "https://github.com/docdyhr/versiontracker"
 "Bug Tracker" = "https://github.com/docdyhr/versiontracker/issues"
 Documentation = "https://github.com/docdyhr/versiontracker"
 "Source Code" = "https://github.com/docdyhr/versiontracker"
-Changelog = "https://github.com/docdyhr/versiontracker/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/docdyhr/versiontracker/blob/master/CHANGELOG.md"
 PyPI = "https://pypi.org/project/homebrew-versiontracker/"
 
 [project.scripts]
-versiontracker = "versiontracker.cli:main"
+versiontracker = "versiontracker.__main__:main"
+macos-versiontracker = "versiontracker.__main__:main"
+vt = "versiontracker.__main__:main"
 
-[tool.setuptools]
-packages = ["versiontracker", "versiontracker.handlers"]
+[tool.setuptools.packages.find]
+include = [
+    "versiontracker",
+    "versiontracker.*",
+]
 
 [tool.setuptools.package-data]
 versiontracker = ["py.typed"]

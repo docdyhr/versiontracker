@@ -4,6 +4,7 @@ import logging
 import sys
 from pathlib import Path
 
+from versiontracker import __version__
 from versiontracker.cli import get_arguments
 from versiontracker.handlers import (
     handle_blacklist_auto_updates,
@@ -136,6 +137,12 @@ def versiontracker_main() -> int:
     Returns:
         int: Exit code (0 for success, non-zero for failure)
     """
+    # Fast-path: support --version/-V without full argparse
+    argv = sys.argv[1:]
+    if "--version" in argv or "-V" in argv:
+        print(f"versiontracker {__version__}")
+        return 0
+
     # Parse arguments
     options = get_arguments()
 

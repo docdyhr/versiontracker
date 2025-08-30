@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2025-08-30
+
+### Changed
+
+- Bumped project version to 0.7.2 across metadata and package (__init__, pyproject, README)
+- Updated Homebrew formula URL and version assertion to v0.7.2
+
+### Notes
+
+- The Homebrew tap will need its tarball sha256 refreshed after the GitHub tag is created
+  and the automated tap workflow runs.
+
 ## [0.7.1] - 2025-01-14
 ### Fixed
 - **BREAKING**: Fixed PyPI package naming conflict by changing from `versiontracker` to `macos-versiontracker`
@@ -349,9 +361,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated comprehensive technical debt assessment report for January 2025
 - Established roadmap for complexity reduction and test coverage improvement
 - All modules now compile successfully without errors
-=======
+
 ## [0.1.0-alpha.1] - 2024-12-22
->>>>>>> fad1e87e69f5f43e6fb3e37a8d1ffbf8bd70f259
 
 ### Added
 
