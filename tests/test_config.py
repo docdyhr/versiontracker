@@ -12,7 +12,7 @@ from unittest.mock import patch
 from versiontracker.config import Config, get_config
 
 
-class TestConfig:
+class TestConfig(unittest.TestCase):
     """Tests for configuration management."""
 
     def test_default_config(self):
