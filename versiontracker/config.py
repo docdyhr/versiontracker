@@ -211,11 +211,11 @@ class ConfigValidator:
                     (lambda v: v > 0, "Must be greater than 0"),
                 ],
                 "cache_ttl": [
-                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (lambda v: isinstance(v, int | float), "Must be a number"),
                     (lambda v: v > 0, "Must be greater than 0"),
                 ],
                 "timeout": [
-                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (lambda v: isinstance(v, int | float), "Must be a number"),
                     (lambda v: v > 0, "Must be greater than 0"),
                 ],
                 "batch_size": [
@@ -223,7 +223,7 @@ class ConfigValidator:
                     (lambda v: v > 0, "Must be greater than 0"),
                 ],
                 "rate_limit": [
-                    (lambda v: isinstance(v, (int, float)), "Must be a number"),
+                    (lambda v: isinstance(v, int | float), "Must be a number"),
                     (lambda v: v > 0, "Must be greater than 0"),
                 ],
             },
@@ -480,13 +480,13 @@ class Config:
 
         except yaml.YAMLError as e:
             logging.error(f"YAML parsing error in configuration file {config_path}: {e}")
-            raise ConfigError(f"Invalid YAML in configuration file: {str(e)}")
+            raise ConfigError(f"Invalid YAML in configuration file: {str(e)}") from e
         except OSError as e:
             logging.error(f"Error reading configuration file {config_path}: {e}")
-            raise ConfigError(f"Error loading configuration: {str(e)}")
+            raise ConfigError(f"Error loading configuration: {str(e)}") from e
         except Exception as e:
             logging.error(f"Unexpected error loading configuration from {config_path}: {e}")
-            raise ConfigError(f"Error in configuration processing: {str(e)}")
+            raise ConfigError(f"Error in configuration processing: {str(e)}") from e
 
     def _normalize_config_keys(self, config: dict[str, Any]) -> dict[str, Any]:
         """Normalize configuration keys from kebab-case to snake_case recursively.

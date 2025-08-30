@@ -11,7 +11,7 @@ import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
