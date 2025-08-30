@@ -96,7 +96,7 @@ class TestPerformanceProfiler(unittest.TestCase):
         profiler.stop()
         stats = profiler.get_stats()
         # Should return a string or None, not raise an exception
-        self.assertTrue(isinstance(stats, (str, type(None))))
+        self.assertTrue(isinstance(stats, str | type(None)))
 
     def test_function_timings_attribute(self):
         """Test that function_timings attribute exists."""

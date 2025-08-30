@@ -395,7 +395,8 @@ else:
 
 # Explicit alias to satisfy static analyzers that don't resolve dynamic globals()
 try:
-    VersionInfo  # type: ignore[name-defined,used-before-def]
+    # Check if VersionInfo exists
+    _ = VersionInfo  # type: ignore[name-defined,used-before-def]
 except NameError:
     VersionInfo = ApplicationInfo  # type: ignore[misc]
 __all__ = [

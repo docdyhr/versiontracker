@@ -122,7 +122,7 @@ class TestHomebrewDetection(unittest.TestCase):
         """Test run_command with permission error."""
         mock_popen.side_effect = PermissionError("Permission denied")
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(PermissionError):
             run_command("test command")
 
     @patch("subprocess.Popen")
@@ -130,7 +130,7 @@ class TestHomebrewDetection(unittest.TestCase):
         """Test run_command with file not found."""
         mock_popen.side_effect = FileNotFoundError("Command not found")
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(FileNotFoundError):
             run_command("test command")
 
     @patch("versiontracker.utils.run_command")

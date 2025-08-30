@@ -295,7 +295,7 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> dict[str, Any]:
             return cast(dict[str, Any], data)
         except json.JSONDecodeError as e:
             logging.error(f"Invalid JSON data: {e}")
-            raise DataParsingError(f"Invalid JSON data: {e}")
+            raise DataParsingError(f"Invalid JSON data: {e}") from e
     except TimeoutError:
         logging.error(f"Command timed out: {cmd}")
         raise
@@ -360,13 +360,13 @@ def run_command_secure(command_parts: list[str], timeout: int | None = None) -> 
 
         return stdout, process.returncode
 
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
         if process:
             process.kill()
             process.wait()
         error_msg = f"Command {' '.join(command_parts)} timed out after {timeout} seconds"
         logging.error(error_msg)
-        raise TimeoutError(error_msg)
+        raise TimeoutError(error_msg) from e
 
     except FileNotFoundError as e:
         error_msg = f"Command not found: {command_parts[0] if command_parts else 'unknown'}"
