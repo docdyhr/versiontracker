@@ -200,7 +200,7 @@ def _perform_uninstall_operations(auto_update_casks: list[str]) -> tuple[int, in
         else:
             print(progress_bar.color("red")("✗"))
             failed += 1
-            errors.append((cask, error_message))
+            errors.append((cask, error_message or "Unknown error"))
 
     return successful, failed, errors
 

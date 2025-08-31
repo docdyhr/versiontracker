@@ -21,9 +21,7 @@ try:
     from tabulate import tabulate
 except ImportError:
     # Fallback if tabulate is not installed
-    def tabulate(  # type: ignore[misc]
-        tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any
-    ) -> str:
+    def tabulate(tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any) -> str:  # type: ignore[misc]
         """Format tabular data into a string representation."""
         _ = tablefmt, kwargs  # Acknowledge unused parameters
         result = []
@@ -519,6 +517,9 @@ def handle_outdated_check(options: Any) -> int:
 
         # Filter applications based on Homebrew management
         include_brews = getattr(options, "include_brews", False)
+        # Type assertion: apps and brews cannot be None here due to exit_code checks above
+        assert apps is not None
+        assert brews is not None
         apps = _filter_applications(apps, brews, include_brews)
 
         # Print status update and prepare for checking outdated apps
@@ -533,15 +534,19 @@ def handle_outdated_check(options: Any) -> int:
         # Calculate elapsed time
         elapsed_time = time.time() - start_time
 
-        # Process results and display
-        table, status_counts = _process_outdated_info(outdated_info)
+        # Process results and display\n        # Type assertion: outdated_info cannot be None here due to exit_code check above\n        assert outdated_info is not None
+        # Type cast: outdated_info cannot be None here due to exit_code check above
+        outdated_info_typed = cast(list[tuple[str, dict[str, str], Any]], outdated_info)
+        table, status_counts = _process_outdated_info(outdated_info_typed)
         _display_results(table, status_counts, len(apps), elapsed_time)
 
         # Handle optional operations
-        _handle_notification_if_requested(outdated_info, status_counts, options)
+        _handle_notification_if_requested(
+            cast(list[tuple[str, dict[str, str], str]], outdated_info), status_counts, options
+        )
 
         # Handle export and return its result
-        return _handle_export_if_requested(outdated_info, options)
+        return _handle_export_if_requested(cast(list[tuple[str, dict[str, str], str]], outdated_info), options)
 
     except Exception as e:
         return _handle_top_level_exceptions(e)

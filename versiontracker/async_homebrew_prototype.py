@@ -57,6 +57,7 @@ from collections.abc import Callable, Coroutine, Sequence
 from dataclasses import dataclass
 from typing import (
     Any,
+    cast,
 )
 
 # Fail-safe imports: these modules are expected to exist in the project.
@@ -193,7 +194,7 @@ class AsyncHomebrewClient:
             result = await self._to_thread(homebrew.get_homebrew_cask_info, cask)  # type: ignore[attr-defined]
             elapsed = self._now() - start
             self._logger.debug("Fetched cask %s in %.3fs", cask, elapsed)
-            return result
+            return cast(dict[str, Any] | None, result)
         except TimeoutError:
             raise
         except NetworkError:
@@ -254,9 +255,9 @@ class AsyncHomebrewClient:
         try:
             # Assume homebrew.search function; fallback gracefully if absent.
             if hasattr(homebrew, "search_casks"):
-                return await self._to_thread(homebrew.search_casks, term)
+                return cast(list[str], await self._to_thread(homebrew.search_casks, term))
             if hasattr(homebrew, "search"):
-                return await self._to_thread(homebrew.search, term)
+                return cast(list[str], await self._to_thread(homebrew.search, term))
             self._logger.debug("No search function available in homebrew module")
             return []
         except Exception as exc:  # noqa: BLE001

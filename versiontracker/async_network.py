@@ -79,7 +79,7 @@ async def fetch_json(
                 if use_cache:
                     write_cache(cache_key, data)
 
-                return data
+                return cast(dict[str, Any], data)
 
     except builtins.TimeoutError as e:
         logging.error(f"Request to {url} timed out after {timeout}s: {e}")
