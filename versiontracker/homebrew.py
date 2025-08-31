@@ -82,7 +82,7 @@ def get_homebrew_path() -> str:
         raise HomebrewError("Homebrew not found in common locations")
     except Exception as e:
         logging.error(f"Failed to find Homebrew: {e}")
-        raise HomebrewError(f"Homebrew not found: {e}")
+        raise HomebrewError(f"Homebrew not found: {e}") from e
 
 
 def get_brew_command() -> str:
@@ -156,15 +156,15 @@ def get_all_homebrew_casks() -> list[dict[str, Any]]:
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse Homebrew casks JSON: {e}"
             logging.error(error_msg)
-            raise DataParsingError(error_msg)
+            raise DataParsingError(error_msg) from e
     except subprocess.TimeoutExpired as e:
         error_msg = f"Timeout while retrieving Homebrew casks: {e}"
         logging.error(error_msg)
-        raise NetworkError(error_msg)
+        raise NetworkError(error_msg) from e
     except Exception as e:
         error_msg = f"Error retrieving Homebrew casks: {e}"
         logging.error(error_msg)
-        raise HomebrewError(error_msg)
+        raise HomebrewError(error_msg) from e
 
 
 def get_cask_info(cask_name: str) -> dict[str, Any]:
@@ -226,15 +226,15 @@ def get_cask_info(cask_name: str) -> dict[str, Any]:
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse cask info JSON for {cask_name}: {e}"
             logging.error(error_msg)
-            raise DataParsingError(error_msg)
+            raise DataParsingError(error_msg) from e
     except subprocess.TimeoutExpired as e:
         error_msg = f"Timeout while retrieving info for cask {cask_name}: {e}"
         logging.error(error_msg)
-        raise NetworkError(error_msg)
+        raise NetworkError(error_msg) from e
     except Exception as e:
         error_msg = f"Error retrieving info for cask {cask_name}: {e}"
         logging.error(error_msg)
-        raise HomebrewError(error_msg)
+        raise HomebrewError(error_msg) from e
 
 
 def search_casks(query: str) -> list[dict[str, Any]]:
@@ -291,15 +291,123 @@ def search_casks(query: str) -> list[dict[str, Any]]:
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse search results JSON for '{query}': {e}"
             logging.error(error_msg)
-            raise DataParsingError(error_msg)
+            raise DataParsingError(error_msg) from e
     except subprocess.TimeoutExpired as e:
         error_msg = f"Timeout while searching for casks with query '{query}': {e}"
         logging.error(error_msg)
-        raise NetworkError(error_msg)
+        raise NetworkError(error_msg) from e
     except Exception as e:
         error_msg = f"Error searching for casks with query '{query}': {e}"
         logging.error(error_msg)
-        raise HomebrewError(error_msg)
+        raise HomebrewError(error_msg) from e
+
+
+def _filter_cached_casks(cask_names: list[str]) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Filter cask names by checking cache first.
+    
+    Args:
+        cask_names: List of cask names to filter
+        
+    Returns:
+        Tuple of (cached_results, casks_to_fetch)
+    """
+    cache = get_cache()
+    result: dict[str, dict[str, Any]] = {}
+    casks_to_fetch: list[str] = []
+
+    for cask_name in cask_names:
+        cache_key = f"{CACHE_KEY_CASK_PREFIX}{cask_name}"
+        cached_info = cache.get(cache_key, ttl=CACHE_TTL_CASK_INFO)
+
+        if cached_info is not None:
+            result[cask_name] = cached_info  # type: ignore
+        else:
+            casks_to_fetch.append(cask_name)
+            
+    return result, casks_to_fetch
+
+
+def _fetch_cask_batch(batch: list[str]) -> dict[str, dict[str, Any]]:
+    """Fetch information for a single batch of casks.
+    
+    Args:
+        batch: List of cask names in this batch
+        
+    Returns:
+        Dict mapping cask names to their info
+    """
+    try:
+        # Construct a command to get info for multiple casks at once
+        brew_path = get_brew_command()
+        casks_arg = " ".join(batch)
+        command = f"{brew_path} info --json=v2 --cask {casks_arg}"
+
+        # Execute command with timeout
+        stdout, returncode = run_command(command, timeout=60)
+
+        if returncode != 0:
+            logging.warning(f"Failed to retrieve info for cask batch: {stdout}")
+            return {}
+
+        return _parse_and_cache_batch_response(stdout)
+        
+    except Exception as e:
+        logging.warning(f"Error retrieving info for cask batch: {e}")
+        return {}
+
+
+def _parse_and_cache_batch_response(stdout: str) -> dict[str, dict[str, Any]]:
+    """Parse JSON response and cache individual cask info.
+    
+    Args:
+        stdout: JSON response from homebrew command
+        
+    Returns:
+        Dict mapping cask names to their info
+    """
+    try:
+        # Parse JSON response
+        data = json.loads(stdout)
+        casks = data.get("casks", [])
+        result: dict[str, dict[str, Any]] = {}
+        cache = get_cache()
+
+        # Process each cask in the response
+        for cask in casks:
+            cask_name = cask.get("token")
+            if cask_name:
+                # Store in result
+                result[cask_name] = cask
+
+                # Store in cache
+                cache_key = f"{CACHE_KEY_CASK_PREFIX}{cask_name}"
+                cache.put(
+                    cache_key,
+                    cask,
+                    level=CacheLevel.ALL,
+                    priority=CachePriority.NORMAL,
+                    source="homebrew",
+                )
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        logging.warning(f"Failed to parse cask info JSON for batch: {e}")
+        return {}
+
+
+def _apply_rate_limiting(config: Any, current_batch_index: int, total_casks: int, batch_size: int) -> None:
+    """Apply rate limiting between batch requests.
+    
+    Args:
+        config: Configuration object with rate limiting settings
+        current_batch_index: Current batch starting index
+        total_casks: Total number of casks being processed
+        batch_size: Size of each batch
+    """
+    rate_limit = getattr(config, "api_rate_limit", 0.5)
+    if rate_limit > 0 and current_batch_index + batch_size < total_casks:
+        time.sleep(rate_limit)
 
 
 def batch_get_cask_info(cask_names: list[str]) -> dict[str, dict[str, Any]]:
@@ -317,19 +425,8 @@ def batch_get_cask_info(cask_names: list[str]) -> dict[str, dict[str, Any]]:
     if not cask_names:
         return {}
 
-    cache = get_cache()
-    result: dict[str, dict[str, Any]] = {}
-    casks_to_fetch: list[str] = []
-
-    # Check cache first for all casks
-    for cask_name in cask_names:
-        cache_key = f"{CACHE_KEY_CASK_PREFIX}{cask_name}"
-        cached_info = cache.get(cache_key, ttl=CACHE_TTL_CASK_INFO)
-
-        if cached_info is not None:
-            result[cask_name] = cached_info  # type: ignore
-        else:
-            casks_to_fetch.append(cask_name)
+    # Filter by cache first
+    result, casks_to_fetch = _filter_cached_casks(cask_names)
 
     # If all casks were in cache, return early
     if not casks_to_fetch:
@@ -344,56 +441,13 @@ def batch_get_cask_info(cask_names: list[str]) -> dict[str, dict[str, Any]]:
 
     for i in range(0, len(casks_to_fetch), batch_size):
         batch = casks_to_fetch[i : i + batch_size]
+        
+        # Fetch batch and merge results
+        batch_result = _fetch_cask_batch(batch)
+        result.update(batch_result)
 
-        try:
-            # Construct a command to get info for multiple casks at once
-            brew_path = get_brew_command()
-            casks_arg = " ".join(batch)
-            command = f"{brew_path} info --json=v2 --cask {casks_arg}"
-
-            # Execute command with timeout
-            stdout, returncode = run_command(command, timeout=60)
-
-            if returncode != 0:
-                logging.warning(f"Failed to retrieve info for cask batch: {stdout}")
-                # Continue with next batch rather than failing completely
-                continue
-
-            try:
-                # Parse JSON response
-                data = json.loads(stdout)
-                casks = data.get("casks", [])
-
-                # Process each cask in the response
-                for cask in casks:
-                    cask_name = cask.get("token")
-                    if cask_name:
-                        # Store in result
-                        result[cask_name] = cask
-
-                        # Store in cache
-                        cache_key = f"{CACHE_KEY_CASK_PREFIX}{cask_name}"
-                        cache.put(
-                            cache_key,
-                            cask,
-                            level=CacheLevel.ALL,
-                            priority=CachePriority.NORMAL,
-                            source="homebrew",
-                        )
-            except json.JSONDecodeError as e:
-                logging.warning(f"Failed to parse cask info JSON for batch: {e}")
-                # Continue with next batch
-                continue
-
-            # Rate limiting to avoid overloading Homebrew
-            rate_limit = getattr(config, "api_rate_limit", 0.5)
-            if rate_limit > 0 and i + batch_size < len(casks_to_fetch):
-                time.sleep(rate_limit)
-
-        except Exception as e:
-            logging.warning(f"Error retrieving info for cask batch: {e}")
-            # Continue with next batch
-            continue
+        # Apply rate limiting
+        _apply_rate_limiting(config, i, len(casks_to_fetch), batch_size)
 
     return result
 
@@ -430,15 +484,15 @@ def get_installed_homebrew_casks() -> list[dict[str, Any]]:
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse installed casks JSON: {e}"
             logging.error(error_msg)
-            raise DataParsingError(error_msg)
+            raise DataParsingError(error_msg) from e
     except subprocess.TimeoutExpired as e:
         error_msg = f"Timeout while retrieving installed casks: {e}"
         logging.error(error_msg)
-        raise NetworkError(error_msg)
+        raise NetworkError(error_msg) from e
     except Exception as e:
         error_msg = f"Error retrieving installed casks: {e}"
         logging.error(error_msg)
-        raise HomebrewError(error_msg)
+        raise HomebrewError(error_msg) from e
 
 
 def clear_homebrew_cache() -> bool:
@@ -483,15 +537,15 @@ def get_outdated_homebrew_casks() -> list[dict[str, Any]]:
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse outdated casks JSON: {e}"
             logging.error(error_msg)
-            raise DataParsingError(error_msg)
+            raise DataParsingError(error_msg) from e
     except subprocess.TimeoutExpired as e:
         error_msg = f"Timeout while retrieving outdated casks: {e}"
         logging.error(error_msg)
-        raise NetworkError(error_msg)
+        raise NetworkError(error_msg) from e
     except Exception as e:
         error_msg = f"Error retrieving outdated casks: {e}"
         logging.error(error_msg)
-        raise HomebrewError(error_msg)
+        raise HomebrewError(error_msg) from e
 
 
 def get_cask_version(cask_name: str) -> str:
@@ -512,7 +566,7 @@ def get_cask_version(cask_name: str) -> str:
     except Exception as e:
         error_msg = f"Error retrieving version for cask {cask_name}: {e}"
         logging.error(error_msg)
-        raise HomebrewError(error_msg)
+        raise HomebrewError(error_msg) from e
 
 
 def get_caskroom_path() -> str:

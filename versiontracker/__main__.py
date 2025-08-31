@@ -3,6 +3,7 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 from versiontracker import __version__
 from versiontracker.cli import get_arguments

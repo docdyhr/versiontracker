@@ -842,6 +842,101 @@ def _handle_future_result(
         return (name, version, False), e
 
 
+def _validate_batch_preconditions(batch: list[tuple[str, str]]) -> bool:
+    """Validate batch preconditions and check Homebrew availability.
+    
+    Args:
+        batch: Batch of applications to check
+        
+    Returns:
+        bool: True if conditions are met, False if should return early
+    """
+    if not batch:
+        return False
+    
+    if not is_homebrew_available():
+        return False
+        
+    return True
+
+
+def _create_future_submissions(batch: list[tuple[str, str]], executor: ThreadPoolExecutor, use_cache: bool) -> dict:
+    """Create future submissions for batch processing.
+    
+    Args:
+        batch: Batch of applications to check
+        executor: Thread pool executor
+        use_cache: Whether to use cached results
+        
+    Returns:
+        dict: Mapping of futures to app data
+    """
+    return {
+        executor.submit(is_brew_cask_installable, name.lower().replace(" ", "-"), use_cache): (name, version)
+        for name, version in batch
+        if name  # Skip empty names
+    }
+
+
+def _handle_future_exception(exception: Exception, name: str, version: str) -> tuple[str, str, bool] | None:
+    """Handle exceptions from futures.
+    
+    Args:
+        exception: The exception that occurred
+        name: Application name
+        version: Application version
+        
+    Returns:
+        tuple or None: Result tuple if handled, None if should re-raise
+    """
+    if isinstance(exception, (BrewTimeoutError, NetworkError, HomebrewError)):
+        # Re-raise these specific exceptions for proper handling
+        raise exception
+    else:
+        # Log other exceptions but continue processing
+        error_details = (
+            str(exception)
+            if str(exception).strip()
+            else f"Unknown error of type {type(exception).__name__}"
+        )
+        logging.warning("Error checking %s: %s", name, error_details)
+        return (name, version, False)
+
+
+def _process_completed_futures(future_to_app: dict) -> list[tuple[str, str, bool]]:
+    """Process completed futures and collect results.
+    
+    Args:
+        future_to_app: Mapping of futures to app data
+        
+    Returns:
+        list: List of result tuples
+    """
+    batch_results: list[tuple[str, str, bool]] = []
+    
+    for future in as_completed(future_to_app):
+        name, version = future_to_app[future]
+
+        # Check if the future has an exception directly
+        if future.exception() is not None:
+            exception = future.exception()
+            result = _handle_future_exception(exception, name, version)
+            if result:
+                batch_results.append(result)
+            # If result is None, exception was re-raised
+            continue
+
+        # No exception, handle the result normally
+        result, exception = _handle_future_result(future, name, version)
+        batch_results.append(result)
+
+        # If there's an exception that needs to be propagated, raise it
+        if exception:
+            raise exception
+    
+    return batch_results
+
+
 def _process_brew_batch(batch: list[tuple[str, str]], rate_limit: int, use_cache: bool) -> list[tuple[str, str, bool]]:
     """Process a batch of applications to check if they can be installed with Homebrew.
 
@@ -861,57 +956,18 @@ def _process_brew_batch(batch: list[tuple[str, str]], rate_limit: int, use_cache
         NetworkError: If there's a network issue during checks
         BrewTimeoutError: If operations timeout
     """
-    batch_results: list[tuple[str, str, bool]] = []
-
-    # Skip empty batch
-    if not batch:
-        return batch_results
+    # Validate preconditions
+    if not _validate_batch_preconditions(batch):
+        return [(name, version, False) for name, version in batch] if batch else []
 
     try:
-        # Check if Homebrew is available
-        if not is_homebrew_available():
-            return [(name, version, False) for name, version in batch]
-
         # Create rate limiter
         _create_rate_limiter(rate_limit)
 
         # Process applications in parallel
         with ThreadPoolExecutor(max_workers=rate_limit) as executor:
-            future_to_app = {
-                executor.submit(is_brew_cask_installable, name.lower().replace(" ", "-"), use_cache): (name, version)
-                for name, version in batch
-                if name  # Skip empty names
-            }
-
-            for future in as_completed(future_to_app):
-                name, version = future_to_app[future]
-
-                # Check if the future has an exception directly
-                if future.exception() is not None:
-                    exception = future.exception()
-                    if isinstance(exception, BrewTimeoutError | NetworkError | HomebrewError):
-                        # Re-raise these specific exceptions for proper handling
-                        raise exception
-                    else:
-                        # Log other exceptions but continue processing
-                        error_details = (
-                            str(exception)
-                            if str(exception).strip()
-                            else f"Unknown error of type {type(exception).__name__}"
-                        )
-                        logging.warning("Error checking %s: %s", name, error_details)
-                        batch_results.append((name, version, False))
-                        continue
-
-                # No exception, handle the result normally
-                result, exception = _handle_future_result(future, name, version)
-                batch_results.append(result)
-
-                # If there's an exception that needs to be propagated, raise it
-                if exception:
-                    raise exception
-
-        return batch_results
+            future_to_app = _create_future_submissions(batch, executor, use_cache)
+            return _process_completed_futures(future_to_app)
 
     except BrewTimeoutError as e:
         logging.error("Timeout error processing brew batch: %s", e)
@@ -1068,6 +1124,95 @@ def _process_brew_search(app: tuple[str, str], rate_limiter: RateLimiterProtocol
     return None
 
 
+def _wait_for_rate_limit(rate_limiter: object) -> None:
+    """Wait for rate limit if needed.
+    
+    Args:
+        rate_limiter: Rate limiter object with wait() method
+    """
+    if rate_limiter is not None and isinstance(rate_limiter, SimpleRateLimiter | _AdaptiveRateLimiter):
+        rate_limiter.wait()
+
+
+def _normalize_and_validate_search_term(app_name: str) -> str | None:
+    """Normalize app name and validate for search.
+    
+    Args:
+        app_name: Application name to normalize
+        
+    Returns:
+        str or None: Normalized search term or None if invalid
+    """
+    search_term = normalise_name(app_name)
+    return search_term if search_term else None
+
+
+def _find_matching_cask(search_results: list[str], app_name: str) -> str | None:
+    """Find matching cask from search results using various strategies.
+    
+    Args:
+        search_results: List of search results from brew
+        app_name: Original application name
+        
+    Returns:
+        str or None: Matching cask name or None if no match found
+    """
+    # Normalize names for better matching
+    search_results_normalized = [normalise_name(r) for r in search_results]
+    app_name_normalized = normalise_name(app_name)
+
+    for i, result in enumerate(search_results_normalized):
+        if not result:
+            continue
+
+        # Check for exact match
+        if result == app_name_normalized:
+            return search_results[i]
+
+        # Check for substring match (app name in result)
+        if app_name_normalized in result or result in app_name_normalized:
+            return search_results[i]
+
+        # Use fuzzy matching for less strict matches
+        similarity = partial_ratio(app_name_normalized, result)
+        if similarity >= 80:
+            return search_results[i]
+    
+    return None
+
+
+def _process_single_app_search(app_name: str, rate_limiter: object) -> str | None:
+    """Process search for a single application.
+    
+    Args:
+        app_name: Application name to search for
+        rate_limiter: Rate limiter object
+        
+    Returns:
+        str or None: Matching cask name or None if no match found
+    """
+    # Wait for rate limit if needed
+    _wait_for_rate_limit(rate_limiter)
+
+    try:
+        # Normalize the app name
+        search_term = _normalize_and_validate_search_term(app_name)
+        if not search_term:
+            return None
+
+        # Search for the app with cached function
+        search_results = search_brew_cask(search_term)
+
+        # Process results if found
+        if search_results:
+            return _find_matching_cask(search_results, app_name)
+
+    except Exception as e:
+        logging.error("Error searching for %s: %s", app_name, e)
+
+    return None
+
+
 def _batch_process_brew_search(apps_batch: list[tuple[str, str]], rate_limiter: object) -> list[str]:
     """Process a batch of brew searches to reduce API calls.
 
@@ -1082,54 +1227,9 @@ def _batch_process_brew_search(apps_batch: list[tuple[str, str]], rate_limiter: 
 
     for app in apps_batch:
         app_name, _ = app
-
-        # Wait for rate limit if needed
-        if rate_limiter is not None and isinstance(rate_limiter, SimpleRateLimiter | _AdaptiveRateLimiter):
-            rate_limiter.wait()
-
-        try:
-            # Normalize the app name
-            search_term = normalise_name(app_name)
-
-            # Skip empty search terms
-            if not search_term:
-                continue
-
-            # Search for the app with cached function
-            search_results = search_brew_cask(search_term)
-
-            # Process results if found
-            if search_results:
-                # Normalize names for better matching
-                search_results_normalized = [normalise_name(r) for r in search_results]
-                app_name_normalized = normalise_name(app_name)
-
-                for i, result in enumerate(search_results_normalized):
-                    if not result:
-                        continue
-
-                    # Check for exact match
-                    if result == app_name_normalized:
-                        # Found exact match
-                        return_value = search_results[i]
-                        results.append(return_value)
-                        break
-
-                    # Check for substring match (app name in result)
-                    if app_name_normalized in result or result in app_name_normalized:
-                        return_value = search_results[i]
-                        results.append(return_value)
-                        break
-
-                    # Use fuzzy matching for less strict matches
-                    similarity = partial_ratio(app_name_normalized, result)
-                    if similarity >= 80:
-                        return_value = search_results[i]
-                        results.append(return_value)
-                        break
-
-        except Exception as e:
-            logging.error("Error searching for %s: %s", app_name, e)
+        match = _process_single_app_search(app_name, rate_limiter)
+        if match:
+            results.append(match)
 
     return results
 
