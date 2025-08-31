@@ -129,7 +129,8 @@ except ImportError:
     TQDM_CLASS = FallbackTqdm
 
 try:
-    from termcolor import colored as _colored, cprint as _cprint
+    from termcolor import colored as _colored
+    from termcolor import cprint as _cprint
 
     HAS_TERMCOLOR = True
     # Use the imported functions directly

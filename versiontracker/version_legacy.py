@@ -6,11 +6,12 @@ import logging
 import multiprocessing
 import re
 import subprocess
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Callable
+from typing import Any
 
 # Internal imports (imported after optional libraries are set up below)
 # These will be imported conditionally after the fuzzy library setup

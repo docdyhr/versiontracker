@@ -17,8 +17,6 @@ import yaml
 from versiontracker.exceptions import ConfigError
 
 
-
-
 class ConfigValidator:
     """Configuration validation utilities."""
 

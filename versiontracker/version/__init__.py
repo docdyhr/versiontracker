@@ -5,7 +5,8 @@
 # Import legacy functions from main version.py file that weren't refactored
 import importlib.util
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 from .comparator import compare_versions, get_version_difference, is_version_newer
 
@@ -124,23 +125,23 @@ else:
         return int(result)  # Ensure return type is explicitly int
 
     # All other functions as no-op fallbacks
-    def check_latest_version(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def check_latest_version(*args: Any, **kwargs: Any) -> Any | None:
         """Check the latest version available for an application (fallback)."""
         return None
 
-    def check_outdated_apps(*args: Any, **kwargs: Any) -> List[Any]:
+    def check_outdated_apps(*args: Any, **kwargs: Any) -> list[Any]:
         """Check which applications are outdated (fallback)."""
         return []
 
-    def find_matching_cask(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def find_matching_cask(*args: Any, **kwargs: Any) -> Any | None:
         """Find a matching Homebrew cask for an application (fallback)."""
         return None
 
-    def get_homebrew_cask_info(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def get_homebrew_cask_info(*args: Any, **kwargs: Any) -> Any | None:
         """Get Homebrew cask information for an application (fallback)."""
         return None
 
-    def get_version_info(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def get_version_info(*args: Any, **kwargs: Any) -> Any | None:
         """Get information about version(s) and comparison (fallback)."""
         return None
 
@@ -148,11 +149,11 @@ else:
         """Compare two version strings using fuzzy matching (fallback)."""
         return 0
 
-    def compose_version_tuple(*args: Any, **kwargs: Any) -> Tuple[int, int, int]:
+    def compose_version_tuple(*args: Any, **kwargs: Any) -> tuple[int, int, int]:
         """Compose a version tuple from individual components (fallback)."""
         return (0, 0, 0)
 
-    def decompose_version(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def decompose_version(*args: Any, **kwargs: Any) -> dict[str, Any]:
         """Decompose a version string into components (fallback)."""
         return {}
 
@@ -162,19 +163,19 @@ else:
 
         return re.compile(r".*")
 
-    def _dict_to_tuple(*args: Any, **kwargs: Any) -> Tuple[int, int, int]:
+    def _dict_to_tuple(*args: Any, **kwargs: Any) -> tuple[int, int, int]:
         """Convert version dictionary to tuple (fallback)."""
         return (0, 0, 0)
 
-    def _parse_version_components(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def _parse_version_components(*args: Any, **kwargs: Any) -> dict[str, Any]:
         """Parse version string into components dictionary (fallback)."""
         return {}
 
-    def _parse_version_to_dict(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def _parse_version_to_dict(*args: Any, **kwargs: Any) -> dict[str, Any]:
         """Parse version string to dictionary format (fallback)."""
         return {}
 
-    def _tuple_to_dict(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def _tuple_to_dict(*args: Any, **kwargs: Any) -> dict[str, Any]:
         """Convert version tuple to dictionary (fallback)."""
         return {}
 
@@ -183,7 +184,7 @@ else:
         return lambda x, y: 0
 
     # Private function fallbacks
-    def _apply_version_truncation(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _apply_version_truncation(*args: Any, **kwargs: Any) -> Any | None:
         """Apply truncation rules for build metadata and prerelease versions (fallback)."""
         return None
 
@@ -191,19 +192,19 @@ else:
         """Check if both versions have application build patterns (fallback)."""
         return False
 
-    def _build_final_version_tuple(*args: Any, **kwargs: Any) -> Tuple[int, int, int]:
+    def _build_final_version_tuple(*args: Any, **kwargs: Any) -> tuple[int, int, int]:
         """Build the final version tuple based on all extracted information (fallback)."""
         return (0, 0, 0)
 
-    def _build_prerelease_tuple(*args: Any, **kwargs: Any) -> Tuple[int, int, int]:
+    def _build_prerelease_tuple(*args: Any, **kwargs: Any) -> tuple[int, int, int]:
         """Build version tuple for prerelease versions (fallback)."""
         return (0, 0, 0)
 
-    def _build_with_metadata(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _build_with_metadata(*args: Any, **kwargs: Any) -> Any | None:
         """Build version tuple with build metadata (fallback)."""
         return None
 
-    def _check_version_metadata(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _check_version_metadata(*args: Any, **kwargs: Any) -> Any | None:
         """Check if versions have build metadata or prerelease patterns (fallback)."""
         return None
 
@@ -247,35 +248,35 @@ else:
         """Compare Unicode Greek letter suffixes (fallback)."""
         return 0
 
-    def _convert_to_version_tuples(*args: Any, **kwargs: Any) -> Tuple[Tuple[int, int, int], Tuple[int, int, int]]:
+    def _convert_to_version_tuples(*args: Any, **kwargs: Any) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
         """Convert versions to tuples for comparison (fallback)."""
         return ((0, 0, 0), (0, 0, 0))
 
-    def _convert_versions_to_tuples(*args: Any, **kwargs: Any) -> Tuple[Tuple[int, int, int], Tuple[int, int, int]]:
+    def _convert_versions_to_tuples(*args: Any, **kwargs: Any) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
         """Convert versions to tuples for comparison (fallback)."""
         return ((0, 0, 0), (0, 0, 0))
 
-    def _create_app_batches(*args: Any, **kwargs: Any) -> List[Any]:
+    def _create_app_batches(*args: Any, **kwargs: Any) -> list[Any]:
         """Create batches of applications for parallel processing (fallback)."""
         return []
 
-    def _extract_build_metadata(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _extract_build_metadata(*args: Any, **kwargs: Any) -> Any | None:
         """Extract build metadata from version string (fallback)."""
         return None
 
-    def _extract_build_number(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _extract_build_number(*args: Any, **kwargs: Any) -> Any | None:
         """Extract build number from version string with application-specific patterns (fallback)."""
         return None
 
-    def _extract_prerelease_info(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _extract_prerelease_info(*args: Any, **kwargs: Any) -> Any | None:
         """Extract prerelease information from version string (fallback)."""
         return None
 
-    def _extract_prerelease_type_and_suffix(*args: Any, **kwargs: Any) -> Tuple[Optional[Any], Optional[Any]]:
+    def _extract_prerelease_type_and_suffix(*args: Any, **kwargs: Any) -> tuple[Any | None, Any | None]:
         """Extract pre-release type and number/suffix from version string (fallback)."""
         return (None, None)
 
-    def _get_config_settings(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    def _get_config_settings(*args: Any, **kwargs: Any) -> dict[str, Any]:
         """Get configuration settings for version checking (fallback)."""
         return {}
 
@@ -283,39 +284,39 @@ else:
         """Get priority value for Unicode Greek letters (fallback)."""
         return 0
 
-    def _handle_application_prefixes(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_application_prefixes(*args: Any, **kwargs: Any) -> Any | None:
         """Handle versions with application name prefixes (fallback)."""
         return None
 
-    def _handle_batch_result(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_batch_result(*args: Any, **kwargs: Any) -> Any | None:
         """Handle the result of a batch processing future (fallback)."""
         return None
 
-    def _handle_empty_and_malformed_versions(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_empty_and_malformed_versions(*args: Any, **kwargs: Any) -> Any | None:
         """Handle empty and malformed version cases (fallback)."""
         return None
 
-    def _handle_empty_version_cases(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_empty_version_cases(*args: Any, **kwargs: Any) -> Any | None:
         """Handle cases where one or both versions are empty strings (fallback)."""
         return None
 
-    def _handle_malformed_versions(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_malformed_versions(*args: Any, **kwargs: Any) -> Any | None:
         """Handle malformed version comparisons (fallback)."""
         return None
 
-    def _handle_mixed_format(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_mixed_format(*args: Any, **kwargs: Any) -> Any | None:
         """Handle mixed format versions (fallback)."""
         return None
 
-    def _handle_none_and_empty_versions(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_none_and_empty_versions(*args: Any, **kwargs: Any) -> Any | None:
         """Handle None and empty version cases (fallback)."""
         return None
 
-    def _handle_semver_build_metadata(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_semver_build_metadata(*args: Any, **kwargs: Any) -> Any | None:
         """Handle semantic versioning build metadata (+build.X) (fallback)."""
         return None
 
-    def _handle_special_beta_format(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _handle_special_beta_format(*args: Any, **kwargs: Any) -> Any | None:
         """Handle special format like '1.2.3.beta4' (fallback)."""
         return None
 
@@ -343,11 +344,11 @@ else:
         """Remove application names but keep version info (fallback)."""
         return ""
 
-    def _normalize_to_three_components(*args: Any, **kwargs: Any) -> Tuple[int, int, int]:
+    def _normalize_to_three_components(*args: Any, **kwargs: Any) -> tuple[int, int, int]:
         """Ensure version has at least 3 components (fallback)."""
         return (0, 0, 0)
 
-    def _parse_numeric_parts(*args: Any, **kwargs: Any) -> List[Any]:
+    def _parse_numeric_parts(*args: Any, **kwargs: Any) -> list[Any]:
         """Parse numeric parts from cleaned version string (fallback)."""
         return []
 
@@ -359,19 +360,19 @@ else:
         """Fallback for _perform_version_comparison."""
         return 0
 
-    def _process_app_batch(*args: Any, **kwargs: Any) -> List[Any]:
+    def _process_app_batch(*args: Any, **kwargs: Any) -> list[Any]:
         """Fallback for _process_app_batch."""
         return []
 
-    def _process_single_app(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _process_single_app(*args: Any, **kwargs: Any) -> Any | None:
         """Fallback for _process_single_app."""
         return None
 
-    def _search_homebrew_casks(*args: Any, **kwargs: Any) -> List[Any]:
+    def _search_homebrew_casks(*args: Any, **kwargs: Any) -> list[Any]:
         """Fallback for _search_homebrew_casks."""
         return []
 
-    def _set_version_comparison_status(*args: Any, **kwargs: Any) -> Optional[Any]:
+    def _set_version_comparison_status(*args: Any, **kwargs: Any) -> Any | None:
         """Fallback for _set_version_comparison_status."""
         return None
 
