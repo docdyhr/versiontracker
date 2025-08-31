@@ -289,7 +289,8 @@ def search_casks(query: str) -> list[dict[str, Any]]:
                 source="homebrew",
             )
 
-            return casks
+            from typing import cast
+            return cast(list[dict[str, Any]], casks)
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse search results JSON for '{query}': {e}"
             logging.error(error_msg)
@@ -482,7 +483,8 @@ def get_installed_homebrew_casks() -> list[dict[str, Any]]:
             data = json.loads(stdout)
             casks = data.get("casks", [])
 
-            return casks
+            from typing import cast
+            return cast(list[dict[str, Any]], casks)
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse installed casks JSON: {e}"
             logging.error(error_msg)
@@ -535,7 +537,8 @@ def get_outdated_homebrew_casks() -> list[dict[str, Any]]:
             data = json.loads(stdout)
             casks = data.get("casks", [])
 
-            return casks
+            from typing import cast
+            return cast(list[dict[str, Any]], casks)
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse outdated casks JSON: {e}"
             logging.error(error_msg)

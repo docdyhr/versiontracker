@@ -436,7 +436,8 @@ def _check_cache_for_cask(cask_name: str, cache_data: dict | None) -> bool | Non
         installable_casks = cache_data.get("installable", [])
         return cask_name in installable_casks
     elif cask_name in cache_data:
-        return cache_data[cask_name]
+        from typing import cast
+        return cast(bool, cache_data[cask_name])
 
     return None
 
@@ -522,7 +523,7 @@ def _check_cask_installable_with_cache(cask_name: str, use_cache: bool) -> bool:
     return _execute_cask_installable_check(cask_name, cache_data)
 
 
-def _execute_cask_installable_check(cask_name: str, cache_data: dict) -> bool:
+def _execute_cask_installable_check(cask_name: str, cache_data: dict | None) -> bool:
     """Execute the actual cask installability check."""
     try:
         output, returncode = _execute_brew_search(cask_name)
@@ -918,7 +919,9 @@ def _process_completed_futures(future_to_app: dict) -> list[tuple[str, str, bool
         # Check if the future has an exception directly
         if future.exception() is not None:
             exception = future.exception()
-            result = _handle_future_exception(exception, name, version)
+            # Cast BaseException to Exception since we know it's not None
+            from typing import cast
+            result = _handle_future_exception(cast(Exception, exception), name, version)
             if result:
                 batch_results.append(result)
             # If result is None, exception was re-raised

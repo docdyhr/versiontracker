@@ -20,7 +20,7 @@ try:
     USE_RAPIDFUZZ = True
 except ImportError:
     try:
-        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz
+        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz  # type: ignore[import-untyped]
 
         fuzz = fuzzywuzzy_fuzz
         USE_FUZZYWUZZY = True

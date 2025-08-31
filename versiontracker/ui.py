@@ -72,7 +72,7 @@ class FallbackTqdm:
     def __iter__(self) -> Iterator[Any]:
         """Iterate over the wrapped iterable."""
         if self.iterable is None:
-            return iter([])
+            return
 
         # Print start
         count = 0
@@ -129,9 +129,12 @@ except ImportError:
     TQDM_CLASS = FallbackTqdm
 
 try:
-    from termcolor import colored, cprint
+    from termcolor import colored as _colored, cprint as _cprint
 
     HAS_TERMCOLOR = True
+    # Use the imported functions directly
+    colored = _colored
+    cprint = _cprint
 except ImportError:
     HAS_TERMCOLOR = False
 

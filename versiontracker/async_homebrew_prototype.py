@@ -63,7 +63,7 @@ from typing import (
 # They are imported lazily in methods where possible to reduce import-time cost
 # and avoid circular dependencies during partial refactors.
 try:  # pragma: no cover - import guard
-    from . import homebrew  # type: ignore
+    from . import homebrew
 except Exception:  # pragma: no cover - best-effort fallback
     homebrew = None  # type: ignore
 
