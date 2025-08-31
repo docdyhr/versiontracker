@@ -20,10 +20,10 @@ from versiontracker.ui import QueryFilterManager, create_progress_bar
 
 def _handle_list_filters(filter_manager: QueryFilterManager) -> int:
     """Handle listing available filters.
-    
+
     Args:
         filter_manager: The filter manager instance
-        
+
     Returns:
         Exit code (0 for success)
     """
@@ -39,11 +39,11 @@ def _handle_list_filters(filter_manager: QueryFilterManager) -> int:
 
 def _handle_delete_filter(filter_name: str, filter_manager: QueryFilterManager) -> int:
     """Handle deleting a filter.
-    
+
     Args:
         filter_name: Name of filter to delete
         filter_manager: The filter manager instance
-        
+
     Returns:
         Exit code (0 for success)
     """
@@ -56,7 +56,7 @@ def _handle_delete_filter(filter_name: str, filter_manager: QueryFilterManager) 
 
 def _apply_filter_to_options(filter_data: dict[str, Any], options: Any) -> None:
     """Apply filter settings to options object.
-    
+
     Args:
         filter_data: Filter data dictionary
         options: Command line options object
@@ -68,7 +68,7 @@ def _apply_filter_to_options(filter_data: dict[str, Any], options: Any) -> None:
 
 def _apply_filter_to_config(filter_data: dict[str, Any]) -> None:
     """Apply filter settings to configuration.
-    
+
     Args:
         filter_data: Filter data dictionary
     """
@@ -81,12 +81,12 @@ def _apply_filter_to_config(filter_data: dict[str, Any]) -> None:
 
 def _handle_load_filter(filter_name: str, filter_manager: QueryFilterManager, options: Any) -> int | None:
     """Handle loading a filter.
-    
+
     Args:
         filter_name: Name of filter to load
         filter_manager: The filter manager instance
         options: Command line options object
-        
+
     Returns:
         None for success (to continue execution), 1 for failure
     """

@@ -844,30 +844,30 @@ def _handle_future_result(
 
 def _validate_batch_preconditions(batch: list[tuple[str, str]]) -> bool:
     """Validate batch preconditions and check Homebrew availability.
-    
+
     Args:
         batch: Batch of applications to check
-        
+
     Returns:
         bool: True if conditions are met, False if should return early
     """
     if not batch:
         return False
-    
+
     if not is_homebrew_available():
         return False
-        
+
     return True
 
 
 def _create_future_submissions(batch: list[tuple[str, str]], executor: ThreadPoolExecutor, use_cache: bool) -> dict:
     """Create future submissions for batch processing.
-    
+
     Args:
         batch: Batch of applications to check
         executor: Thread pool executor
         use_cache: Whether to use cached results
-        
+
     Returns:
         dict: Mapping of futures to app data
     """
@@ -880,16 +880,16 @@ def _create_future_submissions(batch: list[tuple[str, str]], executor: ThreadPoo
 
 def _handle_future_exception(exception: Exception, name: str, version: str) -> tuple[str, str, bool] | None:
     """Handle exceptions from futures.
-    
+
     Args:
         exception: The exception that occurred
         name: Application name
         version: Application version
-        
+
     Returns:
         tuple or None: Result tuple if handled, None if should re-raise
     """
-    if isinstance(exception, (BrewTimeoutError, NetworkError, HomebrewError)):
+    if isinstance(exception, BrewTimeoutError | NetworkError | HomebrewError):
         # Re-raise these specific exceptions for proper handling
         raise exception
     else:
@@ -905,15 +905,15 @@ def _handle_future_exception(exception: Exception, name: str, version: str) -> t
 
 def _process_completed_futures(future_to_app: dict) -> list[tuple[str, str, bool]]:
     """Process completed futures and collect results.
-    
+
     Args:
         future_to_app: Mapping of futures to app data
-        
+
     Returns:
         list: List of result tuples
     """
     batch_results: list[tuple[str, str, bool]] = []
-    
+
     for future in as_completed(future_to_app):
         name, version = future_to_app[future]
 
@@ -933,7 +933,7 @@ def _process_completed_futures(future_to_app: dict) -> list[tuple[str, str, bool
         # If there's an exception that needs to be propagated, raise it
         if exception:
             raise exception
-    
+
     return batch_results
 
 
@@ -1126,7 +1126,7 @@ def _process_brew_search(app: tuple[str, str], rate_limiter: RateLimiterProtocol
 
 def _wait_for_rate_limit(rate_limiter: object) -> None:
     """Wait for rate limit if needed.
-    
+
     Args:
         rate_limiter: Rate limiter object with wait() method
     """
@@ -1136,10 +1136,10 @@ def _wait_for_rate_limit(rate_limiter: object) -> None:
 
 def _normalize_and_validate_search_term(app_name: str) -> str | None:
     """Normalize app name and validate for search.
-    
+
     Args:
         app_name: Application name to normalize
-        
+
     Returns:
         str or None: Normalized search term or None if invalid
     """
@@ -1149,11 +1149,11 @@ def _normalize_and_validate_search_term(app_name: str) -> str | None:
 
 def _find_matching_cask(search_results: list[str], app_name: str) -> str | None:
     """Find matching cask from search results using various strategies.
-    
+
     Args:
         search_results: List of search results from brew
         app_name: Original application name
-        
+
     Returns:
         str or None: Matching cask name or None if no match found
     """
@@ -1177,17 +1177,17 @@ def _find_matching_cask(search_results: list[str], app_name: str) -> str | None:
         similarity = partial_ratio(app_name_normalized, result)
         if similarity >= 80:
             return search_results[i]
-    
+
     return None
 
 
 def _process_single_app_search(app_name: str, rate_limiter: object) -> str | None:
     """Process search for a single application.
-    
+
     Args:
         app_name: Application name to search for
         rate_limiter: Rate limiter object
-        
+
     Returns:
         str or None: Matching cask name or None if no match found
     """

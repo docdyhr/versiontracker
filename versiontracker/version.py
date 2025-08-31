@@ -63,11 +63,11 @@ def parse_version(
 
 def _compare_base_version(parsed1: tuple, parsed2: tuple) -> int:
     """Compare the major.minor.patch components of two parsed versions.
-    
+
     Args:
         parsed1: First parsed version tuple
         parsed2: Second parsed version tuple
-        
+
     Returns:
         -1 if parsed1 < parsed2, 0 if equal, 1 if parsed1 > parsed2
     """
@@ -82,11 +82,11 @@ def _compare_base_version(parsed1: tuple, parsed2: tuple) -> int:
 
 def _compare_prerelease_vs_release(len1: int, len2: int) -> int | None:
     """Compare release vs prerelease versions when base versions are equal.
-    
+
     Args:
         len1: Length of first parsed version tuple
         len2: Length of second parsed version tuple
-        
+
     Returns:
         Comparison result if one is release and other is prerelease, None otherwise
     """
@@ -102,16 +102,16 @@ def _compare_prerelease_vs_release(len1: int, len2: int) -> int | None:
 
 def _compare_prerelease_components(parsed1: tuple, parsed2: tuple) -> int:
     """Compare prerelease components of two parsed versions.
-    
+
     Args:
         parsed1: First parsed version tuple with prerelease
         parsed2: Second parsed version tuple with prerelease
-        
+
     Returns:
         -1 if parsed1 < parsed2, 0 if equal, 1 if parsed1 > parsed2
     """
     len1, len2 = len(parsed1), len(parsed2)
-    
+
     # Compare prerelease tags alphabetically
     tag1 = parsed1[3] if len1 > 3 else ""
     tag2 = parsed2[3] if len2 > 3 else ""

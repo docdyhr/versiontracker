@@ -126,7 +126,7 @@ class EnhancedAutoUpdateHandler:
 
     def _get_auto_update_casks_info(self) -> tuple[list[str] | None, list[str] | None]:
         """Get installed casks and those with auto-updates.
-        
+
         Returns:
             Tuple of (all_casks, auto_update_casks) or (None, None) if error
         """
@@ -145,16 +145,16 @@ class EnhancedAutoUpdateHandler:
         if not auto_update_casks:
             print(self.progress_bar.color("yellow")("No casks with auto-updates found."))
             return None, None
-            
+
         return all_casks, auto_update_casks
 
     def _calculate_new_additions(self, auto_update_casks: list[str], current_blacklist: list[str]) -> list[str]:
         """Calculate which casks need to be added to blacklist.
-        
+
         Args:
             auto_update_casks: List of casks with auto-updates
             current_blacklist: Current blacklisted casks
-            
+
         Returns:
             List of casks to be added to blacklist
         """
@@ -164,10 +164,10 @@ class EnhancedAutoUpdateHandler:
                 new_additions.append(cask)
         return new_additions
 
-    def _display_blacklist_preview(self, auto_update_casks: list[str], current_blacklist: list[str], 
+    def _display_blacklist_preview(self, auto_update_casks: list[str], current_blacklist: list[str],
                                    new_additions: list[str]) -> None:
         """Display preview of what will be blacklisted.
-        
+
         Args:
             auto_update_casks: All casks with auto-updates
             current_blacklist: Current blacklisted casks
@@ -181,10 +181,10 @@ class EnhancedAutoUpdateHandler:
 
     def _get_user_confirmation(self, new_additions_count: int) -> bool:
         """Get user confirmation for blacklist operation.
-        
+
         Args:
             new_additions_count: Number of casks to be added
-            
+
         Returns:
             True if user confirms, False otherwise
         """
@@ -193,15 +193,15 @@ class EnhancedAutoUpdateHandler:
         response = input("Do you want to continue? [y/N]: ").strip().lower()
         return response == "y"
 
-    def _perform_blacklist_update(self, current_blacklist: list[str], new_additions: list[str], 
+    def _perform_blacklist_update(self, current_blacklist: list[str], new_additions: list[str],
                                   backup: BlacklistBackup) -> int:
         """Perform the actual blacklist update with rollback capability.
-        
+
         Args:
             current_blacklist: Current blacklisted casks
             new_additions: Casks to add
             backup: Backup information
-            
+
         Returns:
             Exit code (0 for success, 1 for failure)
         """
@@ -227,10 +227,10 @@ class EnhancedAutoUpdateHandler:
 
     def _handle_save_failure(self, backup: BlacklistBackup) -> int:
         """Handle configuration save failure with rollback.
-        
+
         Args:
             backup: Backup information
-            
+
         Returns:
             Exit code 1
         """
@@ -251,11 +251,11 @@ class EnhancedAutoUpdateHandler:
 
     def _handle_config_error(self, error: Exception, backup: BlacklistBackup) -> int:
         """Handle configuration error with rollback.
-        
+
         Args:
             error: The exception that occurred
             backup: Backup information
-            
+
         Returns:
             Exit code 1
         """
@@ -303,7 +303,7 @@ class EnhancedAutoUpdateHandler:
 
             # Show preview and get confirmation
             self._display_blacklist_preview(auto_update_casks, current_blacklist, new_additions)
-            
+
             if not self._get_user_confirmation(len(new_additions)):
                 print(self.progress_bar.color("yellow")("Operation cancelled."))
                 self._cleanup_backup(backup)
@@ -360,7 +360,7 @@ class EnhancedAutoUpdateHandler:
 
     def _display_uninstall_preview(self, auto_update_casks: list[str]) -> None:
         """Display preview of casks to be uninstalled.
-        
+
         Args:
             auto_update_casks: List of casks with auto-updates
         """
@@ -370,10 +370,10 @@ class EnhancedAutoUpdateHandler:
 
     def _get_uninstall_confirmation(self, cask_count: int) -> bool:
         """Get double confirmation from user for uninstall operation.
-        
+
         Args:
             cask_count: Number of casks to be uninstalled
-            
+
         Returns:
             True if user confirms twice, False otherwise
         """
@@ -398,15 +398,15 @@ class EnhancedAutoUpdateHandler:
         if confirmation != "UNINSTALL":
             print(self.progress_bar.color("yellow")("Operation cancelled."))
             return False
-            
+
         return True
 
     def _uninstall_single_cask(self, cask: str) -> UninstallResult:
         """Uninstall a single cask and return the result.
-        
+
         Args:
             cask: Name of the cask to uninstall
-            
+
         Returns:
             UninstallResult with the operation outcome
         """
@@ -422,12 +422,12 @@ class EnhancedAutoUpdateHandler:
                 is_critical, error_category = self._classify_uninstall_error(stdout, returncode)
                 print(self.progress_bar.color("red")("✗"))
                 print(f"    └─ {self.progress_bar.color('red')(error_category)}")
-                
+
                 result = UninstallResult(cask, False, error_category, is_critical)
-                
+
                 if is_critical:
                     print(f"    └─ {self.progress_bar.color('red')('⚠️  CRITICAL ERROR DETECTED')}")
-                    
+
                 return result
 
         except TimeoutError:
@@ -443,10 +443,10 @@ class EnhancedAutoUpdateHandler:
 
     def _perform_uninstalls(self, auto_update_casks: list[str]) -> tuple[list[UninstallResult], list[tuple[str, str]]]:
         """Perform the actual uninstall operations.
-        
+
         Args:
             auto_update_casks: List of casks to uninstall
-            
+
         Returns:
             Tuple of (all_results, critical_errors)
         """
@@ -460,13 +460,13 @@ class EnhancedAutoUpdateHandler:
             print(
                 f"[{i}/{len(auto_update_casks)}] Uninstalling {self.progress_bar.color('yellow')(cask)}...", end=" "
             )
-            
+
             result = self._uninstall_single_cask(cask)
             results.append(result)
-            
+
             if result.is_critical:
                 critical_errors.append((cask, result.error_message or "Unknown critical error"))
-                
+
         return results, critical_errors
 
     def _display_summary_header(self) -> None:
@@ -477,7 +477,7 @@ class EnhancedAutoUpdateHandler:
 
     def _display_successful_results(self, successful: list[UninstallResult]) -> None:
         """Display successful uninstall results.
-        
+
         Args:
             successful: List of successful uninstall results
         """
@@ -488,13 +488,13 @@ class EnhancedAutoUpdateHandler:
 
     def _group_and_display_failures(self, failed: list[UninstallResult]) -> None:
         """Group failures by error type and display them.
-        
+
         Args:
             failed: List of failed uninstall results
         """
         if not failed:
             return
-            
+
         print(self.progress_bar.color("red")(f"✗ Failed to uninstall: {len(failed)}"))
 
         # Group failures by error type
@@ -512,7 +512,7 @@ class EnhancedAutoUpdateHandler:
 
     def _display_critical_errors(self, critical_errors: list[tuple[str, str]]) -> None:
         """Display critical error information.
-        
+
         Args:
             critical_errors: List of (app_name, error_message) tuples
         """
@@ -528,7 +528,7 @@ class EnhancedAutoUpdateHandler:
 
     def _provide_failure_recommendations(self, failed: list[UninstallResult]) -> None:
         """Provide recommendations based on failure types.
-        
+
         Args:
             failed: List of failed uninstall results
         """
@@ -551,14 +551,14 @@ class EnhancedAutoUpdateHandler:
             running_apps = ", ".join([r.app_name for r in running_failures])
             print(f"  • Close applications before uninstalling: {running_apps}")
 
-    def _determine_exit_code(self, critical_errors: list[tuple[str, str]], 
+    def _determine_exit_code(self, critical_errors: list[tuple[str, str]],
                            failed: list[UninstallResult]) -> int:
         """Determine appropriate exit code based on results.
-        
+
         Args:
             critical_errors: List of critical errors
             failed: List of failed results
-            
+
         Returns:
             Exit code (0=success, 1=partial failure, 2=critical failure)
         """
@@ -586,13 +586,13 @@ class EnhancedAutoUpdateHandler:
 
             # Show what will be uninstalled and get confirmation
             self._display_uninstall_preview(auto_update_casks)
-            
+
             if not self._get_uninstall_confirmation(len(auto_update_casks)):
                 return 0
 
             # Perform the uninstalls
             results, critical_errors = self._perform_uninstalls(auto_update_casks)
-            
+
             # Analyze results
             successful = [r for r in results if r.success]
             failed = [r for r in results if not r.success]

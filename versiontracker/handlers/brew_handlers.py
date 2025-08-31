@@ -41,10 +41,10 @@ class BrewOptions(TypedDict, total=False):
 
 def _get_and_filter_brews(options: Any) -> tuple[list[str], list[str]]:
     """Get and filter Homebrew packages based on options.
-    
+
     Args:
         options: Command line options
-        
+
     Returns:
         tuple: (filtered_brews, auto_update_casks)
     """
@@ -65,28 +65,28 @@ def _get_and_filter_brews(options: Any) -> tuple[list[str], list[str]]:
         brews = [brew for brew in brews if brew not in auto_update_casks]
     elif hasattr(options, "only_auto_updates") and options.only_auto_updates:
         brews = auto_update_casks
-        
+
     return brews, auto_update_casks
 
 
 def _should_show_auto_update_marker(brew: str, auto_update_casks: list[str], options: Any) -> bool:
     """Determine if auto-update marker should be shown for a brew.
-    
+
     Args:
         brew: The brew name
         auto_update_casks: List of casks with auto-updates
         options: Command line options
-        
+
     Returns:
         bool: True if marker should be shown
     """
-    return (brew in auto_update_casks and 
+    return (brew in auto_update_casks and
             not (hasattr(options, "only_auto_updates") and options.only_auto_updates))
 
 
 def _display_brew_list(brews: list[str], auto_update_casks: list[str], options: Any) -> None:
     """Display the list of brews.
-    
+
     Args:
         brews: List of brews to display
         auto_update_casks: List of casks with auto-updates
@@ -108,7 +108,7 @@ def _display_brew_list(brews: list[str], auto_update_casks: list[str], options: 
 
 def _handle_export_if_requested(brews: list[str], options: Any) -> None:
     """Handle export functionality if requested.
-    
+
     Args:
         brews: List of brews to export
         options: Command line options
@@ -155,7 +155,7 @@ def handle_list_brews(options: Any) -> int:
             _handle_export_if_requested(brews, options)
 
             return 0
-            
+
         except HomebrewError as e:
             print(create_progress_bar().color("red")(f"Homebrew Error: {e}"))
             return 1

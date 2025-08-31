@@ -92,12 +92,12 @@ def handle_blacklist_auto_updates(options: Any) -> int:
 
 def _get_auto_update_casks() -> tuple[list[str], int]:
     """Get casks with auto-updates.
-    
+
     Returns:
         tuple: (auto_update_casks, exit_code) - exit_code is 0 for success, non-zero for early exit
     """
     progress_bar = create_progress_bar()
-    
+
     # Get all installed Homebrew casks
     print(progress_bar.color("green")("Getting installed Homebrew casks..."))
     all_casks = get_homebrew_casks()
@@ -113,21 +113,21 @@ def _get_auto_update_casks() -> tuple[list[str], int]:
     if not auto_update_casks:
         print(progress_bar.color("yellow")("No casks with auto-updates found."))
         return [], 0
-        
+
     return auto_update_casks, -1  # -1 indicates continue processing
 
 
 def _display_casks_and_confirm(auto_update_casks: list[str]) -> bool:
     """Display casks to be uninstalled and get user confirmation.
-    
+
     Args:
         auto_update_casks: List of casks with auto-updates
-        
+
     Returns:
         bool: True if user confirmed, False otherwise
     """
     progress_bar = create_progress_bar()
-    
+
     # Show what will be uninstalled
     print(progress_bar.color("blue")(f"\nFound {len(auto_update_casks)} casks with auto-updates:"))
     for i, cask in enumerate(auto_update_casks, 1):
@@ -149,16 +149,16 @@ def _display_casks_and_confirm(auto_update_casks: list[str]) -> bool:
     if confirmation != "UNINSTALL":
         print(progress_bar.color("yellow")("Operation cancelled."))
         return False
-        
+
     return True
 
 
 def _uninstall_single_cask(cask: str) -> tuple[bool, str | None]:
     """Uninstall a single cask.
-    
+
     Args:
         cask: Name of the cask to uninstall
-        
+
     Returns:
         tuple: (success, error_message)
     """
@@ -177,10 +177,10 @@ def _uninstall_single_cask(cask: str) -> tuple[bool, str | None]:
 
 def _perform_uninstall_operations(auto_update_casks: list[str]) -> tuple[int, int, list[tuple[str, str]]]:
     """Perform the uninstall operations for all casks.
-    
+
     Args:
         auto_update_casks: List of casks to uninstall
-        
+
     Returns:
         tuple: (successful_count, failed_count, errors)
     """
@@ -193,7 +193,7 @@ def _perform_uninstall_operations(auto_update_casks: list[str]) -> tuple[int, in
     for cask in auto_update_casks:
         print(f"Uninstalling {progress_bar.color('yellow')(cask)}...", end=" ")
         success, error_message = _uninstall_single_cask(cask)
-        
+
         if success:
             print(progress_bar.color("green")("✓"))
             successful += 1
@@ -201,23 +201,23 @@ def _perform_uninstall_operations(auto_update_casks: list[str]) -> tuple[int, in
             print(progress_bar.color("red")("✗"))
             failed += 1
             errors.append((cask, error_message))
-            
+
     return successful, failed, errors
 
 
 def _display_uninstall_results(successful: int, failed: int, errors: list[tuple[str, str]]) -> int:
     """Display uninstall results.
-    
+
     Args:
         successful: Number of successful uninstalls
         failed: Number of failed uninstalls
         errors: List of error tuples (cask, error_message)
-        
+
     Returns:
         int: Exit code
     """
     progress_bar = create_progress_bar()
-    
+
     # Show results
     print(progress_bar.color("blue")("\n" + "=" * 60))
     print(progress_bar.color("green")(f"Successfully uninstalled: {successful}"))

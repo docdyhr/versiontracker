@@ -349,7 +349,7 @@ def _export_data(outdated_info: list[tuple[str, dict[str, str], str]], options: 
 
 def _get_applications_with_error_handling() -> tuple[list[tuple[str, str]] | None, int]:
     """Get installed applications with proper error handling.
-    
+
     Returns:
         Tuple of (applications_list, exit_code). If exit_code > 0, applications_list is None.
     """
@@ -375,7 +375,7 @@ def _get_applications_with_error_handling() -> tuple[list[tuple[str, str]] | Non
 
 def _get_homebrew_casks_with_error_handling() -> tuple[list[str] | None, int]:
     """Get Homebrew casks with proper error handling.
-    
+
     Returns:
         Tuple of (casks_list, exit_code). If exit_code > 0, casks_list is None.
     """
@@ -399,11 +399,11 @@ def _get_homebrew_casks_with_error_handling() -> tuple[list[str] | None, int]:
 
 def _check_outdated_with_error_handling(apps: list[tuple[str, str]], options: Any) -> tuple[list[tuple[str, dict[str, str], str]] | None, int]:
     """Check outdated apps with proper error handling.
-    
+
     Args:
         apps: List of installed applications
         options: Command line options
-        
+
     Returns:
         Tuple of (outdated_info, exit_code). If exit_code > 0, outdated_info is None.
     """
@@ -426,11 +426,11 @@ def _check_outdated_with_error_handling(apps: list[tuple[str, str]], options: An
 
 def _handle_export_if_requested(outdated_info: list[tuple[str, dict[str, str], str]], options: Any) -> int:
     """Handle export operation if requested.
-    
+
     Args:
         outdated_info: List of outdated application information
         options: Command line options
-        
+
     Returns:
         Exit code (0 for success or no export, 1 for export error)
     """
@@ -443,10 +443,10 @@ def _handle_export_if_requested(outdated_info: list[tuple[str, dict[str, str], s
     return 0
 
 
-def _handle_notification_if_requested(outdated_info: list[tuple[str, dict[str, str], str]], 
+def _handle_notification_if_requested(outdated_info: list[tuple[str, dict[str, str], str]],
                                      status_counts: dict[str, int], options: Any) -> None:
     """Send notification if requested.
-    
+
     Args:
         outdated_info: List of outdated application information
         status_counts: Status count dictionary
@@ -458,10 +458,10 @@ def _handle_notification_if_requested(outdated_info: list[tuple[str, dict[str, s
 
 def _handle_top_level_exceptions(e: Exception) -> int:
     """Handle top-level exceptions with proper error reporting.
-    
+
     Args:
         e: Exception that occurred
-        
+
     Returns:
         Exit code (1 for config error, 130 for keyboard interrupt, 1 for others)
     """
@@ -540,7 +540,7 @@ def handle_outdated_check(options: Any) -> int:
 
         # Handle optional operations
         _handle_notification_if_requested(outdated_info, status_counts, options)
-        
+
         # Handle export and return its result
         return _handle_export_if_requested(outdated_info, options)
 

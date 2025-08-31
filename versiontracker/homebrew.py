@@ -304,10 +304,10 @@ def search_casks(query: str) -> list[dict[str, Any]]:
 
 def _filter_cached_casks(cask_names: list[str]) -> tuple[dict[str, dict[str, Any]], list[str]]:
     """Filter cask names by checking cache first.
-    
+
     Args:
         cask_names: List of cask names to filter
-        
+
     Returns:
         Tuple of (cached_results, casks_to_fetch)
     """
@@ -323,16 +323,16 @@ def _filter_cached_casks(cask_names: list[str]) -> tuple[dict[str, dict[str, Any
             result[cask_name] = cached_info  # type: ignore
         else:
             casks_to_fetch.append(cask_name)
-            
+
     return result, casks_to_fetch
 
 
 def _fetch_cask_batch(batch: list[str]) -> dict[str, dict[str, Any]]:
     """Fetch information for a single batch of casks.
-    
+
     Args:
         batch: List of cask names in this batch
-        
+
     Returns:
         Dict mapping cask names to their info
     """
@@ -350,7 +350,7 @@ def _fetch_cask_batch(batch: list[str]) -> dict[str, dict[str, Any]]:
             return {}
 
         return _parse_and_cache_batch_response(stdout)
-        
+
     except Exception as e:
         logging.warning(f"Error retrieving info for cask batch: {e}")
         return {}
@@ -358,10 +358,10 @@ def _fetch_cask_batch(batch: list[str]) -> dict[str, dict[str, Any]]:
 
 def _parse_and_cache_batch_response(stdout: str) -> dict[str, dict[str, Any]]:
     """Parse JSON response and cache individual cask info.
-    
+
     Args:
         stdout: JSON response from homebrew command
-        
+
     Returns:
         Dict mapping cask names to their info
     """
@@ -388,9 +388,9 @@ def _parse_and_cache_batch_response(stdout: str) -> dict[str, dict[str, Any]]:
                     priority=CachePriority.NORMAL,
                     source="homebrew",
                 )
-        
+
         return result
-        
+
     except json.JSONDecodeError as e:
         logging.warning(f"Failed to parse cask info JSON for batch: {e}")
         return {}
@@ -398,7 +398,7 @@ def _parse_and_cache_batch_response(stdout: str) -> dict[str, dict[str, Any]]:
 
 def _apply_rate_limiting(config: Any, current_batch_index: int, total_casks: int, batch_size: int) -> None:
     """Apply rate limiting between batch requests.
-    
+
     Args:
         config: Configuration object with rate limiting settings
         current_batch_index: Current batch starting index
@@ -441,7 +441,7 @@ def batch_get_cask_info(cask_names: list[str]) -> dict[str, dict[str, Any]]:
 
     for i in range(0, len(casks_to_fetch), batch_size):
         batch = casks_to_fetch[i : i + batch_size]
-        
+
         # Fetch batch and merge results
         batch_result = _fetch_cask_batch(batch)
         result.update(batch_result)
