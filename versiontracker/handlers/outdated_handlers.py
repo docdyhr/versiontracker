@@ -18,7 +18,7 @@ import traceback
 from typing import Any, cast
 
 try:
-    from tabulate import tabulate  # type: ignore[import]
+    from tabulate import tabulate
 except ImportError:
     # Fallback if tabulate is not installed
     def tabulate(  # type: ignore[misc]
@@ -295,7 +295,7 @@ def _send_notification_if_available(
         print(create_progress_bar().color("yellow")("macOS notifications only available on macOS"))
         return
 
-    try:  # type: ignore[unreachable]
+    try:
         # Prepare list of outdated applications for notification
         outdated_apps = []
         for app_name, version_info, status in outdated_info:

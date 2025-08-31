@@ -68,7 +68,7 @@ except Exception:  # pragma: no cover - best-effort fallback
     homebrew = None  # type: ignore
 
 try:  # pragma: no cover
-    from .exceptions import NetworkError, TimeoutError  # type: ignore
+    from .exceptions import NetworkError, TimeoutError
 except Exception:  # pragma: no cover
     # Fallback minimal stand-ins (should rarely occur)
     class NetworkError(Exception):  # type: ignore
@@ -185,7 +185,7 @@ class AsyncHomebrewClient:
             TimeoutError: If operation exceeds provisional timeout (future hook).
         """
         if homebrew is None:  # pragma: no cover
-            self._logger.warning("Homebrew module unavailable; returning None for cask %s", cask)  # type: ignore[unreachable]
+            self._logger.warning("Homebrew module unavailable; returning None for cask %s", cask)
             return None
 
         start = self._now()
@@ -248,15 +248,15 @@ class AsyncHomebrewClient:
             List of matching cask names (may be empty).
         """
         if homebrew is None:  # pragma: no cover
-            self._logger.warning("Homebrew module unavailable; search returns empty list")  # type: ignore[unreachable]
+            self._logger.warning("Homebrew module unavailable; search returns empty list")
             return []
 
         try:
             # Assume homebrew.search function; fallback gracefully if absent.
             if hasattr(homebrew, "search_casks"):
-                return await self._to_thread(homebrew.search_casks, term)  # type: ignore[attr-defined]
+                return await self._to_thread(homebrew.search_casks, term)
             if hasattr(homebrew, "search"):
-                return await self._to_thread(homebrew.search, term)  # type: ignore[attr-defined]
+                return await self._to_thread(homebrew.search, term)
             self._logger.debug("No search function available in homebrew module")
             return []
         except Exception as exc:  # noqa: BLE001

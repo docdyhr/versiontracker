@@ -55,7 +55,7 @@ class BlacklistBackup:
 class EnhancedAutoUpdateHandler:
     """Enhanced auto-update handler with improved error handling."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the enhanced handler."""
         self.progress_bar = create_progress_bar()
         self.config = get_config()
