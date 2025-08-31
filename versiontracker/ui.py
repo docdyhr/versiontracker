@@ -129,14 +129,14 @@ except ImportError:
     TQDM_CLASS = FallbackTqdm
 
 try:
-    from termcolor import colored, cprint  # type: ignore[import]
+    from termcolor import colored, cprint
 
     HAS_TERMCOLOR = True
 except ImportError:
     HAS_TERMCOLOR = False
 
     # Fallback implementation if termcolor is not available
-    def colored(  # type: ignore[misc]
+    def colored(
         text: object,
         color: str | None = None,
         on_color: str | None = None,
@@ -163,7 +163,7 @@ except ImportError:
         _ = color, on_color, attrs, no_color, force_color
         return str(text)
 
-    def cprint(  # type: ignore[misc]
+    def cprint(
         text: object,
         color: str | None = None,
         on_color: str | None = None,
@@ -261,8 +261,8 @@ class SmartProgress[T]:
         total: int | None = None,
         monitor_resources: bool = True,
         update_interval: float = 0.5,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Initialize the smart progress indicator.
 
         Args:
@@ -287,7 +287,7 @@ class SmartProgress[T]:
         # Check if we're in a terminal that supports progress bars
         self.use_tqdm = HAS_TQDM and sys.stdout.isatty()
 
-    def color(self, color_name: str | None):
+    def color(self, color_name: str | None) -> Any:
         """Return a function that applies the specified color to a string.
 
         Args:
@@ -361,7 +361,7 @@ def smart_progress[T](
     desc: str = "",
     total: int | None = None,
     monitor_resources: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> Iterator[T]:
     """Create a smart progress bar.
 

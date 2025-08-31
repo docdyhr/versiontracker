@@ -4,6 +4,7 @@
 # Import legacy functions from main apps.py file that weren't refactored
 import importlib.util
 import os
+from typing import Any
 
 # Import cache functions that tests depend on
 from ..cache import read_cache
@@ -47,31 +48,31 @@ if _spec is not None and _spec.loader is not None:
 
     # Import ALL EXISTING functions from main apps.py (safe imports only)
 
-    def _batch_process_brew_search(*args, **kwargs):
+    def _batch_process_brew_search(*args: Any, **kwargs: Any) -> Any:
         """Process brew search in batches."""
         return _apps_main._batch_process_brew_search(*args, **kwargs)
 
-    def _check_cache_for_cask(*args, **kwargs):
+    def _check_cache_for_cask(*args: Any, **kwargs: Any) -> Any:
         """Check cache for cask information."""
         return _apps_main._check_cache_for_cask(*args, **kwargs)
 
-    def _create_rate_limiter(*args, **kwargs):
+    def _create_rate_limiter(*args: Any, **kwargs: Any) -> Any:
         """Create appropriate rate limiter."""
         return _apps_main._create_rate_limiter(*args, **kwargs)
 
-    def _execute_brew_search(*args, **kwargs):
+    def _execute_brew_search(*args: Any, **kwargs: Any) -> Any:
         """Execute brew search command."""
         return _apps_main._execute_brew_search(*args, **kwargs)
 
-    def _get_error_message(*args, **kwargs):
+    def _get_error_message(*args: Any, **kwargs: Any) -> Any:
         """Get error message from exception."""
         return _apps_main._get_error_message(*args, **kwargs)
 
-    def _get_existing_brews(*args, **kwargs):
+    def _get_existing_brews(*args: Any, **kwargs: Any) -> Any:
         """Get existing brew installations."""
         return _apps_main._get_existing_brews(*args, **kwargs)
 
-    def _handle_batch_error(*args, **kwargs):
+    def _handle_batch_error(*args: Any, **kwargs: Any) -> Any:
         """Handle batch processing errors."""
         return _apps_main._handle_batch_error(*args, **kwargs)
 
@@ -115,19 +116,19 @@ if _spec is not None and _spec.loader is not None:
         """Update cache with installable cask information."""
         return _apps_main._update_cache_with_installable(*args, **kwargs)
 
-    def check_brew_install_candidates(*args, **kwargs):
+    def check_brew_install_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Check which applications can be installed via Homebrew."""
         return _apps_main.check_brew_install_candidates(*args, **kwargs)
 
-    def check_brew_update_candidates(*args, **kwargs):
+    def check_brew_update_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, str]]:
         """Check which Homebrew casks can be updated."""
         return _apps_main.check_brew_update_candidates(*args, **kwargs)
 
-    def get_cask_version(*args, **kwargs):
+    def get_cask_version(*args: Any, **kwargs: Any) -> str | None:
         """Get version of a Homebrew cask."""
         return _apps_main.get_cask_version(*args, **kwargs)
 
-    def get_homebrew_casks(*args, **kwargs):
+    def get_homebrew_casks(*args: Any, **kwargs: Any) -> list[str]:
         """Get list of installed Homebrew casks."""
         return _apps_main.get_homebrew_casks(*args, **kwargs)
 
@@ -137,7 +138,7 @@ if _spec is not None and _spec.loader is not None:
     # Also expose the manual cache clearing function for comprehensive cache management
     get_homebrew_casks.clear_all_caches = _apps_main.clear_homebrew_casks_cache  # type: ignore
 
-    def is_brew_cask_installable(*args, **kwargs):
+    def is_brew_cask_installable(*args: Any, **kwargs: Any) -> bool:
         """Check if a cask can be installed via Homebrew."""
         return _apps_main.is_brew_cask_installable(*args, **kwargs)
 
@@ -162,39 +163,39 @@ if _spec is not None and _spec.loader is not None:
     _brew_search_cache = _apps_main._brew_search_cache
 else:
     # Comprehensive fallback functions if main apps.py cannot be loaded
-    def get_homebrew_casks(*args, **kwargs):
+    def get_homebrew_casks(*args: Any, **kwargs: Any) -> list[str]:
         """Fallback: Get list of installed Homebrew casks."""
         return []
 
-    def check_brew_install_candidates(*args, **kwargs):
+    def check_brew_install_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Fallback: Check which applications can be installed via Homebrew."""
         return []
 
-    def _process_brew_batch(*args, **kwargs):
+    def _process_brew_batch(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Process batch of brew operations."""
         return []
 
-    def get_cask_version(*args, **kwargs):
+    def get_cask_version(*args: Any, **kwargs: Any) -> str | None:
         """Fallback: Get version of a Homebrew cask."""
         return None
 
-    def is_brew_cask_installable(*args, **kwargs):
+    def is_brew_cask_installable(*args: Any, **kwargs: Any) -> bool:
         """Fallback: Check if a cask can be installed via Homebrew."""
         return False
 
-    def _create_rate_limiter(*args, **kwargs):
+    def _create_rate_limiter(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Create appropriate rate limiter."""
         return SimpleRateLimiter(1.0)
 
-    def run_command(*args, **kwargs):
+    def run_command(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Run system command."""
         return ("", 1)
 
-    def write_cache(*args, **kwargs):
+    def write_cache(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Write data to cache."""
         return False
 
-    def check_brew_update_candidates(*args, **kwargs):
+    def check_brew_update_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, str]]:
         """Fallback: Check which Homebrew casks can be updated."""
         return []
 
@@ -219,7 +220,7 @@ else:
         """Fallback: Get existing brew installations."""
         return []
 
-    def _handle_batch_error(*args, **kwargs):
+    def _handle_batch_error(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Handle batch processing errors."""
         # Extract arguments for backward compatibility
         args[0] if len(args) > 0 else kwargs.get("error")

@@ -182,7 +182,8 @@ def _parse_json_output(stdout: str, command: str) -> dict[str, Any]:
         raise DataParsingError(f"Command '{command}' produced no output")
 
     try:
-        return json.loads(stdout)
+        parsed_data = json.loads(stdout)
+        return cast(dict[str, Any], parsed_data)
     except json.JSONDecodeError as e:
         logging.error(f"Failed to parse JSON output from '{command}': {e}")
         raise DataParsingError(f"Failed to parse JSON from command output: {e}") from e

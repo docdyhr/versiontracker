@@ -124,7 +124,7 @@ class EnhancedMatcher:
         self.threshold = threshold
         self._compile_patterns()
 
-    def _compile_patterns(self):
+    def _compile_patterns(self) -> None:
         """Compile regex patterns for efficiency."""
         self.version_regex = re.compile(r"|".join(self.VERSION_PATTERNS))
         # Only match suffixes at the end of the string or followed by whitespace

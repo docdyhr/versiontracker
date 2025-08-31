@@ -107,8 +107,8 @@ class PerformanceProfiler:
         """
         if HAS_PSUTIL and psutil_module is not None:
             process = psutil_module.Process()
-            return process.memory_info().rss / 1024 / 1024  # MB
-        return 0
+            return float(process.memory_info().rss / 1024 / 1024)  # MB
+        return 0.0
 
     def _update_timing_stats(self, name: str, elapsed: float, memory_before: float, memory_after: float) -> None:
         """Update timing statistics for a function call.

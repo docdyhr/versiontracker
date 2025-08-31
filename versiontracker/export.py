@@ -64,7 +64,7 @@ def export_data(
             logging.error(f"Error writing to {filename}: {e}")
             raise ExportError(f"Failed to write to {filename}: {e}") from e
     else:
-        return cast(str, content)
+        return content
 
 
 def _export_to_json(
@@ -95,8 +95,8 @@ def _export_to_json(
                         "status": app[2].name if hasattr(app[2], "name") else str(app[2]),
                     }
                 else:
-                    if isinstance(app, tuple) and len(app) > 0:  # type: ignore
-                        app_name = str(app[0])  # type: ignore
+                    if isinstance(app, tuple) and len(app) > 0:
+                        app_name = str(app[0])
                     else:
                         app_name = str(app) if app else ""
                     app_data = {
@@ -118,7 +118,7 @@ def _export_to_json(
         raise ExportError(f"Failed to export to JSON: {e}") from e
 
 
-def _process_applications_dict(writer: csv.writer, applications: list) -> None:
+def _process_applications_dict(writer: Any, applications: list) -> None:
     """Process applications dict format for CSV export."""
     for app in applications:
         if isinstance(app, tuple):
@@ -127,7 +127,7 @@ def _process_applications_dict(writer: csv.writer, applications: list) -> None:
             writer.writerow([app_name, app_version, "Unknown", ""])
 
 
-def _process_tuple_list(writer: csv.writer, data: list) -> None:
+def _process_tuple_list(writer: Any, data: list) -> None:
     """Process list of tuples format for CSV export."""
     if data and isinstance(data[0], tuple):
         for app in data:
@@ -147,7 +147,7 @@ def _process_tuple_list(writer: csv.writer, data: list) -> None:
                 writer.writerow([str(app[0]), "", "Unknown", ""])
 
 
-def _process_dict_format(writer: csv.writer, data: dict) -> None:
+def _process_dict_format(writer: Any, data: dict) -> None:
     """Process dictionary format for CSV export."""
     for name, info in data.items():
         if isinstance(info, dict):
@@ -162,7 +162,10 @@ def _process_dict_format(writer: csv.writer, data: dict) -> None:
 
 
 def _export_to_csv(
-    data: dict[str, Any] | list[tuple[str, dict[str, str], VersionStatus]],
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
 ) -> str:
     """Export data to CSV format.
 
@@ -198,7 +201,13 @@ def _export_to_csv(
         raise ExportError(f"Failed to export to CSV: {e}") from e
 
 
-def export_to_json(data, filename=None):
+def export_to_json(
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
+    filename: str | None = None,
+) -> str:
     """Export data to JSON format.
 
     Args:
@@ -222,7 +231,13 @@ def export_to_json(data, filename=None):
     return content
 
 
-def export_to_csv(data, filename=None):
+def export_to_csv(
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
+    filename: str | None = None,
+) -> str:
     """Export data to CSV format.
 
     Args:

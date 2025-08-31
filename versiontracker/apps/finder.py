@@ -150,7 +150,8 @@ def get_homebrew_casks_list() -> list[str]:
         # Get all installed casks from get_homebrew_casks function
         # This is the key change - directly return the result of get_homebrew_casks
         # so that mocking of get_homebrew_casks in tests works correctly
-        return _apps_main.get_homebrew_casks()
+        from typing import cast
+        return cast(list[str], _apps_main.get_homebrew_casks())
     except (NetworkError, BrewPermissionError, BrewTimeoutError):
         # Re-raise these specific exceptions without wrapping
         raise

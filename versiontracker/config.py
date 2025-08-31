@@ -17,171 +17,6 @@ import yaml
 from versiontracker.exceptions import ConfigError
 
 
-class Config:
-    """
-    Configuration manager for VersionTracker.
-
-    Handles loading configuration from files and environment variables
-    with proper priority ordering.
-    """
-
-    DEFAULT_CONFIG = {
-        "max_workers": 5,
-        "cache_dir": "~/.versiontracker/cache",
-        "cache_ttl": 3600,  # 1 hour in seconds
-        "timeout": 30,
-        "batch_size": 10,
-        "use_progress": True,
-        "use_color": True,
-        "homebrew_prefix": "/usr/local",
-        "rate_limit": 100,  # requests per minute
-        "log_level": "INFO",
-    }
-
-    def __init__(self, config_file: str | None = None) -> None:
-        """
-        Initialize configuration.
-
-        Args:
-            config_file: Optional path to YAML configuration file.
-        """
-        self._config: dict[str, Any] = self.DEFAULT_CONFIG.copy()
-
-        # Load from config file if provided
-        if config_file:
-            self._load_from_file(config_file)
-        else:
-            # Try default locations
-            self._load_default_config()
-
-        # Override with environment variables
-        self._load_from_env()
-
-        # Expand paths
-        self._expand_paths()
-
-    def _load_from_file(self, config_file: str) -> None:
-        """
-        Load configuration from a YAML file.
-
-        Args:
-            config_file: Path to the configuration file.
-
-        Raises:
-            ConfigError: If the file cannot be loaded or parsed.
-        """
-        try:
-            with open(config_file) as f:
-                file_config = yaml.safe_load(f) or {}
-                self._config.update(file_config)
-        except FileNotFoundError as e:
-            raise ConfigError(f"Configuration file not found: {config_file}") from e
-        except yaml.YAMLError as e:
-            raise ConfigError(f"Error parsing configuration file: {e}") from e
-
-    def _load_default_config(self) -> None:
-        """Load configuration from default locations."""
-        config_paths = [
-            Path.home() / ".versiontracker" / "config.yml",
-            Path.home() / ".config" / "versiontracker" / "config.yml",
-            Path("/etc/versiontracker/config.yml"),
-        ]
-
-        for path in config_paths:
-            if path.exists():
-                try:
-                    self._load_from_file(str(path))
-                    break
-                except ConfigError:
-                    continue
-
-    def _load_from_env(self) -> None:
-        """Load configuration from environment variables."""
-        env_mapping = {
-            "VERSIONTRACKER_MAX_WORKERS": ("max_workers", int),
-            "VERSIONTRACKER_CACHE_DIR": ("cache_dir", str),
-            "VERSIONTRACKER_CACHE_TTL": ("cache_ttl", int),
-            "VERSIONTRACKER_TIMEOUT": ("timeout", int),
-            "VERSIONTRACKER_BATCH_SIZE": ("batch_size", int),
-            "VERSIONTRACKER_USE_PROGRESS": ("use_progress", lambda x: x.lower() == "true"),
-            "VERSIONTRACKER_USE_COLOR": ("use_color", lambda x: x.lower() == "true"),
-            "VERSIONTRACKER_HOMEBREW_PREFIX": ("homebrew_prefix", str),
-            "VERSIONTRACKER_RATE_LIMIT": ("rate_limit", int),
-            "VERSIONTRACKER_LOG_LEVEL": ("log_level", str),
-        }
-
-        for env_var, (config_key, converter) in env_mapping.items():
-            value = os.environ.get(env_var)
-            if value is not None:
-                try:
-                    self._config[config_key] = converter(value)
-                except (ValueError, TypeError):
-                    # Skip invalid environment variables
-                    pass
-
-    def _expand_paths(self) -> None:
-        """Expand user home directory in paths."""
-        path_keys = ["cache_dir", "homebrew_prefix"]
-        for key in path_keys:
-            if key in self._config and isinstance(self._config[key], str):
-                self._config[key] = os.path.expanduser(self._config[key])
-
-    def __getattr__(self, name: str) -> Any:
-        """
-        Get configuration value by attribute access.
-
-        Args:
-            name: Configuration key name.
-
-        Returns:
-            The configuration value.
-
-        Raises:
-            AttributeError: If the configuration key doesn't exist.
-        """
-        if name in self._config:
-            return self._config[name]
-        raise AttributeError(f"Configuration key '{name}' not found")
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get configuration value with optional default.
-
-        Args:
-            key: Configuration key name.
-            default: Default value if key doesn't exist.
-
-        Returns:
-            The configuration value or default.
-        """
-        return self._config.get(key, default)
-
-    def set(self, key: str, value: Any) -> None:
-        """
-        Set a configuration value.
-
-        Args:
-            key: Configuration key name.
-            value: The value to set.
-        """
-        self._config[key] = value
-
-
-# Singleton instance
-_config: Config | None = None
-
-
-def get_config() -> Config:
-    """
-    Get the singleton configuration instance.
-
-    Returns:
-        The global configuration instance.
-    """
-    global _config
-    if _config is None:
-        _config = Config()
-    return _config
 
 
 class ConfigValidator:
@@ -498,7 +333,7 @@ class Config:
             Dict[str, Any]: Normalized configuration dictionary
         """
         if not isinstance(config, dict):
-            return config  # type: ignore
+            return config
 
         normalized = {}
         for key, value in config.items():
@@ -828,7 +663,7 @@ class Config:
         """Apply the validated value to config."""
         if "." in key:
             parts = key.split(".")
-            current = self._config  # type: ignore
+            current = self._config
             for part in parts[:-1]:
                 if part not in current:
                     current[part] = {}
@@ -1057,7 +892,16 @@ def check_dependencies() -> bool:
 _config_instance = Config()
 
 
-def setup_logging(debug: bool = False):
+def get_config() -> Config:
+    """Get the global configuration instance.
+
+    Returns:
+        The global configuration instance.
+    """
+    return _config_instance
+
+
+def setup_logging(debug: bool = False) -> None:
     """Set up logging for the application.
 
     Args:
@@ -1081,7 +925,7 @@ def setup_logging(debug: bool = False):
     )
 
 
-def set_global_config(new_config: Config):
+def set_global_config(new_config: Config) -> None:
     """Replace the global config instance with a custom one.
 
     Args:

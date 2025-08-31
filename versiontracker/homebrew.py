@@ -152,7 +152,8 @@ def get_all_homebrew_casks() -> list[dict[str, Any]]:
                 source="homebrew",
             )
 
-            return casks
+            from typing import cast
+            return cast(list[dict[str, Any]], casks)
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse Homebrew casks JSON: {e}"
             logging.error(error_msg)
@@ -222,7 +223,8 @@ def get_cask_info(cask_name: str) -> dict[str, Any]:
                 source="homebrew",
             )
 
-            return cask_info
+            from typing import cast
+            return cast(dict[str, Any], cask_info)
         except json.JSONDecodeError as e:
             error_msg = f"Failed to parse cask info JSON for {cask_name}: {e}"
             logging.error(error_msg)
@@ -320,7 +322,7 @@ def _filter_cached_casks(cask_names: list[str]) -> tuple[dict[str, dict[str, Any
         cached_info = cache.get(cache_key, ttl=CACHE_TTL_CASK_INFO)
 
         if cached_info is not None:
-            result[cask_name] = cached_info  # type: ignore
+            result[cask_name] = cached_info
         else:
             casks_to_fetch.append(cask_name)
 

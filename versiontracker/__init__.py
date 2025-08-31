@@ -42,8 +42,8 @@ __all__ = [
     "parse_version",
     "compare_versions",
     "is_version_newer",
-    "get_config",  # type: ignore[attr-defined]  # Lazy loaded from .config
-    "VersionTrackerError",  # type: ignore[attr-defined]  # Lazy loaded from .exceptions
+    "get_config",
+    "VersionTrackerError",
 ]
 
 
