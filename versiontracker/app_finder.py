@@ -895,9 +895,7 @@ def _handle_future_exception(exception: Exception, name: str, version: str) -> t
     else:
         # Log other exceptions but continue processing
         error_details = (
-            str(exception)
-            if str(exception).strip()
-            else f"Unknown error of type {type(exception).__name__}"
+            str(exception) if str(exception).strip() else f"Unknown error of type {type(exception).__name__}"
         )
         logging.warning("Error checking %s: %s", name, error_details)
         return (name, version, False)

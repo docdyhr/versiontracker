@@ -359,9 +359,7 @@ def _get_applications_with_error_handling() -> tuple[list[tuple[str, str]] | Non
     except PermissionError:
         print(create_progress_bar().color("red")("Error: Permission denied when reading application data."))
         print(
-            create_progress_bar().color("yellow")(
-                "Try running the command with sudo or check your file permissions."
-            )
+            create_progress_bar().color("yellow")("Try running the command with sudo or check your file permissions.")
         )
         return None, 1
     except TimeoutError:
@@ -384,9 +382,7 @@ def _get_homebrew_casks_with_error_handling() -> tuple[list[str] | None, int]:
         return brews, 0
     except FileNotFoundError:
         print(create_progress_bar().color("red")("Error: Homebrew executable not found."))
-        print(
-            create_progress_bar().color("yellow")("Please make sure Homebrew is installed and properly configured.")
-        )
+        print(create_progress_bar().color("yellow")("Please make sure Homebrew is installed and properly configured."))
         return None, 1
     except PermissionError:
         print(create_progress_bar().color("red")("Error: Permission denied when accessing Homebrew."))
@@ -397,7 +393,9 @@ def _get_homebrew_casks_with_error_handling() -> tuple[list[str] | None, int]:
         return None, 1
 
 
-def _check_outdated_with_error_handling(apps: list[tuple[str, str]], options: Any) -> tuple[list[tuple[str, dict[str, str], str]] | None, int]:
+def _check_outdated_with_error_handling(
+    apps: list[tuple[str, str]], options: Any
+) -> tuple[list[tuple[str, dict[str, str], str]] | None, int]:
     """Check outdated apps with proper error handling.
 
     Args:
@@ -443,8 +441,9 @@ def _handle_export_if_requested(outdated_info: list[tuple[str, dict[str, str], s
     return 0
 
 
-def _handle_notification_if_requested(outdated_info: list[tuple[str, dict[str, str], str]],
-                                     status_counts: dict[str, int], options: Any) -> None:
+def _handle_notification_if_requested(
+    outdated_info: list[tuple[str, dict[str, str], str]], status_counts: dict[str, int], options: Any
+) -> None:
     """Send notification if requested.
 
     Args:

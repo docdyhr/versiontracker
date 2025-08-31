@@ -164,8 +164,9 @@ class EnhancedAutoUpdateHandler:
                 new_additions.append(cask)
         return new_additions
 
-    def _display_blacklist_preview(self, auto_update_casks: list[str], current_blacklist: list[str],
-                                   new_additions: list[str]) -> None:
+    def _display_blacklist_preview(
+        self, auto_update_casks: list[str], current_blacklist: list[str], new_additions: list[str]
+    ) -> None:
         """Display preview of what will be blacklisted.
 
         Args:
@@ -193,8 +194,9 @@ class EnhancedAutoUpdateHandler:
         response = input("Do you want to continue? [y/N]: ").strip().lower()
         return response == "y"
 
-    def _perform_blacklist_update(self, current_blacklist: list[str], new_additions: list[str],
-                                  backup: BlacklistBackup) -> int:
+    def _perform_blacklist_update(
+        self, current_blacklist: list[str], new_additions: list[str], backup: BlacklistBackup
+    ) -> int:
         """Perform the actual blacklist update with rollback capability.
 
         Args:
@@ -457,9 +459,7 @@ class EnhancedAutoUpdateHandler:
         print(self.progress_bar.color("blue")("=" * 60))
 
         for i, cask in enumerate(auto_update_casks, 1):
-            print(
-                f"[{i}/{len(auto_update_casks)}] Uninstalling {self.progress_bar.color('yellow')(cask)}...", end=" "
-            )
+            print(f"[{i}/{len(auto_update_casks)}] Uninstalling {self.progress_bar.color('yellow')(cask)}...", end=" ")
 
             result = self._uninstall_single_cask(cask)
             results.append(result)
@@ -520,11 +520,7 @@ class EnhancedAutoUpdateHandler:
             print(self.progress_bar.color("red")("\n⚠️  CRITICAL ERRORS DETECTED:"))
             for app, error in critical_errors:
                 print(f"  - {app}: {error}")
-            print(
-                self.progress_bar.color("yellow")(
-                    "Please review system stability and consider manual intervention."
-                )
-            )
+            print(self.progress_bar.color("yellow")("Please review system stability and consider manual intervention."))
 
     def _provide_failure_recommendations(self, failed: list[UninstallResult]) -> None:
         """Provide recommendations based on failure types.
@@ -541,9 +537,7 @@ class EnhancedAutoUpdateHandler:
         running_failures = [r for r in failed if "running" in (r.error_message or "").lower()]
 
         if permission_failures:
-            print(
-                f"  • Run with elevated privileges for: {', '.join([r.app_name for r in permission_failures])}"
-            )
+            print(f"  • Run with elevated privileges for: {', '.join([r.app_name for r in permission_failures])}")
         if dependency_failures:
             dep_apps = ", ".join([r.app_name for r in dependency_failures])
             print(f"  • Resolve dependencies before uninstalling: {dep_apps}")
@@ -551,8 +545,7 @@ class EnhancedAutoUpdateHandler:
             running_apps = ", ".join([r.app_name for r in running_failures])
             print(f"  • Close applications before uninstalling: {running_apps}")
 
-    def _determine_exit_code(self, critical_errors: list[tuple[str, str]],
-                           failed: list[UninstallResult]) -> int:
+    def _determine_exit_code(self, critical_errors: list[tuple[str, str]], failed: list[UninstallResult]) -> int:
         """Determine appropriate exit code based on results.
 
         Args:

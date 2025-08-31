@@ -134,12 +134,14 @@ def _process_tuple_list(writer: csv.writer, data: list) -> None:
             app_length = len(app)
             # Check if we have full app data with version info
             if app_length >= 3 and isinstance(app[1], dict):
-                writer.writerow([
-                    str(app[0]),
-                    app[1].get("installed", "") if isinstance(app[1], dict) else "",
-                    (app[1].get("latest", "Unknown") if isinstance(app[1], dict) else "Unknown"),
-                    app[2].name if hasattr(app[2], "name") else str(app[2]),
-                ])
+                writer.writerow(
+                    [
+                        str(app[0]),
+                        app[1].get("installed", "") if isinstance(app[1], dict) else "",
+                        (app[1].get("latest", "Unknown") if isinstance(app[1], dict) else "Unknown"),
+                        app[2].name if hasattr(app[2], "name") else str(app[2]),
+                    ]
+                )
             # Handle minimal tuple case (app name only or with non-dict version info)
             elif app_length >= 1:
                 writer.writerow([str(app[0]), "", "Unknown", ""])
@@ -149,12 +151,14 @@ def _process_dict_format(writer: csv.writer, data: dict) -> None:
     """Process dictionary format for CSV export."""
     for name, info in data.items():
         if isinstance(info, dict):
-            writer.writerow([
-                name,
-                info.get("installed", ""),
-                info.get("latest", "Unknown"),
-                info.get("status", ""),
-            ])
+            writer.writerow(
+                [
+                    name,
+                    info.get("installed", ""),
+                    info.get("latest", "Unknown"),
+                    info.get("status", ""),
+                ]
+            )
 
 
 def _export_to_csv(

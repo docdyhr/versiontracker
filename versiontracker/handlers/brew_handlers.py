@@ -80,8 +80,7 @@ def _should_show_auto_update_marker(brew: str, auto_update_casks: list[str], opt
     Returns:
         bool: True if marker should be shown
     """
-    return (brew in auto_update_casks and
-            not (hasattr(options, "only_auto_updates") and options.only_auto_updates))
+    return brew in auto_update_casks and not (hasattr(options, "only_auto_updates") and options.only_auto_updates)
 
 
 def _display_brew_list(brews: list[str], auto_update_casks: list[str], options: Any) -> None:

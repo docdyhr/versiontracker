@@ -87,7 +87,7 @@ def check_raises_needed(node: ast.AST) -> bool:
             """Initialize the visitor."""
             self.has_raise = False
 
-        def visit_Raise(self, node: ast.Raise) -> None:  # noqa: W0613
+        def visit_Raise(self, node: ast.Raise) -> None:  # noqa: ARG002
             """Visit a Raise node and set the flag."""
             self.has_raise = True
 
