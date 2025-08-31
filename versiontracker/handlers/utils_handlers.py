@@ -73,7 +73,9 @@ def suppress_console_warnings() -> None:
         None
     """
 
-    def warning_filter(message: str, category: type, filename: str, lineno: int, file: Any = None, line: str | None = None) -> bool:
+    def warning_filter(
+        message: str, category: type, filename: str, lineno: int, file: Any = None, line: str | None = None
+    ) -> bool:
         """Filter warning messages based on defined criteria.
 
         Args:

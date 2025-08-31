@@ -51,11 +51,13 @@ if _spec is not None and _spec.loader is not None:
     def _batch_process_brew_search(*args: Any, **kwargs: Any) -> list[Any]:
         """Process brew search in batches."""
         from typing import cast
+
         return cast(list[Any], _apps_main._batch_process_brew_search(*args, **kwargs))
 
     def _check_cache_for_cask(*args: Any, **kwargs: Any) -> bool | None:
         """Check cache for cask information."""
         from typing import cast
+
         return cast(bool | None, _apps_main._check_cache_for_cask(*args, **kwargs))
 
     def _create_rate_limiter(*args: Any, **kwargs: Any) -> Any:
@@ -65,16 +67,19 @@ if _spec is not None and _spec.loader is not None:
     def _execute_brew_search(*args: Any, **kwargs: Any) -> tuple[str, int]:
         """Execute brew search command."""
         from typing import cast
+
         return cast(tuple[str, int], _apps_main._execute_brew_search(*args, **kwargs))
 
     def _get_error_message(*args: Any, **kwargs: Any) -> str:
         """Get error message from exception."""
         from typing import cast
+
         return cast(str, _apps_main._get_error_message(*args, **kwargs))
 
     def _get_existing_brews(*args: Any, **kwargs: Any) -> list[str]:
         """Get existing brew installations."""
         from typing import cast
+
         return cast(list[str], _apps_main._get_existing_brews(*args, **kwargs))
 
     def _handle_batch_error(*args: Any, **kwargs: Any) -> Any:
@@ -84,21 +89,25 @@ if _spec is not None and _spec.loader is not None:
     def _handle_brew_search_result(*args: Any, **kwargs: Any) -> bool:
         """Handle brew search result."""
         from typing import cast
+
         return cast(bool, _apps_main._handle_brew_search_result(*args, **kwargs))
 
     def _handle_future_result(*args: Any, **kwargs: Any) -> tuple[tuple[str, str, bool], None]:
         """Handle future execution result."""
         from typing import cast
+
         return cast(tuple[tuple[str, str, bool], None], _apps_main._handle_future_result(*args, **kwargs))
 
     def _populate_cask_versions(*args: Any, **kwargs: Any) -> dict[str, str]:
         """Populate cask version information."""
         from typing import cast
+
         return cast(dict[str, str], _apps_main._populate_cask_versions(*args, **kwargs))
 
     def _process_batch_result(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process batch execution result."""
         from typing import cast
+
         return cast(list[tuple[str, str, bool]], _apps_main._process_batch_result(*args, **kwargs))
 
     def _process_brew_batch(*args: Any, **kwargs: Any) -> Any:
@@ -108,21 +117,25 @@ if _spec is not None and _spec.loader is not None:
     def _process_brew_search_batches(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process brew search operations in batches."""
         from typing import cast
+
         return cast(list[tuple[str, str, bool]], _apps_main._process_brew_search_batches(*args, **kwargs))
 
     def _process_with_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process operations with progress bar."""
         from typing import cast
+
         return cast(list[tuple[str, str, bool]], _apps_main._process_with_progress_bar(*args, **kwargs))
 
     def _process_without_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process operations without progress bar."""
         from typing import cast
+
         return cast(list[tuple[str, str, bool]], _apps_main._process_without_progress_bar(*args, **kwargs))
 
     def _should_show_progress(*args: Any, **kwargs: Any) -> bool:
         """Determine if progress bar should be shown."""
         from typing import cast
+
         return cast(bool, _apps_main._should_show_progress(*args, **kwargs))
 
     def _update_cache_with_installable(*args: Any, **kwargs: Any) -> None:
@@ -132,21 +145,25 @@ if _spec is not None and _spec.loader is not None:
     def check_brew_install_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Check which applications can be installed via Homebrew."""
         from typing import cast
+
         return cast(list[tuple[str, str, bool]], _apps_main.check_brew_install_candidates(*args, **kwargs))
 
     def check_brew_update_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, str]]:
         """Check which Homebrew casks can be updated."""
         from typing import cast
+
         return cast(list[tuple[str, str, str]], _apps_main.check_brew_update_candidates(*args, **kwargs))
 
     def get_cask_version(*args: Any, **kwargs: Any) -> str | None:
         """Get version of a Homebrew cask."""
         from typing import cast
+
         return cast(str | None, _apps_main.get_cask_version(*args, **kwargs))
 
     def get_homebrew_casks(*args: Any, **kwargs: Any) -> list[str]:
         """Get list of installed Homebrew casks."""
         from typing import cast
+
         return cast(list[str], _apps_main.get_homebrew_casks(*args, **kwargs))
 
     # Expose the cache_clear method from the original decorated function
@@ -158,6 +175,7 @@ if _spec is not None and _spec.loader is not None:
     def is_brew_cask_installable(*args: Any, **kwargs: Any) -> bool:
         """Check if a cask can be installed via Homebrew."""
         from typing import cast
+
         return cast(bool, _apps_main.is_brew_cask_installable(*args, **kwargs))
 
     def smart_progress(*args: Any, **kwargs: Any) -> Any:
@@ -167,11 +185,13 @@ if _spec is not None and _spec.loader is not None:
     def run_command(*args: Any, **kwargs: Any) -> tuple[str, int]:
         """Run system command."""
         from typing import cast
+
         return cast(tuple[str, int], _apps_main.run_command(*args, **kwargs))
 
     def write_cache(*args: Any, **kwargs: Any) -> bool:
         """Write data to cache."""
         from typing import cast
+
         return cast(bool, _apps_main.write_cache(*args, **kwargs))
 
     # Import ALL EXISTING constants from main apps.py

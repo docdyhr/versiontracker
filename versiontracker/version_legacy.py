@@ -1209,7 +1209,12 @@ def _create_app_batches(apps: list[tuple[str, str]], batch_size: int) -> list[li
     return [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]
 
 
-def _handle_batch_result(future: concurrent.futures.Future[list[ApplicationInfo]], results: list[ApplicationInfo], error_count: int, max_errors: int) -> int:
+def _handle_batch_result(
+    future: concurrent.futures.Future[list[ApplicationInfo]],
+    results: list[ApplicationInfo],
+    error_count: int,
+    max_errors: int,
+) -> int:
     """Handle the result of a batch processing future.
 
     Args:

@@ -437,6 +437,7 @@ def _check_cache_for_cask(cask_name: str, cache_data: dict | None) -> bool | Non
         return cask_name in installable_casks
     elif cask_name in cache_data:
         from typing import cast
+
         return cast(bool, cache_data[cask_name])
 
     return None
@@ -921,6 +922,7 @@ def _process_completed_futures(future_to_app: dict) -> list[tuple[str, str, bool
             exception = future.exception()
             # Cast BaseException to Exception since we know it's not None
             from typing import cast
+
             result = _handle_future_exception(cast(Exception, exception), name, version)
             if result:
                 batch_results.append(result)
