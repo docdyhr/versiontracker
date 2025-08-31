@@ -152,6 +152,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "normal"
+# Note: import-untyped and misc errors are handled via inline type: ignore comments
 
 
 
@@ -178,6 +179,11 @@ disable_error_code = ["type-arg", "attr-defined", "no-untyped-def", "misc"]
 module = "versiontracker.__init__"
 # Suppress warnings about __all__ items not being present due to lazy loading
 disable_error_code = ["attr-defined", "name-defined"]
+
+[[tool.mypy.overrides]]
+module = "versiontracker.handlers.*"
+# Suppress signature compatibility issues with optional dependency fallbacks
+disable_error_code = ["misc"]
 
 # Pytest configuration
 [tool.pytest.ini_options]
