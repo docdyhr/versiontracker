@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "::group::MyPy Type Checking"
           echo "Running MyPy type checking (strict mode)"
-          mypy versiontracker --junit-xml=mypy-report.xml --disable-error-code=import-untyped,misc
+          mypy versiontracker --junit-xml=mypy-report.xml --disable-error-code=import-untyped --disable-error-code=misc
           echo "::endgroup::"
 
       - name: Upload lint reports
