@@ -33,7 +33,7 @@ def handle_install_service(options: Namespace) -> int:
             print(progress_bar.color("red")("Error: macOS integration is only available on macOS"))
             return 1
 
-        print("Installing VersionTracker scheduled checker service...")  # type: ignore[unreachable]
+        print("Installing VersionTracker scheduled checker service...")
 
         # Get interval from options
         interval_hours = getattr(options, "service_interval", 24)
@@ -81,7 +81,7 @@ def handle_uninstall_service(options: Namespace) -> int:
             print(progress_bar.color("red")("Error: macOS integration is only available on macOS"))
             return 1
 
-        print("Uninstalling VersionTracker scheduled checker service...")  # type: ignore[unreachable]
+        print("Uninstalling VersionTracker scheduled checker service...")
 
         # Uninstall the service
         success = uninstall_scheduled_checker()
@@ -117,7 +117,7 @@ def handle_service_status(options: Namespace) -> int:
             print(progress_bar.color("red")("Error: macOS integration is only available on macOS"))
             return 1
 
-        print("VersionTracker Service Status:")  # type: ignore[unreachable]
+        print("VersionTracker Service Status:")
         print("=" * 40)
 
         # Get service status
@@ -183,7 +183,7 @@ def handle_test_notification(options: Namespace) -> int:
             print(progress_bar.color("red")("Error: macOS notifications are only available on macOS"))
             return 1
 
-        print("Sending test notification...")  # type: ignore[unreachable]
+        print("Sending test notification...")
 
         # Send test notification
         success = MacOSNotifications.send_notification(
@@ -222,7 +222,7 @@ def handle_menubar_app(options: Namespace) -> int:
             print(progress_bar.color("red")("Error: menubar application is only available on macOS"))
             return 1
 
-        print("Launching VersionTracker menubar application...")  # type: ignore[unreachable]
+        print("Launching VersionTracker menubar application...")
 
         # Import and start the menubar app
         from versiontracker.menubar_app import MenubarApp

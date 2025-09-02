@@ -15,13 +15,12 @@ fuzz: Any = None
 
 try:
     import rapidfuzz.fuzz as rapidfuzz_fuzz
-    import rapidfuzz.process as rapidfuzz_process
 
     fuzz = rapidfuzz_fuzz
     USE_RAPIDFUZZ = True
 except ImportError:
     try:
-        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz
+        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz  # type: ignore[import-untyped]
 
         fuzz = fuzzywuzzy_fuzz
         USE_FUZZYWUZZY = True
@@ -125,7 +124,7 @@ class EnhancedMatcher:
         self.threshold = threshold
         self._compile_patterns()
 
-    def _compile_patterns(self):
+    def _compile_patterns(self) -> None:
         """Compile regex patterns for efficiency."""
         self.version_regex = re.compile(r"|".join(self.VERSION_PATTERNS))
         # Only match suffixes at the end of the string or followed by whitespace

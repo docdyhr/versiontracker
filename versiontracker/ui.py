@@ -8,7 +8,6 @@ from collections.abc import Iterable, Iterator
 from types import ModuleType
 from typing import (
     Any,
-    Generic,
     Literal,
     TypeVar,
     Union,
@@ -50,7 +49,9 @@ class FallbackTqdm:
     for use when the tqdm package is not available.
     """
 
-    def __init__(self, iterable=None, desc=None, total=None, **kwargs):
+    def __init__(
+        self, iterable: Iterable[Any] | None = None, desc: str | None = None, total: int | None = None, **kwargs: Any
+    ) -> None:
         """Initialize the fallback progress bar.
 
         Args:
@@ -68,10 +69,10 @@ class FallbackTqdm:
         if desc:
             print(f"{desc}: started")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """Iterate over the wrapped iterable."""
         if self.iterable is None:
-            return iter([])
+            return
 
         # Print start
         count = 0
@@ -84,34 +85,34 @@ class FallbackTqdm:
         if self.desc:
             print(f"{self.desc}: completed ({count} items)")
 
-    def update(self, n=1):
+    def update(self, n: int = 1) -> None:
         """Update progress by n items."""
         self.n += n
 
-    def set_description(self, desc=None):
+    def set_description(self, desc: str | None = None) -> None:
         """Set the description of the progress bar."""
         if desc:
             self.desc = desc
             print(f"Progress: {desc}")
 
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh the display (no-op in fallback)."""
         pass
 
-    def close(self):
+    def close(self) -> None:
         """Close the progress bar."""
         pass
 
-    def __enter__(self):
+    def __enter__(self) -> "FallbackTqdm":
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         _ = exc_type, exc_val, exc_tb
         self.close()
 
-    def set_postfix_str(self, s):
+    def set_postfix_str(self, s: str) -> None:
         """Set postfix string (no-op for fallback)."""
         # No-op for fallback
         pass
@@ -128,14 +129,18 @@ except ImportError:
     TQDM_CLASS = FallbackTqdm
 
 try:
-    from termcolor import colored, cprint  # type: ignore[import]
+    from termcolor import colored as _colored
+    from termcolor import cprint as _cprint
 
     HAS_TERMCOLOR = True
+    # Use the imported functions directly
+    colored = _colored
+    cprint = _cprint
 except ImportError:
     HAS_TERMCOLOR = False
 
     # Fallback implementation if termcolor is not available
-    def colored(  # type: ignore[misc]
+    def colored(
         text: object,
         color: str | None = None,
         on_color: str | None = None,
@@ -162,7 +167,7 @@ except ImportError:
         _ = color, on_color, attrs, no_color, force_color
         return str(text)
 
-    def cprint(  # type: ignore[misc]
+    def cprint(
         text: object,
         color: str | None = None,
         on_color: str | None = None,
@@ -202,14 +207,14 @@ R = TypeVar("R")
 
 
 # Terminal size detection
-def get_terminal_size():
+def get_terminal_size() -> tuple[int, int]:
     """Get the terminal size."""
     columns, lines = shutil.get_terminal_size()
     return columns, lines
 
 
 # Enhanced colored output
-def print_success(message: str, **kwargs):
+def print_success(message: str, **kwargs: Any) -> None:
     """Print a success message in green."""
     if HAS_TERMCOLOR:
         cprint(message, SUCCESS, **kwargs)
@@ -217,7 +222,7 @@ def print_success(message: str, **kwargs):
         print(message, **kwargs)
 
 
-def print_info(message: str, **kwargs):
+def print_info(message: str, **kwargs: Any) -> None:
     """Print an info message in blue."""
     if HAS_TERMCOLOR:
         cprint(message, INFO, **kwargs)
@@ -225,7 +230,7 @@ def print_info(message: str, **kwargs):
         print(message, **kwargs)
 
 
-def print_warning(message: str, **kwargs):
+def print_warning(message: str, **kwargs: Any) -> None:
     """Print a warning message in yellow."""
     if HAS_TERMCOLOR:
         cprint(message, WARNING, **kwargs)
@@ -233,7 +238,7 @@ def print_warning(message: str, **kwargs):
         print(message, **kwargs)
 
 
-def print_error(message: str, **kwargs):
+def print_error(message: str, **kwargs: Any) -> None:
     """Print an error message in red."""
     if HAS_TERMCOLOR:
         cprint(message, ERROR, **kwargs)
@@ -241,7 +246,7 @@ def print_error(message: str, **kwargs):
         print(message, **kwargs)
 
 
-def print_debug(message: str, **kwargs):
+def print_debug(message: str, **kwargs: Any) -> None:
     """Print a debug message in cyan."""
     if HAS_TERMCOLOR:
         cprint(message, DEBUG, **kwargs)
@@ -250,7 +255,7 @@ def print_debug(message: str, **kwargs):
 
 
 # Smart progress indicators
-class SmartProgress(Generic[T]):
+class SmartProgress[T]:
     """Enhanced progress indicator with system resource monitoring."""
 
     def __init__(
@@ -260,8 +265,8 @@ class SmartProgress(Generic[T]):
         total: int | None = None,
         monitor_resources: bool = True,
         update_interval: float = 0.5,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         """Initialize the smart progress indicator.
 
         Args:
@@ -286,7 +291,7 @@ class SmartProgress(Generic[T]):
         # Check if we're in a terminal that supports progress bars
         self.use_tqdm = HAS_TQDM and sys.stdout.isatty()
 
-    def color(self, color_name: str | None):
+    def color(self, color_name: str | None) -> Any:
         """Return a function that applies the specified color to a string.
 
         Args:
@@ -296,7 +301,7 @@ class SmartProgress(Generic[T]):
             Function that applies the color to a string
         """
         # Type ignore for termcolor compatibility - runtime flexibility maintained
-        return lambda text: colored(text, color_name)  # type: ignore[arg-type]
+        return lambda text: colored(text, color_name)
 
     def __iter__(self) -> Iterator[T]:
         """Iterate over the iterable with a progress bar."""
@@ -320,7 +325,7 @@ class SmartProgress(Generic[T]):
             for item in iter_obj:
                 yield item
 
-    def _update_resource_info(self):
+    def _update_resource_info(self) -> None:
         """Update resource usage information."""
         if not self.monitor_resources:
             return
@@ -342,7 +347,7 @@ class SmartProgress(Generic[T]):
 
 
 # Create a progress bar function (adapter for smart_progress)
-def create_progress_bar():
+def create_progress_bar() -> SmartProgress[Any]:
     """Create a simple progress bar object that supports basic operations.
 
     This is a simplified adapter that provides compatibility with code expecting
@@ -355,12 +360,12 @@ def create_progress_bar():
 
 
 # Enhanced version of tqdm with smart capabilities
-def smart_progress(
+def smart_progress[T](
     iterable: Iterable[T] | None = None,
     desc: str = "",
     total: int | None = None,
     monitor_resources: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> Iterator[T]:
     """Create a smart progress bar.
 
@@ -436,7 +441,7 @@ class AdaptiveRateLimiter:
             # If we can't get resource information, fall back to base rate
             return float(self.base_rate_limit_sec)
 
-    def wait(self):
+    def wait(self) -> None:
         """Wait for the appropriate amount of time."""
         current_time = time.time()
 

@@ -42,6 +42,7 @@ dev = [
     "pytest-cov>=4.1",
     "pytest-timeout>=2.1",
     "pytest-mock>=3.11",
+    "pytest-asyncio>=0.21.0",
     "black>=23.7",
     "ruff>=0.1",
     "mypy>=1.5",
@@ -55,6 +56,7 @@ test = [
     "pytest-cov>=4.1",
     "pytest-timeout>=2.1",
     "pytest-mock>=3.11",
+    "pytest-asyncio>=0.21.0",
 ]
 security = [
     "bandit[toml]>=1.7",
@@ -152,6 +154,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "normal"
+# Note: import-untyped and misc errors are handled via inline type: ignore comments
 
 
 
@@ -178,6 +181,11 @@ disable_error_code = ["type-arg", "attr-defined", "no-untyped-def", "misc"]
 module = "versiontracker.__init__"
 # Suppress warnings about __all__ items not being present due to lazy loading
 disable_error_code = ["attr-defined", "name-defined"]
+
+[[tool.mypy.overrides]]
+module = "versiontracker.handlers.*"
+# Suppress signature compatibility issues with optional dependency fallbacks
+disable_error_code = ["misc"]
 
 # Pytest configuration
 [tool.pytest.ini_options]
@@ -220,7 +228,8 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-    "network: marks tests that require network access"
+    "network: marks tests that require network access",
+    "asyncio: marks tests as async tests that require asyncio"
 ]
 norecursedirs = [
     ".git",

@@ -19,7 +19,7 @@ def _ensure_cache_dir() -> None:
             os.makedirs(CACHE_DIR, exist_ok=True)
     except Exception as e:
         logging.error(f"Error creating cache directory: {e}")
-        raise CacheError(f"Failed to create cache directory: {e}")
+        raise CacheError(f"Failed to create cache directory: {e}") from e
 
 
 def read_cache(cache_name: str, max_age_seconds: int = 86400) -> dict[str, Any] | None:
@@ -88,7 +88,7 @@ def write_cache(cache_name: str, data: dict[str, Any]) -> bool:
         return True
     except Exception as e:
         logging.error(f"Error writing cache {cache_name}: {e}")
-        raise CacheError(f"Failed to write to cache {cache_name}: {e}")
+        raise CacheError(f"Failed to write to cache {cache_name}: {e}") from e
 
 
 def clear_cache(cache_name: str | None = None) -> bool:
@@ -120,4 +120,4 @@ def clear_cache(cache_name: str | None = None) -> bool:
         return True
     except Exception as e:
         logging.error(f"Error clearing cache: {e}")
-        raise CacheError(f"Failed to clear cache: {e}")
+        raise CacheError(f"Failed to clear cache: {e}") from e
