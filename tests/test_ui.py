@@ -275,7 +275,7 @@ class TestTerminalOutput:
 
         # If none of the above conditions are met, fail the test
         expected_msg = f"Expected 'test' in StringIO ({result!r}) or stdout ({stdout_content!r})"
-        assert False, expected_msg
+        raise AssertionError(expected_msg)
 
 
 class TestSmartProgress:

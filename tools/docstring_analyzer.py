@@ -37,7 +37,7 @@ def extract_docstring(node: ast.AST) -> str | None:
     Returns:
         The docstring if it exists, None otherwise
     """
-    if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef, ast.Module)):
+    if isinstance(node, ast.AsyncFunctionDef | ast.FunctionDef | ast.ClassDef | ast.Module):
         docstring = ast.get_docstring(node)
         return docstring
     return None
@@ -87,7 +87,7 @@ def check_raises_needed(node: ast.AST) -> bool:
             """Initialize the visitor."""
             self.has_raise = False
 
-        def visit_Raise(self, node: ast.Raise) -> None:  # noqa: W0613
+        def visit_Raise(self, node: ast.Raise) -> None:  # noqa: ARG002
             """Visit a Raise node and set the flag."""
             self.has_raise = True
 
@@ -163,7 +163,7 @@ def analyze_file(file_path: Path) -> list[DocstringInfo]:
     # Visit all nodes
     for node in ast.walk(tree):
         # Check functions and methods
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             docstring = extract_docstring(node)
             needs_raises = check_raises_needed(node)
 
@@ -253,59 +253,87 @@ def format_results(results: dict[Path, list[DocstringInfo]], show_all: bool = Fa
     problem_count = 0
 
     for file_path, file_results in sorted(results.items()):
-        file_problems = False
-        file_lines: list[str] = []
-
-        for result in file_results:
-            problems: list[str] = []
-
-            if not result.has_docstring:
-                problems.append("Missing docstring")
-            elif len(result.name) > 1:  # Skip module docstring here
-                if result.name.startswith("__") and result.name.endswith("__"):
-                    # Special methods like __init__ don't always need all
-                    # sections
-                    continue
-
-                # For normal functions
-                if not result.has_args_section and not result.name.startswith("_"):
-                    if "test_" not in result.name:  # Skip test functions
-                        problems.append("Missing Args section")
-
-                if not result.has_returns_section:
-                    problems.append("Missing Returns section")
-
-                if result.needs_raises and not result.has_raises_section:
-                    problems.append("Missing Raises section")
-
-                # Check for incorrect format
-                if result.docstring and "param" in result.docstring.lower():
-                    problems.append("Using :param: instead of Args")
-                if result.docstring and "return:" in result.docstring.lower():
-                    problems.append("Using :return: instead of Returns")
-
-            if problems or show_all:
-                problem_str = ", ".join(problems) if problems else "OK"
-                file_lines.append(f"  Line {result.lineno}: {result.name}: {problem_str}")
-
-            if problems:
-                file_problems = True
-                problem_count += 1
+        file_problems, file_lines, file_problem_count = _process_file_results(file_results, show_all)
+        problem_count += file_problem_count
 
         if file_problems or show_all:
-            # Display the path without trying to make it relative
             file_lines.insert(0, f"\n{file_path}:")
             report_lines.extend(file_lines)
             file_count += 1
 
     # Add summary
-    total_files = len(results)
+    _add_summary_to_report(report_lines, len(results), file_count, problem_count)
+
+    return "\n".join(report_lines)
+
+
+def _process_file_results(file_results: list[DocstringInfo], show_all: bool) -> tuple[bool, list[str], int]:
+    """Process results for a single file.
+
+    Returns:
+        Tuple of (has_problems, file_lines, problem_count)
+    """
+    file_problems = False
+    file_lines: list[str] = []
+    problem_count = 0
+
+    for result in file_results:
+        problems = _analyze_docstring_problems(result)
+
+        if problems or show_all:
+            problem_str = ", ".join(problems) if problems else "OK"
+            file_lines.append(f"  Line {result.lineno}: {result.name}: {problem_str}")
+
+        if problems:
+            file_problems = True
+            problem_count += 1
+
+    return file_problems, file_lines, problem_count
+
+
+def _analyze_docstring_problems(result: DocstringInfo) -> list[str]:
+    """Analyze a single docstring result for problems.
+
+    Returns:
+        List of problem descriptions
+    """
+    problems: list[str] = []
+
+    if not result.has_docstring:
+        problems.append("Missing docstring")
+        return problems
+
+    # Skip module docstring and special methods
+    if len(result.name) <= 1 or (result.name.startswith("__") and result.name.endswith("__")):
+        return problems
+
+    # Check for missing sections in normal functions
+    if not result.has_args_section and not result.name.startswith("_") and "test_" not in result.name:
+        problems.append("Missing Args section")
+
+    if not result.has_returns_section:
+        problems.append("Missing Returns section")
+
+    if result.needs_raises and not result.has_raises_section:
+        problems.append("Missing Raises section")
+
+    # Check for incorrect docstring format
+    if result.docstring:
+        docstring_lower = result.docstring.lower()
+        if "param" in docstring_lower:
+            problems.append("Using :param: instead of Args")
+        if "return:" in docstring_lower:
+            problems.append("Using :return: instead of Returns")
+
+    return problems
+
+
+def _add_summary_to_report(report_lines: list[str], total_files: int, file_count: int, problem_count: int) -> None:
+    """Add summary section to the report."""
     report_lines.append("\nSummary:")
     report_lines.append(f"- Analyzed {total_files} Python files")
     report_lines.append(f"- Found {file_count} files with docstring issues")
     report_lines.append(f"- Found {problem_count} total docstring issues")
-
-    return "\n".join(report_lines)
 
 
 def main() -> None:

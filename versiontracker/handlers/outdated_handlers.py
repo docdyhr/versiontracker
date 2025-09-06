@@ -18,12 +18,10 @@ import traceback
 from typing import Any, cast
 
 try:
-    from tabulate import tabulate  # type: ignore[import]
+    from tabulate import tabulate
 except ImportError:
     # Fallback if tabulate is not installed
-    def tabulate(  # type: ignore[misc]
-        tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any
-    ) -> str:
+    def tabulate(tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any) -> str:
         """Format tabular data into a string representation."""
         _ = tablefmt, kwargs  # Acknowledge unused parameters
         result = []
@@ -295,7 +293,7 @@ def _send_notification_if_available(
         print(create_progress_bar().color("yellow")("macOS notifications only available on macOS"))
         return
 
-    try:  # type: ignore[unreachable]
+    try:
         # Prepare list of outdated applications for notification
         outdated_apps = []
         for app_name, version_info, status in outdated_info:
@@ -347,6 +345,140 @@ def _export_data(outdated_info: list[tuple[str, dict[str, str], str]], options: 
     return 0
 
 
+def _get_applications_with_error_handling() -> tuple[list[tuple[str, str]] | None, int]:
+    """Get installed applications with proper error handling.
+
+    Returns:
+        Tuple of (applications_list, exit_code). If exit_code > 0, applications_list is None.
+    """
+    try:
+        apps = _get_installed_applications()
+        return apps, 0
+    except PermissionError:
+        print(create_progress_bar().color("red")("Error: Permission denied when reading application data."))
+        print(
+            create_progress_bar().color("yellow")("Try running the command with sudo or check your file permissions.")
+        )
+        return None, 1
+    except TimeoutError:
+        print(create_progress_bar().color("red")("Error: Timed out while reading application data."))
+        print(create_progress_bar().color("yellow")("Check your system load and try again later."))
+        return None, 1
+    except Exception as e:
+        print(create_progress_bar().color("red")(f"Error: Failed to get installed applications: {e}"))
+        return None, 1
+
+
+def _get_homebrew_casks_with_error_handling() -> tuple[list[str] | None, int]:
+    """Get Homebrew casks with proper error handling.
+
+    Returns:
+        Tuple of (casks_list, exit_code). If exit_code > 0, casks_list is None.
+    """
+    try:
+        brews = _get_homebrew_casks()
+        return brews, 0
+    except FileNotFoundError:
+        print(create_progress_bar().color("red")("Error: Homebrew executable not found."))
+        print(create_progress_bar().color("yellow")("Please make sure Homebrew is installed and properly configured."))
+        return None, 1
+    except PermissionError:
+        print(create_progress_bar().color("red")("Error: Permission denied when accessing Homebrew."))
+        print(create_progress_bar().color("yellow")("Check your user permissions and Homebrew installation."))
+        return None, 1
+    except Exception as e:
+        print(create_progress_bar().color("red")(f"Error: Failed to get Homebrew casks: {e}"))
+        return None, 1
+
+
+def _check_outdated_with_error_handling(
+    apps: list[tuple[str, str]], options: Any
+) -> tuple[list[tuple[str, dict[str, str], str]] | None, int]:
+    """Check outdated apps with proper error handling.
+
+    Args:
+        apps: List of installed applications
+        options: Command line options
+
+    Returns:
+        Tuple of (outdated_info, exit_code). If exit_code > 0, outdated_info is None.
+    """
+    try:
+        use_enhanced_matching = not getattr(options, "no_enhanced_matching", False)
+        outdated_info = _check_outdated_apps(apps, use_enhanced_matching)
+        return outdated_info, 0
+    except TimeoutError:
+        print(create_progress_bar().color("red")("Error: Network timeout while checking for updates."))
+        print(create_progress_bar().color("yellow")("Check your internet connection and try again."))
+        return None, 1
+    except NetworkError:
+        print(create_progress_bar().color("red")("Error: Network error while checking for updates."))
+        print(create_progress_bar().color("yellow")("Check your internet connection and try again."))
+        return None, 1
+    except Exception as e:
+        print(create_progress_bar().color("red")(f"Error: Failed to check for updates: {e}"))
+        return None, 1
+
+
+def _handle_export_if_requested(outdated_info: list[tuple[str, dict[str, str], str]], options: Any) -> int:
+    """Handle export operation if requested.
+
+    Args:
+        outdated_info: List of outdated application information
+        options: Command line options
+
+    Returns:
+        Exit code (0 for success or no export, 1 for export error)
+    """
+    if hasattr(options, "export_format") and options.export_format:
+        try:
+            return _export_data(outdated_info, options)
+        except ExportError as e:
+            print(create_progress_bar().color("red")(f"Error exporting data: {e}"))
+            return 1
+    return 0
+
+
+def _handle_notification_if_requested(
+    outdated_info: list[tuple[str, dict[str, str], str]], status_counts: dict[str, int], options: Any
+) -> None:
+    """Send notification if requested.
+
+    Args:
+        outdated_info: List of outdated application information
+        status_counts: Status count dictionary
+        options: Command line options
+    """
+    if hasattr(options, "notify") and options.notify:
+        _send_notification_if_available(outdated_info, status_counts)
+
+
+def _handle_top_level_exceptions(e: Exception) -> int:
+    """Handle top-level exceptions with proper error reporting.
+
+    Args:
+        e: Exception that occurred
+
+    Returns:
+        Exit code (1 for config error, 130 for keyboard interrupt, 1 for others)
+    """
+    if isinstance(e, ConfigError):
+        print(create_progress_bar().color("red")(f"Configuration Error: {e}"))
+        print(create_progress_bar().color("yellow")("Please check your configuration file and try again."))
+        return 1
+    elif isinstance(e, KeyboardInterrupt):
+        print(create_progress_bar().color("yellow")("\nOperation canceled by user."))
+        return 130  # Standard exit code for SIGINT
+    else:
+        logging.error(f"Error checking outdated applications: {e}")
+        print(create_progress_bar().color("red")(f"Error: {e}"))
+        if get_config().debug:
+            traceback.print_exc()
+        else:
+            print(create_progress_bar().color("yellow")("Run with --debug for more information."))
+        return 1
+
+
 def handle_outdated_check(options: Any) -> int:
     """Handle checking for outdated applications.
 
@@ -373,99 +505,48 @@ def handle_outdated_check(options: Any) -> int:
         # Update configuration from options
         _update_config_from_options(options)
 
-        # Get installed applications
-        try:
-            apps = _get_installed_applications()
-        except PermissionError:
-            print(create_progress_bar().color("red")("Error: Permission denied when reading application data."))
-            print(
-                create_progress_bar().color("yellow")(
-                    "Try running the command with sudo or check your file permissions."
-                )
-            )
-            return 1
-        except TimeoutError:
-            print(create_progress_bar().color("red")("Error: Timed out while reading application data."))
-            print(create_progress_bar().color("yellow")("Check your system load and try again later."))
-            return 1
-        except Exception as e:
-            print(create_progress_bar().color("red")(f"Error: Failed to get installed applications: {e}"))
-            return 1
+        # Get installed applications with error handling
+        apps, exit_code = _get_applications_with_error_handling()
+        if exit_code != 0:
+            return exit_code
 
-        # Get installed Homebrew casks
-        try:
-            brews = _get_homebrew_casks()
-        except FileNotFoundError:
-            print(create_progress_bar().color("red")("Error: Homebrew executable not found."))
-            print(
-                create_progress_bar().color("yellow")("Please make sure Homebrew is installed and properly configured.")
-            )
-            return 1
-        except PermissionError:
-            print(create_progress_bar().color("red")("Error: Permission denied when accessing Homebrew."))
-            print(create_progress_bar().color("yellow")("Check your user permissions and Homebrew installation."))
-            return 1
-        except Exception as e:
-            print(create_progress_bar().color("red")(f"Error: Failed to get Homebrew casks: {e}"))
-            return 1
+        # Get installed Homebrew casks with error handling
+        brews, exit_code = _get_homebrew_casks_with_error_handling()
+        if exit_code != 0:
+            return exit_code
 
         # Filter applications based on Homebrew management
         include_brews = getattr(options, "include_brews", False)
+        # Type assertion: apps and brews cannot be None here due to exit_code checks above
+        assert apps is not None
+        assert brews is not None
         apps = _filter_applications(apps, brews, include_brews)
 
         # Print status update and prepare for checking outdated apps
         print(create_progress_bar().color("green")(f"Checking {len(apps)} applications for updates..."))
         start_time = time.time()
 
-        # Check outdated status
-        try:
-            # Determine if enhanced matching should be used
-            use_enhanced_matching = not getattr(options, "no_enhanced_matching", False)
-            outdated_info = _check_outdated_apps(apps, use_enhanced_matching)
-        except TimeoutError:
-            print(create_progress_bar().color("red")("Error: Network timeout while checking for updates."))
-            print(create_progress_bar().color("yellow")("Check your internet connection and try again."))
-            return 1
-        except NetworkError:
-            print(create_progress_bar().color("red")("Error: Network error while checking for updates."))
-            print(create_progress_bar().color("yellow")("Check your internet connection and try again."))
-            return 1
-        except Exception as e:
-            print(create_progress_bar().color("red")(f"Error: Failed to check for updates: {e}"))
-            return 1
+        # Check outdated status with error handling
+        outdated_info, exit_code = _check_outdated_with_error_handling(apps, options)
+        if exit_code != 0:
+            return exit_code
 
         # Calculate elapsed time
         elapsed_time = time.time() - start_time
 
         # Process results and display
-        table, status_counts = _process_outdated_info(outdated_info)
+        # Type assertion: outdated_info cannot be None here due to exit_code check
+        assert outdated_info is not None
+        # Type cast: outdated_info cannot be None here due to exit_code check above
+        outdated_info_typed = cast(list[tuple[str, dict[str, str], Any]], outdated_info)
+        table, status_counts = _process_outdated_info(outdated_info_typed)
         _display_results(table, status_counts, len(apps), elapsed_time)
 
-        # Send notification if requested
-        if hasattr(options, "notify") and options.notify:
-            _send_notification_if_available(outdated_info, status_counts)
+        # Handle optional operations
+        _handle_notification_if_requested(outdated_info_typed, status_counts, options)
 
-        # Export if requested
-        if hasattr(options, "export_format") and options.export_format:
-            try:
-                return _export_data(outdated_info, options)
-            except ExportError as e:
-                print(create_progress_bar().color("red")(f"Error exporting data: {e}"))
-                return 1
+        # Handle export and return its result
+        return _handle_export_if_requested(outdated_info_typed, options)
 
-        return 0
-    except ConfigError as e:
-        print(create_progress_bar().color("red")(f"Configuration Error: {e}"))
-        print(create_progress_bar().color("yellow")("Please check your configuration file and try again."))
-        return 1
-    except KeyboardInterrupt:
-        print(create_progress_bar().color("yellow")("\nOperation canceled by user."))
-        return 130  # Standard exit code for SIGINT
     except Exception as e:
-        logging.error(f"Error checking outdated applications: {e}")
-        print(create_progress_bar().color("red")(f"Error: {e}"))
-        if get_config().debug:
-            traceback.print_exc()
-        else:
-            print(create_progress_bar().color("yellow")("Run with --debug for more information."))
-        return 1
+        return _handle_top_level_exceptions(e)

@@ -7,7 +7,7 @@ using asyncio for improved performance and resource utilization.
 import builtins
 import logging
 import re
-from typing import Any
+from typing import Any, cast
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -282,7 +282,7 @@ async def async_check_brew_install_candidates(
     )
 
     # Call the method directly (it's sync due to @async_to_sync decorator)
-    return processor.process_all(data)
+    return cast(list[tuple[str, str, bool]], processor.process_all(data))
 
 
 @async_to_sync
@@ -398,4 +398,4 @@ async def async_check_brew_update_candidates(
     )
 
     # Call the method directly (it's sync due to @async_to_sync decorator)
-    return processor.process_all(data)
+    return cast(list[tuple[str, str, str, str | None]], processor.process_all(data))

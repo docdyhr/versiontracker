@@ -3,7 +3,9 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
+from versiontracker import __version__
 from versiontracker.cli import get_arguments
 from versiontracker.handlers import (
     handle_blacklist_auto_updates,
@@ -19,6 +21,13 @@ from versiontracker.handlers import (
     handle_setup_logging,
     handle_uninstall_auto_updates,
 )
+from versiontracker.profiling import (
+    disable_profiling,
+    enable_profiling,
+    print_report,
+    profile_function,
+)
+from versiontracker.ui import QueryFilterManager, create_progress_bar
 
 # Import macOS handlers if available
 _MACOS_HANDLERS_AVAILABLE = False
@@ -42,23 +51,73 @@ try:
     }
 except ImportError:
     pass
-from versiontracker.profiling import (
-    disable_profiling,
-    enable_profiling,
-    print_report,
-    profile_function,
-)
-from versiontracker.ui import QueryFilterManager, create_progress_bar
 
 # Logging, configuration, and filter management functions have been moved to handlers modules
 
 
-def setup_logging(*args, **kwargs):
+def setup_logging(*args: Any, **kwargs: Any) -> None:
     """Stub for setup_logging to satisfy test patching in test_integration.py."""
     pass
 
 
-def handle_main_actions(options) -> int:
+def _handle_macos_service_action(options: Any, action_name: str) -> int:
+    """Handle macOS service actions (install, uninstall, status, test_notification, menubar).
+
+    Args:
+        options: Parsed command-line arguments
+        action_name: The action name to look up in _MACOS_HANDLERS
+
+    Returns:
+        int: Exit code (0 for success, 1 for failure)
+    """
+    if _MACOS_HANDLERS_AVAILABLE and action_name in _MACOS_HANDLERS:
+        return _MACOS_HANDLERS[action_name](options)
+    else:
+        print("macOS integration not available on this platform")
+        return 1
+
+
+def _get_basic_action_result(options: Any) -> int | None:
+    """Get result for basic application actions.
+
+    Args:
+        options: Parsed command-line arguments
+
+    Returns:
+        int | None: Result code or None if no basic action matched
+    """
+    if hasattr(options, "apps") and options.apps:
+        return handle_list_apps(options)
+    elif hasattr(options, "brews") and options.brews:
+        return handle_list_brews(options)
+    elif hasattr(options, "recom") and options.recom:
+        return handle_brew_recommendations(options)
+    elif hasattr(options, "strict_recom") and options.strict_recom:
+        return handle_brew_recommendations(options)
+    elif hasattr(options, "check_outdated") and options.check_outdated:
+        return handle_outdated_check(options)
+    return None
+
+
+def _get_auto_update_action_result(options: Any) -> int | None:
+    """Get result for auto-update actions.
+
+    Args:
+        options: Parsed command-line arguments
+
+    Returns:
+        int | None: Result code or None if no auto-update action matched
+    """
+    if (hasattr(options, "blocklist_auto_updates") and options.blocklist_auto_updates) or (
+        hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates
+    ):
+        return handle_blacklist_auto_updates(options)
+    elif hasattr(options, "uninstall_auto_updates") and options.uninstall_auto_updates:
+        return handle_uninstall_auto_updates(options)
+    return None
+
+
+def handle_main_actions(options: Any) -> int:
     """Handle the main application actions based on parsed options.
 
     Args:
@@ -71,62 +130,31 @@ def handle_main_actions(options) -> int:
     if hasattr(options, "generate_config") and options.generate_config:
         return handle_config_generation(options)
 
-    # Process the requested action
-    if hasattr(options, "apps") and options.apps:
-        result = handle_list_apps(options)
-    elif hasattr(options, "brews") and options.brews:
-        result = handle_list_brews(options)
-    elif hasattr(options, "recom") and options.recom:
-        # This is the default recommend option
-        result = handle_brew_recommendations(options)
-    elif hasattr(options, "strict_recom") and options.strict_recom:
-        # This is the strict recommend option
-        result = handle_brew_recommendations(options)
-    elif hasattr(options, "check_outdated") and options.check_outdated:
-        result = handle_outdated_check(options)
-    elif (hasattr(options, "blocklist_auto_updates") and options.blocklist_auto_updates) or (
-        hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates
-    ):
-        # Unified handling for deprecated --blacklist-auto-updates and new --blocklist-auto-updates
-        result = handle_blacklist_auto_updates(options)
-    elif hasattr(options, "uninstall_auto_updates") and options.uninstall_auto_updates:
-        result = handle_uninstall_auto_updates(options)
-    elif hasattr(options, "install_service") and options.install_service:
-        if _MACOS_HANDLERS_AVAILABLE and "install_service" in _MACOS_HANDLERS:
-            result = _MACOS_HANDLERS["install_service"](options)
-        else:
-            print("macOS integration not available on this platform")
-            return 1
+    # Try basic actions first
+    result = _get_basic_action_result(options)
+    if result is not None:
+        return result
+
+    # Try auto-update actions
+    result = _get_auto_update_action_result(options)
+    if result is not None:
+        return result
+
+    # Handle macOS service actions
+    if hasattr(options, "install_service") and options.install_service:
+        return _handle_macos_service_action(options, "install_service")
     elif hasattr(options, "uninstall_service") and options.uninstall_service:
-        if _MACOS_HANDLERS_AVAILABLE and "uninstall_service" in _MACOS_HANDLERS:
-            result = _MACOS_HANDLERS["uninstall_service"](options)
-        else:
-            print("macOS integration not available on this platform")
-            return 1
+        return _handle_macos_service_action(options, "uninstall_service")
     elif hasattr(options, "service_status") and options.service_status:
-        if _MACOS_HANDLERS_AVAILABLE and "service_status" in _MACOS_HANDLERS:
-            result = _MACOS_HANDLERS["service_status"](options)
-        else:
-            print("macOS integration not available on this platform")
-            return 1
+        return _handle_macos_service_action(options, "service_status")
     elif hasattr(options, "test_notification") and options.test_notification:
-        if _MACOS_HANDLERS_AVAILABLE and "test_notification" in _MACOS_HANDLERS:
-            result = _MACOS_HANDLERS["test_notification"](options)
-        else:
-            print("macOS integration not available on this platform")
-            return 1
+        return _handle_macos_service_action(options, "test_notification")
     elif hasattr(options, "menubar") and options.menubar:
-        if _MACOS_HANDLERS_AVAILABLE and "menubar_app" in _MACOS_HANDLERS:
-            result = _MACOS_HANDLERS["menubar_app"](options)
-        else:
-            print("macOS integration not available on this platform")
-            return 1
+        return _handle_macos_service_action(options, "menubar_app")
     else:
         # No valid option selected
         print("No valid action specified. Use -h for help.")
         return 1
-
-    return result
 
 
 @profile_function("versiontracker_main")
@@ -136,6 +164,12 @@ def versiontracker_main() -> int:
     Returns:
         int: Exit code (0 for success, non-zero for failure)
     """
+    # Fast-path: support --version/-V without full argparse
+    argv = sys.argv[1:]
+    if "--version" in argv or "-V" in argv:
+        print(f"versiontracker {__version__}")
+        return 0
+
     # Parse arguments
     options = get_arguments()
 

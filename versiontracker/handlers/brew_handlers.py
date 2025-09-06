@@ -39,6 +39,90 @@ class BrewOptions(TypedDict, total=False):
     debug: bool
 
 
+def _get_and_filter_brews(options: Any) -> tuple[list[str], list[str]]:
+    """Get and filter Homebrew packages based on options.
+
+    Args:
+        options: Command line options
+
+    Returns:
+        tuple: (filtered_brews, auto_update_casks)
+    """
+    # Get all installed Homebrew casks
+    brews = get_homebrew_casks()
+
+    # Sort by name
+    brews.sort()
+
+    # Check for auto-updates if requested
+    auto_update_casks = []
+    if hasattr(options, "exclude_auto_updates") or hasattr(options, "only_auto_updates"):
+        print(create_progress_bar().color("blue")("Checking for auto-updates..."))
+        auto_update_casks = get_casks_with_auto_updates(brews)
+
+    # Filter based on auto-updates if requested
+    if hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
+        brews = [brew for brew in brews if brew not in auto_update_casks]
+    elif hasattr(options, "only_auto_updates") and options.only_auto_updates:
+        brews = auto_update_casks
+
+    return brews, auto_update_casks
+
+
+def _should_show_auto_update_marker(brew: str, auto_update_casks: list[str], options: Any) -> bool:
+    """Determine if auto-update marker should be shown for a brew.
+
+    Args:
+        brew: The brew name
+        auto_update_casks: List of casks with auto-updates
+        options: Command line options
+
+    Returns:
+        bool: True if marker should be shown
+    """
+    return brew in auto_update_casks and not (hasattr(options, "only_auto_updates") and options.only_auto_updates)
+
+
+def _display_brew_list(brews: list[str], auto_update_casks: list[str], options: Any) -> None:
+    """Display the list of brews.
+
+    Args:
+        brews: List of brews to display
+        auto_update_casks: List of casks with auto-updates
+        options: Command line options
+    """
+    if brews:
+        print(create_progress_bar().color("green")(f"\nFound {len(brews)} Homebrew packages:\n"))
+        for i, brew in enumerate(brews, 1):
+            # Mark packages with auto-updates
+            if _should_show_auto_update_marker(brew, auto_update_casks, options):
+                auto_update_marker = create_progress_bar().color("yellow")("(auto-updates)")
+                print(f"{i:3d}. {create_progress_bar().color('green')(brew)} {auto_update_marker}")
+            else:
+                print(f"{i:3d}. {create_progress_bar().color('green')(brew)}")
+    else:
+        print(create_progress_bar().color("yellow")("\nNo Homebrew packages found."))
+        print(create_progress_bar().color("yellow")("Make sure Homebrew is installed and in your PATH."))
+
+
+def _handle_export_if_requested(brews: list[str], options: Any) -> None:
+    """Handle export functionality if requested.
+
+    Args:
+        brews: List of brews to export
+        options: Command line options
+    """
+    if options.export_format:
+        brew_data = [{"name": brew} for brew in brews]
+        export_result = handle_export(
+            brew_data,
+            options.export_format,
+            options.output_file,
+        )
+        if not options.output_file:
+            print(export_result)
+
+
 def handle_list_brews(options: Any) -> int:
     """Handle listing Homebrew packages.
 
@@ -60,52 +144,17 @@ def handle_list_brews(options: Any) -> int:
         print(create_progress_bar().color("green")("Getting Homebrew packages..."))
 
         try:
-            # Get all installed Homebrew casks
-            brews = get_homebrew_casks()
-
-            # Sort by name
-            brews.sort()
-
-            # Check for auto-updates if requested
-            auto_update_casks = []
-            if hasattr(options, "exclude_auto_updates") or hasattr(options, "only_auto_updates"):
-                print(create_progress_bar().color("blue")("Checking for auto-updates..."))
-                auto_update_casks = get_casks_with_auto_updates(brews)
-
-            # Filter based on auto-updates if requested
-            if hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
-                brews = [brew for brew in brews if brew not in auto_update_casks]
-            elif hasattr(options, "only_auto_updates") and options.only_auto_updates:
-                brews = auto_update_casks
+            # Get and filter brews
+            brews, auto_update_casks = _get_and_filter_brews(options)
 
             # Display results
-            if brews:
-                print(create_progress_bar().color("green")(f"\nFound {len(brews)} Homebrew packages:\n"))
-                for i, brew in enumerate(brews, 1):
-                    # Mark packages with auto-updates
-                    if brew in auto_update_casks and not (
-                        hasattr(options, "only_auto_updates") and options.only_auto_updates
-                    ):
-                        auto_update_marker = create_progress_bar().color("yellow")("(auto-updates)")
-                        print(f"{i:3d}. {create_progress_bar().color('green')(brew)} {auto_update_marker}")
-                    else:
-                        print(f"{i:3d}. {create_progress_bar().color('green')(brew)}")
-            else:
-                print(create_progress_bar().color("yellow")("\nNo Homebrew packages found."))
-                print(create_progress_bar().color("yellow")("Make sure Homebrew is installed and in your PATH."))
+            _display_brew_list(brews, auto_update_casks, options)
 
-            # Export if requested
-            if options.export_format:
-                brew_data = [{"name": brew} for brew in brews]
-                export_result = handle_export(
-                    brew_data,
-                    options.export_format,
-                    options.output_file,
-                )
-                if not options.output_file:
-                    print(export_result)
+            # Handle export if requested
+            _handle_export_if_requested(brews, options)
 
             return 0
+
         except HomebrewError as e:
             print(create_progress_bar().color("red")(f"Homebrew Error: {e}"))
             return 1
@@ -207,7 +256,7 @@ def _log_debug_info(
         return
 
     logging.debug("\n*** Applications not managed by App Store ***")
-    for app, ver in filtered_apps:
+    for app, _ver in filtered_apps:
         logging.debug("\tapp: %s", app)
 
     logging.debug("\n*** Installed homebrew casks ***")

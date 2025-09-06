@@ -37,7 +37,7 @@ jobs:
         run: |
           # Download the source tarball for this release
           curl -L -o versiontracker-${VERSION_NUMBER}.tar.gz \
-            "https://github.com/thomas/versiontracker/archive/refs/tags/${VERSION}.tar.gz"
+            "https://github.com/docdyhr/versiontracker/archive/refs/tags/${VERSION}.tar.gz"
 
           # Calculate SHA256 checksum
           SHA256=$(shasum -a 256 versiontracker-${VERSION_NUMBER}.tar.gz | cut -d' ' -f1)
@@ -49,13 +49,28 @@ jobs:
 
       - name: Update Homebrew formula
         run: |
-          # Update the version and SHA256 in the formula
-          sed -i '' "s/v[0-9]\+\.[0-9]\+\.[0-9]\+/${VERSION}/g" versiontracker.rb
-          sed -i '' "s/PLACEHOLDER_SHA256/${SHA256}/g" versiontracker.rb
+          set -euo pipefail
+          # Update the version URL line and sha256 in the formula deterministically
+          awk -v ver="${VERSION}" -v sha="${SHA256}" '
+            BEGIN{updated_url=0; updated_sha=0}
+            /archive\/refs\/tags\/v[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz/ {
+              sub(/v[0-9]+\.[0-9]+\.[0-9]+/, ver)
+              updated_url=1
+            }
+            /sha256 "/ {
+              sub(/"[0-9a-f]+"/, "\"" sha "\"")
+              updated_sha=1
+            }
+            { print }
+            END{
+              if (!updated_url) { exit 2 }
+              if (!updated_sha) { exit 3 }
+            }
+          ' versiontracker.rb > versiontracker.rb.tmp
+          mv versiontracker.rb.tmp versiontracker.rb
 
-          # Verify the updates
-          echo "Updated formula:"
-          head -10 versiontracker.rb
+          echo "Updated formula preview:"
+          sed -n '1,20p' versiontracker.rb
 
       - name: Install and test formula
         run: |
@@ -74,30 +89,25 @@ jobs:
         run: |
           brew uninstall versiontracker || true
 
-      - name: Commit and push changes
+      - name: Commit and open PR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure git
+          set -euo pipefail
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          # Check if there are changes
           if git diff --quiet versiontracker.rb; then
             echo "No changes to commit"
             exit 0
           fi
 
-          # Commit the updated formula
+          BRANCH="homebrew/update-${VERSION}"
+          git checkout -b "$BRANCH"
           git add versiontracker.rb
-          git commit -m "Update Homebrew formula to ${VERSION}
-
-          - Updated version to ${VERSION}
-          - Updated SHA256 to ${SHA256}
-          - Verified installation and basic functionality"
-
-          # Push the changes
-          git push origin HEAD:master
+          git commit -m "Update Homebrew formula to ${VERSION}\n\n- Updated URL to ${VERSION}\n- Updated SHA256 to ${SHA256}\n- Verified installation and CLI availability"
+          git push -u origin "$BRANCH"
+          gh pr create --fill --base master --head "$BRANCH" || echo "PR creation skipped (gh not available)"
 
       - name: Create or update release notes
         env:
