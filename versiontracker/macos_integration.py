@@ -10,6 +10,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +190,7 @@ class LaunchdService:
             str: XML plist content
         """
 
-        def _convert_value(value):
+        def _convert_value(value: Any) -> str:
             if isinstance(value, bool):
                 return "<true/>" if value else "<false/>"
             elif isinstance(value, int):

@@ -73,7 +73,9 @@ def suppress_console_warnings() -> None:
         None
     """
 
-    def warning_filter(message, category, filename, lineno, file=None, line=None):
+    def warning_filter(
+        message: str, category: type, filename: str, lineno: int, file: Any = None, line: str | None = None
+    ) -> bool:
         """Filter warning messages based on defined criteria.
 
         Args:
@@ -103,7 +105,7 @@ def suppress_console_warnings() -> None:
     class WarningFilter:
         """Filter for logging.Handler to suppress certain warning types."""
 
-        def filter(self, record):
+        def filter(self, record: logging.LogRecord) -> bool:
             """Filter log records based on warning type.
 
             Args:
@@ -124,11 +126,11 @@ def suppress_console_warnings() -> None:
 
 
 def safe_function_call(
-    func: Callable,
-    *args,
+    func: Callable[..., Any],
+    *args: Any,
     default_value: Any = None,
     error_msg: str = "Error in function call",
-    **kwargs,
+    **kwargs: Any,
 ) -> Any:
     """Safely call a function, catching and logging any exceptions.
 

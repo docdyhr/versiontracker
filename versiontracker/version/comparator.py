@@ -305,6 +305,56 @@ def _compare_base_and_prerelease_versions(
         return 0
 
 
+def _convert_versions_to_strings(
+    version1: str | tuple[int, ...] | None, version2: str | tuple[int, ...] | None
+) -> tuple[str | None, str | None]:
+    """Convert version tuples to string representations."""
+
+    def tuple_to_version_str(version_tuple: tuple[int, ...]) -> str | None:
+        if not all(isinstance(x, int) for x in version_tuple):
+            return None
+        return ".".join(map(str, version_tuple))
+
+    if isinstance(version1, tuple):
+        v1_str = tuple_to_version_str(version1)
+        if v1_str is None:
+            return None, None  # Indicate malformed
+    else:
+        v1_str = str(version1)
+
+    if isinstance(version2, tuple):
+        v2_str = tuple_to_version_str(version2)
+        if v2_str is None:
+            return None, None  # Indicate malformed
+    else:
+        v2_str = str(version2)
+
+    return v1_str, v2_str
+
+
+def _handle_special_version_formats(
+    v1_str: str, v2_str: str, version1: str | tuple[int, ...] | None, version2: str | tuple[int, ...] | None
+) -> int | None:
+    """Handle special version formats like semver and application builds."""
+    # Handle semver build metadata
+    semver_result = _handle_semver_build_metadata(v1_str, v2_str, version1, version2)
+    if semver_result is not None:
+        return semver_result
+
+    # Handle application-specific build patterns
+    app_build_result = _compare_application_builds(v1_str, v2_str, version1, version2)
+    if app_build_result is not None:
+        return app_build_result
+
+    # Handle special application formats
+    if isinstance(version1, str) and isinstance(version2, str):
+        app_prefix_result = _handle_application_prefixes(v1_str, v2_str)
+        if app_prefix_result is not None:
+            return app_prefix_result
+
+    return None
+
+
 def compare_versions(
     version1: str | tuple[int, ...] | None,
     version2: str | tuple[int, ...] | None,
@@ -331,49 +381,17 @@ def compare_versions(
         return malformed_result
 
     # Convert to string representations for further processing
-    # Validate that all tuple elements are integers before joining
-    def tuple_to_version_str(version_tuple):
-        if not all(isinstance(x, int) for x in version_tuple):
-            # Handle non-integer elements in version tuple
-            # You may choose to raise an error, return a special value, or handle as malformed
-            # Here, we return the malformed_result for consistency
-            return None
-        return ".".join(map(str, version_tuple))
+    v1_str, v2_str = _convert_versions_to_strings(version1, version2)
+    if v1_str is None or v2_str is None:
+        return _handle_malformed_versions(version1, version2) or 0
 
-    if isinstance(version1, tuple):
-        v1_str = tuple_to_version_str(version1)
-        if v1_str is None:
-            # Handle malformed tuple - treat as comparison between malformed versions
-            return _handle_malformed_versions(version1, version2) or 0
-    else:
-        v1_str = str(version1)
-
-    if isinstance(version2, tuple):
-        v2_str = tuple_to_version_str(version2)
-        if v2_str is None:
-            # Handle malformed tuple - treat as comparison between malformed versions
-            return _handle_malformed_versions(version1, version2) or 0
-    else:
-        v2_str = str(version2)
-
-    # Handle semver build metadata
-    semver_result = _handle_semver_build_metadata(v1_str, v2_str, version1, version2)
-    if semver_result is not None:
-        return semver_result
-
-    # Handle application-specific build patterns
-    app_build_result = _compare_application_builds(v1_str, v2_str, version1, version2)
-    if app_build_result is not None:
-        return app_build_result
+    # Handle special version formats
+    special_result = _handle_special_version_formats(v1_str, v2_str, version1, version2)
+    if special_result is not None:
+        return special_result
 
     # Convert to tuples for comparison
     v1_tuple, v2_tuple = _convert_to_version_tuples(version1, version2)
-
-    # Handle special application formats
-    if isinstance(version1, str) and isinstance(version2, str):
-        app_prefix_result = _handle_application_prefixes(v1_str, v2_str)
-        if app_prefix_result is not None:
-            return app_prefix_result
 
     # Final comparison of base versions and prerelease logic
     return _compare_base_and_prerelease_versions(v1_tuple, v2_tuple, v1_str, v2_str)
@@ -524,6 +542,33 @@ def _compare_prerelease_suffixes(suffix1: int | str | None, suffix2: int | str |
     return 0
 
 
+def _map_unicode_to_english_type(prerelease_type: str) -> str:
+    """Map Unicode characters to English prerelease type equivalents."""
+    unicode_mapping = {"α": "alpha", "β": "beta"}
+    return unicode_mapping.get(prerelease_type, prerelease_type)
+
+
+def _process_prerelease_suffix(suffix: str | None) -> int | str | None:
+    """Process prerelease suffix, converting to int if possible."""
+    if suffix:
+        try:
+            return int(suffix)
+        except ValueError:
+            return suffix
+    return None
+
+
+def _handle_standalone_unicode_chars(version_str: str) -> tuple[str, str] | None:
+    """Handle standalone Unicode characters in version strings."""
+    unicode_match = re.search(r"[-.](?P<unicode>[αβγδ])", version_str)
+    if unicode_match:
+        unicode_char = unicode_match.group("unicode")
+        unicode_type_mapping = {"α": "alpha", "β": "beta", "γ": "gamma", "δ": "delta"}
+        if unicode_char in unicode_type_mapping:
+            return unicode_type_mapping[unicode_char], unicode_char
+    return None
+
+
 def _extract_prerelease_type_and_suffix(
     version_str: str,
 ) -> tuple[str, int | str | None]:
@@ -536,36 +581,15 @@ def _extract_prerelease_type_and_suffix(
     )
     if match:
         prerelease_type = match.group("type").lower()
-
-        # Map Unicode characters to English equivalents
-        if prerelease_type == "α":
-            prerelease_type = "alpha"
-        elif prerelease_type == "β":
-            prerelease_type = "beta"
-
+        prerelease_type = _map_unicode_to_english_type(prerelease_type)
         suffix = match.group("suffix")
-        if suffix:
-            # Try to convert to int, otherwise keep as string
-            try:
-                return prerelease_type, int(suffix)
-            except ValueError:
-                return prerelease_type, suffix
-        else:
-            # No suffix means it's the base pre-release (None to distinguish from 0)
-            return prerelease_type, None
+        processed_suffix = _process_prerelease_suffix(suffix)
+        return prerelease_type, processed_suffix
 
-    # Check for standalone Unicode characters (1.0.0-α)
-    unicode_match = re.search(r"[-.](?P<unicode>[αβγδ])", version_str)
-    if unicode_match:
-        unicode_char = unicode_match.group("unicode")
-        if unicode_char == "α":
-            return "alpha", unicode_char
-        elif unicode_char == "β":
-            return "beta", unicode_char
-        elif unicode_char == "γ":
-            return "gamma", unicode_char
-        elif unicode_char == "δ":
-            return "delta", unicode_char
+    # Check for standalone Unicode characters
+    unicode_result = _handle_standalone_unicode_chars(version_str)
+    if unicode_result:
+        return unicode_result
 
     # No prerelease pattern found - return None to indicate stable release
     return "final", None  # Treat as stable/final release when no prerelease markers found

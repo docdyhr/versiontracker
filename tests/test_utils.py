@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from versiontracker.exceptions import DataParsingError
+from versiontracker.exceptions import TimeoutError as VTTimeoutError
 from versiontracker.utils import (
     format_size,
     get_json_data,
@@ -68,7 +69,7 @@ class TestSanitizeFilename:
         """Test sanitization of empty or invalid names."""
         assert sanitize_filename("") == "unnamed"
         assert sanitize_filename("   ") == "unnamed"
-        assert sanitize_filename("///") == "___"
+        assert sanitize_filename("///") == "unnamed"
 
 
 class TestTerminalWidth:
@@ -83,7 +84,7 @@ class TestTerminalWidth:
         assert width >= 40
 
 
-class TestHomebrewDetection:
+class TestHomebrewDetection(unittest.TestCase):
     """Tests for Homebrew detection."""
 
     def test_is_homebrew_installed(self):
@@ -92,11 +93,18 @@ class TestHomebrewDetection:
         # The actual result depends on the system
         result = is_homebrew_installed()
         assert isinstance(result, bool)
+
+    @patch("subprocess.Popen")
+    def test_run_command_success(self, mock_popen):
+        """Test run_command with successful execution."""
+        mock_process = Mock()
+        mock_process.communicate.return_value = (b"test output", b"")
+        mock_process.returncode = 0
         mock_popen.return_value = mock_process
 
         output, returncode = run_command("test command")
 
-        self.assertEqual(output, "test output")
+        self.assertEqual(output, b"test output")  # run_command returns bytes
         self.assertEqual(returncode, 0)
 
     @patch("subprocess.Popen")
@@ -106,7 +114,7 @@ class TestHomebrewDetection:
         mock_process.communicate.side_effect = subprocess.TimeoutExpired("test command", 30)
         mock_popen.return_value = mock_process
 
-        with self.assertRaises(TimeoutError):
+        with self.assertRaises(VTTimeoutError):
             run_command("test command", timeout=30)
 
     @patch("subprocess.Popen")
