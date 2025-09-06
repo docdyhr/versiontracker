@@ -11,7 +11,7 @@ import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -79,7 +79,7 @@ async def fetch_json(
                 if use_cache:
                     write_cache(cache_key, data)
 
-                return data
+                return cast(dict[str, Any], data)
 
     except builtins.TimeoutError as e:
         logging.error(f"Request to {url} timed out after {timeout}s: {e}")
@@ -221,7 +221,7 @@ def run_async_in_thread(func: Callable[..., Any], *args: Any, **kwargs: Any) -> 
         return future.result()
 
 
-class AsyncBatchProcessor(Generic[T, R]):
+class AsyncBatchProcessor[T, R]:
     """Process batches of data asynchronously with rate limiting."""
 
     def __init__(

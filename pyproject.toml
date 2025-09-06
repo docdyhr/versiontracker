@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "homebrew-versiontracker"
-version = "0.1.0-alpha.1"
+version = "0.7.2"
 description = "A command-line tool for tracking and managing applications installed outside of the Mac App Store"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.12"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "docdyhr", email = "thomas@dyhr.com"}
 ]
 keywords = ["macos", "homebrew", "version", "tracking", "updates", "cask"]
 classifiers = [
@@ -42,6 +42,7 @@ dev = [
     "pytest-cov>=4.1",
     "pytest-timeout>=2.1",
     "pytest-mock>=3.11",
+    "pytest-asyncio>=0.21.0",
     "black>=23.7",
     "ruff>=0.1",
     "mypy>=1.5",
@@ -55,6 +56,7 @@ test = [
     "pytest-cov>=4.1",
     "pytest-timeout>=2.1",
     "pytest-mock>=3.11",
+    "pytest-asyncio>=0.21.0",
 ]
 security = [
     "bandit[toml]>=1.7",
@@ -66,16 +68,23 @@ fuzzy = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/versiontracker"
-Documentation = "https://github.com/yourusername/versiontracker#readme"
-"Bug Reports" = "https://github.com/yourusername/versiontracker/issues"
-"Source Code" = "https://github.com/yourusername/versiontracker"
+Homepage = "https://github.com/docdyhr/versiontracker"
+"Bug Tracker" = "https://github.com/docdyhr/versiontracker/issues"
+Documentation = "https://github.com/docdyhr/versiontracker"
+"Source Code" = "https://github.com/docdyhr/versiontracker"
+Changelog = "https://github.com/docdyhr/versiontracker/blob/master/CHANGELOG.md"
+PyPI = "https://pypi.org/project/homebrew-versiontracker/"
 
 [project.scripts]
-versiontracker = "versiontracker.cli:main"
+versiontracker = "versiontracker.__main__:main"
+macos-versiontracker = "versiontracker.__main__:main"
+vt = "versiontracker.__main__:main"
 
-[tool.setuptools]
-packages = ["versiontracker", "versiontracker.handlers"]
+[tool.setuptools.packages.find]
+include = [
+    "versiontracker",
+    "versiontracker.*",
+]
 
 [tool.setuptools.package-data]
 versiontracker = ["py.typed"]
@@ -87,7 +96,31 @@ include = '\.pyi?$'
 
 [tool.ruff]
 line-length = 120  # AI-friendly length as per CLAUDE.md guidelines
-target-version = "py310"  # Updated to match project requirements
+target-version = "py312"  # Updated to match project requirements
+
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "examples",
+]
 
 [tool.ruff.lint]
 select = [
@@ -121,6 +154,7 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "normal"
+# Note: import-untyped and misc errors are handled via inline type: ignore comments
 
 
 
@@ -147,6 +181,11 @@ disable_error_code = ["type-arg", "attr-defined", "no-untyped-def", "misc"]
 module = "versiontracker.__init__"
 # Suppress warnings about __all__ items not being present due to lazy loading
 disable_error_code = ["attr-defined", "name-defined"]
+
+[[tool.mypy.overrides]]
+module = "versiontracker.handlers.*"
+# Suppress signature compatibility issues with optional dependency fallbacks
+disable_error_code = ["misc"]
 
 # Pytest configuration
 [tool.pytest.ini_options]
@@ -189,7 +228,8 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
-    "network: marks tests that require network access"
+    "network: marks tests that require network access",
+    "asyncio: marks tests as async tests that require asyncio"
 ]
 norecursedirs = [
     ".git",

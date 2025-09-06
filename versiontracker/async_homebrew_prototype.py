@@ -57,18 +57,19 @@ from collections.abc import Callable, Coroutine, Sequence
 from dataclasses import dataclass
 from typing import (
     Any,
+    cast,
 )
 
 # Fail-safe imports: these modules are expected to exist in the project.
 # They are imported lazily in methods where possible to reduce import-time cost
 # and avoid circular dependencies during partial refactors.
 try:  # pragma: no cover - import guard
-    from . import homebrew  # type: ignore
+    from . import homebrew
 except Exception:  # pragma: no cover - best-effort fallback
     homebrew = None  # type: ignore
 
 try:  # pragma: no cover
-    from .exceptions import NetworkError, TimeoutError  # type: ignore
+    from .exceptions import NetworkError, TimeoutError
 except Exception:  # pragma: no cover
     # Fallback minimal stand-ins (should rarely occur)
     class NetworkError(Exception):  # type: ignore
@@ -185,7 +186,7 @@ class AsyncHomebrewClient:
             TimeoutError: If operation exceeds provisional timeout (future hook).
         """
         if homebrew is None:  # pragma: no cover
-            self._logger.warning("Homebrew module unavailable; returning None for cask %s", cask)  # type: ignore[unreachable]
+            self._logger.warning("Homebrew module unavailable; returning None for cask %s", cask)
             return None
 
         start = self._now()
@@ -193,7 +194,7 @@ class AsyncHomebrewClient:
             result = await self._to_thread(homebrew.get_homebrew_cask_info, cask)  # type: ignore[attr-defined]
             elapsed = self._now() - start
             self._logger.debug("Fetched cask %s in %.3fs", cask, elapsed)
-            return result
+            return cast(dict[str, Any] | None, result)
         except TimeoutError:
             raise
         except NetworkError:
@@ -248,15 +249,15 @@ class AsyncHomebrewClient:
             List of matching cask names (may be empty).
         """
         if homebrew is None:  # pragma: no cover
-            self._logger.warning("Homebrew module unavailable; search returns empty list")  # type: ignore[unreachable]
+            self._logger.warning("Homebrew module unavailable; search returns empty list")
             return []
 
         try:
             # Assume homebrew.search function; fallback gracefully if absent.
             if hasattr(homebrew, "search_casks"):
-                return await self._to_thread(homebrew.search_casks, term)  # type: ignore[attr-defined]
+                return cast(list[str], await self._to_thread(homebrew.search_casks, term))
             if hasattr(homebrew, "search"):
-                return await self._to_thread(homebrew.search, term)  # type: ignore[attr-defined]
+                return cast(list[str], await self._to_thread(homebrew.search, term))
             self._logger.debug("No search function available in homebrew module")
             return []
         except Exception as exc:  # noqa: BLE001

@@ -57,7 +57,6 @@ class HandlerError(VersionTrackerError):
     """Raised when a command handler encounters an error."""
 
     pass
-    pass
 
 
 class DataParsingError(VersionTrackerError):
@@ -67,18 +66,6 @@ class DataParsingError(VersionTrackerError):
     - JSON parsing errors
     - Malformed data structures
     - Missing expected fields in data
-    """
-
-    pass
-
-
-class ConfigError(VersionTrackerError):
-    """Configuration errors.
-
-    This exception is raised when there are issues with the configuration, such as:
-    - Invalid configuration values
-    - Missing required configuration
-    - Configuration file not found or inaccessible
     """
 
     pass
@@ -106,16 +93,6 @@ class BrewTimeoutError(NetworkError):
 
 
 # Additional exception classes
-class CacheError(VersionTrackerError):
-    """Cache-related errors.
-
-    This exception is raised when there are issues with the cache, such as:
-    - Cache corruption
-    - Cache file access problems
-    - Cache validation failures
-    """
-
-    pass
 
 
 class ExportError(VersionTrackerError):
@@ -150,27 +127,7 @@ class PermissionError(VersionTrackerError):
     pass
 
 
-class TimeoutError(VersionTrackerError):
-    """Timeout errors.
-
-    This exception is raised when an operation takes too long to complete.
-    """
-
-    pass
-
-
-# Version-related exceptions
-class VersionError(VersionTrackerError):
-    """Version-related errors.
-
-    This exception is raised when there are issues with version parsing, comparison,
-    or validation, such as:
-    - Invalid version string format
-    - Version comparison failures
-    - Missing version information
-    """
-
-    pass
+# These exceptions are already defined above - no duplicates needed
 
 
 # Validation exceptions

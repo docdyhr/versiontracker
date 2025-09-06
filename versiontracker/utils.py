@@ -182,7 +182,8 @@ def _parse_json_output(stdout: str, command: str) -> dict[str, Any]:
         raise DataParsingError(f"Command '{command}' produced no output")
 
     try:
-        return json.loads(stdout)
+        parsed_data = json.loads(stdout)
+        return cast(dict[str, Any], parsed_data)
     except json.JSONDecodeError as e:
         logging.error(f"Failed to parse JSON output from '{command}': {e}")
         raise DataParsingError(f"Failed to parse JSON from command output: {e}") from e
@@ -295,7 +296,7 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> dict[str, Any]:
             return cast(dict[str, Any], data)
         except json.JSONDecodeError as e:
             logging.error(f"Invalid JSON data: {e}")
-            raise DataParsingError(f"Invalid JSON data: {e}")
+            raise DataParsingError(f"Invalid JSON data: {e}") from e
     except TimeoutError:
         logging.error(f"Command timed out: {cmd}")
         raise
@@ -360,13 +361,13 @@ def run_command_secure(command_parts: list[str], timeout: int | None = None) -> 
 
         return stdout, process.returncode
 
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
         if process:
             process.kill()
             process.wait()
         error_msg = f"Command {' '.join(command_parts)} timed out after {timeout} seconds"
         logging.error(error_msg)
-        raise TimeoutError(error_msg)
+        raise TimeoutError(error_msg) from e
 
     except FileNotFoundError as e:
         error_msg = f"Command not found: {command_parts[0] if command_parts else 'unknown'}"
@@ -809,7 +810,9 @@ def get_homebrew_prefix() -> str | None:
     return None
 
 
-def run_command_subprocess(command: list[str], timeout: int | None = 30, check: bool = True) -> subprocess.CompletedProcess:
+def run_command_subprocess(
+    command: list[str], timeout: int | None = 30, check: bool = True
+) -> subprocess.CompletedProcess:
     """
     Run a shell command with timeout and error handling.
 

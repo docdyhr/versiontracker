@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class MenubarApp:
     """Simple menubar application for VersionTracker."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the menubar application."""
         self.running = False
         self.last_check_time: float | None = None
@@ -101,7 +101,7 @@ class MenubarApp:
             args: Command line arguments for versiontracker
         """
 
-        def run_command():
+        def run_command() -> None:
             try:
                 # Run versiontracker command
                 cmd = [sys.executable, "-m", "versiontracker"] + args
@@ -177,7 +177,7 @@ class MenubarApp:
             print("VersionTracker menubar app is only available on macOS")
             return
 
-        print("Starting VersionTracker menubar application...")  # type: ignore[unreachable]
+        print("Starting VersionTracker menubar application...")
         print("Click the menu to access VersionTracker features.")
 
         self.running = True

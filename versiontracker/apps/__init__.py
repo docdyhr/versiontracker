@@ -4,6 +4,7 @@
 # Import legacy functions from main apps.py file that weren't refactored
 import importlib.util
 import os
+from typing import Any
 
 # Import cache functions that tests depend on
 from ..cache import read_cache
@@ -47,89 +48,123 @@ if _spec is not None and _spec.loader is not None:
 
     # Import ALL EXISTING functions from main apps.py (safe imports only)
 
-    def _batch_process_brew_search(*args, **kwargs):
+    def _batch_process_brew_search(*args: Any, **kwargs: Any) -> list[Any]:
         """Process brew search in batches."""
-        return _apps_main._batch_process_brew_search(*args, **kwargs)
+        from typing import cast
 
-    def _check_cache_for_cask(*args, **kwargs):
+        return cast(list[Any], _apps_main._batch_process_brew_search(*args, **kwargs))
+
+    def _check_cache_for_cask(*args: Any, **kwargs: Any) -> bool | None:
         """Check cache for cask information."""
-        return _apps_main._check_cache_for_cask(*args, **kwargs)
+        from typing import cast
 
-    def _create_rate_limiter(*args, **kwargs):
+        return cast(bool | None, _apps_main._check_cache_for_cask(*args, **kwargs))
+
+    def _create_rate_limiter(*args: Any, **kwargs: Any) -> Any:
         """Create appropriate rate limiter."""
         return _apps_main._create_rate_limiter(*args, **kwargs)
 
-    def _execute_brew_search(*args, **kwargs):
+    def _execute_brew_search(*args: Any, **kwargs: Any) -> tuple[str, int]:
         """Execute brew search command."""
-        return _apps_main._execute_brew_search(*args, **kwargs)
+        from typing import cast
 
-    def _get_error_message(*args, **kwargs):
+        return cast(tuple[str, int], _apps_main._execute_brew_search(*args, **kwargs))
+
+    def _get_error_message(*args: Any, **kwargs: Any) -> str:
         """Get error message from exception."""
-        return _apps_main._get_error_message(*args, **kwargs)
+        from typing import cast
 
-    def _get_existing_brews(*args, **kwargs):
+        return cast(str, _apps_main._get_error_message(*args, **kwargs))
+
+    def _get_existing_brews(*args: Any, **kwargs: Any) -> list[str]:
         """Get existing brew installations."""
-        return _apps_main._get_existing_brews(*args, **kwargs)
+        from typing import cast
 
-    def _handle_batch_error(*args, **kwargs):
+        return cast(list[str], _apps_main._get_existing_brews(*args, **kwargs))
+
+    def _handle_batch_error(*args: Any, **kwargs: Any) -> Any:
         """Handle batch processing errors."""
         return _apps_main._handle_batch_error(*args, **kwargs)
 
-    def _handle_brew_search_result(*args, **kwargs):
+    def _handle_brew_search_result(*args: Any, **kwargs: Any) -> bool:
         """Handle brew search result."""
-        return _apps_main._handle_brew_search_result(*args, **kwargs)
+        from typing import cast
 
-    def _handle_future_result(*args, **kwargs):
+        return cast(bool, _apps_main._handle_brew_search_result(*args, **kwargs))
+
+    def _handle_future_result(*args: Any, **kwargs: Any) -> tuple[tuple[str, str, bool], None]:
         """Handle future execution result."""
-        return _apps_main._handle_future_result(*args, **kwargs)
+        from typing import cast
 
-    def _populate_cask_versions(*args, **kwargs):
+        return cast(tuple[tuple[str, str, bool], None], _apps_main._handle_future_result(*args, **kwargs))
+
+    def _populate_cask_versions(*args: Any, **kwargs: Any) -> dict[str, str]:
         """Populate cask version information."""
-        return _apps_main._populate_cask_versions(*args, **kwargs)
+        from typing import cast
 
-    def _process_batch_result(*args, **kwargs):
+        return cast(dict[str, str], _apps_main._populate_cask_versions(*args, **kwargs))
+
+    def _process_batch_result(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process batch execution result."""
-        return _apps_main._process_batch_result(*args, **kwargs)
+        from typing import cast
 
-    def _process_brew_batch(*args, **kwargs):
+        return cast(list[tuple[str, str, bool]], _apps_main._process_batch_result(*args, **kwargs))
+
+    def _process_brew_batch(*args: Any, **kwargs: Any) -> Any:
         """Process batch of brew operations."""
         return _apps_main._process_brew_batch(*args, **kwargs)
 
-    def _process_brew_search_batches(*args, **kwargs):
+    def _process_brew_search_batches(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process brew search operations in batches."""
-        return _apps_main._process_brew_search_batches(*args, **kwargs)
+        from typing import cast
 
-    def _process_with_progress_bar(*args, **kwargs):
+        return cast(list[tuple[str, str, bool]], _apps_main._process_brew_search_batches(*args, **kwargs))
+
+    def _process_with_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process operations with progress bar."""
-        return _apps_main._process_with_progress_bar(*args, **kwargs)
+        from typing import cast
 
-    def _process_without_progress_bar(*args, **kwargs):
+        return cast(list[tuple[str, str, bool]], _apps_main._process_with_progress_bar(*args, **kwargs))
+
+    def _process_without_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Process operations without progress bar."""
-        return _apps_main._process_without_progress_bar(*args, **kwargs)
+        from typing import cast
 
-    def _should_show_progress(*args, **kwargs):
+        return cast(list[tuple[str, str, bool]], _apps_main._process_without_progress_bar(*args, **kwargs))
+
+    def _should_show_progress(*args: Any, **kwargs: Any) -> bool:
         """Determine if progress bar should be shown."""
-        return _apps_main._should_show_progress(*args, **kwargs)
+        from typing import cast
 
-    def _update_cache_with_installable(*args, **kwargs):
+        return cast(bool, _apps_main._should_show_progress(*args, **kwargs))
+
+    def _update_cache_with_installable(*args: Any, **kwargs: Any) -> None:
         """Update cache with installable cask information."""
-        return _apps_main._update_cache_with_installable(*args, **kwargs)
+        _apps_main._update_cache_with_installable(*args, **kwargs)
 
-    def check_brew_install_candidates(*args, **kwargs):
+    def check_brew_install_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Check which applications can be installed via Homebrew."""
-        return _apps_main.check_brew_install_candidates(*args, **kwargs)
+        from typing import cast
 
-    def check_brew_update_candidates(*args, **kwargs):
+        return cast(list[tuple[str, str, bool]], _apps_main.check_brew_install_candidates(*args, **kwargs))
+
+    def check_brew_update_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, str]]:
         """Check which Homebrew casks can be updated."""
-        return _apps_main.check_brew_update_candidates(*args, **kwargs)
+        from typing import cast
 
-    def get_cask_version(*args, **kwargs):
+        return cast(list[tuple[str, str, str]], _apps_main.check_brew_update_candidates(*args, **kwargs))
+
+    def get_cask_version(*args: Any, **kwargs: Any) -> str | None:
         """Get version of a Homebrew cask."""
-        return _apps_main.get_cask_version(*args, **kwargs)
+        from typing import cast
 
-    def get_homebrew_casks(*args, **kwargs):
+        return cast(str | None, _apps_main.get_cask_version(*args, **kwargs))
+
+    def get_homebrew_casks(*args: Any, **kwargs: Any) -> list[str]:
         """Get list of installed Homebrew casks."""
-        return _apps_main.get_homebrew_casks(*args, **kwargs)
+        from typing import cast
+
+        return cast(list[str], _apps_main.get_homebrew_casks(*args, **kwargs))
 
     # Expose the cache_clear method from the original decorated function
     get_homebrew_casks.cache_clear = _apps_main.get_homebrew_casks.cache_clear  # type: ignore  # type: ignore
@@ -137,21 +172,27 @@ if _spec is not None and _spec.loader is not None:
     # Also expose the manual cache clearing function for comprehensive cache management
     get_homebrew_casks.clear_all_caches = _apps_main.clear_homebrew_casks_cache  # type: ignore
 
-    def is_brew_cask_installable(*args, **kwargs):
+    def is_brew_cask_installable(*args: Any, **kwargs: Any) -> bool:
         """Check if a cask can be installed via Homebrew."""
-        return _apps_main.is_brew_cask_installable(*args, **kwargs)
+        from typing import cast
 
-    def smart_progress(*args, **kwargs):
+        return cast(bool, _apps_main.is_brew_cask_installable(*args, **kwargs))
+
+    def smart_progress(*args: Any, **kwargs: Any) -> Any:
         """Smart progress bar wrapper."""
         return _apps_main.smart_progress(*args, **kwargs)
 
-    def run_command(*args, **kwargs):
+    def run_command(*args: Any, **kwargs: Any) -> tuple[str, int]:
         """Run system command."""
-        return _apps_main.run_command(*args, **kwargs)
+        from typing import cast
 
-    def write_cache(*args, **kwargs):
+        return cast(tuple[str, int], _apps_main.run_command(*args, **kwargs))
+
+    def write_cache(*args: Any, **kwargs: Any) -> bool:
         """Write data to cache."""
-        return _apps_main.write_cache(*args, **kwargs)
+        from typing import cast
+
+        return cast(bool, _apps_main.write_cache(*args, **kwargs))
 
     # Import ALL EXISTING constants from main apps.py
     BREW_CMD = _apps_main.BREW_CMD
@@ -162,64 +203,64 @@ if _spec is not None and _spec.loader is not None:
     _brew_search_cache = _apps_main._brew_search_cache
 else:
     # Comprehensive fallback functions if main apps.py cannot be loaded
-    def get_homebrew_casks(*args, **kwargs):
+    def get_homebrew_casks(*args: Any, **kwargs: Any) -> list[str]:
         """Fallback: Get list of installed Homebrew casks."""
         return []
 
-    def check_brew_install_candidates(*args, **kwargs):
+    def check_brew_install_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Fallback: Check which applications can be installed via Homebrew."""
         return []
 
-    def _process_brew_batch(*args, **kwargs):
+    def _process_brew_batch(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Process batch of brew operations."""
         return []
 
-    def get_cask_version(*args, **kwargs):
+    def get_cask_version(*args: Any, **kwargs: Any) -> str | None:
         """Fallback: Get version of a Homebrew cask."""
         return None
 
-    def is_brew_cask_installable(*args, **kwargs):
+    def is_brew_cask_installable(*args: Any, **kwargs: Any) -> bool:
         """Fallback: Check if a cask can be installed via Homebrew."""
         return False
 
-    def _create_rate_limiter(*args, **kwargs):
+    def _create_rate_limiter(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Create appropriate rate limiter."""
         return SimpleRateLimiter(1.0)
 
-    def run_command(*args, **kwargs):
+    def run_command(*args: Any, **kwargs: Any) -> tuple[str, int]:
         """Fallback: Run system command."""
         return ("", 1)
 
-    def write_cache(*args, **kwargs):
+    def write_cache(*args: Any, **kwargs: Any) -> bool:
         """Fallback: Write data to cache."""
         return False
 
-    def check_brew_update_candidates(*args, **kwargs):
+    def check_brew_update_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, str]]:
         """Fallback: Check which Homebrew casks can be updated."""
         return []
 
     # Private function fallbacks
-    def _batch_process_brew_search(*args, **kwargs):
+    def _batch_process_brew_search(*args: Any, **kwargs: Any) -> list[Any]:
         """Fallback: Process brew search in batches."""
         return []
 
-    def _check_cache_for_cask(*args, **kwargs):
+    def _check_cache_for_cask(*args: Any, **kwargs: Any) -> bool | None:
         """Fallback: Check cache for cask information."""
         return None
 
-    def _execute_brew_search(*args, **kwargs):
+    def _execute_brew_search(*args: Any, **kwargs: Any) -> tuple[str, int]:
         """Fallback: Execute brew search command."""
-        return []
+        return ("", 1)
 
-    def _get_error_message(*args, **kwargs):
+    def _get_error_message(*args: Any, **kwargs: Any) -> str:
         """Fallback: Get error message from exception."""
         return "Unknown error"
 
-    def _get_existing_brews(*args, **kwargs):
+    def _get_existing_brews(*args: Any, **kwargs: Any) -> list[str]:
         """Fallback: Get existing brew installations."""
         return []
 
-    def _handle_batch_error(*args, **kwargs):
+    def _handle_batch_error(*args: Any, **kwargs: Any) -> Any:
         """Fallback: Handle batch processing errors."""
         # Extract arguments for backward compatibility
         args[0] if len(args) > 0 else kwargs.get("error")
@@ -229,11 +270,11 @@ else:
         failed_results = [(name, version, False) for name, version in batch] if batch else []
         return (failed_results, error_count + 1, None)
 
-    def _handle_brew_search_result(*args, **kwargs):
+    def _handle_brew_search_result(*args: Any, **kwargs: Any) -> bool:
         """Fallback: Handle brew search result."""
-        return None
+        return False
 
-    def _handle_future_result(*args, **kwargs):
+    def _handle_future_result(*args: Any, **kwargs: Any) -> tuple[tuple[str, str, bool], None]:
         """Fallback: Handle future execution result."""
         # Extract arguments for backward compatibility
         args[0] if len(args) > 0 else kwargs.get("future")
@@ -242,31 +283,31 @@ else:
         # Return proper tuple structure: ((name, version, result), exception)
         return ((name, version, False), None)
 
-    def _populate_cask_versions(*args, **kwargs):
+    def _populate_cask_versions(*args: Any, **kwargs: Any) -> dict[str, str]:
         """Fallback: Populate cask version information."""
         return {}
 
-    def _process_batch_result(*args, **kwargs):
+    def _process_batch_result(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Fallback: Process batch execution result."""
         return []
 
-    def _process_brew_search_batches(*args, **kwargs):
+    def _process_brew_search_batches(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Fallback: Process brew search operations in batches."""
         return []
 
-    def _process_with_progress_bar(*args, **kwargs):
+    def _process_with_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Fallback: Process operations with progress bar."""
         return []
 
-    def _process_without_progress_bar(*args, **kwargs):
+    def _process_without_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
         """Fallback: Process operations without progress bar."""
         return []
 
-    def _should_show_progress(*args, **kwargs):
+    def _should_show_progress(*args: Any, **kwargs: Any) -> bool:
         """Fallback: Determine if progress bar should be shown."""
         return False
 
-    def _update_cache_with_installable(*args, **kwargs):
+    def _update_cache_with_installable(*args: Any, **kwargs: Any) -> None:
         """Fallback: Update cache with installable cask information."""
         return None
 

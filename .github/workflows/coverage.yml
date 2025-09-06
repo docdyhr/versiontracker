@@ -3,9 +3,7 @@ name: Coverage Analysis
 
 "on":
   push:
-    branches: [master]
   pull_request:
-    branches: [master]
   workflow_dispatch:
 
 env:
@@ -45,10 +43,12 @@ jobs:
           echo "::endgroup::"
 
       - name: Upload coverage to Codecov
+        # Skip on PRs from forks where secrets are unavailable
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage HTML report
@@ -62,6 +62,6 @@ jobs:
         run: |
           echo "## 📊 Coverage Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Coverage report uploaded to:" >> $GITHUB_STEP_SUMMARY  
+          echo "Coverage report uploaded to:" >> $GITHUB_STEP_SUMMARY
           echo "- [Codecov](https://codecov.io/gh/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
           echo "- HTML report in workflow artifacts" >> $GITHUB_STEP_SUMMARY

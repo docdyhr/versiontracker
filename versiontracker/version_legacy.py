@@ -6,6 +6,7 @@ import logging
 import multiprocessing
 import re
 import subprocess
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
@@ -34,8 +35,8 @@ try:
     USE_RAPIDFUZZ = True
 except ImportError:
     try:
-        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz
-        import fuzzywuzzy.process as fuzzywuzzy_process
+        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz  # type: ignore[import-untyped]
+        import fuzzywuzzy.process as fuzzywuzzy_process  # type: ignore[import-untyped]
 
         fuzz = fuzzywuzzy_fuzz
         fuzz_process = fuzzywuzzy_process
@@ -1208,7 +1209,12 @@ def _create_app_batches(apps: list[tuple[str, str]], batch_size: int) -> list[li
     return [apps[i : i + batch_size] for i in range(0, len(apps), batch_size)]
 
 
-def _handle_batch_result(future, results: list[ApplicationInfo], error_count: int, max_errors: int):
+def _handle_batch_result(
+    future: concurrent.futures.Future[list[ApplicationInfo]],
+    results: list[ApplicationInfo],
+    error_count: int,
+    max_errors: int,
+) -> int:
     """Handle the result of a batch processing future.
 
     Args:
@@ -1368,25 +1374,25 @@ def partial_ratio(s1: str, s2: str, score_cutoff: int | None = None) -> int:
     return 100 if s1.lower() == s2.lower() else (70 if s1.lower() in s2.lower() or s2.lower() in s1.lower() else 0)
 
 
-def get_partial_ratio_scorer():
+def get_partial_ratio_scorer() -> Callable[[str, str], float]:
     """Return a scorer function compatible with rapidfuzz/fuzzywuzzy extractOne."""
     if USE_RAPIDFUZZ and fuzz and hasattr(fuzz, "partial_ratio"):
 
-        def rapidfuzz_scorer(s1, s2):
+        def rapidfuzz_scorer(s1: str, s2: str) -> float:
             # fuzz is not None here due to the checks above
             return float(fuzz.partial_ratio(s1, s2))
 
         return rapidfuzz_scorer
     elif USE_FUZZYWUZZY and fuzz and hasattr(fuzz, "partial_ratio"):
 
-        def fuzzywuzzy_scorer(s1, s2):
+        def fuzzywuzzy_scorer(s1: str, s2: str) -> float:
             # fuzz is not None here due to the checks above
             return float(fuzz.partial_ratio(s1, s2))
 
         return fuzzywuzzy_scorer
     else:
 
-        def fallback_scorer(s1, s2):
+        def fallback_scorer(s1: str, s2: str) -> float:
             # Fallback implementation
             return (
                 100.0

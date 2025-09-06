@@ -61,6 +61,78 @@ def parse_version(
         return (major, minor, patch)
 
 
+def _compare_base_version(parsed1: tuple, parsed2: tuple) -> int:
+    """Compare the major.minor.patch components of two parsed versions.
+
+    Args:
+        parsed1: First parsed version tuple
+        parsed2: Second parsed version tuple
+
+    Returns:
+        -1 if parsed1 < parsed2, 0 if equal, 1 if parsed1 > parsed2
+    """
+    # Compare major, minor, patch
+    for i in range(3):
+        if parsed1[i] < parsed2[i]:
+            return -1
+        elif parsed1[i] > parsed2[i]:
+            return 1
+    return 0
+
+
+def _compare_prerelease_vs_release(len1: int, len2: int) -> int | None:
+    """Compare release vs prerelease versions when base versions are equal.
+
+    Args:
+        len1: Length of first parsed version tuple
+        len2: Length of second parsed version tuple
+
+    Returns:
+        Comparison result if one is release and other is prerelease, None otherwise
+    """
+    # Release version is greater than prerelease
+    if len1 == 3 and len2 > 3:
+        return 1
+    elif len1 > 3 and len2 == 3:
+        return -1
+    elif len1 == 3 and len2 == 3:
+        return 0
+    return None
+
+
+def _compare_prerelease_components(parsed1: tuple, parsed2: tuple) -> int:
+    """Compare prerelease components of two parsed versions.
+
+    Args:
+        parsed1: First parsed version tuple with prerelease
+        parsed2: Second parsed version tuple with prerelease
+
+    Returns:
+        -1 if parsed1 < parsed2, 0 if equal, 1 if parsed1 > parsed2
+    """
+    len1, len2 = len(parsed1), len(parsed2)
+
+    # Compare prerelease tags alphabetically
+    tag1 = parsed1[3] if len1 > 3 else ""
+    tag2 = parsed2[3] if len2 > 3 else ""
+
+    if tag1 < tag2:
+        return -1
+    elif tag1 > tag2:
+        return 1
+
+    # Same tags, compare numbers if present
+    num1 = parsed1[4] if len1 > 4 else 0
+    num2 = parsed2[4] if len2 > 4 else 0
+
+    if num1 < num2:
+        return -1
+    elif num1 > num2:
+        return 1
+
+    return 0
+
+
 def compare_versions(version1: str, version2: str) -> int:
     """
     Compare two version strings.
@@ -80,43 +152,20 @@ def compare_versions(version1: str, version2: str) -> int:
     parsed1 = parse_version(version1)
     parsed2 = parse_version(version2)
 
-    # Compare major, minor, patch
-    for i in range(3):
-        if parsed1[i] < parsed2[i]:
-            return -1
-        elif parsed1[i] > parsed2[i]:
-            return 1
+    # Compare major, minor, patch first
+    base_comparison = _compare_base_version(parsed1, parsed2)
+    if base_comparison != 0:
+        return base_comparison
 
-    # Both have same major.minor.patch, check prerelease
+    # Base versions are equal, check prerelease vs release
     len1, len2 = len(parsed1), len(parsed2)
-
-    # Release version is greater than prerelease
-    if len1 == 3 and len2 > 3:
-        return 1
-    elif len1 > 3 and len2 == 3:
-        return -1
-    elif len1 == 3 and len2 == 3:
-        return 0
+    release_comparison = _compare_prerelease_vs_release(len1, len2)
+    if release_comparison is not None:
+        return release_comparison
 
     # Both have prereleases, compare them
     if len1 > 3 and len2 > 3:
-        # Compare prerelease tags alphabetically
-        tag1 = parsed1[3] if len1 > 3 else ""
-        tag2 = parsed2[3] if len2 > 3 else ""
-
-        if tag1 < tag2:
-            return -1
-        elif tag1 > tag2:
-            return 1
-
-        # Same tags, compare numbers if present
-        num1 = parsed1[4] if len1 > 4 else 0
-        num2 = parsed2[4] if len2 > 4 else 0
-
-        if num1 < num2:
-            return -1
-        elif num1 > num2:
-            return 1
+        return _compare_prerelease_components(parsed1, parsed2)
 
     return 0
 

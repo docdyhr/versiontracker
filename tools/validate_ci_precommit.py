@@ -254,50 +254,72 @@ class CIPrecommitValidator:
                 )
                 print(f"   {tool_name}: ✓")
             except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                raise ValidationError(f"{tool_name} not available or failed: {e}")
+                raise ValidationError(f"{tool_name} not available or failed: {e}") from e
 
         # Check mypy type stub consistency
         self._check_type_stub_versions()
 
     def _check_type_stub_versions(self) -> None:
         """Check that type stub versions are consistent with mypy requirements."""
-        # Check pre-commit additional_dependencies
+        precommit_stubs = self._get_precommit_type_stubs()
+        req_stubs = self._get_requirements_type_stubs()
+
+        self._compare_type_stub_sets(precommit_stubs, req_stubs)
+        print(f"   Type stubs: {len(precommit_stubs)} in pre-commit, {len(req_stubs)} in requirements-dev.txt")
+
+    def _get_precommit_type_stubs(self) -> set[str]:
+        """Extract type stub dependencies from pre-commit config."""
         precommit_file = self.project_root / ".pre-commit-config.yaml"
         precommit_stubs = set()
-        if precommit_file.exists():
-            with open(precommit_file) as f:
-                config = yaml.safe_load(f)
-                for repo in config.get("repos", []):
-                    if "mirrors-mypy" in repo.get("repo", ""):
-                        for hook in repo.get("hooks", []):
-                            if hook.get("id") == "mypy":
-                                deps = hook.get("additional_dependencies", [])
-                                for dep in deps:
-                                    if isinstance(dep, str) and dep.startswith("types-"):
-                                        precommit_stubs.add(dep.split(">=")[0].split("==")[0])
 
-        # Check requirements-dev.txt
+        if not precommit_file.exists():
+            return precommit_stubs
+
+        with open(precommit_file) as f:
+            config = yaml.safe_load(f)
+
+        for repo in config.get("repos", []):
+            if "mirrors-mypy" not in repo.get("repo", ""):
+                continue
+
+            for hook in repo.get("hooks", []):
+                if hook.get("id") == "mypy":
+                    deps = hook.get("additional_dependencies", [])
+                    for dep in deps:
+                        if isinstance(dep, str) and dep.startswith("types-"):
+                            precommit_stubs.add(dep.split(">=")[0].split("==")[0])
+
+        return precommit_stubs
+
+    def _get_requirements_type_stubs(self) -> set[str]:
+        """Extract type stub dependencies from requirements-dev.txt."""
         req_dev_file = self.project_root / "requirements-dev.txt"
         req_stubs = set()
-        if req_dev_file.exists():
-            with open(req_dev_file) as f:
-                for line in f:
-                    line = line.strip()
-                    if line.startswith("types-"):
-                        stub_name = line.split(">=")[0].split("==")[0]
-                        req_stubs.add(stub_name)
 
-        # Compare sets
-        if precommit_stubs != req_stubs:
-            missing_in_req = precommit_stubs - req_stubs
-            missing_in_precommit = req_stubs - precommit_stubs
+        if not req_dev_file.exists():
+            return req_stubs
 
-            if missing_in_req:
-                self.warnings.append(f"Type stubs in pre-commit but not requirements-dev.txt: {missing_in_req}")
-            if missing_in_precommit:
-                self.warnings.append(f"Type stubs in requirements-dev.txt but not pre-commit: {missing_in_precommit}")
+        with open(req_dev_file) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("types-"):
+                    stub_name = line.split(">=")[0].split("==")[0]
+                    req_stubs.add(stub_name)
 
-        print(f"   Type stubs: {len(precommit_stubs)} in pre-commit, {len(req_stubs)} in requirements-dev.txt")
+        return req_stubs
+
+    def _compare_type_stub_sets(self, precommit_stubs: set[str], req_stubs: set[str]) -> None:
+        """Compare type stub sets and add warnings for inconsistencies."""
+        if precommit_stubs == req_stubs:
+            return
+
+        missing_in_req = precommit_stubs - req_stubs
+        missing_in_precommit = req_stubs - precommit_stubs
+
+        if missing_in_req:
+            self.warnings.append(f"Type stubs in pre-commit but not requirements-dev.txt: {missing_in_req}")
+        if missing_in_precommit:
+            self.warnings.append(f"Type stubs in requirements-dev.txt but not pre-commit: {missing_in_precommit}")
 
     def validate_config_files(self) -> None:
         """Validate configuration file syntax."""
@@ -315,7 +337,7 @@ class CIPrecommitValidator:
                     validator(file_path)
                     print(f"   {config_path}: ✓")
                 except Exception as e:
-                    raise ValidationError(f"Invalid {config_path}: {e}")
+                    raise ValidationError(f"Invalid {config_path}: {e}") from e
 
     def _validate_yaml(self, file_path: Path) -> None:
         """Validate YAML file syntax."""

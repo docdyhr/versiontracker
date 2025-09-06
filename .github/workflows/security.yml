@@ -3,14 +3,12 @@ name: Security
 
 "on":
   push:
-    branches: [master]
     paths:
       - 'requirements*.txt'
       - 'pyproject.toml'
       - '.github/workflows/security.yml'
       - 'versiontracker/**'
   pull_request:
-    branches: [master]
     paths:
       - 'requirements*.txt'
       - 'pyproject.toml'
