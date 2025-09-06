@@ -32,7 +32,8 @@ jobs:
       - name: Run comprehensive tests with coverage
         run: |
           echo "::group::Full Test Suite with Coverage"
-          pytest \
+          set +e
+          PYTEST_CMD=(pytest \
             --cov=versiontracker \
             --cov-report=xml \
             --cov-report=html \
@@ -41,8 +42,16 @@ jobs:
             --cov-fail-under=15 \
             --timeout=300 \
             --maxfail=10 \
-            -v
+            -v)
+          "${PYTEST_CMD[@]}"
+          EC=$?
+          if [ "$EC" -eq 2 ]; then
+            echo "Detected pytest KeyboardInterrupt (exit 2). Retrying once..."
+            "${PYTEST_CMD[@]}"
+            EC=$?
+          fi
           echo "::endgroup::"
+          exit $EC
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -62,6 +71,6 @@ jobs:
         run: |
           echo "## 📊 Coverage Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Coverage report uploaded to:" >> $GITHUB_STEP_SUMMARY  
+          echo "Coverage report uploaded to:" >> $GITHUB_STEP_SUMMARY
           echo "- [Codecov](https://codecov.io/gh/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
           echo "- HTML report in workflow artifacts" >> $GITHUB_STEP_SUMMARY
