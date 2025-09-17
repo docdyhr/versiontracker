@@ -8,7 +8,7 @@ Jinja2==3.1.6
 MarkupSafe==3.0.2
 PyYAML==6.0.2
 Pygments==2.19.2
-RapidFuzz==3.13.0
+RapidFuzz==3.14.1
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.14
 aiosignal==1.4.0
@@ -45,7 +45,7 @@ packaging==25.0
 pip-api==0.0.34
 pip-requirements-parser==32.0.1
 pip_audit==2.9.0
-platformdirs==4.3.8
+platformdirs==4.4.0
 pluggy==1.6.0
 propcache==0.3.2
 psutil==6.1.1
@@ -53,13 +53,13 @@ py-serializable==2.1.0
 pycparser==2.22
 pydantic==2.9.2
 pydantic_core==2.23.4
-pyparsing==3.2.3
+pyparsing==3.2.4
 pytest-asyncio==1.1.0
-pytest-cov==6.2.1
+pytest-cov==7.0.0
 pytest-timeout==2.4.0
 regex==2024.11.6
-requests==2.32.4
-rich==14.0.0
+requests==2.32.5
+rich==14.1.0
 ruamel.yaml.clib==0.2.12
 ruamel.yaml==0.18.14
 safety-schemas==0.0.14
