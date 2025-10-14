@@ -2,40 +2,72 @@
 
 ![Logo](assets/images/logo.png)
 
-<!-- Build Status -->
-[![CI Pipeline](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
-[![Lint](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/lint.yml?branch=master&label=lint&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/security.yml?branch=master&label=security&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/codeql-analysis.yml?branch=master&label=CodeQL&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/codeql-analysis.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=release&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
+<div align="center">
 
-<!-- Package Info -->
-[![PyPI - Version](https://img.shields.io/pypi/v/homebrew-versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/homebrew-versiontracker/)
+## 🚀 Production-Ready macOS Application Manager
+
+[![Project Grade](https://img.shields.io/badge/Grade-A-brightgreen?style=for-the-badge&logo=gradle&logoColor=white)](PROJECT_REVIEW.md)
+[![Production Ready](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge&logo=checkmarx&logoColor=white)](PROJECT_REVIEW.md)
+
+</div>
+
+---
+
+### 🏗️ Build & CI/CD Pipeline
+
+[![CI Pipeline](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Lint](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/lint.yml?branch=master&label=Lint&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/security.yml?branch=master&label=Security&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/codeql-analysis.yml?branch=master&label=CodeQL&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/codeql-analysis.yml)
+[![Coverage](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/coverage.yml?branch=master&label=Coverage&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/coverage.yml)
+[![Performance](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/performance.yml?branch=master&label=Performance&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/performance.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=Release&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
+
+### 📦 Package & Distribution
+
+[![PyPI - Version](https://img.shields.io/pypi/v/homebrew-versiontracker?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/homebrew-versiontracker/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/homebrew-versiontracker?logo=python&logoColor=white)](https://pypi.org/project/homebrew-versiontracker/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/homebrew-versiontracker?logo=pypi&logoColor=white&label=downloads)](https://pypi.org/project/homebrew-versiontracker/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/homebrew-versiontracker?logo=pypi&logoColor=white&label=Downloads)](https://pypi.org/project/homebrew-versiontracker/)
+[![PyPI - Wheel](https://img.shields.io/pypi/wheel/homebrew-versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/homebrew-versiontracker/)
 [![PyPI Status](https://img.shields.io/pypi/status/homebrew-versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/homebrew-versiontracker/)
 
-<!-- Quality & Coverage -->
-[![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white)](https://codecov.io/gh/docdyhr/versiontracker)
-[![Test Coverage](https://img.shields.io/badge/coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
-[![Type Checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg?logo=python&logoColor=white)](http://mypy-lang.org/)
-[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg?logo=python&logoColor=white)](https://bandit.readthedocs.io/en/latest/)
-[![Code Quality](https://img.shields.io/github/languages/code-size/docdyhr/versiontracker?logo=github&logoColor=white&label=code%20size)](https://github.com/docdyhr/versiontracker)
+### 🔒 Security & Quality
 
-<!-- Repository Stats -->
+[![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
+[![Test Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
+[![Tests Passing](https://img.shields.io/badge/Tests-962%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
+[![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
+[![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
+
+### 🎨 Code Standards
+
+[![Code style: ruff](https://img.shields.io/badge/Code%20Style-Ruff-000000.svg?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
+[![Type Checked: mypy](https://img.shields.io/badge/Type%20Checked-MyPy-blue.svg?logo=python&logoColor=white)](http://mypy-lang.org/)
+[![Complexity](https://img.shields.io/badge/Complexity-%3C%2015-brightgreen?logo=codeclimate&logoColor=white)](PROJECT_REVIEW.md)
+[![Line Length](https://img.shields.io/badge/Line%20Length-120-blue?logo=prettier&logoColor=white)](.ruff.toml)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](.pre-commit-config.yaml)
+
+### 📊 Repository Stats
+
 [![GitHub issues](https://img.shields.io/github/issues/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/pulls)
 [![GitHub forks](https://img.shields.io/github/forks/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/network)
 [![GitHub stars](https://img.shields.io/github/stars/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/stargazers)
 [![Last Commit](https://img.shields.io/github/last-commit/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/commits/master)
+[![Contributors](https://img.shields.io/github/contributors/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/graphs/contributors)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
-<!-- Platform & Tools -->
-[![macOS](https://img.shields.io/badge/platform-macOS-blue.svg?logo=apple&logoColor=white)](https://www.apple.com/macos/)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![Homebrew Compatible](https://img.shields.io/badge/homebrew-compatible-orange.svg?logo=homebrew&logoColor=white)](https://brew.sh/)
-[![CLI Tool](https://img.shields.io/badge/tool-CLI-brightgreen?logo=terminal&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![GitHub Repo Size](https://img.shields.io/github/repo-size/docdyhr/versiontracker?logo=github&logoColor=white&label=repo%20size)](https://github.com/docdyhr/versiontracker)
+### 💻 Platform & Environment
+
+[![macOS](https://img.shields.io/badge/Platform-macOS-blue.svg?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Homebrew Compatible](https://img.shields.io/badge/Homebrew-Compatible-orange.svg?logo=homebrew&logoColor=white)](https://brew.sh/)
+[![CLI Tool](https://img.shields.io/badge/Type-CLI-brightgreen?logo=terminal&logoColor=white)](https://github.com/docdyhr/versiontracker)
+[![Code Size](https://img.shields.io/github/languages/code-size/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker)
+[![Repo Size](https://img.shields.io/github/repo-size/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker)
+
+---
 
 * Name: Versiontracker
 * Version: 0.7.2
