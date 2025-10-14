@@ -1,5 +1,5 @@
 ---
-name: Lint
+name: Code Linting and Formatting
 
 "on":
   push:
