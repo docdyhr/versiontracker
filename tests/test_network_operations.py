@@ -15,7 +15,7 @@ import pytest
 from tests.mock_homebrew_server import with_mock_homebrew_server
 from versiontracker.exceptions import TimeoutError as VTTimeoutError
 from versiontracker.utils import run_command
-from versiontracker.version import check_latest_version, find_matching_cask
+from versiontracker.version_legacy import check_latest_version, find_matching_cask
 
 
 def _is_ci_environment():
