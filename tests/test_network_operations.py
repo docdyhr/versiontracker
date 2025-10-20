@@ -26,6 +26,7 @@ def _is_ci_environment():
 class TestNetworkOperations(unittest.TestCase):
     """Tests for network operations using the mock server."""
 
+    @pytest.mark.network
     @with_mock_homebrew_server
     def test_find_matching_cask_success(self, mock_server, server_url):
         """Test finding a matching cask with successful network operation."""
@@ -48,6 +49,8 @@ class TestNetworkOperations(unittest.TestCase):
             self.assertIsNotNone(result)
             self.assertEqual(result, "firefox")
 
+    @pytest.mark.network
+    @pytest.mark.timeout(60)
     @with_mock_homebrew_server
     def test_find_matching_cask_timeout(self, mock_server, server_url):
         """Test finding a matching cask with network timeout."""
@@ -62,6 +65,7 @@ class TestNetworkOperations(unittest.TestCase):
             result = find_matching_cask("Firefox")
             self.assertIsNone(result)
 
+    @pytest.mark.network
     @with_mock_homebrew_server
     def test_find_matching_cask_error(self, mock_server, server_url):
         """Test finding a matching cask with network error."""
@@ -83,6 +87,7 @@ class TestNetworkOperations(unittest.TestCase):
             result = find_matching_cask("Firefox")
             self.assertIsNone(result)
 
+    @pytest.mark.network
     @with_mock_homebrew_server
     def test_find_matching_cask_malformed(self, mock_server, server_url):
         """Test finding a matching cask with malformed response."""
@@ -104,6 +109,7 @@ class TestNetworkOperations(unittest.TestCase):
             result = find_matching_cask("Firefox")
             self.assertEqual(result, "firefox")
 
+    @pytest.mark.network
     @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_latest_version_success(self, mock_server, server_url):
@@ -123,6 +129,8 @@ class TestNetworkOperations(unittest.TestCase):
             result = check_latest_version("Firefox")
             self.assertEqual(result, "120.0.1")
 
+    @pytest.mark.network
+    @pytest.mark.timeout(60)
     @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_latest_version_timeout(self, mock_server, server_url):
@@ -138,6 +146,8 @@ class TestNetworkOperations(unittest.TestCase):
             with pytest.raises(VTTimeoutError):
                 check_latest_version("Firefox")
 
+    @pytest.mark.network
+    @pytest.mark.slow
     @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_latest_version_with_delay(self, mock_server, server_url):
@@ -169,6 +179,8 @@ class TestNetworkOperations(unittest.TestCase):
         with pytest.raises((VTTimeoutError, Exception)):
             run_command(command, timeout=timeout)
 
+    @pytest.mark.network
+    @pytest.mark.slow
     @pytest.mark.skipif(_is_ci_environment(), reason="Skipping brew-dependent test in CI environment")
     @with_mock_homebrew_server
     def test_check_multiple_casks(self, mock_server, server_url):
