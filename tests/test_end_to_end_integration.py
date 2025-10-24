@@ -6,6 +6,7 @@ functionality of VersionTracker across different workflows and scenarios.
 """
 
 import os
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -16,6 +17,12 @@ import pytest
 from versiontracker.__main__ import versiontracker_main
 from versiontracker.config import Config
 from versiontracker.exceptions import NetworkError
+
+# Skip all end-to-end tests on non-macOS platforms since they require
+# macOS-specific tools (system_profiler) and Homebrew
+pytestmark = pytest.mark.skipif(
+    sys.platform != "darwin", reason="End-to-end integration tests require macOS-specific tools"
+)
 
 
 class TestEndToEndIntegration:
