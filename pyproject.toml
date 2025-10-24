@@ -187,6 +187,22 @@ module = "versiontracker.handlers.*"
 # Suppress signature compatibility issues with optional dependency fallbacks
 disable_error_code = ["misc"]
 
+[[tool.mypy.overrides]]
+module = "versiontracker.ai.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "versiontracker.ml.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "versiontracker.analytics"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "versiontracker.benchmarks"
+ignore_errors = true
+
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "7.0"

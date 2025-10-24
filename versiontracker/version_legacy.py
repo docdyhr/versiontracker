@@ -35,8 +35,8 @@ try:
     USE_RAPIDFUZZ = True
 except ImportError:
     try:
-        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz  # type: ignore[import-untyped]
-        import fuzzywuzzy.process as fuzzywuzzy_process  # type: ignore[import-untyped]
+        import fuzzywuzzy.fuzz as fuzzywuzzy_fuzz
+        import fuzzywuzzy.process as fuzzywuzzy_process
 
         fuzz = fuzzywuzzy_fuzz
         fuzz_process = fuzzywuzzy_process

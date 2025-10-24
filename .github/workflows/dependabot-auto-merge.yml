@@ -1,0 +1,106 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, synchronize, opened, edited, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  dependabot-auto-merge:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1.6.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Auto-merge Dependabot PRs
+        if: |
+          (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+           steps.metadata.outputs.update-type == 'version-update:semver-minor') &&
+          (contains(steps.metadata.outputs.dependency-names, 'pytest') ||
+           contains(steps.metadata.outputs.dependency-names, 'black') ||
+           contains(steps.metadata.outputs.dependency-names, 'ruff') ||
+           contains(steps.metadata.outputs.dependency-names, 'mypy') ||
+           contains(steps.metadata.outputs.dependency-names, 'bandit') ||
+           contains(steps.metadata.outputs.dependency-names, 'safety') ||
+           contains(steps.metadata.outputs.dependency-names, 'pip-audit') ||
+           contains(steps.metadata.outputs.dependency-names, 'pre-commit') ||
+           contains(steps.metadata.outputs.dependency-names, 'tqdm') ||
+           contains(steps.metadata.outputs.dependency-names, 'pyyaml') ||
+           contains(steps.metadata.outputs.dependency-names, 'tabulate') ||
+           contains(steps.metadata.outputs.dependency-names, 'psutil') ||
+           contains(steps.metadata.outputs.dependency-names, 'aiohttp') ||
+           contains(steps.metadata.outputs.dependency-names, 'rapidfuzz'))
+        run: |
+          echo "Auto-merging Dependabot PR for safe dependency update"
+          gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  security-auto-merge:
+    runs-on: ubuntu-latest
+    if: |
+      github.actor == 'dependabot[bot]' &&
+      contains(github.event.pull_request.labels.*.name, 'dependencies') &&
+      contains(github.event.pull_request.labels.*.name, 'security')
+
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1.6.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Wait for CI checks
+        uses: fountainhead/action-wait-for-check@v1.1.0
+        id: wait-for-ci
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "ci"
+          ref: ${{ github.event.pull_request.head.sha }}
+          timeoutSeconds: 1800
+          intervalSeconds: 30
+
+      - name: Wait for security checks
+        uses: fountainhead/action-wait-for-check@v1.1.0
+        id: wait-for-security
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: "security"
+          ref: ${{ github.event.pull_request.head.sha }}
+          timeoutSeconds: 900
+          intervalSeconds: 30
+
+      - name: Auto-merge security updates
+        if: |
+          steps.wait-for-ci.outputs.conclusion == 'success' &&
+          steps.wait-for-security.outputs.conclusion == 'success'
+        run: |
+          echo "Auto-merging Dependabot security update after CI passes"
+          gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notification:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' && failure() }}
+    needs: [dependabot-auto-merge, security-auto-merge]
+
+    steps:
+      - name: Notify on failure
+        run: |
+          echo "Dependabot auto-merge failed. Manual review required."
+          gh pr comment "$PR_URL" --body "🤖 Dependabot auto-merge failed. Please review this PR manually."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
