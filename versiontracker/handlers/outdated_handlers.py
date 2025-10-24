@@ -21,7 +21,7 @@ try:
     from tabulate import tabulate
 except ImportError:
     # Fallback if tabulate is not installed
-    def tabulate(tabular_data: Any, headers: Any = (), tablefmt: Any = "simple", **kwargs: Any) -> str:
+    def tabulate(tabular_data: Any, headers: Any = (), tablefmt: str = "simple", **kwargs: Any) -> str:
         """Format tabular data into a string representation."""
         _ = tablefmt, kwargs  # Acknowledge unused parameters
         result = []
