@@ -1,5 +1,4 @@
-"""
-Example plugins to demonstrate the VersionTracker plugin system.
+"""Example plugins to demonstrate the VersionTracker plugin system.
 
 This module contains example implementations of various plugin types
 to show how to extend VersionTracker functionality.
@@ -82,7 +81,7 @@ class XMLExportPlugin(ExportPlugin):
                 elem = ET.SubElement(parent, clean_key)
                 self._dict_to_xml(value, elem)
             elif isinstance(value, list):
-                for i, item in enumerate(value):
+                for item in value:
                     elem = ET.SubElement(parent, clean_key)
                     if isinstance(item, dict):
                         self._dict_to_xml(item, elem)
@@ -100,8 +99,8 @@ class XMLExportPlugin(ExportPlugin):
                 elem.text = i + "  "
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
-            for elem in elem:
-                self._indent(elem, level + 1)
+            for child in elem:
+                self._indent(child, level + 1)
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
         else:

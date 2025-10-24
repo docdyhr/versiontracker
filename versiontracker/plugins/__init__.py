@@ -1,5 +1,4 @@
-"""
-Plugin system architecture for VersionTracker.
+"""Plugin system architecture for VersionTracker.
 
 This module provides a flexible plugin system that allows extending VersionTracker
 functionality through modular plugins. Plugins can add new commands, data sources,
@@ -376,7 +375,7 @@ class PluginManager:
             self._loaded_modules[module_name] = module
 
             # Look for plugin classes in the module
-            for name, obj in inspect.getmembers(module):
+            for _name, obj in inspect.getmembers(module):
                 if (
                     inspect.isclass(obj)
                     and issubclass(obj, BasePlugin)

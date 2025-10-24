@@ -29,6 +29,7 @@ class VersionTrackerError(Exception):
             context: Context information
             original_exception: Original exception that caused this error
         """
+        self.structured_error: StructuredError | None = None
         if error_code:
             self.structured_error = create_error(
                 error_code=error_code,
@@ -38,7 +39,6 @@ class VersionTrackerError(Exception):
             )
             super().__init__(self.structured_error.format_user_message())
         else:
-            self.structured_error: StructuredError | None = None
             super().__init__(message)
 
     def get_error_code(self) -> str | None:
