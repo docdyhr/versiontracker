@@ -94,17 +94,17 @@ jobs:
             TIMEOUT=300
           fi
 
-          PYTEST_CMD=(pytest --maxfail=5 --tb=short --timeout=$TIMEOUT --cov=versiontracker \
-            --cov-report=xml --cov-report=term-missing)
+          PYTEST_CMD=(pytest --maxfail=5 --tb=short --timeout=$TIMEOUT --timeout-method=thread \
+            --cov=versiontracker --cov-report=xml --cov-report=term-missing)
           "${PYTEST_CMD[@]}"
           EC=$?
 
-          # Handle pytest KeyboardInterrupt (exit code 2) - often caused by timeout
+          # Handle pytest KeyboardInterrupt (exit code 2) - should be rare with thread method
           if [ "$EC" -eq 2 ]; then
             echo "Detected pytest KeyboardInterrupt (exit 2). Retrying once with increased timeout..."
             TIMEOUT=$((TIMEOUT * 2))
-            PYTEST_CMD=(pytest --maxfail=5 --tb=short --timeout=$TIMEOUT --cov=versiontracker \
-              --cov-report=xml --cov-report=term-missing)
+            PYTEST_CMD=(pytest --maxfail=5 --tb=short --timeout=$TIMEOUT --timeout-method=thread \
+              --cov=versiontracker --cov-report=xml --cov-report=term-missing)
             "${PYTEST_CMD[@]}"
             EC=$?
           fi

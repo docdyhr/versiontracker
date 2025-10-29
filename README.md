@@ -23,19 +23,11 @@
 [![Performance](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/performance.yml?branch=master&label=Performance&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/performance.yml)
 [![Release](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=Release&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
 
-### 📦 Package & Distribution
-
-[![PyPI - Version](https://img.shields.io/pypi/v/homebrew-versiontracker?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/homebrew-versiontracker/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/homebrew-versiontracker?logo=python&logoColor=white)](https://pypi.org/project/homebrew-versiontracker/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/homebrew-versiontracker?logo=pypi&logoColor=white&label=Downloads)](https://pypi.org/project/homebrew-versiontracker/)
-[![PyPI - Wheel](https://img.shields.io/pypi/wheel/homebrew-versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/homebrew-versiontracker/)
-[![PyPI Status](https://img.shields.io/pypi/status/homebrew-versiontracker?logo=pypi&logoColor=white)](https://pypi.org/project/homebrew-versiontracker/)
-
 ### 🔒 Security & Quality
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
 [![Test Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-962%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-1,136%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
@@ -75,7 +67,7 @@
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
 * Release date: 21. Feb 2022 (Updated: January 2025)
-* Code Quality: **70.88% test coverage with 1,230 passing tests**,
+* Code Quality: **70.88% test coverage with 1,136 passing tests**,
   **all previously identified high & medium complexity issues resolved**,
   **AI/ML capabilities and advanced analytics platform**
 

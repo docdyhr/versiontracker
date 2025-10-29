@@ -43,12 +43,13 @@ jobs:
             --cov-branch \
             --cov-fail-under=15 \
             --timeout=$TIMEOUT \
+            --timeout-method=thread \
             --maxfail=10 \
             -v)
           "${PYTEST_CMD[@]}"
           EC=$?
 
-          # Handle pytest KeyboardInterrupt (exit code 2) - often caused by timeout
+          # Handle pytest KeyboardInterrupt (exit code 2) - should be rare with thread method
           if [ "$EC" -eq 2 ]; then
             echo "Detected pytest KeyboardInterrupt (exit 2). Retrying once with doubled timeout..."
             TIMEOUT=$((TIMEOUT * 2))
@@ -60,6 +61,7 @@ jobs:
               --cov-branch \
               --cov-fail-under=15 \
               --timeout=$TIMEOUT \
+              --timeout-method=thread \
               --maxfail=10 \
               -v)
             "${PYTEST_CMD[@]}"
