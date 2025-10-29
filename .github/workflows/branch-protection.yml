@@ -1,11 +1,15 @@
 ---
 name: Branch Protection
 
+# Disabled: Using GitHub repository rules instead
+# "on":
+#   push:
+#     branches: [master]
+#     paths:
+#       - '.github/workflows/*.yml'
+
 "on":
-  push:
-    branches: [master]
-    paths:
-      - '.github/workflows/*.yml'
+  workflow_dispatch:
 
 jobs:
   update-branch-protection:
@@ -31,7 +35,7 @@ jobs:
                 strict: true,
                 contexts: [
                   "Test Python 3.12 on ubuntu-latest",
-                  "Test Python 3.13 on ubuntu-latest", 
+                  "Test Python 3.13 on ubuntu-latest",
                   "Test Python 3.12 on macos-latest",
                   "Test Python 3.13 on macos-latest",
                   "Code Linting and Formatting",
