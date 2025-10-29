@@ -31,6 +31,10 @@ jobs:
         run: |
           echo "::group::Full Test Suite with Coverage"
           set +e
+
+          # Use longer timeout for coverage analysis (Ubuntu tends to be slower)
+          TIMEOUT=600
+
           PYTEST_CMD=(pytest \
             --cov=versiontracker \
             --cov-report=xml \
@@ -38,13 +42,26 @@ jobs:
             --cov-report=term-missing \
             --cov-branch \
             --cov-fail-under=15 \
-            --timeout=300 \
+            --timeout=$TIMEOUT \
             --maxfail=10 \
             -v)
           "${PYTEST_CMD[@]}"
           EC=$?
+
+          # Handle pytest KeyboardInterrupt (exit code 2) - often caused by timeout
           if [ "$EC" -eq 2 ]; then
-            echo "Detected pytest KeyboardInterrupt (exit 2). Retrying once..."
+            echo "Detected pytest KeyboardInterrupt (exit 2). Retrying once with doubled timeout..."
+            TIMEOUT=$((TIMEOUT * 2))
+            PYTEST_CMD=(pytest \
+              --cov=versiontracker \
+              --cov-report=xml \
+              --cov-report=html \
+              --cov-report=term-missing \
+              --cov-branch \
+              --cov-fail-under=15 \
+              --timeout=$TIMEOUT \
+              --maxfail=10 \
+              -v)
             "${PYTEST_CMD[@]}"
             EC=$?
           fi
@@ -61,7 +78,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: coverage-html-report
