@@ -16,6 +16,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Nothing yet
 
+## [0.8.1] - 2025-10-29
+
+### Fixed
+- **Critical Test Failures**: Fixed 4 failing integration tests in end-to-end test suite
+  - Corrected function references (`find_applications` → `get_applications`)
+  - Fixed module import paths for `get_homebrew_casks`
+  - Resolved RecursionError in signal handling mock
+  - All 1,136 tests now passing successfully
+
+- **CI/CD Pipeline Stability**: Resolved pytest-timeout cleanup hang issue
+  - Switched from signal-based to thread-based timeout method
+  - Prevents KeyboardInterrupt during test cleanup phase
+  - Added `pytest.ini` with thread-based timeout configuration
+  - Improved Ubuntu CI timeout handling (300s → 600s with retry logic)
+
+- **Security Analysis Workflow**: Fixed workflow to run on all pull requests
+  - Removed path filters that prevented required status checks
+
+### Changed
+- **Dependency Updates**: Merged 7 Dependabot security updates
+  - pytest-cov updated from <7.0.0 to <8.0.0
+  - actions/setup-python updated from v5 to v6
+  - actions/github-script updated from v7 to v8
+  - actions/download-artifact updated from v4 to v5
+  - github/codeql-action updated from v3 to v4
+
+- **Documentation**: Cleaned up README badge presentation
+  - Removed Package & Distribution section
+  - Updated test count badge: 962 → 1,136 passing tests
+
+### CI/CD Improvements
+- Enhanced timeout handling with intelligent retry logic
+- Disabled conflicting branch-protection workflow (using repository rules instead)
+- All 11 CI/CD workflows now passing consistently
+- Fixed Security Analysis workflow to run on all PRs
+
 ## [0.8.0] - 2025-01-27
 
 ### Added - Major AI/ML Transformation
