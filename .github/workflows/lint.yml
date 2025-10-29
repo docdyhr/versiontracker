@@ -45,7 +45,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Upload lint reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: lint-reports
