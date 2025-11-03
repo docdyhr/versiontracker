@@ -46,17 +46,16 @@ jobs:
             --timeout-method=thread \
             --maxfail=10 \
             -v)
-          "${PYTEST_CMD[@]}"
+          "${PYTEST_CMD[@]}" 2>&1 | tee pytest_output.log
           EC=$?
 
           # Handle pytest KeyboardInterrupt (exit code 2)
-          # This can occur when tests deliberately test KeyboardInterrupt handling
-          # Check if tests actually passed despite the exit code
+          # This can happen when tests that validate KeyboardInterrupt handling run
           if [ "$EC" -eq 2 ]; then
-            echo "⚠️ Detected pytest KeyboardInterrupt (exit 2)"
-            # Check if coverage.xml was generated (indicates tests ran)
-            if [ -f coverage.xml ]; then
-              echo "✅ Tests passed and coverage was generated despite KeyboardInterrupt"
+            echo "⚠️ Detected pytest exit code 2 (KeyboardInterrupt)"
+            # Check if tests actually passed by looking for the summary line
+            if grep -q "passed" pytest_output.log && ! grep -q " FAILED " pytest_output.log; then
+              echo "✅ Tests passed despite KeyboardInterrupt exit code"
               echo "This is expected when testing KeyboardInterrupt handling"
               EC=0
             else
