@@ -757,13 +757,23 @@ class TestHandleOutdatedCheck:
         mock_progress,
         mock_update_config,
     ):
-        """Test handling keyboard interrupt."""
+        """Test handling keyboard interrupt.
+
+        Note: This test validates KeyboardInterrupt handling but must be careful
+        not to propagate the interrupt to the test runner itself.
+        """
         mock_progress.return_value.color.return_value = lambda x: x
         mock_update_config.side_effect = KeyboardInterrupt()
 
         options = Mock()
 
-        result = handle_outdated_check(options)
+        # Catch the KeyboardInterrupt to prevent it from affecting pytest
+        try:
+            result = handle_outdated_check(options)
+        except KeyboardInterrupt:
+            # The function should handle this internally and return 130
+            # If we reach here, the test should fail
+            pytest.fail("KeyboardInterrupt was not handled by handle_outdated_check")
 
         assert result == 130
 
