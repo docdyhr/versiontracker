@@ -21,7 +21,7 @@
 [![CodeQL](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/codeql-analysis.yml?branch=master&label=CodeQL&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/codeql-analysis.yml)
 [![Coverage](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/coverage.yml?branch=master&label=Coverage&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/coverage.yml)
 [![Performance](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/performance.yml?branch=master&label=Performance&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/performance.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=Release&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/docdyhr/versiontracker?logo=github&logoColor=white&label=Release)](https://github.com/docdyhr/versiontracker/releases/latest)
 
 ### 🔒 Security & Quality
 
