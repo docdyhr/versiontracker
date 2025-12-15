@@ -118,7 +118,7 @@ jobs:
 
     steps:
       - name: Download performance results
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: performance-results-*
           merge-multiple: true
