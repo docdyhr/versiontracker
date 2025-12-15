@@ -80,7 +80,7 @@ jobs:
           python scripts/performance_test.py
 
       - name: Upload performance results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: performance-results-${{ matrix.os }}
           path: performance_results.json
