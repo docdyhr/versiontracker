@@ -88,7 +88,7 @@ jobs:
           python-version: ${{ needs.setup.outputs.python-version }}
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ needs.setup.outputs.cache-key }}
@@ -131,7 +131,7 @@ jobs:
           python-version: ${{ needs.setup.outputs.python-version }}
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ needs.setup.outputs.cache-key }}
@@ -192,7 +192,7 @@ jobs:
           brew --version
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
