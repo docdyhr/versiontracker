@@ -1,4 +1,15 @@
-"""Version comparison and checking functionality for VersionTracker."""
+"""Version comparison and checking functionality for VersionTracker.
+
+.. deprecated::
+    This module is scheduled for refactoring. The functionality is being
+    migrated to the versiontracker.version package (parser.py, comparator.py,
+    models.py). New code should import from versiontracker.version instead.
+
+    Current status:
+    - Test coverage: ~11% (needs improvement before migration)
+    - Lines of code: ~1950 (large module, needs decomposition)
+    - Target: Break into smaller, focused modules with proper test coverage
+"""
 
 # Standard library imports
 import concurrent.futures

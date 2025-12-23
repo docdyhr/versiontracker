@@ -6,6 +6,7 @@ matching algorithms, and export formats.
 """
 
 import importlib
+import importlib.util
 import inspect
 import logging
 from abc import ABC, abstractmethod
