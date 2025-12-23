@@ -2,11 +2,11 @@
 
 import re
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 
 import pytest
-import toml
 import yaml
 
 
@@ -19,8 +19,8 @@ def load_pyproject_toml() -> dict[str, Any]:
     """Load pyproject.toml configuration."""
     project_root = get_project_root()
     pyproject_path = project_root / "pyproject.toml"
-    with open(pyproject_path, encoding="utf-8") as f:
-        return toml.load(f)
+    with open(pyproject_path, "rb") as f:
+        return tomllib.load(f)
 
 
 def extract_min_python_version() -> str:
