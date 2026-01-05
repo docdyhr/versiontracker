@@ -1,6 +1,6 @@
 # VersionTracker TODO
 
-## Current Status (December 2025)
+## Current Status (January 2026)
 
 ### Project Health
 
@@ -10,13 +10,16 @@
 - **Python Support**: 3.12+ (with 3.13 compatibility)
 - **Security**: No known vulnerabilities
 
-### Recent Completions (v0.8.1)
+### Recent Completions (v0.8.2-dev)
 
+- Consolidated CLI to argparse only (removed unused Click dependency)
+- Added ML optional dependencies (`pip install homebrew-versiontracker[ml]`)
+- Added deprecation warnings to `version_legacy.py` module
+- Improved CLI help output with grouped options and examples
 - Fixed 4 failing integration tests
 - Resolved CI/CD pipeline stability issues (pytest-timeout)
 - Updated vulnerable dependencies
 - Repository cleanup and organization
-- Added deprecation notice to `version_legacy.py`
 
 ## Active Development
 
@@ -26,12 +29,23 @@
   - Break into smaller, focused modules
   - Increase test coverage before migration
   - Migrate functionality to `versiontracker.version` package
+  - Target completion: v1.0.0
 
 ### Performance Optimization
 
 - [ ] Complete async migration for Homebrew API calls
+  - **Status**: `async_homebrew.py` module implemented (401 lines)
+  - **Status**: `async_network.py` utilities ready (346 lines)
+  - **Integration needed**: Update `brew_handlers.py` to use async functions
   - Current: 893ms single cask, 2.7s batch
   - Target: Parallel batch processing for 5x+ speedup
+
+### Handler Simplification
+
+- [ ] Consider breaking up large handler files:
+  - `enhanced_auto_update_handlers.py` (619 lines)
+  - `outdated_handlers.py` (525 lines)
+  - `brew_handlers.py` (465 lines)
 
 ## Homebrew Release Preparation
 
@@ -90,10 +104,10 @@
 ### Advanced Contributions
 
 - MacPorts integration
-- Performance optimization
+- Async Homebrew integration
 - Web interface development
 
 ---
 
-**Last Updated**: December 2025
+**Last Updated**: January 2026
 **Maintainer**: @docdyhr

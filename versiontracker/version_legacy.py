@@ -1,14 +1,25 @@
 """Version comparison and checking functionality for VersionTracker.
 
-.. deprecated::
-    This module is scheduled for refactoring. The functionality is being
-    migrated to the versiontracker.version package (parser.py, comparator.py,
-    models.py). New code should import from versiontracker.version instead.
+.. deprecated:: 0.8.1
+    This module is deprecated and will be removed in a future version.
+    The functionality is being migrated to the versiontracker.version package:
 
-    Current status:
-    - Test coverage: ~11% (needs improvement before migration)
-    - Lines of code: ~1950 (large module, needs decomposition)
-    - Target: Break into smaller, focused modules with proper test coverage
+    - versiontracker.version.parser - Version string parsing
+    - versiontracker.version.comparator - Version comparison functions
+    - versiontracker.version.models - Data models (VersionStatus, ApplicationInfo)
+
+    New code should import from versiontracker.version instead:
+
+        # Old (deprecated):
+        from versiontracker.version_legacy import parse_version, compare_versions
+
+        # New (recommended):
+        from versiontracker.version import parse_version, compare_versions
+
+    Migration status:
+    - Test coverage: ~11% (needs improvement before full migration)
+    - Lines of code: ~1950 (large module being decomposed)
+    - Target: Complete migration by v1.0.0
 """
 
 # Standard library imports
@@ -17,6 +28,7 @@ import logging
 import multiprocessing
 import re
 import subprocess
+import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -110,6 +122,13 @@ from versiontracker.utils import normalise_name  # noqa: E402
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Emit deprecation warning when module is imported directly
+warnings.warn(
+    "versiontracker.version_legacy is deprecated and will be removed in v1.0.0. Use versiontracker.version instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class VersionStatus(Enum):
