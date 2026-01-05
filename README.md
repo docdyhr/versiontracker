@@ -62,14 +62,33 @@
 ---
 
 * Name: Versiontracker
-* Version: 0.8.0
-* Programming language: Python 3
+* Version: 0.8.1
+* Programming language: Python 3.12+
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
-* Release date: 21. Feb 2022 (Updated: January 2025)
-* Code Quality: **70.88% test coverage with 1,136 passing tests**,
+* Release date: 21. Feb 2022 (Updated: January 2026)
+* Code Quality: **70%+ test coverage with 1,230+ passing tests**,
   **all previously identified high & medium complexity issues resolved**,
   **AI/ML capabilities and advanced analytics platform**
+
+## Quick Start
+
+```bash
+# Install from PyPI
+pip install homebrew-versiontracker
+
+# List applications not from the App Store
+versiontracker --apps
+
+# Get Homebrew recommendations for your apps
+versiontracker --recommend
+
+# Check for outdated applications
+versiontracker --check-outdated
+
+# Show help
+versiontracker --help
+```
 
 ## Overview
 
@@ -106,9 +125,9 @@ using Homebrew casks, making it easier to keep your applications up to date.
 
 ## Requirements
 
-* macOS (tested on 10.15 Catalina and later)
-* Python 3.12 or later
-* Homebrew package manager (optional)
+* **macOS**: 10.15 Catalina or later (tested through macOS Sequoia)
+* **Python**: 3.12 or later (3.13 compatible)
+* **Homebrew**: Optional, but required for cask recommendations and update checks
 
 ## Installation
 

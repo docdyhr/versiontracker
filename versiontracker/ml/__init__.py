@@ -2,6 +2,13 @@
 
 This module provides ML-powered features including intelligent app-to-cask matching,
 personalized recommendations, and usage pattern analysis to improve the user experience.
+
+Note:
+    This module requires optional ML dependencies. Install them with:
+        pip install homebrew-versiontracker[ml]
+
+    Or install manually:
+        pip install numpy scikit-learn
 """
 
 import json
@@ -11,18 +18,32 @@ import time
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-
-# from versiontracker.config import get_config
 from versiontracker.exceptions import VersionTrackerError
 
 logger = logging.getLogger(__name__)
+
+# Check for optional ML dependencies
+_HAS_ML_DEPS = False
+_ML_IMPORT_ERROR: str | None = None
+
+try:
+    import numpy as np
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score
+    from sklearn.metrics.pairwise import cosine_similarity
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
+
+    _HAS_ML_DEPS = True
+except ImportError as e:
+    _ML_IMPORT_ERROR = str(e)
+    # Create placeholder types for when sklearn is not available
+    np = None  # type: ignore[assignment]
+    TfidfVectorizer = None  # type: ignore[assignment, misc]
+    LogisticRegression = None  # type: ignore[assignment, misc]
+    StandardScaler = None  # type: ignore[assignment, misc]
+
 
 __all__ = [
     "MLRecommendationEngine",
@@ -31,7 +52,27 @@ __all__ = [
     "FeatureExtractor",
     "ModelTrainer",
     "MLError",
+    "is_ml_available",
 ]
+
+
+def is_ml_available() -> bool:
+    """Check if ML dependencies are available.
+
+    Returns:
+        True if numpy and scikit-learn are installed, False otherwise.
+    """
+    return _HAS_ML_DEPS
+
+
+def _require_ml_deps() -> None:
+    """Raise an error if ML dependencies are not available."""
+    if not _HAS_ML_DEPS:
+        raise MLError(
+            f"ML features require additional dependencies. "
+            f"Install with: pip install homebrew-versiontracker[ml]\n"
+            f"Import error: {_ML_IMPORT_ERROR}"
+        )
 
 
 class MLError(VersionTrackerError):
@@ -43,31 +84,39 @@ class MLError(VersionTrackerError):
 class FeatureExtractor:
     """Extract features from application and cask data for ML models."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize feature extractor."""
+        _require_ml_deps()
         self.vectorizer = TfidfVectorizer(
-            ngram_range=(1, 3), max_features=10000, stop_words="english", lowercase=True, analyzer="char_wb"
+            ngram_range=(1, 3),
+            max_features=10000,
+            stop_words="english",
+            lowercase=True,
+            analyzer="char_wb",
         )
         self.fitted = False
 
     def extract_text_features(self, app_name: str, cask_name: str) -> dict[str, Any]:
         """Extract text-based features for matching."""
-        features = {}
+        features: dict[str, Any] = {}
 
         # Basic string metrics
         features["name_length_diff"] = abs(len(app_name) - len(cask_name))
-        features["name_length_ratio"] = min(len(app_name), len(cask_name)) / max(len(app_name), len(cask_name))
+        max_len = max(len(app_name), len(cask_name))
+        features["name_length_ratio"] = min(len(app_name), len(cask_name)) / max_len if max_len > 0 else 0
 
         # Character overlap
         app_chars = set(app_name.lower())
         cask_chars = set(cask_name.lower())
-        features["char_overlap"] = len(app_chars.intersection(cask_chars)) / len(app_chars.union(cask_chars))
+        union_chars = app_chars.union(cask_chars)
+        features["char_overlap"] = len(app_chars.intersection(cask_chars)) / len(union_chars) if union_chars else 0
 
         # Word overlap
         app_words = set(app_name.lower().split())
         cask_words = set(cask_name.lower().replace("-", " ").split())
         if app_words and cask_words:
-            features["word_overlap"] = len(app_words.intersection(cask_words)) / len(app_words.union(cask_words))
+            union_words = app_words.union(cask_words)
+            features["word_overlap"] = len(app_words.intersection(cask_words)) / len(union_words)
         else:
             features["word_overlap"] = 0.0
 
@@ -85,43 +134,33 @@ class FeatureExtractor:
 
     def extract_metadata_features(self, app_data: dict[str, Any], cask_data: dict[str, Any]) -> dict[str, Any]:
         """Extract metadata-based features."""
-        features = {}
+        features: dict[str, Any] = {}
 
         # Developer/publisher matching
         app_developer = app_data.get("developer", "").lower()
         cask_homepage = cask_data.get("homepage", "").lower()
-
-        if app_developer and cask_homepage:
-            features["developer_in_homepage"] = int(app_developer in cask_homepage)
-        else:
-            features["developer_in_homepage"] = 0
+        features["developer_in_homepage"] = (
+            int(app_developer in cask_homepage) if app_developer and cask_homepage else 0
+        )
 
         # Category matching
         app_category = app_data.get("category", "").lower()
         cask_desc = cask_data.get("desc", "").lower()
-
-        if app_category and cask_desc:
-            features["category_in_desc"] = int(app_category in cask_desc)
-        else:
-            features["category_in_desc"] = 0
+        features["category_in_desc"] = int(app_category in cask_desc) if app_category and cask_desc else 0
 
         # Version similarity
         app_version = app_data.get("version", "")
         cask_version = cask_data.get("version", "")
-
-        if app_version and cask_version:
-            features["version_similarity"] = self._version_similarity(app_version, cask_version)
-        else:
-            features["version_similarity"] = 0.0
+        features["version_similarity"] = (
+            self._version_similarity(app_version, cask_version) if app_version and cask_version else 0.0
+        )
 
         # Bundle ID matching
         app_bundle_id = app_data.get("bundle_id", "").lower()
         cask_artifacts = str(cask_data.get("artifacts", "")).lower()
-
-        if app_bundle_id and cask_artifacts:
-            features["bundle_id_in_artifacts"] = int(app_bundle_id in cask_artifacts)
-        else:
-            features["bundle_id_in_artifacts"] = 0
+        features["bundle_id_in_artifacts"] = (
+            int(app_bundle_id in cask_artifacts) if app_bundle_id and cask_artifacts else 0
+        )
 
         return features
 
@@ -130,7 +169,6 @@ class FeatureExtractor:
         if not s1 or not s2:
             return 1.0
 
-        # Simple Levenshtein distance implementation
         m, n = len(s1), len(s2)
         dp = [[0] * (n + 1) for _ in range(m + 1)]
 
@@ -151,18 +189,15 @@ class FeatureExtractor:
     def _version_similarity(self, v1: str, v2: str) -> float:
         """Calculate version similarity score."""
         try:
-            # Extract numeric parts
             v1_parts = [int(x) for x in v1.split(".") if x.isdigit()]
             v2_parts = [int(x) for x in v2.split(".") if x.isdigit()]
 
             if not v1_parts or not v2_parts:
                 return 0.0
 
-            # Compare major versions
             if v1_parts[0] == v2_parts[0]:
                 return 1.0
             else:
-                # Penalize major version differences
                 return 1.0 / (1.0 + abs(v1_parts[0] - v2_parts[0]))
 
         except (ValueError, IndexError):
@@ -172,8 +207,9 @@ class FeatureExtractor:
 class MatchingConfidenceModel:
     """ML model to predict confidence scores for app-cask matches."""
 
-    def __init__(self, model_path: Path | None = None):
+    def __init__(self, model_path: Path | None = None) -> None:
         """Initialize the confidence model."""
+        _require_ml_deps()
         self.model = LogisticRegression(random_state=42)
         self.scaler = StandardScaler()
         self.feature_extractor = FeatureExtractor()
@@ -188,27 +224,21 @@ class MatchingConfidenceModel:
 
         logger.info(f"Training confidence model with {len(training_data)} examples")
 
-        # Extract features and labels
         X, y = self._prepare_training_data(training_data)
 
         if len(X) == 0:
             raise MLError("No valid training examples found")
 
-        # Split data
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
-        # Scale features
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
 
-        # Train model
         self.model.fit(X_train_scaled, y_train)
 
-        # Evaluate
         y_pred = self.model.predict(X_test_scaled)
         accuracy = accuracy_score(y_test, y_pred)
 
-        # Save model
         self._save_model()
         self.trained = True
 
@@ -226,19 +256,15 @@ class MatchingConfidenceModel:
         if not self.trained:
             self._load_model()
 
-        # Extract features
         features = self._extract_match_features(app_data, cask_data)
         X = np.array([list(features.values())])
 
-        # Scale features
         X_scaled = self.scaler.transform(X)
-
-        # Predict probability of positive match
         confidence = self.model.predict_proba(X_scaled)[0][1]
 
         return float(confidence)
 
-    def _prepare_training_data(self, training_data: list[dict[str, Any]]) -> tuple[np.ndarray, np.ndarray]:
+    def _prepare_training_data(self, training_data: list[dict[str, Any]]) -> tuple[Any, Any]:
         """Prepare training data for model."""
         features_list = []
         labels = []
@@ -247,7 +273,7 @@ class MatchingConfidenceModel:
             try:
                 app_data = example["app"]
                 cask_data = example["cask"]
-                label = example["match"]  # 1 for positive match, 0 for negative
+                label = example["match"]
 
                 features = self._extract_match_features(app_data, cask_data)
                 features_list.append(list(features.values()))
@@ -264,13 +290,12 @@ class MatchingConfidenceModel:
         app_name = app_data.get("name", "")
         cask_name = cask_data.get("name", "")
 
-        # Combine text and metadata features
         text_features = self.feature_extractor.extract_text_features(app_name, cask_name)
         metadata_features = self.feature_extractor.extract_metadata_features(app_data, cask_data)
 
         return {**text_features, **metadata_features}
 
-    def _save_model(self):
+    def _save_model(self) -> None:
         """Save trained model and scaler."""
         model_file = self.model_path / "confidence_model.pkl"
         scaler_file = self.model_path / "scaler.pkl"
@@ -283,7 +308,7 @@ class MatchingConfidenceModel:
 
         logger.info(f"Model saved to {model_file}")
 
-    def _load_model(self):
+    def _load_model(self) -> None:
         """Load trained model and scaler."""
         model_file = self.model_path / "confidence_model.pkl"
         scaler_file = self.model_path / "scaler.pkl"
@@ -307,14 +332,17 @@ class MatchingConfidenceModel:
 
 
 class UsageAnalyzer:
-    """Analyze user behavior and preferences for personalized recommendations."""
+    """Analyze user behavior and preferences for personalized recommendations.
 
-    def __init__(self, data_path: Path | None = None):
+    This class does not require ML dependencies and works standalone.
+    """
+
+    def __init__(self, data_path: Path | None = None) -> None:
         """Initialize usage analyzer."""
         self.data_path = data_path or Path.home() / ".config" / "versiontracker" / "usage_data.json"
         self.usage_data = self._load_usage_data()
 
-    def record_match_feedback(self, app_name: str, cask_name: str, accepted: bool, confidence: float):
+    def record_match_feedback(self, app_name: str, cask_name: str, accepted: bool, confidence: float) -> None:
         """Record user feedback on match recommendations."""
         timestamp = time.time()
 
@@ -334,13 +362,13 @@ class UsageAnalyzer:
 
         logger.info(f"Recorded feedback: {app_name} -> {cask_name} ({'accepted' if accepted else 'rejected'})")
 
-    def record_app_usage(self, app_name: str, action: str, metadata: dict[str, Any] | None = None):
+    def record_app_usage(self, app_name: str, action: str, metadata: dict[str, Any] | None = None) -> None:
         """Record application usage patterns."""
         timestamp = time.time()
 
         usage_entry = {
             "app_name": app_name,
-            "action": action,  # "launched", "updated", "installed", "removed"
+            "action": action,
             "timestamp": timestamp,
             "metadata": metadata or {},
         }
@@ -353,36 +381,28 @@ class UsageAnalyzer:
 
     def get_user_preferences(self) -> dict[str, Any]:
         """Analyze usage data to determine user preferences."""
-        preferences = {
+        return {
             "preferred_categories": self._get_preferred_categories(),
             "update_frequency": self._analyze_update_frequency(),
             "acceptance_threshold": self._calculate_acceptance_threshold(),
             "developer_preferences": self._get_developer_preferences(),
         }
 
-        return preferences
-
     def get_personalized_threshold(self, app_name: str) -> float:
         """Get personalized confidence threshold for recommendations."""
         base_threshold = 0.7
-
-        # Analyze historical feedback for similar apps
         feedback_history = self.usage_data.get("match_feedback", [])
 
         if not feedback_history:
             return base_threshold
 
-        # Calculate acceptance rate for this user
         total_feedback = len(feedback_history)
         accepted_feedback = sum(1 for f in feedback_history if f["accepted"])
         acceptance_rate = accepted_feedback / total_feedback if total_feedback > 0 else 0.5
 
-        # Adjust threshold based on user's acceptance pattern
         if acceptance_rate > 0.8:
-            # User accepts most recommendations - lower threshold
             return max(0.5, base_threshold - 0.2)
         elif acceptance_rate < 0.3:
-            # User is selective - higher threshold
             return min(0.9, base_threshold + 0.2)
         else:
             return base_threshold
@@ -390,7 +410,7 @@ class UsageAnalyzer:
     def _get_preferred_categories(self) -> list[str]:
         """Identify user's preferred application categories."""
         app_usage = self.usage_data.get("app_usage", [])
-        category_counts = {}
+        category_counts: dict[str, int] = {}
 
         for usage in app_usage:
             metadata = usage.get("metadata", {})
@@ -398,8 +418,7 @@ class UsageAnalyzer:
             if category:
                 category_counts[category] = category_counts.get(category, 0) + 1
 
-        # Return top 5 categories
-        return sorted(category_counts.keys(), key=category_counts.get, reverse=True)[:5]
+        return sorted(category_counts.keys(), key=lambda x: category_counts[x], reverse=True)[:5]
 
     def _analyze_update_frequency(self) -> str:
         """Analyze how frequently user updates applications."""
@@ -409,13 +428,8 @@ class UsageAnalyzer:
         if len(update_actions) < 2:
             return "unknown"
 
-        # Calculate average time between updates
-        update_times = [u["timestamp"] for u in update_actions]
-        update_times.sort()
-
-        intervals = []
-        for i in range(1, len(update_times)):
-            intervals.append(update_times[i] - update_times[i - 1])
+        update_times = sorted([u["timestamp"] for u in update_actions])
+        intervals = [update_times[i] - update_times[i - 1] for i in range(1, len(update_times))]
 
         avg_interval = sum(intervals) / len(intervals)
         days = avg_interval / (24 * 3600)
@@ -442,7 +456,6 @@ class UsageAnalyzer:
         if not rejected_confidences:
             return 0.3
 
-        # Find the confidence level that best separates accepted from rejected
         min_accepted = min(accepted_confidences)
         max_rejected = max(rejected_confidences)
 
@@ -451,7 +464,7 @@ class UsageAnalyzer:
     def _get_developer_preferences(self) -> list[str]:
         """Identify preferred developers based on app usage."""
         app_usage = self.usage_data.get("app_usage", [])
-        developer_counts = {}
+        developer_counts: dict[str, int] = {}
 
         for usage in app_usage:
             metadata = usage.get("metadata", {})
@@ -459,8 +472,7 @@ class UsageAnalyzer:
             if developer:
                 developer_counts[developer] = developer_counts.get(developer, 0) + 1
 
-        # Return top 10 developers
-        return sorted(developer_counts.keys(), key=developer_counts.get, reverse=True)[:10]
+        return sorted(developer_counts.keys(), key=lambda x: developer_counts[x], reverse=True)[:10]
 
     def _load_usage_data(self) -> dict[str, Any]:
         """Load usage data from file."""
@@ -474,7 +486,7 @@ class UsageAnalyzer:
             logger.warning(f"Failed to load usage data: {e}")
             return {}
 
-    def _save_usage_data(self):
+    def _save_usage_data(self) -> None:
         """Save usage data to file."""
         try:
             self.data_path.parent.mkdir(parents=True, exist_ok=True)
@@ -487,28 +499,31 @@ class UsageAnalyzer:
 class MLRecommendationEngine:
     """Main ML-powered recommendation engine."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ML recommendation engine."""
+        _require_ml_deps()
         self.confidence_model = MatchingConfidenceModel()
         self.usage_analyzer = UsageAnalyzer()
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=5000, stop_words="english", lowercase=True)
-        self.app_embeddings = None
-        self.cask_embeddings = None
+        self.vectorizer = TfidfVectorizer(
+            ngram_range=(1, 2),
+            max_features=5000,
+            stop_words="english",
+            lowercase=True,
+        )
+        self.app_embeddings: Any = None
+        self.cask_embeddings: Any = None
         self.fitted = False
 
-    def initialize(self, apps: list[dict[str, Any]], casks: list[dict[str, Any]]):
+    def initialize(self, apps: list[dict[str, Any]], casks: list[dict[str, Any]]) -> None:
         """Initialize the engine with application and cask data."""
         logger.info(f"Initializing ML engine with {len(apps)} apps and {len(casks)} casks")
 
-        # Prepare text data for vectorization
         app_texts = [self._prepare_app_text(app) for app in apps]
         cask_texts = [self._prepare_cask_text(cask) for cask in casks]
 
-        # Fit vectorizer on combined corpus
         all_texts = app_texts + cask_texts
         self.vectorizer.fit(all_texts)
 
-        # Generate embeddings
         self.app_embeddings = self.vectorizer.transform(app_texts)
         self.cask_embeddings = self.vectorizer.transform(cask_texts)
 
@@ -516,7 +531,10 @@ class MLRecommendationEngine:
         logger.info("ML engine initialization complete")
 
     def get_recommendations(
-        self, apps: list[dict[str, Any]], casks: list[dict[str, Any]], threshold: float | None = None
+        self,
+        apps: list[dict[str, Any]],
+        casks: list[dict[str, Any]],
+        threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         """Get ML-powered recommendations for apps."""
         if not self.fitted:
@@ -527,35 +545,29 @@ class MLRecommendationEngine:
         for i, app in enumerate(apps):
             app_name = app.get("name", "")
 
-            # Get personalized threshold if not provided
             if threshold is None:
                 personal_threshold = self.usage_analyzer.get_personalized_threshold(app_name)
             else:
                 personal_threshold = threshold
 
-            # Calculate similarities using TF-IDF vectors
             app_vector = self.app_embeddings[i : i + 1]
             similarities = cosine_similarity(app_vector, self.cask_embeddings).flatten()
 
-            # Get top candidates based on similarity
             top_indices = np.argsort(similarities)[::-1][:10]
 
             for cask_idx in top_indices:
                 cask = casks[cask_idx]
                 similarity = similarities[cask_idx]
 
-                # Skip low similarity matches
                 if similarity < 0.1:
                     continue
 
-                # Get ML confidence score
                 try:
                     confidence = self.confidence_model.predict_confidence(app, cask)
                 except Exception as e:
                     logger.warning(f"Failed to get ML confidence: {e}")
-                    confidence = similarity  # Fallback to similarity
+                    confidence = similarity
 
-                # Combine similarity and ML confidence
                 combined_score = (similarity * 0.4) + (confidence * 0.6)
 
                 if combined_score >= personal_threshold:
@@ -570,17 +582,16 @@ class MLRecommendationEngine:
                     }
                     recommendations.append(recommendation)
 
-        # Sort by combined score
         recommendations.sort(key=lambda x: x["combined_score"], reverse=True)
 
         logger.info(f"Generated {len(recommendations)} ML-powered recommendations")
         return recommendations
 
-    def record_feedback(self, app_name: str, cask_name: str, accepted: bool, confidence: float):
+    def record_feedback(self, app_name: str, cask_name: str, accepted: bool, confidence: float) -> None:
         """Record user feedback for continuous learning."""
         self.usage_analyzer.record_match_feedback(app_name, cask_name, accepted, confidence)
 
-    def retrain_model(self):
+    def retrain_model(self) -> None:
         """Retrain the confidence model with new feedback data."""
         feedback_data = self.usage_analyzer.usage_data.get("match_feedback", [])
 
@@ -588,31 +599,20 @@ class MLRecommendationEngine:
             logger.info("Insufficient feedback data for retraining")
             return
 
-        # Convert feedback to training format
-        for _feedback in feedback_data:
-            # This would need actual app and cask data
-            # For now, we'll skip retraining until we have proper data structure
-            pass
-
         logger.info("Model retraining feature pending full implementation")
 
     def _prepare_app_text(self, app: dict[str, Any]) -> str:
         """Prepare application text for vectorization."""
         parts = []
-
-        if app.get("name"):
-            parts.append(app["name"])
-        if app.get("developer"):
-            parts.append(app["developer"])
-        if app.get("category"):
-            parts.append(app["category"])
-        if app.get("description"):
-            parts.append(app["description"])
-
+        for key in ("name", "developer", "category", "description"):
+            if app.get(key):
+                parts.append(app[key])
         return " ".join(parts)
 
     def _prepare_cask_text(self, cask: dict[str, Any]) -> str:
         """Prepare cask text for vectorization."""
+        import re
+
         parts = []
 
         if cask.get("name"):
@@ -620,9 +620,6 @@ class MLRecommendationEngine:
         if cask.get("desc"):
             parts.append(cask["desc"])
         if cask.get("homepage"):
-            # Extract domain name from URL
-            import re
-
             domain_match = re.search(r"https?://(?:www\.)?([^/]+)", cask["homepage"])
             if domain_match:
                 parts.append(domain_match.group(1))
@@ -633,22 +630,23 @@ class MLRecommendationEngine:
 class ModelTrainer:
     """Utility class for training ML models with labeled data."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize model trainer."""
+        _require_ml_deps()
         self.confidence_model = MatchingConfidenceModel()
 
     def generate_synthetic_training_data(
-        self, apps: list[dict[str, Any]], casks: list[dict[str, Any]]
+        self,
+        apps: list[dict[str, Any]],
+        casks: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         """Generate synthetic training data for bootstrapping."""
         training_data = []
 
-        # Generate positive examples (known good matches)
         positive_pairs = self._generate_positive_pairs(apps, casks)
         for app, cask in positive_pairs:
             training_data.append({"app": app, "cask": cask, "match": 1})
 
-        # Generate negative examples
         negative_pairs = self._generate_negative_pairs(apps, casks, len(positive_pairs))
         for app, cask in negative_pairs:
             training_data.append({"app": app, "cask": cask, "match": 0})
@@ -657,7 +655,9 @@ class ModelTrainer:
         return training_data
 
     def _generate_positive_pairs(
-        self, apps: list[dict[str, Any]], casks: list[dict[str, Any]]
+        self,
+        apps: list[dict[str, Any]],
+        casks: list[dict[str, Any]],
     ) -> list[tuple[dict[str, Any], dict[str, Any]]]:
         """Generate positive training pairs based on name similarity."""
         pairs = []
@@ -668,15 +668,17 @@ class ModelTrainer:
             for cask in casks:
                 cask_name = cask.get("name", "").lower().replace("-", " ")
 
-                # Simple heuristics for positive matches
                 if app_name in cask_name or cask_name in app_name or self._fuzzy_match(app_name, cask_name) > 0.8:
                     pairs.append((app, cask))
-                    break  # One match per app
+                    break
 
-        return pairs[:50]  # Limit to avoid overfitting
+        return pairs[:50]
 
     def _generate_negative_pairs(
-        self, apps: list[dict[str, Any]], casks: list[dict[str, Any]], count: int
+        self,
+        apps: list[dict[str, Any]],
+        casks: list[dict[str, Any]],
+        count: int,
     ) -> list[tuple[dict[str, Any], dict[str, Any]]]:
         """Generate negative training pairs."""
         import random
@@ -692,7 +694,6 @@ class ModelTrainer:
             app_name = app.get("name", "").lower()
             cask_name = cask.get("name", "").lower().replace("-", " ")
 
-            # Ensure it's actually a negative example
             if self._fuzzy_match(app_name, cask_name) < 0.3:
                 pairs.append((app, cask))
 
@@ -705,7 +706,6 @@ class ModelTrainer:
         if not s1 or not s2:
             return 0.0
 
-        # Simple token-based matching
         tokens1 = set(s1.split())
         tokens2 = set(s2.split())
 

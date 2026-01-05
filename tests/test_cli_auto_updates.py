@@ -205,7 +205,7 @@ class TestAutoUpdatesCLIHelp(unittest.TestCase):
             "--uninstall-auto-updates",
             "Exclude applications that have auto-updates",
             "Only show applications that have auto-updates",
-            "Add all applications with auto-updates to the",
+            "Add applications with auto-updates to the blocklist",
             "Uninstall all Homebrew casks that have auto-updates",
         ]
 
