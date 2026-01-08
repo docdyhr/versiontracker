@@ -187,7 +187,25 @@ VERSION_PATTERN_DICT = {
 
 
 def _clean_version_string(version_str: str) -> str:
-    """Clean version string by removing prefixes and app names."""
+    """Clean version string by removing prefixes and app names.
+
+    Note: This function does NOT strip whitespace. Whitespace normalization
+    happens in parse_version() via str.strip() before this function is called.
+
+    Args:
+        version_str: Version string potentially containing prefixes
+
+    Returns:
+        Version string with 'v', 'Version', and app name prefixes removed
+
+    Examples:
+        >>> _clean_version_string("v1.2.3")
+        "1.2.3"
+        >>> _clean_version_string("Version 1.2.3")
+        "1.2.3"
+        >>> _clean_version_string("Google Chrome 1.2.3")
+        "1.2.3"
+    """
     # Remove common prefixes like "v" or "Version "
     cleaned = re.sub(r"^[vV]ersion\s+", "", version_str)
     cleaned = re.sub(r"^[vV](?:er\.?\s*)?", "", cleaned)

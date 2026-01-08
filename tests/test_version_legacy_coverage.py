@@ -201,11 +201,10 @@ class TestMixedFormat:
 
     def test_is_mixed_format_true(self):
         """Test detection of mixed format versions."""
-        # Note: Mixed format requires specific patterns in the version string
-        # Test with actual mixed format that the function recognizes
+        # Mixed format detection looks for specific patterns
+        # The function returns False for standard multi-part versions
         result = _is_mixed_format("1.2.3.4.5", [1, 2, 3, 4, 5])
-        # Current implementation checks for specific patterns
-        assert isinstance(result, bool)
+        assert result is False  # Standard format, not mixed
 
     def test_is_mixed_format_false(self):
         """Test detection of standard format."""
@@ -365,9 +364,9 @@ class TestVersionComparisonEdgeCases:
     def test_compare_with_application_prefix(self):
         """Test comparison with application name prefix."""
         result = _handle_application_prefixes("MyApp 1.2.3", "MyApp 1.2.4")
-        # Function may return None if pattern not recognized
-        # Just test that it returns a valid result or None
-        assert result is None or isinstance(result, int)
+        # Function returns None for patterns it doesn't recognize
+        # MyApp prefix is not in the known list (Google Chrome, Firefox, Safari)
+        assert result is None
 
 
 class TestParseVersionEdgeCases:
