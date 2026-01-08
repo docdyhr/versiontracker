@@ -29,6 +29,15 @@ from versiontracker.profiling import (
 )
 from versiontracker.ui import QueryFilterManager, create_progress_bar
 
+# Check ML availability
+_ML_AVAILABLE = False
+try:
+    from versiontracker.ml import is_ml_available
+
+    _ML_AVAILABLE = is_ml_available()
+except ImportError:
+    pass
+
 # Import macOS handlers if available
 _MACOS_HANDLERS_AVAILABLE = False
 _MACOS_HANDLERS = {}
@@ -179,6 +188,10 @@ def versiontracker_main() -> int:
 
     # Set up logging
     handle_setup_logging(options)
+
+    # Check and inform about ML features if debug mode is enabled
+    if hasattr(options, "debug") and options.debug and not _ML_AVAILABLE:
+        print("Note: ML features are not available. Install with: pip install homebrew-versiontracker[ml]")
 
     # Initialize configuration
     handle_initialize_config(options)

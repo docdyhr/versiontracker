@@ -12,20 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ML optional dependencies group (`pip install homebrew-versiontracker[ml]`)
 - `is_ml_available()` function to check ML dependency status
 - Runtime deprecation warning when importing `version_legacy` module directly
+- ML availability check in CLI that informs users in debug mode when ML features are unavailable
+- Python 3.12+ requirement note in constraints.txt header
 
 ### Changed
+- **Development Status**: Updated from Alpha to Beta in pyproject.toml
 - Consolidated CLI to use argparse only (removed unused Click dependency)
 - Improved CLI help output with grouped options and usage examples
 - Clarified Python version requirement: 3.12+ (3.13 compatible)
 - Updated TODO.md with current development status and async integration notes
+- Consolidated future roadmap documentation with clear references in TODO.md
 - ML module now gracefully handles missing numpy/scikit-learn dependencies
 
 ### Removed
-- Click dependency (was unused, CLI uses argparse)
+- **Click dependency**: Completely removed from requirements.txt (was unused, CLI uses argparse)
 
 ### Developer Notes
 - Async Homebrew module (`async_homebrew.py`) is implemented and ready for integration
 - `version_legacy.py` migration to `versiontracker.version` package is in progress
+- Week 1 quick wins completed: Click removal, Beta status, ML availability UX, docs consolidation
 
 ## [0.8.1] - 2025-10-29
 

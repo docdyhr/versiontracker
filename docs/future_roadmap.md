@@ -1,5 +1,9 @@
 # VersionTracker Future Roadmap
 
+> **Note**: This document contains long-term aspirational planning and detailed technical designs.
+> For current development priorities and actionable tasks, see [TODO.md](../TODO.md).
+> Timelines in this document should be treated as flexible guidance rather than commitments.
+
 ## Long-term Strategic Vision (2024-2026)
 
 This document outlines the strategic roadmap for VersionTracker's evolution from a command-line tool to a comprehensive application management ecosystem for macOS.
