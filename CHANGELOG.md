@@ -30,7 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Developer Notes
 - Async Homebrew module (`async_homebrew.py`) is implemented and ready for integration
 - `version_legacy.py` migration to `versiontracker.version` package is in progress
-- Week 1 quick wins completed: Click removal, Beta status, ML availability UX, docs consolidation
+- **Week 1 completed**: Click removal, Beta status, ML availability UX, docs consolidation
+- **Week 2-3 progress**: version_legacy.py test coverage improved from 11% to 43.20% (4x increase)
+  - Added comprehensive test suite with 55 tests covering edge cases
+  - Tests cover: build metadata, prerelease handling, special formats, Unicode normalization
+  - Documented actual behavior vs expected behavior for future refactoring
 
 ## [0.8.1] - 2025-10-29
 
