@@ -426,11 +426,11 @@ def _handle_notification_if_requested(
         _send_notification_if_available(outdated_info, status_counts)
 
 
-def _handle_top_level_exceptions(e: Exception) -> int:
+def _handle_top_level_exceptions(e: BaseException) -> int:
     """Handle top-level exceptions with proper error reporting.
 
     Args:
-        e: Exception that occurred
+        e: Exception that occurred (Exception or KeyboardInterrupt)
 
     Returns:
         Exit code (1 for config error, 130 for keyboard interrupt, 1 for others)
@@ -521,5 +521,7 @@ def handle_outdated_check(options: Any) -> int:
         # Handle export and return its result
         return _handle_export_if_requested(outdated_info_typed, options)
 
+    except KeyboardInterrupt as e:
+        return _handle_top_level_exceptions(e)
     except Exception as e:
         return _handle_top_level_exceptions(e)
