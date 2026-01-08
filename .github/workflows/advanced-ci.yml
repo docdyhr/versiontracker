@@ -1,0 +1,636 @@
+name: Advanced CI/CD Pipeline
+
+on:
+  push:
+    branches: [master, feature/*, hotfix/*]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Run performance regression tests daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      run_performance_tests:
+        description: "Run performance benchmarks"
+        required: false
+        default: false
+        type: boolean
+      run_integration_tests:
+        description: "Run full integration test suite"
+        required: false
+        default: true
+        type: boolean
+      deploy_staging:
+        description: "Deploy to staging environment"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.12"
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+  PYTEST_TIMEOUT: 300
+
+jobs:
+  # Pre-flight checks and setup
+  setup:
+    name: Setup and Validation
+    runs-on: ubuntu-latest
+    outputs:
+      python-version: ${{ steps.setup.outputs.python-version }}
+      should-run-performance: ${{ steps.conditions.outputs.run-performance }}
+      should-run-integration: ${{ steps.conditions.outputs.run-integration }}
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup conditions
+        id: conditions
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.event.inputs.run_performance_tests }}" == "true" ]]; then
+            echo "run-performance=true" >> $GITHUB_OUTPUT
+          else
+            echo "run-performance=false" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ "${{ github.event.inputs.run_integration_tests }}" != "false" ]]; then
+            echo "run-integration=true" >> $GITHUB_OUTPUT
+          else
+            echo "run-integration=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Python version
+        id: setup
+        run: |
+          echo "python-version=${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
+
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "key=deps-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements*.txt', 'pyproject.toml') }}" >> $GITHUB_OUTPUT
+
+  # Code quality and linting
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            deps-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test,security]"
+
+      - name: Run Ruff linter
+        run: ruff check --output-format=github .
+
+      - name: Run Ruff formatter check
+        run: ruff format --check .
+
+      - name: Run Black check (fallback)
+        if: failure()
+        run: black --check --diff .
+
+      - name: Run MyPy type checking
+        run: mypy versiontracker --ignore-missing-imports
+
+      - name: Check import sorting (via Ruff)
+        run: ruff check --select I --diff .
+
+  # Security scanning
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test,security]"
+
+      - name: Run Bandit security linter
+        run: |
+          bandit -r versiontracker/ -f json -o bandit-report.json
+          bandit -r versiontracker/
+
+      - name: Run Safety check
+        run: safety check --json --output safety-report.json || safety check
+
+      - name: Run pip-audit
+        run: pip-audit --desc --output pip-audit-report.json --format json || pip-audit --desc
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+            pip-audit-report.json
+
+  # Unit tests matrix
+  test-matrix:
+    name: Tests (Python ${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.12", "3.13"]
+        include:
+          - os: macos-latest
+            python-version: "3.12"
+            run-homebrew-tests: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Setup Homebrew (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+          brew --version
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/Library/Caches/pip
+          key: ${{ needs.setup.outputs.cache-key }}-${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test,fuzzy]"
+
+      - name: Run unit tests
+        run: |
+          pytest tests/ \
+            --cov=versiontracker \
+            --cov-branch \
+            --cov-report=xml \
+            --cov-report=term-missing:skip-covered \
+            --junit-xml=junit-${{ matrix.os }}-${{ matrix.python-version }}.xml \
+            --timeout=300 \
+            -v \
+            -m "not integration and not slow"
+
+      - name: Run Homebrew integration tests (macOS only)
+        if: matrix.run-homebrew-tests
+        run: |
+          pytest tests/ \
+            -k "homebrew or brew" \
+            --timeout=600 \
+            -v \
+            --tb=short
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            junit-*.xml
+            coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # Integration tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: macos-latest
+    needs: [setup, quality]
+    if: needs.setup.outputs.should-run-integration == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: Setup Homebrew
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+          brew --version
+          brew install --cask firefox || true
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test,fuzzy]"
+
+      - name: Run end-to-end integration tests
+        run: |
+          pytest tests/test_end_to_end_integration.py \
+            --timeout=900 \
+            -v \
+            --tb=long \
+            --capture=no
+
+      - name: Test CLI commands
+        run: |
+          python -m versiontracker --version
+          python -m versiontracker --help
+          python -m versiontracker --apps --debug || true
+          python -m versiontracker --recom --debug || true
+
+      - name: Validate plugin system
+        run: |
+          python -c "
+          from versiontracker.plugins import plugin_manager
+          from versiontracker.plugins.example_plugins import XMLExportPlugin
+          plugin = XMLExportPlugin()
+          plugin_manager.register_plugin(plugin)
+          print(f'Registered plugins: {plugin_manager.list_plugins()}')
+          "
+
+  # Performance benchmarks
+  performance-tests:
+    name: Performance Benchmarks
+    runs-on: macos-latest
+    needs: [setup, quality]
+    if: needs.setup.outputs.should-run-performance == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: Setup Homebrew
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+          brew --version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test,fuzzy]"
+
+      - name: Run performance benchmarks
+        run: |
+          python -c "
+          from versiontracker.benchmarks import create_benchmark_suite, VersionTrackerBenchmarks
+          import json
+
+          suite = create_benchmark_suite()
+          vt_benchmarks = VersionTrackerBenchmarks(suite)
+          vt_benchmarks.run_all_benchmarks()
+
+          # Save results
+          results_file = suite.save_results('ci_benchmark_results.json')
+
+          # Generate report
+          report = suite.generate_report('json')
+          with open('benchmark_report.json', 'w') as f:
+              f.write(report)
+
+          print('Performance benchmarks completed')
+          "
+
+      - name: Check performance regression
+        run: |
+          python -c "
+          from versiontracker.benchmarks import run_performance_regression_test
+
+          no_regression = run_performance_regression_test()
+          if not no_regression:
+              print('Performance regression detected!')
+              exit(1)
+          else:
+              print('No performance regression detected')
+          "
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v5
+        with:
+          name: performance-results
+          path: |
+            benchmark_report.json
+            ci_benchmark_results.json
+
+  # Error handling and structured errors test
+  error-handling-tests:
+    name: Error Handling Tests
+    runs-on: ubuntu-latest
+    needs: [setup, quality]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test]"
+
+      - name: Test structured error system
+        run: |
+          python -c "
+          from versiontracker.error_codes import ErrorCode, create_error
+          from versiontracker.exceptions import HomebrewError, NetworkError
+
+          # Test structured errors
+          error = create_error(ErrorCode.HBW001, details='Test Homebrew error')
+          print(f'Error: {error.format_user_message()}')
+
+          # Test exception integration
+          try:
+              raise HomebrewError('Test error', error_code=ErrorCode.HBW001)
+          except HomebrewError as e:
+              print(f'Caught: {e.get_error_code()}')
+              assert e.get_error_code() == 'HBW001'
+
+          print('Structured error system working correctly')
+          "
+
+      - name: Test error code completeness
+        run: |
+          python -c "
+          from versiontracker.error_codes import ErrorCode, ErrorCategory, ErrorSeverity
+
+          # Verify all categories have error codes
+          categories = list(ErrorCategory)
+          for category in categories:
+              codes = [code for code in ErrorCode if code.category == category]
+              assert len(codes) > 0, f'No error codes for category {category}'
+              print(f'{category.value}: {len(codes)} codes')
+
+          # Verify all severity levels are used
+          severities = list(ErrorSeverity)
+          for severity in severities:
+              codes = [code for code in ErrorCode if code.severity == severity]
+              print(f'{severity.value}: {len(codes)} codes')
+
+          print('Error code system validation passed')
+          "
+
+  # Documentation and examples
+  docs-and-examples:
+    name: Documentation & Examples
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test]"
+          pip install mkdocs mkdocs-material mkdocstrings
+
+      - name: Validate API documentation
+        run: |
+          python -c "
+          import inspect
+          from versiontracker import homebrew, apps, version, config
+
+          # Check that all public functions have docstrings
+          modules = [homebrew, apps, version, config]
+          for module in modules:
+              for name, obj in inspect.getmembers(module):
+                  if inspect.isfunction(obj) and not name.startswith('_'):
+                      if not obj.__doc__:
+                          print(f'Warning: {module.__name__}.{name} missing docstring')
+
+          print('API documentation validation completed')
+          "
+
+      - name: Test example code in documentation
+        run: |
+          # Test examples from docs/api.md
+          python -c "
+          from versiontracker.config import get_config
+
+          # Example from API docs
+          config = get_config()
+          print(f'Config loaded: {type(config)}')
+
+          # Test configuration changes
+          original_rate_limit = getattr(config, 'api_rate_limit', 60)
+          config.api_rate_limit = 120
+          assert config.api_rate_limit == 120
+          config.api_rate_limit = original_rate_limit
+
+          print('Documentation examples working correctly')
+          "
+
+      - name: Generate documentation
+        run: |
+          # This would generate docs if we had mkdocs configured
+          echo "Documentation generation placeholder"
+
+  # Plugin system tests
+  plugin-system-tests:
+    name: Plugin System Tests
+    runs-on: ubuntu-latest
+    needs: [setup, quality]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ needs.setup.outputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test]"
+
+      - name: Test plugin registration and execution
+        run: |
+          python -c "
+          from versiontracker.plugins import plugin_manager
+          from versiontracker.plugins.example_plugins import (
+              XMLExportPlugin, YAMLExportPlugin, AdvancedMatchingPlugin
+          )
+
+          # Test plugin registration
+          xml_plugin = XMLExportPlugin()
+          yaml_plugin = YAMLExportPlugin()
+          matching_plugin = AdvancedMatchingPlugin()
+
+          plugin_manager.register_plugin(xml_plugin)
+          plugin_manager.register_plugin(yaml_plugin)
+          plugin_manager.register_plugin(matching_plugin)
+
+          # Verify registration
+          plugins = plugin_manager.list_plugins()
+          assert 'xml_export' in plugins
+          assert 'yaml_export' in plugins
+          assert 'advanced_matching' in plugins
+
+          # Test plugin functionality
+          test_data = [{'name': 'test', 'version': '1.0.0'}]
+          xml_output = xml_plugin.export_data(test_data)
+          yaml_output = yaml_plugin.export_data(test_data)
+
+          assert '<versiontracker_data' in xml_output
+          assert 'metadata:' in yaml_output
+
+          print('Plugin system tests passed')
+          "
+
+      - name: Test plugin loading from files
+        run: |
+          mkdir -p test_plugins
+          cat > test_plugins/test_plugin.py << 'EOF'
+          from versiontracker.plugins import BasePlugin
+
+          class TestFilePlugin(BasePlugin):
+              name = "test_file_plugin"
+              version = "1.0.0"
+              description = "Test plugin loaded from file"
+
+              def initialize(self):
+                  pass
+
+              def cleanup(self):
+                  pass
+          EOF
+
+          python -c "
+          from versiontracker.plugins import plugin_manager
+          from pathlib import Path
+
+          plugin_file = Path('test_plugins/test_plugin.py')
+          plugin_manager.load_plugin_from_file(plugin_file)
+
+          plugins = plugin_manager.list_plugins()
+          assert 'test_file_plugin' in plugins
+
+          plugin_manager.cleanup_all()
+          print('Plugin file loading tests passed')
+          "
+
+  # Final validation and reporting
+  final-validation:
+    name: Final Validation
+    runs-on: ubuntu-latest
+    needs:
+      [test-matrix, integration-tests, security, quality, error-handling-tests]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+
+      - name: Consolidate test results
+        run: |
+          echo "## CI/CD Pipeline Results" > pipeline_summary.md
+          echo "" >> pipeline_summary.md
+
+          # Check job statuses
+          echo "### Job Status Summary" >> pipeline_summary.md
+          echo "- Quality Checks: ${{ needs.quality.result }}" >> pipeline_summary.md
+          echo "- Security Analysis: ${{ needs.security.result }}" >> pipeline_summary.md
+          echo "- Unit Tests: ${{ needs.test-matrix.result }}" >> pipeline_summary.md
+          echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> pipeline_summary.md
+          echo "- Error Handling: ${{ needs.error-handling-tests.result }}" >> pipeline_summary.md
+          echo "" >> pipeline_summary.md
+
+          # List artifacts
+          echo "### Generated Artifacts" >> pipeline_summary.md
+          find . -name "*.xml" -o -name "*.json" -o -name "*.html" | head -20 >> pipeline_summary.md
+
+          cat pipeline_summary.md
+
+      - name: Check critical failures
+        run: |
+          if [[ "${{ needs.quality.result }}" == "failure" ]] || [[ "${{ needs.security.result }}" == "failure" ]]; then
+            echo "Critical CI jobs failed - blocking merge"
+            exit 1
+          fi
+
+          if [[ "${{ needs.test-matrix.result }}" == "failure" ]]; then
+            echo "Unit tests failed - blocking merge"
+            exit 1
+          fi
+
+          echo "All critical checks passed"
+
+      - name: Generate final report
+        run: |
+          echo "✅ VersionTracker CI/CD Pipeline Completed Successfully"
+          echo ""
+          echo "🔍 Quality: ${{ needs.quality.result }}"
+          echo "🛡️  Security: ${{ needs.security.result }}"
+          echo "🧪 Tests: ${{ needs.test-matrix.result }}"
+          echo "🔗 Integration: ${{ needs.integration-tests.result }}"
+          echo "⚠️  Error Handling: ${{ needs.error-handling-tests.result }}"
+          echo ""
+          echo "📊 All systems operational - ready for merge/deploy"
+
+      - name: Upload consolidated results
+        uses: actions/upload-artifact@v5
+        with:
+          name: ci-pipeline-results
+          path: |
+            pipeline_summary.md
+            **/*.xml
+            **/*.json

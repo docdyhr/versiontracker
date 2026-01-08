@@ -126,7 +126,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ## Requirements
 
 * **macOS**: 10.15 Catalina or later (tested through macOS Sequoia)
-* **Python**: 3.12 or later (3.13 compatible)
+* **Python 3.12 or later** (3.13 compatible)
 * **Homebrew**: Optional, but required for cask recommendations and update checks
 
 ## Installation
