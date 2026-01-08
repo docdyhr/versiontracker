@@ -81,17 +81,36 @@
 - [ ] Apple Silicon vs Intel Homebrew path handling
 - [ ] macOS version compatibility (Monterey through Sequoia)
 
-### GUI/Web Interface
+### GUI/Web Interface (Long-term Vision)
 
 - [ ] FastAPI-based web interface
 - [ ] Real-time update monitoring dashboard
 - [ ] Mobile-responsive design
+- [ ] Native SwiftUI macOS app (see docs/future_roadmap.md for detailed planning)
 
 ### Security Features
 
 - [ ] Vulnerability database integration (NVD, CVE)
 - [ ] Security scoring for installed applications
 - [ ] Alert on applications with known issues
+
+### Advanced ML Features (Optional Dependencies)
+
+- [ ] Enhance ML-powered recommendations with user feedback
+- [ ] Usage pattern analysis for personalized suggestions
+- [ ] Confidence scoring improvements for app-cask matching
+
+## Long-term Vision
+
+For detailed long-term strategic planning (2024-2026 roadmap), see `docs/future_roadmap.md`.
+This includes:
+
+- Machine learning enhancements
+- Native macOS GUI application
+- Web-based management portal
+- Enterprise features and SaaS offering
+
+Note: The detailed roadmap is aspirational and timelines should be treated as flexible guidance.
 
 ## Contributing
 

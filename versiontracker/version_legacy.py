@@ -187,7 +187,25 @@ VERSION_PATTERN_DICT = {
 
 
 def _clean_version_string(version_str: str) -> str:
-    """Clean version string by removing prefixes and app names."""
+    """Clean version string by removing prefixes and app names.
+
+    Note: This function does NOT strip whitespace. Whitespace normalization
+    happens in parse_version() via str.strip() before this function is called.
+
+    Args:
+        version_str: Version string potentially containing prefixes
+
+    Returns:
+        Version string with 'v', 'Version', and app name prefixes removed
+
+    Examples:
+        >>> _clean_version_string("v1.2.3")
+        "1.2.3"
+        >>> _clean_version_string("Version 1.2.3")
+        "1.2.3"
+        >>> _clean_version_string("Google Chrome 1.2.3")
+        "1.2.3"
+    """
     # Remove common prefixes like "v" or "Version "
     cleaned = re.sub(r"^[vV]ersion\s+", "", version_str)
     cleaned = re.sub(r"^[vV](?:er\.?\s*)?", "", cleaned)
@@ -200,7 +218,31 @@ def _clean_version_string(version_str: str) -> str:
 
 
 def _extract_build_metadata(cleaned: str) -> tuple[int | None, str]:
-    """Extract build metadata from version string."""
+    """Extract build metadata from version string.
+
+    Identifies and extracts build metadata following semantic versioning format.
+    Currently supports '+' separator (e.g., "1.2.3+build123").
+
+    Args:
+        cleaned: Version string to extract metadata from
+
+    Returns:
+        Tuple of (build_number, cleaned_version):
+            - build_number: Extracted numeric build identifier, or None if not found
+            - cleaned_version: Version string with build metadata removed
+
+    Examples:
+        >>> _extract_build_metadata("1.2.3+build123")
+        (123, "1.2.3")
+        >>> _extract_build_metadata("1.2.3+456")
+        (456, "1.2.3")
+        >>> _extract_build_metadata("1.2.3")
+        (None, "1.2.3")
+
+    Note:
+        Build metadata should NOT affect version precedence according to semver spec.
+        The tilde separator (~) is not currently supported.
+    """
     build_metadata = None
 
     # Look for various build patterns
@@ -241,7 +283,34 @@ def _handle_special_beta_format(version_str: str) -> tuple[int, ...] | None:
 
 
 def _extract_prerelease_info(cleaned: str, version_str: str) -> tuple[bool, int | None, bool, str]:
-    """Extract prerelease information from version string."""
+    """Extract prerelease information from version string.
+
+    Identifies and extracts prerelease indicators (alpha, beta, rc) and their
+    associated version numbers. Supports both ASCII and Unicode Greek letters.
+
+    Args:
+        cleaned: Cleaned version string (after prefix removal)
+        version_str: Original version string for mixed format detection
+
+    Returns:
+        Tuple of (has_prerelease, prerelease_num, has_text_suffix, cleaned):
+            - has_prerelease: True if prerelease marker found
+            - prerelease_num: Numeric suffix after prerelease type (e.g., "beta.2" → 2)
+            - has_text_suffix: True if non-numeric suffix present
+            - cleaned: Version string with prerelease part removed
+
+    Examples:
+        >>> _extract_prerelease_info("1.2.3-alpha", "1.2.3-alpha")
+        (True, None, False, "1.2.3")
+        >>> _extract_prerelease_info("1.2.3-beta.2", "1.2.3-beta.2")
+        (True, 2, False, "1.2.3")
+        >>> _extract_prerelease_info("1.2.3", "1.2.3")
+        (False, None, False, "1.2.3")
+
+    Prerelease Ordering:
+        alpha < beta < rc < final < release
+        Unicode: α (alpha) < β (beta) < γ (gamma) < δ (delta)
+    """
     has_prerelease = False
     prerelease_num = None
     has_text_suffix = False
@@ -280,7 +349,29 @@ def _extract_prerelease_info(cleaned: str, version_str: str) -> tuple[bool, int 
 
 
 def _parse_numeric_parts(cleaned: str) -> list[int]:
-    """Parse numeric parts from cleaned version string."""
+    """Parse numeric parts from cleaned version string.
+
+    Extracts and converts dot-separated numeric components into integers.
+    Handles various version formats including multi-part versions.
+
+    Args:
+        cleaned: Version string with prefixes and prerelease markers removed
+
+    Returns:
+        List of integers representing version components
+
+    Examples:
+        >>> _parse_numeric_parts("1.2.3")
+        [1, 2, 3]
+        >>> _parse_numeric_parts("10.20.30")
+        [10, 20, 30]
+        >>> _parse_numeric_parts("1.2.3.4")
+        [1, 2, 3, 4]
+
+    Note:
+        Empty or non-numeric components are skipped. Parsing stops at first
+        non-numeric character (useful for extracting "1.2.3" from "1.2.3-alpha").
+    """
     cleaned = re.sub(r"[-_/]", ".", cleaned)
     all_numbers = re.findall(r"\d+", cleaned)
 
@@ -734,6 +825,9 @@ def compare_versions(
 ) -> int:
     """Compare two version strings or tuples.
 
+    This function implements comprehensive version comparison following semantic
+    versioning principles with extensions for application-specific formats.
+
     Args:
         version1: First version string or tuple
         version2: Second version string or tuple
@@ -742,6 +836,29 @@ def compare_versions(
         -1 if version1 < version2
          0 if version1 == version2
          1 if version1 > version2
+
+    Examples:
+        >>> compare_versions("1.2.3", "1.2.4")
+        -1
+        >>> compare_versions("2.0.0", "1.9.9")
+        1
+        >>> compare_versions("1.2.3-alpha", "1.2.3-beta")
+        -1
+        >>> compare_versions("1.2.3-beta", "1.2.3")
+        -1
+
+    Comparison Rules:
+        1. None versions are considered less than any other version
+        2. Prerelease versions are less than release versions
+        3. Prerelease ordering: alpha < beta < rc < final < release
+        4. Build metadata (+build.123) is ignored for precedence (per semver)
+        5. Application builds (1.2.3 (4567)) are compared when base versions equal
+        6. Malformed versions fall back to string comparison
+
+    Special Cases:
+        - "1.2.3" vs "1.2.3.0" → Equal (normalized to 3 components)
+        - "1.2.3+build.1" vs "1.2.3+build.2" → Equal (metadata ignored)
+        - "MyApp 1.2.3" vs "MyApp 1.2.4" → Extracts and compares versions
     """
     # Handle None and empty cases first
     none_result = _handle_none_and_empty_versions(version1, version2)

@@ -1,6 +1,7 @@
 # Constraints file to ensure consistent dependency versions across environments
 # This file is used with pip install -c constraints.txt
 # Update these versions when updating requirements.txt
+# Python 3.12+ required as per pyproject.toml
 
 # Core dependencies
 aiohttp>=3.8.0,<4.0.0

@@ -60,6 +60,21 @@ def setup_logging(*args: Any, **kwargs: Any) -> None:
     pass
 
 
+def _check_ml_availability() -> None:
+    """Check ML feature availability and inform user if unavailable.
+
+    This function is called at runtime only when needed (debug mode),
+    avoiding top-level import failures that could crash the CLI.
+    """
+    try:
+        from versiontracker.ml import is_ml_available
+
+        if not is_ml_available():
+            logging.info("ML features are not available. Install with: pip install homebrew-versiontracker[ml]")
+    except ImportError:
+        logging.info("ML features are not available. Install with: pip install homebrew-versiontracker[ml]")
+
+
 def _handle_macos_service_action(options: Any, action_name: str) -> int:
     """Handle macOS service actions (install, uninstall, status, test_notification, menubar).
 
@@ -179,6 +194,10 @@ def versiontracker_main() -> int:
 
     # Set up logging
     handle_setup_logging(options)
+
+    # Check and inform about ML features if debug mode is enabled
+    if hasattr(options, "debug") and options.debug:
+        _check_ml_availability()
 
     # Initialize configuration
     handle_initialize_config(options)

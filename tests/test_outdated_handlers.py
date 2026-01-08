@@ -763,6 +763,8 @@ class TestHandleOutdatedCheck:
 
         options = Mock()
 
+        # The function should catch KeyboardInterrupt internally and return 130
+        # We don't use pytest.raises because the function handles it
         result = handle_outdated_check(options)
 
         assert result == 130
