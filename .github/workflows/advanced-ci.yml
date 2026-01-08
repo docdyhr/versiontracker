@@ -113,8 +113,8 @@ jobs:
       - name: Run MyPy type checking
         run: mypy versiontracker --ignore-missing-imports
 
-      - name: Check import sorting
-        run: python -c "import isort; isort.check_file('versiontracker', check=True, diff=True)"
+      - name: Check import sorting (via Ruff)
+        run: ruff check --select I --diff .
 
   # Security scanning
   security:
