@@ -416,6 +416,13 @@ def handle_brew_recommendations(options: Any) -> int:
             # Search for brew candidates
             installables = _search_brew_candidates(search_list, rate_limit_int, strict_mode)
 
+            # Filter out any casks that are already installed (handles stale cache)
+            # Normalize app names to cask format: lowercase, spaces/underscores to hyphens
+            apps_homebrew_set = {brew.lower() for brew in apps_homebrew}
+            installables = [
+                app for app in installables if app.lower().replace(" ", "-").replace("_", "-") not in apps_homebrew_set
+            ]
+
             # Filter based on auto-updates if requested
             if hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
                 print(create_progress_bar().color("green")("Filtering out applications with auto-updates enabled..."))
