@@ -94,7 +94,7 @@ class TestHomebrewDetection(unittest.TestCase):
         result = is_homebrew_installed()
         assert isinstance(result, bool)
 
-    @patch("subprocess.Popen")
+    @patch("versiontracker.utils.subprocess.Popen")
     def test_run_command_success(self, mock_popen):
         """Test run_command with successful execution."""
         mock_process = Mock()
@@ -107,7 +107,7 @@ class TestHomebrewDetection(unittest.TestCase):
         self.assertEqual(output, b"test output")  # run_command returns bytes
         self.assertEqual(returncode, 0)
 
-    @patch("subprocess.Popen")
+    @patch("versiontracker.utils.subprocess.Popen")
     def test_run_command_timeout(self, mock_popen):
         """Test run_command with timeout."""
         mock_process = Mock()
@@ -117,7 +117,7 @@ class TestHomebrewDetection(unittest.TestCase):
         with self.assertRaises(VTTimeoutError):
             run_command("test command", timeout=30)
 
-    @patch("subprocess.Popen")
+    @patch("versiontracker.utils.subprocess.Popen")
     def test_run_command_permission_error(self, mock_popen):
         """Test run_command with permission error."""
         mock_popen.side_effect = PermissionError("Permission denied")
@@ -125,7 +125,7 @@ class TestHomebrewDetection(unittest.TestCase):
         with self.assertRaises(PermissionError):
             run_command("test command")
 
-    @patch("subprocess.Popen")
+    @patch("versiontracker.utils.subprocess.Popen")
     def test_run_command_file_not_found(self, mock_popen):
         """Test run_command with file not found."""
         mock_popen.side_effect = FileNotFoundError("Command not found")
