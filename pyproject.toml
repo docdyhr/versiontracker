@@ -191,6 +191,11 @@ module = "versiontracker.handlers.*"
 disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
+module = "versiontracker.version.*"
+# Suppress type assignment errors for dynamic class aliasing
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
 module = "versiontracker.ai.*"
 ignore_errors = true
 

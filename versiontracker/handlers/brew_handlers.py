@@ -39,6 +39,21 @@ class BrewOptions(TypedDict, total=False):
     debug: bool
 
 
+def _normalize_cask_name(name: str) -> str:
+    """Normalize a cask name for comparison.
+
+    Converts app names or cask names to a consistent format:
+    lowercase with spaces and underscores replaced by hyphens.
+
+    Args:
+        name: The app name or cask name to normalize
+
+    Returns:
+        str: Normalized cask name for comparison
+    """
+    return name.lower().replace(" ", "-").replace("_", "-")
+
+
 def _get_and_filter_brews(options: Any) -> tuple[list[str], list[str]]:
     """Get and filter Homebrew packages based on options.
 
@@ -415,6 +430,11 @@ def handle_brew_recommendations(options: Any) -> int:
         try:
             # Search for brew candidates
             installables = _search_brew_candidates(search_list, rate_limit_int, strict_mode)
+
+            # Filter out any casks that are already installed (handles stale cache)
+            # Normalize both collections consistently for accurate comparison
+            apps_homebrew_set = {_normalize_cask_name(brew) for brew in apps_homebrew}
+            installables = [app for app in installables if _normalize_cask_name(app) not in apps_homebrew_set]
 
             # Filter based on auto-updates if requested
             if hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
