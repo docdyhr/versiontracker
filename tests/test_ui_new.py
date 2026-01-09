@@ -38,30 +38,35 @@ from versiontracker.ui import (
 class TestColorOutput(unittest.TestCase):
     """Test the colored output functions."""
 
+    @patch("versiontracker.ui.HAS_TERMCOLOR", True)
     @patch("versiontracker.ui.cprint")
     def test_print_success(self, mock_cprint):
         """Test print_success function."""
         print_success("Success message")
         mock_cprint.assert_called_with("Success message", "green")
 
+    @patch("versiontracker.ui.HAS_TERMCOLOR", True)
     @patch("versiontracker.ui.cprint")
     def test_print_info(self, mock_cprint):
         """Test print_info function."""
         print_info("Info message")
         mock_cprint.assert_called_with("Info message", "blue")
 
+    @patch("versiontracker.ui.HAS_TERMCOLOR", True)
     @patch("versiontracker.ui.cprint")
     def test_print_warning(self, mock_cprint):
         """Test print_warning function."""
         print_warning("Warning message")
         mock_cprint.assert_called_with("Warning message", "yellow")
 
+    @patch("versiontracker.ui.HAS_TERMCOLOR", True)
     @patch("versiontracker.ui.cprint")
     def test_print_error(self, mock_cprint):
         """Test print_error function."""
         print_error("Error message")
         mock_cprint.assert_called_with("Error message", "red")
 
+    @patch("versiontracker.ui.HAS_TERMCOLOR", True)
     @patch("versiontracker.ui.cprint")
     def test_print_debug(self, mock_cprint):
         """Test print_debug function."""
