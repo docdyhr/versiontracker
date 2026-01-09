@@ -548,12 +548,16 @@ def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
 
     except subprocess.TimeoutExpired:
         _handle_timeout_error(process, timeout, cmd)
-    except builtins.FileNotFoundError as e:
+    except (builtins.FileNotFoundError, FileNotFoundError):
+        # Catch both built-in FileNotFoundError (from subprocess) and
+        # custom FileNotFoundError (from _classify_command_error)
         logging.error(f"Command not found: {cmd}")
-        raise builtins.FileNotFoundError(f"Command not found: {cmd}") from e
-    except builtins.PermissionError as e:
+        raise
+    except (builtins.PermissionError, PermissionError):
+        # Catch both built-in PermissionError (from subprocess) and
+        # custom PermissionError (from _classify_command_error)
         logging.error(f"Permission error running command: {cmd}")
-        raise builtins.PermissionError(f"Permission denied when running: {cmd}") from e
+        raise
     except subprocess.SubprocessError as e:
         logging.error(f"Subprocess error running command: {cmd} - {e}")
         raise
