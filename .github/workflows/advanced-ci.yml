@@ -143,14 +143,16 @@ jobs:
 
       - name: Run Bandit security linter
         run: |
-          bandit -r versiontracker/ -f json -o bandit-report.json
-          bandit -r versiontracker/
+          bandit -c .bandit -r versiontracker/ -f json -o bandit-report.json
+          bandit -c .bandit -r versiontracker/
 
       - name: Run Safety check
         run: safety check --json --output safety-report.json || safety check
 
       - name: Run pip-audit
-        run: pip-audit --desc --output pip-audit-report.json --format json || pip-audit --desc
+        run: |
+          pip-audit --desc --format json --output pip-audit-report.json || \
+          (pip-audit --desc && echo '{"vulnerabilities":[]}' > pip-audit-report.json)
 
       - name: Upload security reports
         uses: actions/upload-artifact@v5
@@ -602,13 +604,19 @@ jobs:
 
       - name: Check critical failures
         run: |
-          if [[ "${{ needs.quality.result }}" == "failure" ]] || [[ "${{ needs.security.result }}" == "failure" ]]; then
-            echo "Critical CI jobs failed - blocking merge"
+          # Check for any non-success states (failure, cancelled, skipped)
+          if [[ "${{ needs.quality.result }}" != "success" ]]; then
+            echo "Quality checks failed or were cancelled - blocking merge"
             exit 1
           fi
 
-          if [[ "${{ needs.test-matrix.result }}" == "failure" ]]; then
-            echo "Unit tests failed - blocking merge"
+          if [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "Security analysis failed or was cancelled - blocking merge"
+            exit 1
+          fi
+
+          if [[ "${{ needs.test-matrix.result }}" != "success" ]]; then
+            echo "Unit tests failed or were cancelled - blocking merge"
             exit 1
           fi
 

@@ -75,7 +75,7 @@
 
 ```bash
 # Install from PyPI
-pip install homebrew-versiontracker
+pip install macversiontracker
 
 # List applications not from the App Store
 versiontracker --apps
@@ -126,7 +126,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ## Requirements
 
 * **macOS**: 10.15 Catalina or later (tested through macOS Sequoia)
-* **Python**: 3.12 or later (3.13 compatible)
+* **Python 3.12 or later** (3.13 compatible)
 * **Homebrew**: Optional, but required for cask recommendations and update checks
 
 ## Installation
@@ -134,7 +134,7 @@ using Homebrew casks, making it easier to keep your applications up to date.
 ### With PyPI (Recommended)
 
 ```bash
-pip install homebrew-versiontracker
+pip install macversiontracker
 ```
 
 ### With Homebrew
@@ -147,7 +147,7 @@ brew install versiontracker
 ### With PyPI
 
 ```bash
-pip install homebrew-versiontracker
+pip install macversiontracker
 ```
 
 ### Option 1: Clone the repository and install
