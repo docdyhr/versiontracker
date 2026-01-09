@@ -134,23 +134,21 @@ using Homebrew casks, making it easier to keep your applications up to date.
 
 ## Installation
 
-### With PyPI (Recommended)
+### Option 1: Homebrew (Recommended for macOS users)
+
+```bash
+# Tap and install
+brew tap docdyhr/tap
+brew install macversiontracker
+
+# Or install directly (one command)
+brew install docdyhr/tap/macversiontracker
+```
+
+### Option 2: PyPI
 
 ```bash
 pip install macversiontracker
-```
-
-### With Homebrew (macOS)
-
-```bash
-brew tap docdyhr/tap
-brew install macversiontracker
-```
-
-Or install directly:
-
-```bash
-brew install docdyhr/tap/macversiontracker
 ```
 
 ### Option 1: Clone the repository and install
