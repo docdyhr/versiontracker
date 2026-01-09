@@ -4,6 +4,7 @@ Utility functions for VersionTracker.
 This module provides common utility functions used throughout the application.
 """
 
+import builtins
 import functools
 import json
 import logging
@@ -547,12 +548,16 @@ def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
 
     except subprocess.TimeoutExpired:
         _handle_timeout_error(process, timeout, cmd)
-    except FileNotFoundError as e:
+    except (builtins.FileNotFoundError, FileNotFoundError):
+        # Catch both built-in FileNotFoundError (from subprocess) and
+        # custom FileNotFoundError (from _classify_command_error)
         logging.error(f"Command not found: {cmd}")
-        raise FileNotFoundError(f"Command not found: {cmd}") from e
-    except PermissionError as e:
+        raise
+    except (builtins.PermissionError, PermissionError):
+        # Catch both built-in PermissionError (from subprocess) and
+        # custom PermissionError (from _classify_command_error)
         logging.error(f"Permission error running command: {cmd}")
-        raise PermissionError(f"Permission denied when running: {cmd}") from e
+        raise
     except subprocess.SubprocessError as e:
         logging.error(f"Subprocess error running command: {cmd} - {e}")
         raise
