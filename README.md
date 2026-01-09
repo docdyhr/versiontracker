@@ -74,7 +74,10 @@
 ## Quick Start
 
 ```bash
-# Install from PyPI
+# Install with Homebrew (recommended for macOS users)
+brew install docdyhr/tap/macversiontracker
+
+# Or install from PyPI
 pip install macversiontracker
 
 # List applications not from the App Store
@@ -137,17 +140,17 @@ using Homebrew casks, making it easier to keep your applications up to date.
 pip install macversiontracker
 ```
 
-### With Homebrew
+### With Homebrew (macOS)
 
 ```bash
-brew tap docdyhr/versiontracker
-brew install versiontracker
+brew tap docdyhr/tap
+brew install macversiontracker
 ```
 
-### With PyPI
+Or install directly:
 
 ```bash
-pip install macversiontracker
+brew install docdyhr/tap/macversiontracker
 ```
 
 ### Option 1: Clone the repository and install
