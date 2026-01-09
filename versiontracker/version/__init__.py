@@ -99,7 +99,7 @@ if _spec is not None and _spec.loader is not None:
     # This ensures compatibility between modules
     from . import models
 
-    models.VersionStatus = _version_main.VersionStatus  # type: ignore
+    models.VersionStatus = _version_main.VersionStatus
     # _EarlyReturn = _version_main._EarlyReturn  # Commented out due to
     # duplicate definition issue
 

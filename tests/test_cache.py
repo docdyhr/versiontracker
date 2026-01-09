@@ -148,8 +148,8 @@ class TestCache(unittest.TestCase):
 
     def test_write_cache_exception(self):
         """Test writing cache with an exception."""
-        # Mock open to raise an exception
-        with patch("builtins.open", side_effect=Exception("Test error")):
+        # Mock tempfile.mkstemp to raise an exception (used for atomic writes)
+        with patch("tempfile.mkstemp", side_effect=Exception("Test error")):
             # Call the function and check it raises CacheError
             with self.assertRaises(CacheError):
                 write_cache("test_cache", {"test": "data"})
