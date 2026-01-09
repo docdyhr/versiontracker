@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2025-01-09
+
+### Fixed
+- **Cache Corruption Bug**: Fixed JSON cache file corruption in `brew_installable.json`
+  - Implemented atomic file writes using temporary file + rename pattern
+  - Prevents corruption from interrupted writes or concurrent access
+  - Cache files now always contain complete, valid JSON
+
 ## [Unreleased]
 
 ### Added

@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import tempfile
 import time
 from typing import Any, cast
 
@@ -81,9 +82,19 @@ def write_cache(cache_name: str, data: dict[str, Any]) -> bool:
 
         cache_file = os.path.join(CACHE_DIR, f"{cache_name}.json")
 
-        # Write cache
-        with open(cache_file, "w") as f:
-            json.dump(data, f)
+        # Write to temporary file first, then atomically rename
+        # This prevents corruption from interrupted writes or concurrent access
+        fd, temp_path = tempfile.mkstemp(suffix=".json", dir=CACHE_DIR)
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(data, f)
+            # Atomic rename (on POSIX systems)
+            os.replace(temp_path, cache_file)
+        except Exception:
+            # Clean up temp file on failure
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise
 
         return True
     except Exception as e:
