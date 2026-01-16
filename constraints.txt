@@ -7,6 +7,11 @@
 aiohttp>=3.8.0,<4.0.0
 
 # Security-critical indirect dependencies
+# filelock: GHSA-qmgc-5h2g-mvrw (TOCTOU) - fixed in 3.20.3
+filelock>=3.20.3,<4.0.0
+# virtualenv: GHSA-597g-3phw-6986 (TOCTOU) - fix pending release (>20.36.1)
+# Using latest available until patch is released
+virtualenv>=20.36.1,<22.0.0
 requests>=2.32.4,<3.0.0
 urllib3>=2.5.0,<3.0.0
 anyio>=4.0.0,<5.0.0

@@ -35,14 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - **Click dependency**: Completely removed from requirements.txt (was unused, CLI uses argparse)
 
+### Security
+- Updated `filelock` constraint to >=3.20.3 (fixes GHSA-qmgc-5h2g-mvrw TOCTOU vulnerability)
+- Updated `virtualenv` constraint to >=20.36.1 (latest available, GHSA-597g-3phw-6986 fix pending)
+- Added security-critical indirect dependency constraints to `constraints.txt`
+
 ### Developer Notes
 - Async Homebrew module (`async_homebrew.py`) is implemented and ready for integration
 - `version_legacy.py` migration to `versiontracker.version` package is in progress
-- **Week 1 completed**: Click removal, Beta status, ML availability UX, docs consolidation
-- **Week 2-3 progress**: version_legacy.py test coverage improved from 11% to 43.20% (4x increase)
-  - Added comprehensive test suite with 55 tests covering edge cases
+- **Test Coverage Improvements**: version_legacy.py coverage improved from 11% to 61%+ (5.5x increase)
+  - Added 125 tests covering version parsing, comparison, and utility functions
   - Tests cover: build metadata, prerelease handling, special formats, Unicode normalization
+  - Tests cover: similarity scoring, version decomposition, tuple/dict conversion
   - Documented actual behavior vs expected behavior for future refactoring
+- **Module Documentation**: Updated deprecation notice in version_legacy.py with clear migration status
 
 ## [0.8.1] - 2025-10-29
 

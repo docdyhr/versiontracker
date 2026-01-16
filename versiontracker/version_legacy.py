@@ -4,21 +4,33 @@
     This module is deprecated and will be removed in a future version.
     The functionality is being migrated to the versiontracker.version package:
 
-    - versiontracker.version.parser - Version string parsing
-    - versiontracker.version.comparator - Version comparison functions
+    **Already migrated (use versiontracker.version instead):**
+    - versiontracker.version.parser - Version string parsing (parse_version)
+    - versiontracker.version.comparator - Version comparison (compare_versions,
+      is_version_newer, get_version_difference)
     - versiontracker.version.models - Data models (VersionStatus, ApplicationInfo)
 
-    New code should import from versiontracker.version instead:
+    **Still in this module (pending migration):**
+    - Homebrew integration functions (get_homebrew_cask_info, find_matching_cask,
+      check_latest_version, _search_homebrew_casks)
+    - Batch processing functions (check_outdated_apps, _process_app_batch,
+      _create_app_batches, _process_single_app)
+    - Fuzzy matching utilities (similarity_score, partial_ratio, compare_fuzzy,
+      get_partial_ratio_scorer)
+    - Version info helpers (get_version_info, decompose_version, compose_version_tuple)
 
+    **Migration guide:**
         # Old (deprecated):
         from versiontracker.version_legacy import parse_version, compare_versions
 
         # New (recommended):
         from versiontracker.version import parse_version, compare_versions
 
-    Migration status:
-    - Test coverage: ~11% (needs improvement before full migration)
-    - Lines of code: ~1950 (large module being decomposed)
+    **Migration status (as of v0.8.2):**
+    - Test coverage: 61%+ (improved from 11%)
+    - Lines of code: ~2,100 (77 functions/classes)
+    - Core parsing/comparison: Migrated to version/ submodules
+    - Homebrew/batch functions: Pending migration
     - Target: Complete migration by v1.0.0
 """
 
