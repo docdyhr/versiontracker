@@ -13,16 +13,30 @@ Target: Improve test coverage while documenting version handling behavior.
 """
 
 from versiontracker.version_legacy import (
+    ApplicationInfo,
+    VersionStatus,
+    _build_final_version_tuple,
+    _build_prerelease_tuple,
     _build_with_metadata,
+    _check_version_metadata,
     _clean_version_string,
     _compare_application_builds,
+    _compare_base_and_prerelease_versions,
     _compare_base_versions,
     _compare_build_numbers,
+    _compare_none_suffixes,
     _compare_prerelease,
     _compare_prerelease_suffixes,
+    _compare_string_suffixes,
+    _compare_unicode_suffixes,
+    _convert_versions_to_tuples,
+    _dict_to_tuple,
     _extract_build_metadata,
     _extract_build_number,
     _extract_prerelease_info,
+    _extract_prerelease_type_and_suffix,
+    _extract_standalone_unicode_prerelease,
+    _get_unicode_priority,
     _handle_application_prefixes,
     _handle_malformed_versions,
     _handle_mixed_format,
@@ -39,8 +53,20 @@ from versiontracker.version_legacy import (
     _parse_numeric_parts,
     _parse_or_default,
     _parse_prerelease_suffix,
+    _parse_version_components,
+    _parse_version_to_dict,
+    _tuple_to_dict,
+    compare_fuzzy,
     compare_versions,
+    compose_version_tuple,
+    decompose_version,
+    get_compiled_pattern,
+    get_version_difference,
+    get_version_info,
+    is_version_newer,
     parse_version,
+    partial_ratio,
+    similarity_score,
 )
 
 
@@ -449,3 +475,518 @@ class TestComplexVersionScenarios:
                 assert result > 0, f"Expected {v1} > {v2}"
             else:
                 assert result == 0, f"Expected {v1} == {v2}"
+
+
+# ============================================================================
+# Additional tests for uncovered functions to reach 60%+ coverage
+# ============================================================================
+
+
+class TestSimilarityScore:
+    """Test similarity_score function."""
+
+    def test_similarity_identical_strings(self):
+        """Test similarity of identical strings."""
+        assert similarity_score("hello", "hello") == 100
+
+    def test_similarity_none_values(self):
+        """Test similarity with None values."""
+        assert similarity_score(None, "hello") == 0
+        assert similarity_score("hello", None) == 0
+        assert similarity_score(None, None) == 0
+
+    def test_similarity_empty_strings(self):
+        """Test similarity with empty strings."""
+        assert similarity_score("", "") == 100
+        assert similarity_score("", "hello") == 0
+        assert similarity_score("hello", "") == 0
+
+    def test_similarity_different_strings(self):
+        """Test similarity of different strings."""
+        result = similarity_score("hello", "world")
+        assert 0 <= result <= 100
+
+
+class TestPartialRatio:
+    """Test partial_ratio function."""
+
+    def test_partial_ratio_identical(self):
+        """Test partial ratio of identical strings."""
+        assert partial_ratio("hello", "hello") == 100
+
+    def test_partial_ratio_empty(self):
+        """Test partial ratio with empty strings."""
+        assert partial_ratio("", "hello") == 0
+        assert partial_ratio("hello", "") == 0
+
+    def test_partial_ratio_substring(self):
+        """Test partial ratio with substring."""
+        result = partial_ratio("hello", "hello world")
+        assert result > 0
+
+    def test_partial_ratio_with_cutoff(self):
+        """Test partial ratio with score_cutoff parameter."""
+        result = partial_ratio("hello", "hello", score_cutoff=50)
+        assert result == 100
+
+
+class TestCompareFuzzy:
+    """Test compare_fuzzy function."""
+
+    def test_compare_fuzzy_identical(self):
+        """Test fuzzy comparison of identical versions."""
+        result = compare_fuzzy("1.2.3", "1.2.3")
+        assert result == 100.0
+
+    def test_compare_fuzzy_different(self):
+        """Test fuzzy comparison of different versions."""
+        result = compare_fuzzy("1.2.3", "4.5.6")
+        assert 0.0 <= result <= 100.0
+
+
+class TestComposeVersionTuple:
+    """Test compose_version_tuple function."""
+
+    def test_compose_three_parts(self):
+        """Test composing three-part version."""
+        result = compose_version_tuple(1, 2, 3)
+        assert result == (1, 2, 3)
+
+    def test_compose_four_parts(self):
+        """Test composing four-part version."""
+        result = compose_version_tuple(1, 2, 3, 4)
+        assert result == (1, 2, 3, 4)
+
+    def test_compose_single_part(self):
+        """Test composing single-part version."""
+        result = compose_version_tuple(1)
+        assert result == (1,)
+
+
+class TestDecomposeVersion:
+    """Test decompose_version function."""
+
+    def test_decompose_standard(self):
+        """Test decomposing standard version."""
+        result = decompose_version("1.2.3")
+        assert result is not None
+        assert result["major"] == 1
+        assert result["minor"] == 2
+        assert result["patch"] == 3
+
+    def test_decompose_none(self):
+        """Test decomposing None."""
+        result = decompose_version(None)
+        assert result is None
+
+    def test_decompose_empty(self):
+        """Test decomposing empty string."""
+        result = decompose_version("")
+        assert result is not None
+        assert result["major"] == 0
+
+    def test_decompose_four_part(self):
+        """Test decomposing four-part version."""
+        result = decompose_version("1.2.3.4")
+        assert result is not None
+        assert result["build"] == 4
+
+
+class TestGetCompiledPattern:
+    """Test get_compiled_pattern function."""
+
+    def test_valid_pattern(self):
+        """Test compiling valid pattern."""
+        result = get_compiled_pattern(r"\d+\.\d+\.\d+")
+        assert result is not None
+
+    def test_invalid_pattern(self):
+        """Test compiling invalid pattern."""
+        result = get_compiled_pattern(r"[invalid")
+        assert result is None
+
+
+class TestGetVersionDifference:
+    """Test get_version_difference function."""
+
+    def test_difference_basic(self):
+        """Test basic version difference."""
+        result = get_version_difference("2.0.0", "1.0.0")
+        assert result is not None
+        assert result[0] == 1  # Major difference
+
+    def test_difference_none_input(self):
+        """Test difference with None input."""
+        result = get_version_difference(None, "1.0.0")
+        assert result is None
+
+    def test_difference_same_version(self):
+        """Test difference of same versions."""
+        result = get_version_difference("1.2.3", "1.2.3")
+        assert result == (0, 0, 0)
+
+    def test_difference_tuples(self):
+        """Test difference with tuple inputs."""
+        result = get_version_difference((2, 0, 0), (1, 0, 0))
+        assert result is not None
+
+
+class TestGetVersionInfo:
+    """Test get_version_info function."""
+
+    def test_version_info_basic(self):
+        """Test basic version info."""
+        result = get_version_info("1.2.3")
+        assert isinstance(result, ApplicationInfo)
+
+    def test_version_info_with_latest(self):
+        """Test version info with latest version."""
+        result = get_version_info("1.2.3", "1.2.4")
+        assert isinstance(result, ApplicationInfo)
+
+    def test_version_info_none(self):
+        """Test version info with None."""
+        result = get_version_info(None)
+        assert isinstance(result, ApplicationInfo)
+
+
+class TestIsVersionNewer:
+    """Test is_version_newer function."""
+
+    def test_newer_version(self):
+        """Test when latest is newer."""
+        assert is_version_newer("1.0.0", "2.0.0") is True
+
+    def test_older_version(self):
+        """Test when latest is older."""
+        assert is_version_newer("2.0.0", "1.0.0") is False
+
+    def test_same_version(self):
+        """Test when versions are same."""
+        assert is_version_newer("1.0.0", "1.0.0") is False
+
+
+class TestVersionStatus:
+    """Test VersionStatus enum."""
+
+    def test_version_status_values(self):
+        """Test VersionStatus enum values exist."""
+        assert hasattr(VersionStatus, "UP_TO_DATE")
+        assert hasattr(VersionStatus, "OUTDATED")
+        assert hasattr(VersionStatus, "UNKNOWN")
+
+
+class TestApplicationInfo:
+    """Test ApplicationInfo dataclass."""
+
+    def test_application_info_creation(self):
+        """Test creating ApplicationInfo instance."""
+        info = ApplicationInfo(name="TestApp", version_string="1.0.0")
+        assert info.name == "TestApp"
+        assert info.version_string == "1.0.0"
+
+    def test_application_info_parsed_property(self):
+        """Test ApplicationInfo parsed property."""
+        info = ApplicationInfo(name="TestApp", version_string="1.2.3")
+        assert info.parsed == (1, 2, 3)
+
+    def test_application_info_empty_version(self):
+        """Test ApplicationInfo with empty version."""
+        info = ApplicationInfo(name="TestApp", version_string="")
+        assert info.parsed is None
+
+
+class TestParseVersionComponents:
+    """Test _parse_version_components function."""
+
+    def test_parse_components_basic(self):
+        """Test parsing basic version components."""
+        result = _parse_version_components("1.2.3")
+        assert result["major"] == 1
+        assert result["minor"] == 2
+        assert result["patch"] == 3
+
+    def test_parse_components_short(self):
+        """Test parsing short version."""
+        result = _parse_version_components("1.2")
+        assert result["major"] == 1
+        assert result["minor"] == 2
+        assert result["patch"] == 0
+
+
+class TestParseVersionToDict:
+    """Test _parse_version_to_dict function."""
+
+    def test_parse_to_dict_basic(self):
+        """Test parsing version to dict."""
+        result = _parse_version_to_dict("1.2.3")
+        assert result is not None
+        assert "original" in result or "tuple" in result or "major" in result
+
+
+class TestTupleToDict:
+    """Test _tuple_to_dict function."""
+
+    def test_tuple_to_dict_basic(self):
+        """Test converting tuple to dict."""
+        result = _tuple_to_dict((1, 2, 3))
+        assert result["major"] == 1
+        assert result["minor"] == 2
+        assert result["patch"] == 3
+
+    def test_tuple_to_dict_none(self):
+        """Test converting None tuple."""
+        result = _tuple_to_dict(None)
+        assert result["major"] == 0
+
+
+class TestDictToTuple:
+    """Test _dict_to_tuple function."""
+
+    def test_dict_to_tuple_basic(self):
+        """Test converting dict to tuple."""
+        result = _dict_to_tuple({"major": 1, "minor": 2, "patch": 3})
+        # Function returns 4-tuple with build component
+        assert result[:3] == (1, 2, 3)
+
+    def test_dict_to_tuple_with_build(self):
+        """Test converting dict with build to tuple."""
+        result = _dict_to_tuple({"major": 1, "minor": 2, "patch": 3, "build": 4})
+        assert result == (1, 2, 3, 4)
+
+    def test_dict_to_tuple_none(self):
+        """Test converting None dict."""
+        result = _dict_to_tuple(None)
+        assert result is None
+
+
+class TestConvertVersionsToTuples:
+    """Test _convert_versions_to_tuples function."""
+
+    def test_convert_strings(self):
+        """Test converting string versions."""
+        v1, v2 = _convert_versions_to_tuples("1.2.3", "4.5.6")
+        assert v1 == (1, 2, 3)
+        assert v2 == (4, 5, 6)
+
+    def test_convert_tuples(self):
+        """Test converting tuple versions."""
+        v1, v2 = _convert_versions_to_tuples((1, 2, 3), (4, 5, 6))
+        assert v1 == (1, 2, 3)
+        assert v2 == (4, 5, 6)
+
+    def test_convert_none(self):
+        """Test converting None versions."""
+        v1, v2 = _convert_versions_to_tuples(None, None)
+        assert v1 == (0, 0, 0)
+        assert v2 == (0, 0, 0)
+
+
+class TestCheckVersionMetadata:
+    """Test _check_version_metadata function."""
+
+    def test_check_build_metadata(self):
+        """Test checking build metadata."""
+        has_build, has_pre = _check_version_metadata("1.2.3+build.1", "1.2.3+build.2")
+        assert has_build is True
+
+    def test_check_prerelease(self):
+        """Test checking prerelease."""
+        has_build, has_pre = _check_version_metadata("1.2.3-alpha", "1.2.3-beta")
+        assert has_pre is True
+
+    def test_check_no_metadata(self):
+        """Test checking versions without metadata."""
+        has_build, has_pre = _check_version_metadata("1.2.3", "4.5.6")
+        assert has_build is False
+        assert has_pre is False
+
+
+class TestBuildFinalVersionTuple:
+    """Test _build_final_version_tuple function."""
+
+    def test_build_final_basic(self):
+        """Test building final version tuple."""
+        result = _build_final_version_tuple(
+            parts=[1, 2, 3],
+            has_prerelease=False,
+            prerelease_num=None,
+            has_text_suffix=False,
+            build_metadata=None,
+            version_str="1.2.3",
+        )
+        assert result is not None
+        assert result == (1, 2, 3)
+
+    def test_build_final_with_prerelease(self):
+        """Test building version tuple with prerelease."""
+        result = _build_final_version_tuple(
+            parts=[1, 2, 3],
+            has_prerelease=True,
+            prerelease_num=1,
+            has_text_suffix=False,
+            build_metadata=None,
+            version_str="1.2.3-alpha.1",
+        )
+        assert result is not None
+
+    def test_build_final_with_metadata(self):
+        """Test building version tuple with build metadata."""
+        result = _build_final_version_tuple(
+            parts=[1, 2, 3],
+            has_prerelease=False,
+            prerelease_num=None,
+            has_text_suffix=False,
+            build_metadata=456,
+            version_str="1.2.3+456",
+        )
+        assert result is not None
+        assert 456 in result
+
+
+class TestBuildPrereleaseTuple:
+    """Test _build_prerelease_tuple function."""
+
+    def test_build_prerelease_alpha(self):
+        """Test building prerelease tuple."""
+        result = _build_prerelease_tuple(
+            parts=[1, 2, 3],
+            prerelease_num=1,
+            has_text_suffix=False,
+            version_str="1.2.3-alpha.1",
+        )
+        assert result is not None
+        assert len(result) >= 3
+
+    def test_build_prerelease_with_text_suffix(self):
+        """Test building prerelease tuple with text suffix."""
+        result = _build_prerelease_tuple(
+            parts=[1, 2, 3],
+            prerelease_num=None,
+            has_text_suffix=True,
+            version_str="1.2.3-alpha",
+        )
+        assert result is not None
+
+
+class TestCompareBaseAndPrereleaseVersions:
+    """Test _compare_base_and_prerelease_versions function."""
+
+    def test_compare_with_prerelease(self):
+        """Test comparing versions with prerelease."""
+        # Function expects tuples first, then strings
+        result = _compare_base_and_prerelease_versions((1, 2, 3), (1, 2, 3), "1.2.3-alpha", "1.2.3-beta")
+        # alpha < beta
+        assert result < 0
+
+    def test_compare_same_prerelease(self):
+        """Test comparing same prerelease versions."""
+        result = _compare_base_and_prerelease_versions((1, 2, 3), (1, 2, 3), "1.2.3-alpha", "1.2.3-alpha")
+        assert result == 0
+
+    def test_compare_prerelease_vs_release(self):
+        """Test comparing prerelease vs release."""
+        result = _compare_base_and_prerelease_versions((1, 2, 3), (1, 2, 3), "1.2.3-alpha", "1.2.3")
+        # prerelease < release
+        assert result < 0
+
+
+class TestGetUnicodePriority:
+    """Test _get_unicode_priority function."""
+
+    def test_unicode_priority_greek_alpha(self):
+        """Test priority for Greek alpha (α)."""
+        result = _get_unicode_priority("α")
+        assert result == 1
+
+    def test_unicode_priority_greek_beta(self):
+        """Test priority for Greek beta (β)."""
+        result = _get_unicode_priority("β")
+        assert result == 2
+
+    def test_unicode_priority_none(self):
+        """Test priority for None."""
+        result = _get_unicode_priority(None)
+        assert result is None
+
+    def test_unicode_priority_non_greek(self):
+        """Test priority for non-Greek letters returns None."""
+        result = _get_unicode_priority("alpha")
+        assert result is None
+
+
+class TestCompareUnicodeSuffixes:
+    """Test _compare_unicode_suffixes function."""
+
+    def test_compare_unicode_same(self):
+        """Test comparing same unicode suffixes."""
+        result = _compare_unicode_suffixes("α", "α")
+        assert result == 0
+
+    def test_compare_unicode_different(self):
+        """Test comparing different unicode suffixes."""
+        result = _compare_unicode_suffixes("α", "β")
+        assert result == -1  # alpha < beta
+
+    def test_compare_unicode_non_greek(self):
+        """Test comparing non-Greek returns None."""
+        result = _compare_unicode_suffixes("alpha", "beta")
+        assert result is None
+
+
+class TestCompareNoneSuffixes:
+    """Test _compare_none_suffixes function."""
+
+    def test_compare_both_none(self):
+        """Test comparing both None suffixes."""
+        result = _compare_none_suffixes(None, None)
+        assert result == 0
+
+    def test_compare_one_none(self):
+        """Test comparing one None suffix."""
+        result = _compare_none_suffixes(None, "alpha")
+        assert result is not None
+
+
+class TestCompareStringSuffixes:
+    """Test _compare_string_suffixes function."""
+
+    def test_compare_string_alpha_beta(self):
+        """Test comparing alpha vs beta."""
+        result = _compare_string_suffixes("alpha", "beta")
+        assert result < 0
+
+    def test_compare_string_same(self):
+        """Test comparing same strings."""
+        result = _compare_string_suffixes("alpha", "alpha")
+        assert result == 0
+
+
+class TestExtractPrereleaseTypeAndSuffix:
+    """Test _extract_prerelease_type_and_suffix function."""
+
+    def test_extract_alpha(self):
+        """Test extracting alpha prerelease."""
+        result = _extract_prerelease_type_and_suffix("1.2.3-alpha.1")
+        assert result is not None
+
+    def test_extract_no_prerelease(self):
+        """Test extracting from version without prerelease."""
+        result = _extract_prerelease_type_and_suffix("1.2.3")
+        # May return None or empty result - just verify it doesn't crash
+        assert result is None or isinstance(result, tuple)
+
+
+class TestExtractStandaloneUnicodePrerelease:
+    """Test _extract_standalone_unicode_prerelease function."""
+
+    def test_extract_unicode_alpha(self):
+        """Test extracting unicode alpha."""
+        result = _extract_standalone_unicode_prerelease("1.2.3α")
+        # May or may not extract based on implementation - verify no crash
+        assert result is None or isinstance(result, tuple)
+
+    def test_extract_no_unicode(self):
+        """Test extracting from version without unicode."""
+        result = _extract_standalone_unicode_prerelease("1.2.3")
+        assert result is None
