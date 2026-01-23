@@ -1,12 +1,13 @@
 version: 2
 updates:
-  # Enable version updates for Python dependencies with security focus
+  # Python dependencies (all: core + dev + security)
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "tuesday"
       time: "09:00"
-    open-pull-requests-limit: 15
+    open-pull-requests-limit: 10
     reviewers:
       - "docdyhr"
     assignees:
@@ -17,66 +18,51 @@ updates:
     labels:
       - "dependencies"
       - "python"
-      - "security"
     allow:
       - dependency-type: "direct"
       - dependency-type: "indirect"
-    # Security updates take priority
     groups:
       security:
         applies-to: security-updates
         patterns:
           - "*"
-      minor-updates:
+      production:
         applies-to: version-updates
+        patterns:
+          - "pyyaml"
+          - "tqdm"
+          - "psutil"
+          - "tabulate"
+          - "aiohttp"
+          - "rapidfuzz"
         update-types:
           - "minor"
           - "patch"
-    # Only ignore major updates for very stable dependencies
+      dev-tools:
+        applies-to: version-updates
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "mypy"
+          - "black"
+          - "bandit*"
+          - "safety"
+          - "pip-audit"
+          - "build"
+          - "wheel"
+          - "twine"
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       - dependency-name: "PyYAML"
         update-types: ["version-update:semver-major"]
       - dependency-name: "tabulate"
         update-types: ["version-update:semver-major"]
-    # Automatically merge security updates and patch updates
     pull-request-branch-name:
       separator: "/"
 
-  # Development dependencies with security focus
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "tuesday"
-      time: "09:00"
-    target-branch: "master"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "docdyhr"
-    assignees:
-      - "docdyhr"
-    commit-message:
-      prefix: "deps(dev)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "python"
-      - "development"
-    # Focus on dev dependencies
-    allow:
-      - dependency-type: "development"
-    groups:
-      dev-security:
-        applies-to: security-updates
-        patterns:
-          - "pytest*"
-          - "ruff"
-          - "mypy"
-          - "bandit*"
-          - "safety"
-          - "pip-audit"
-
-  # Enable version updates for GitHub Actions with security priority
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -94,10 +80,15 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
-      - "security"
     groups:
-      actions-security:
-        applies-to: security-updates
+      actions-all:
+        applies-to: version-updates
         patterns:
           - "actions/*"
           - "github/*"
+          - "codecov/*"
+          - "sigstore/*"
+      actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"

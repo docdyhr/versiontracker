@@ -253,7 +253,9 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "network: marks tests that require network access",
-    "asyncio: marks tests as async tests that require asyncio"
+    "asyncio: marks tests as async tests that require asyncio",
+    "timeout: marks tests that may timeout or need extended time",
+    "flaky: marks tests that may be flaky and need retry logic",
 ]
 norecursedirs = [
     ".git",
@@ -271,6 +273,7 @@ filterwarnings = [
 ]
 timeout = 300
 timeout_method = "thread"
+timeout_func_only = true
 asyncio_mode = "auto"
 
 # Coverage configuration
