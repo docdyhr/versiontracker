@@ -165,11 +165,10 @@ jobs:
           echo "::group::Security Analysis"
           # Use Bandit with project configuration (pyproject.toml) if present
           bandit -r versiontracker/ || echo "bandit reported issues (non-blocking)"
-          # Safety temporarily disabled due to psutil 7.0.0 incompatibility
           if command -v safety >/dev/null 2>&1; then
             safety check || echo "safety reported issues (non-blocking)"
           else
-            echo "Safety check skipped (incompatible with psutil 7.0.0)"
+            echo "Safety not available, skipping"
           fi
           pip-audit || echo "pip-audit reported issues (non-blocking)"
           echo "::endgroup::"
@@ -266,7 +265,7 @@ jobs:
       contents: read
     environment:
       name: pypi
-      url: https://pypi.org/project/homebrew-versiontracker/
+      url: https://pypi.org/project/macversiontracker/
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -318,7 +317,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ needs.validate-release.outputs.version }}"
-          PACKAGE="homebrew-versiontracker==${VERSION}"
+          PACKAGE="macversiontracker==${VERSION}"
           echo "⏳ Polling PyPI for ${PACKAGE}"
           attempt=0
           max_attempts=6
@@ -350,8 +349,8 @@ jobs:
       - name: Test installation from PyPI
         run: |
           VERSION="${{ needs.validate-release.outputs.version }}"
-          echo "🔍 Testing installation of homebrew-versiontracker==$VERSION from PyPI..."
-          pip install --no-cache-dir "homebrew-versiontracker==$VERSION"
+          echo "🔍 Testing installation of macversiontracker==$VERSION from PyPI..."
+          pip install --no-cache-dir "macversiontracker==$VERSION"
           python -c "import versiontracker; import sys; expected='$VERSION'; actual=versiontracker.__version__; print(f'Expected version: {expected}'); print(f'Installed version: {actual}'); sys.exit(0) if actual == expected else sys.exit(1)"
           echo "🧪 Testing CLI functionality..."
           versiontracker --version

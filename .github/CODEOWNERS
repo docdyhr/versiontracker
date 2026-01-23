@@ -17,7 +17,7 @@
 # Tests and test configuration
 /tests/                       @docdyhr
 /test_*.yaml                  @docdyhr
-/pytest.ini                   @docdyhr
+/pyproject.toml                @docdyhr
 
 # Documentation
 /README.md                    @docdyhr

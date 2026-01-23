@@ -54,7 +54,7 @@ jobs:
             safety check --json > safety-report.json || true
             safety check || true
           else
-            echo "Safety is temporarily disabled due to psutil 7.0.0 incompatibility"
+            echo "::warning::Safety not available, skipping dependency safety check"
             echo "{\"vulnerabilities\": []}" > safety-report.json
           fi
           echo "::endgroup::"
@@ -100,7 +100,7 @@ jobs:
 
       - name: Check for secrets with TruffleHog
         if: steps.trufflehog_params.outputs.skip_scan != 'true'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@v3.92.5
         continue-on-error: true
         with:
           path: ./
@@ -139,8 +139,7 @@ jobs:
           if command -v safety >/dev/null 2>&1; then
             safety check --short-report >> security-summary.md || true
           else
-            echo "Safety disabled due to psutil 7.0.0 incompatibility." \
-            >> security-summary.md
+            echo "Safety not available." >> security-summary.md
           fi
           echo '```' >> security-summary.md
           echo "" >> security-summary.md
