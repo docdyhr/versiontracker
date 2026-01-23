@@ -129,8 +129,9 @@ def test_int_003_matching_enhanced_enabled(monkeypatch, capsys):
 
     out = capsys.readouterr().out
 
-    # Expect 4 installables (3 base + 1 simulated alias)
-    assert "Found 4 applications installable with Homebrew" in out
+    # 3 base + 1 simulated alias = 4 candidates, but alphaapp is removed by
+    # the post-filter (already in brew_casks). Leaves 3 installable.
+    assert "Found 3 applications installable with Homebrew" in out
     assert any(entry[0] == "check_brew_install_candidates" for entry in call_log)
 
 
@@ -190,9 +191,10 @@ def test_int_003_matching_enhanced_disabled(monkeypatch, capsys):
     assert rc == 0
 
     out = capsys.readouterr().out
-    # Expect only 3 installables (no alias expansion)
-    assert "Found 3 applications installable with Homebrew" in out
+    # 3 candidates returned as installable, but alphaapp is removed by the
+    # post-filter (already in brew_casks). Leaves 2 installable.
+    assert "Found 2 applications installable with Homebrew" in out
     assert any(entry[0] == "check_brew_install_candidates" for entry in call_log)
 
-    # Differential assertion (sanity): ensure "Found 4" NOT present
-    assert "Found 4 applications installable with Homebrew" not in out
+    # Differential assertion (sanity): enhanced mode finds more than basic
+    assert "Found 3 applications installable with Homebrew" not in out

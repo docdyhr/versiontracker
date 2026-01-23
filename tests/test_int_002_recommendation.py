@@ -108,10 +108,10 @@ def test_int_002_recommendation_basic(monkeypatch, capsys):
     assert rc == 0
 
     out = capsys.readouterr().out
-    # Expect all three applications (minus those filtered by brew casks inside
-    # filter_out_brews, which we did not modify)
-    # filter_out_brews returns list including all 3; candidate checker returns 3 installables
-    assert "Found 3 applications installable with Homebrew" in out
+    # filter_out_brews returns all 3 apps, candidate checker marks all 3 installable,
+    # but the post-filter removes alphaapp since it's already in apps_homebrew (installed casks).
+    # So only 2 remain: betaapp, gammaapp.
+    assert "Found 2 applications installable with Homebrew" in out
 
     # Validate that strict flag seen as False
     assert ("filter_out_brews", False) in calls

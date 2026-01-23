@@ -134,7 +134,9 @@ def test_int_004_async_parity(monkeypatch, capsys):
 
     assert rc_sync == 0
     assert is_async_brew_enabled({}) is False
-    assert "Found 3 applications installable with Homebrew" in out_sync
+    # 3 candidates all marked installable, but alphaapp removed by post-filter
+    # (already in brew_casks). Leaves 2.
+    assert "Found 2 applications installable with Homebrew" in out_sync
 
     client_sync = get_async_client(force=None)
     assert client_sync.enabled is False
@@ -148,16 +150,16 @@ def test_int_004_async_parity(monkeypatch, capsys):
 
     assert rc_async == 0
     assert is_async_brew_enabled({"VERSIONTRACKER_ASYNC_BREW": "1"}) is True
-    assert "Found 3 applications installable with Homebrew" in out_async
+    assert "Found 2 applications installable with Homebrew" in out_async
 
     client_async = get_async_client(force=None)
     assert client_async.enabled is True
 
     # Parity assertion: summary line count must match
     # (We avoid full output diff to remain resilient to incidental formatting changes.)
-    summary_sync = [line for line in out_sync.splitlines() if "Found 3 applications installable" in line]
-    summary_async = [line for line in out_async.splitlines() if "Found 3 applications installable" in line]
+    summary_sync = [line for line in out_sync.splitlines() if "Found 2 applications installable" in line]
+    summary_async = [line for line in out_async.splitlines() if "Found 2 applications installable" in line]
     assert summary_sync == summary_async, "Async flag altered summary output unexpectedly"
 
     # Sanity: ensure no accidental duplication in async run
-    assert out_async.count("Found 3 applications installable with Homebrew") == 1
+    assert out_async.count("Found 2 applications installable with Homebrew") == 1
