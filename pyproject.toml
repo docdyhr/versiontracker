@@ -28,39 +28,39 @@ classifiers = [
 ]
 
 dependencies = [
-    "pyyaml>=6.0",
+    "pyyaml>=6.0.2",
     "tqdm>=4.65",
-    "psutil>=5.9",
+    "psutil>=6.0",
     "tabulate>=0.9.0",
-    "aiohttp>=3.8.0",
+    "aiohttp>=3.9.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.4",
+    "pytest>=8.0",
     "pytest-cov>=7.0",
     "pytest-timeout>=2.1",
-    "pytest-mock>=3.11",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.7",
-    "ruff>=0.1",
-    "mypy>=1.5",
-    "types-PyYAML>=6.0",
-    "build>=0.10",
-    "wheel>=0.41",
-    "twine>=4.0",
+    "pytest-mock>=3.14",
+    "pytest-asyncio>=1.0",
+    "black>=24.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "types-PyYAML>=6.0.12",
+    "build>=1.0",
+    "wheel>=0.44",
+    "twine>=6.0",
 ]
 test = [
-    "pytest>=7.4",
+    "pytest>=8.0",
     "pytest-cov>=7.0",
     "pytest-timeout>=2.1",
-    "pytest-mock>=3.11",
-    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.14",
+    "pytest-asyncio>=1.0",
 ]
 security = [
-    "bandit[toml]>=1.7",
-    "pip-audit>=2.6",
-    "safety>=2.3",
+    "bandit[toml]>=1.8",
+    "pip-audit>=2.9",
+    "safety>=3.0",
 ]
 fuzzy = [
     "rapidfuzz>=3.0",
@@ -213,7 +213,7 @@ ignore_errors = true
 
 # Pytest configuration
 [tool.pytest.ini_options]
-minversion = "7.0"
+minversion = "8.0"
 testpaths = [
     "tests",
     "versiontracker"
