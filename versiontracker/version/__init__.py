@@ -8,6 +8,16 @@ import os
 from collections.abc import Callable
 from typing import Any
 
+# Import batch processing functions from new module
+from .batch import (
+    check_outdated_apps as batch_check_outdated_apps,
+)
+from .batch import (
+    create_app_batches,
+    handle_batch_result,
+    process_app_batch,
+    process_single_app,
+)
 from .comparator import compare_versions, get_version_difference, is_version_newer
 
 # Note: VersionInfo will be set later from the correct ApplicationInfo
@@ -413,6 +423,12 @@ __all__ = [
     "compare_versions",
     "is_version_newer",
     "get_version_difference",
+    # Batch processing (new module)
+    "batch_check_outdated_apps",
+    "create_app_batches",
+    "handle_batch_result",
+    "process_app_batch",
+    "process_single_app",
     # ALL existing functions from main version.py
     "_apply_version_truncation",
     "_both_have_app_builds",
