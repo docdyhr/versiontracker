@@ -5,51 +5,38 @@ This module provides enhanced versions of auto-update handlers with:
 - Detailed error reporting and recovery
 - Transaction-like consistency
 - Rollback mechanisms for critical failures
+
+The functionality is organized into focused submodules:
+- auto_update_types: Data classes and enums (OperationResult, UninstallResult, BlacklistBackup)
+- backup_handlers: Backup and restore operations (BackupManager)
 """
 
-import json
 import logging
-import os
-import tempfile
-import time
-from dataclasses import dataclass
-from enum import Enum
 from typing import Any
 
 from versiontracker.app_finder import get_homebrew_casks
 from versiontracker.config import get_config
+
+# Import types from dedicated module
+from versiontracker.handlers.auto_update_types import (
+    BlacklistBackup,
+    OperationResult,
+    UninstallResult,
+)
+from versiontracker.handlers.backup_handlers import BackupManager
 from versiontracker.homebrew import get_casks_with_auto_updates
 from versiontracker.ui import create_progress_bar
 from versiontracker.utils import run_command
 
-
-class OperationResult(Enum):
-    """Result types for operations."""
-
-    SUCCESS = "success"
-    FAILURE = "failure"
-    PARTIAL_SUCCESS = "partial_success"
-    CANCELLED = "cancelled"
-    CRITICAL_FAILURE = "critical_failure"
-
-
-@dataclass
-class UninstallResult:
-    """Result of an individual uninstall operation."""
-
-    app_name: str
-    success: bool
-    error_message: str | None = None
-    is_critical: bool = False
-
-
-@dataclass
-class BlacklistBackup:
-    """Backup information for blacklist operations."""
-
-    original_blacklist: list[str]
-    backup_file: str | None = None
-    timestamp: float = 0.0
+# Re-export for backward compatibility
+__all__ = [
+    "OperationResult",
+    "UninstallResult",
+    "BlacklistBackup",
+    "EnhancedAutoUpdateHandler",
+    "handle_blacklist_auto_updates_enhanced",
+    "handle_uninstall_auto_updates_enhanced",
+]
 
 
 class EnhancedAutoUpdateHandler:
@@ -59,6 +46,7 @@ class EnhancedAutoUpdateHandler:
         """Initialize the enhanced handler."""
         self.progress_bar = create_progress_bar()
         self.config = get_config()
+        self.backup_manager = BackupManager(self.config)
 
     def _create_blacklist_backup(self, current_blacklist: list[str]) -> BlacklistBackup:
         """Create a backup of the current blacklist configuration.
@@ -69,26 +57,7 @@ class EnhancedAutoUpdateHandler:
         Returns:
             BlacklistBackup object with backup information
         """
-        backup = BlacklistBackup(original_blacklist=current_blacklist.copy(), timestamp=time.time())
-
-        try:
-            # Create temporary backup file
-            temp_dir = tempfile.gettempdir()
-            backup_file = os.path.join(temp_dir, f"versiontracker_blacklist_backup_{int(backup.timestamp)}.json")
-
-            backup_data = {"blacklist": current_blacklist, "timestamp": backup.timestamp, "version": "0.6.5"}
-
-            with open(backup_file, "w") as f:
-                json.dump(backup_data, f, indent=2)
-
-            backup.backup_file = backup_file
-            logging.info(f"Created blacklist backup at: {backup_file}")
-
-        except Exception as e:
-            logging.warning(f"Failed to create blacklist backup: {e}")
-            # Continue without backup file
-
-        return backup
+        return self.backup_manager.create_blacklist_backup(current_blacklist)
 
     def _restore_blacklist_from_backup(self, backup: BlacklistBackup) -> bool:
         """Restore blacklist from backup.
@@ -99,17 +68,7 @@ class EnhancedAutoUpdateHandler:
         Returns:
             True if restore was successful
         """
-        try:
-            self.config.set("blacklist", backup.original_blacklist)
-            if self.config.save():
-                logging.info("Successfully restored blacklist from backup")
-                return True
-            else:
-                logging.error("Failed to save restored blacklist")
-                return False
-        except Exception as e:
-            logging.error(f"Failed to restore blacklist from backup: {e}")
-            return False
+        return self.backup_manager.restore_blacklist_from_backup(backup)
 
     def _cleanup_backup(self, backup: BlacklistBackup) -> None:
         """Clean up backup file.
@@ -117,12 +76,7 @@ class EnhancedAutoUpdateHandler:
         Args:
             backup: BlacklistBackup object
         """
-        if backup.backup_file and os.path.exists(backup.backup_file):
-            try:
-                os.remove(backup.backup_file)
-                logging.info(f"Cleaned up backup file: {backup.backup_file}")
-            except Exception as e:
-                logging.warning(f"Failed to clean up backup file: {e}")
+        self.backup_manager.cleanup_backup(backup)
 
     def _get_auto_update_casks_info(self) -> tuple[list[str] | None, list[str] | None]:
         """Get installed casks and those with auto-updates.
@@ -236,20 +190,7 @@ class EnhancedAutoUpdateHandler:
         Returns:
             Exit code 1
         """
-        print(self.progress_bar.color("red")("Failed to save configuration."))
-        print(self.progress_bar.color("yellow")("Attempting to restore original blacklist..."))
-
-        if self._restore_blacklist_from_backup(backup):
-            print(self.progress_bar.color("green")("Successfully restored original blacklist."))
-        else:
-            print(
-                self.progress_bar.color("red")(
-                    "Failed to restore original blacklist. Manual intervention may be required."
-                )
-            )
-            print(self.progress_bar.color("blue")(f"Backup available at: {backup.backup_file}"))
-
-        return 1
+        return self.backup_manager.handle_save_failure(backup)
 
     def _handle_config_error(self, error: Exception, backup: BlacklistBackup) -> int:
         """Handle configuration error with rollback.
@@ -261,18 +202,7 @@ class EnhancedAutoUpdateHandler:
         Returns:
             Exit code 1
         """
-        logging.error(f"Config operation failed: {error}")
-        print(self.progress_bar.color("red")(f"Configuration error: {error}"))
-        print(self.progress_bar.color("yellow")("Attempting to restore original blacklist..."))
-
-        if self._restore_blacklist_from_backup(backup):
-            print(self.progress_bar.color("green")("Successfully restored original blacklist."))
-        else:
-            print(self.progress_bar.color("red")("Failed to restore original blacklist."))
-            if backup.backup_file:
-                print(self.progress_bar.color("blue")(f"Manual restore available from: {backup.backup_file}"))
-
-        return 1
+        return self.backup_manager.handle_config_error(error, backup)
 
     def handle_blacklist_auto_updates_enhanced(self, options: Any) -> int:
         """Enhanced version of blacklist auto-updates with better error handling.

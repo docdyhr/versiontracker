@@ -1,5 +1,4 @@
-"""
-Configuration management for VersionTracker.
+"""Configuration management for VersionTracker.
 
 This module handles configuration loading from multiple sources including
 YAML files, environment variables, and command-line arguments.
@@ -179,6 +178,15 @@ class Config:
                 "adaptive_rate_limiting": True,
                 # Whether to use enhanced progress bars
                 "enhanced_progress": True,
+            },
+            # Async Homebrew options
+            "async_homebrew": {
+                # Whether to use async Homebrew operations (faster batch processing)
+                "enabled": True,
+                # Maximum concurrent requests
+                "max_concurrency": 10,
+                # Batch size for async operations
+                "batch_size": 50,
             },
             # Version comparison options
             "version_comparison": {

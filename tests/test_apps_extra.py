@@ -37,6 +37,7 @@ class TestAppsExtra(unittest.TestCase):
         """Test check_brew_install_candidates with successful batch processing."""
         with (
             patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
             patch("versiontracker.app_finder._process_brew_batch") as mock_process_brew_batch,
             patch("versiontracker.app_finder.smart_progress") as mock_smart_progress,
         ):
@@ -77,6 +78,7 @@ class TestAppsExtra(unittest.TestCase):
         """Test check_brew_install_candidates handling batch processing errors."""
         with (
             patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
             patch("versiontracker.app_finder._process_brew_batch") as mock_process_brew_batch,
             patch("versiontracker.app_finder.smart_progress") as mock_smart_progress,
         ):
