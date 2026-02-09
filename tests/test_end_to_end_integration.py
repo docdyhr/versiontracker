@@ -127,7 +127,10 @@ class TestEndToEndIntegration:
 
     def test_complete_recommendations_workflow(self, mock_applications, mock_homebrew_casks, mock_homebrew_available):
         """Test complete recommendations workflow."""
-        with mock.patch("sys.argv", ["versiontracker", "--recom"]):
+        with (
+            mock.patch("sys.argv", ["versiontracker", "--recom"]),
+            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+        ):
             result = versiontracker_main()
 
         assert result == 0
@@ -162,10 +165,13 @@ class TestEndToEndIntegration:
 
     def test_auto_updates_management_workflow(self, mock_homebrew_casks, mock_homebrew_available):
         """Test auto-updates management workflow."""
-        # Mock user input for confirmation
-        with mock.patch("builtins.input", return_value="y"):
-            with mock.patch("sys.argv", ["versiontracker", "--blacklist-auto-updates"]):
-                result = versiontracker_main()
+        # Mock has_auto_updates to avoid real brew subprocess calls
+        with (
+            mock.patch("builtins.input", return_value="y"),
+            mock.patch("sys.argv", ["versiontracker", "--blacklist-auto-updates"]),
+            mock.patch("versiontracker.homebrew.has_auto_updates", return_value=True),
+        ):
+            result = versiontracker_main()
 
         assert result == 0
 
@@ -228,7 +234,10 @@ class TestEndToEndIntegration:
         cache_dir = temp_config_dir / "cache"
         cache_dir.mkdir()
 
-        with mock.patch("versiontracker.config.get_config") as mock_config:
+        with (
+            mock.patch("versiontracker.config.get_config") as mock_config,
+            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+        ):
             config = Config()
             config.cache_dir = str(cache_dir)
             mock_config.return_value = config
@@ -394,10 +403,13 @@ class TestPlugin(CommandPlugin):
         large_apps = [{"name": f"App{i}", "version": "1.0.0"} for i in range(1000)]
         large_casks = [{"name": f"cask-{i}", "version": "1.0.0"} for i in range(1000)]
 
-        with mock.patch("versiontracker.apps.get_applications", return_value=large_apps):
-            with mock.patch("versiontracker.apps.get_homebrew_casks", return_value=large_casks):
-                with mock.patch("sys.argv", ["versiontracker", "--recom"]):
-                    result = versiontracker_main()
+        with (
+            mock.patch("versiontracker.apps.get_applications", return_value=large_apps),
+            mock.patch("versiontracker.apps.get_homebrew_casks", return_value=large_casks),
+            mock.patch("sys.argv", ["versiontracker", "--recom"]),
+            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+        ):
+            result = versiontracker_main()
 
         final_memory = process.memory_info().rss
         memory_increase = final_memory - initial_memory
@@ -485,7 +497,10 @@ class TestPlugin(CommandPlugin):
 
         # Run same operation multiple times
         for _ in range(3):
-            with mock.patch("sys.argv", ["versiontracker", "--recom"]):
+            with (
+                mock.patch("sys.argv", ["versiontracker", "--recom"]),
+                mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+            ):
                 result = versiontracker_main()
                 results.append(result)
 

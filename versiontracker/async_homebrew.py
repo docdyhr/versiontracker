@@ -281,8 +281,10 @@ async def async_check_brew_install_candidates(
         strict_match=strict_match,
     )
 
-    # Call the method directly (it's sync due to @async_to_sync decorator)
-    return cast(list[tuple[str, str, bool]], processor.process_all(data))
+    # Use async method directly since we're already in an async context.
+    # Calling the sync process_all() here would deadlock because it uses
+    # @async_to_sync which tries to run a new event loop inside the current one.
+    return await processor.process_all_async(data)
 
 
 @async_to_sync
