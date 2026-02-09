@@ -659,11 +659,15 @@ def test_check_brew_install_candidates_success():
     # Mock functions in the dynamically loaded module
     with (
         patch.object(_apps_main, "is_homebrew_available") as mock_is_homebrew,
+        patch.object(_apps_main, "_is_async_homebrew_available") as mock_is_async,
         patch.object(_apps_main, "_process_brew_batch") as mock_process_brew_batch,
         patch.object(_apps_main, "smart_progress") as mock_smart_progress,
     ):
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
+
+        # Mock _is_async_homebrew_available to return False to test sync path
+        mock_is_async.return_value = False
 
         # Mock _process_brew_batch to return expected results
         expected_results = [("Firefox", "100.0", True), ("Chrome", "99.0", False)]

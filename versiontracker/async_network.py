@@ -321,9 +321,10 @@ class AsyncBatchProcessor[T, R]:
         """
         raise NotImplementedError("Subclasses must implement handle_error")
 
-    @async_to_sync
-    async def process_all(self, data: list[T]) -> list[R]:
-        """Process all data in batches.
+    async def process_all_async(self, data: list[T]) -> list[R]:
+        """Process all data in batches (async version).
+
+        Use this when already inside an async context to avoid deadlocks.
 
         Args:
             data: List of items to process
@@ -344,3 +345,19 @@ class AsyncBatchProcessor[T, R]:
             all_results.extend(batch_results)
 
         return all_results
+
+    @async_to_sync
+    async def process_all(self, data: list[T]) -> list[R]:
+        """Process all data in batches (sync entry point).
+
+        This wraps process_all_async with @async_to_sync for callers
+        that are not in an async context. Do NOT call this from within
+        an async function — use process_all_async instead to avoid deadlocks.
+
+        Args:
+            data: List of items to process
+
+        Returns:
+            List of processed results
+        """
+        return await self.process_all_async(data)

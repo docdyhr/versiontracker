@@ -52,6 +52,58 @@ from versiontracker.exceptions import (
 from versiontracker.utils import normalise_name, run_command
 from versiontracker.version import partial_ratio
 
+# Async Homebrew imports (lazy loaded to avoid circular imports)
+_async_homebrew_available: bool | None = None
+
+
+def _is_async_homebrew_available() -> bool:
+    """Check if async Homebrew module is available and enabled.
+
+    Returns:
+        bool: True if async Homebrew operations should be used.
+    """
+    global _async_homebrew_available
+
+    if _async_homebrew_available is not None:
+        return _async_homebrew_available
+
+    try:
+        # Check config setting
+        config = get_config()
+        async_config = getattr(config, "async_homebrew", None)
+        if async_config is None:
+            async_config = config._config.get("async_homebrew", {})
+
+        enabled = async_config.get("enabled", True) if isinstance(async_config, dict) else True
+
+        if not enabled:
+            _async_homebrew_available = False
+            return False
+
+        # Check environment variable override (can disable async)
+        import os
+
+        if os.environ.get("VERSIONTRACKER_ASYNC_BREW", "").lower() in ("0", "false", "no", "off"):
+            _async_homebrew_available = False
+            return False
+
+        # Try to import the async module
+        from versiontracker import async_homebrew  # noqa: F401
+
+        _async_homebrew_available = True
+        logging.debug("Async Homebrew operations enabled")
+        return True
+
+    except ImportError as e:
+        logging.debug("Async Homebrew module not available: %s", e)
+        _async_homebrew_available = False
+        return False
+    except Exception as e:
+        logging.warning("Error checking async Homebrew availability: %s", e)
+        _async_homebrew_available = False
+        return False
+
+
 # Type definitions
 T = TypeVar("T")
 
@@ -197,17 +249,18 @@ try:
 except ImportError:
     HAS_PROGRESS = False
 
-    def smart_progress[T](
+    def _fallback_progress[T](
         iterable: Iterable[T] | None = None,
         desc: str = "",
         total: int | None = None,
         monitor_resources: bool = True,
         **kwargs: Any,
     ) -> Iterator[T]:
-        """Provide a fallback for environments without smart_progress."""
         if iterable is None:
             return iter([])
         return iter(iterable)
+
+    smart_progress = _fallback_progress
 
 
 # Command constants
@@ -706,6 +759,9 @@ def check_brew_install_candidates(
     transient errors gracefully, continuing with remaining batches
     even if some fail.
 
+    When async Homebrew is enabled (default), uses the faster async
+    implementation with aiohttp for improved performance.
+
     Args:
         data: List of (app_name, version) tuples for installed applications
         rate_limit: Number of concurrent requests or Config object containing
@@ -735,6 +791,24 @@ def check_brew_install_candidates(
     if hasattr(rate_limit, "api_rate_limit") and not isinstance(rate_limit, int):
         rate_limit = rate_limit.api_rate_limit
 
+    # Use async implementation if available (faster batch processing)
+    if _is_async_homebrew_available():
+        try:
+            from versiontracker.async_homebrew import async_check_brew_install_candidates
+
+            logging.debug("Using async Homebrew for install candidate check (%d apps)", len(data))
+            # The async function is wrapped with @async_to_sync, so it can be called directly
+            async_result: list[tuple[str, str, bool]] = async_check_brew_install_candidates(
+                data,
+                rate_limit=float(rate_limit) if isinstance(rate_limit, int) else 1.0,
+                strict_match=False,
+            )
+            return async_result
+        except Exception as e:
+            logging.warning("Async Homebrew failed, falling back to sync: %s", e)
+            # Fall through to synchronous implementation
+
+    # Synchronous implementation (fallback)
     # Create batches
     batches = _create_batches(data)
 

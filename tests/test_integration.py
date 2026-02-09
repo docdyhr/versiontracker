@@ -238,12 +238,14 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.app_finder.get_homebrew_casks")
     @patch("versiontracker.app_finder.filter_out_brews")
     @patch("versiontracker.app_finder.check_brew_install_candidates")
+    @patch("versiontracker.handlers.brew_handlers.check_brew_install_candidates")
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
     @patch("versiontracker.utils.get_json_data")
-    @patch("versiontracker.__main__")
     def test_end_to_end_workflow_integration(
         self,
-        versiontracker_main_module,
         mock_json_data,
+        mock_get_casks_handlers,
+        mock_check_candidates_handlers,
         mock_check_candidates,
         mock_filter_brews,
         mock_get_casks,
@@ -270,6 +272,7 @@ class TestIntegration(unittest.TestCase):
         # Mock brew data
         test_casks = ["firefox", "google-chrome", "slack", "visual-studio-code"]
         mock_get_casks.return_value = test_casks
+        mock_get_casks_handlers.return_value = test_casks
 
         # Mock filtered applications (excluding those available in brew)
         filtered_apps = [("NotBrewable", "1.0.0")]
@@ -277,6 +280,7 @@ class TestIntegration(unittest.TestCase):
 
         # Mock brew candidates
         mock_check_candidates.return_value = []
+        mock_check_candidates_handlers.return_value = []
         mock_json_data.return_value = {}
 
         # Test workflow: apps -> recommend -> strict_recommend -> brews
@@ -559,13 +563,13 @@ class TestIntegration(unittest.TestCase):
                 self.fail(f"Malformed version handling failed: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("subprocess.run")
-    def test_homebrew_command_failures(self, mock_subprocess, mock_check_deps):
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
+    def test_homebrew_command_failures(self, mock_get_casks, mock_check_deps):
         """Test handling of Homebrew command failures."""
         from subprocess import CalledProcessError
 
-        # Mock subprocess to simulate Homebrew failures
-        mock_subprocess.side_effect = CalledProcessError(1, "brew")
+        # Mock get_homebrew_casks to simulate Homebrew failures
+        mock_get_casks.side_effect = CalledProcessError(1, "brew")
 
         with patch("builtins.print"):
             try:

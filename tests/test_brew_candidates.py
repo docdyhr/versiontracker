@@ -41,14 +41,17 @@ class TestBrewCandidates(unittest.TestCase):
         self.assertEqual(result, expected)
 
     @patch("versiontracker.app_finder.is_homebrew_available")
+    @patch("versiontracker.app_finder._is_async_homebrew_available")
     @patch("versiontracker.app_finder._process_brew_batch")
     @patch("versiontracker.app_finder.smart_progress")
     def test_check_brew_install_candidates_success(
-        self, mock_smart_progress, mock_process_brew_batch, mock_is_homebrew
+        self, mock_smart_progress, mock_process_brew_batch, mock_is_async, mock_is_homebrew
     ):
         """Test check_brew_install_candidates with successful batch processing."""
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
+        # Mock _is_async_homebrew_available to return False to test sync path
+        mock_is_async.return_value = False
 
         # Mock _process_brew_batch to return expected results
         expected_results = [("Firefox", "100.0", True), ("Chrome", "99.0", False)]
