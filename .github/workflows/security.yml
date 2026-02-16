@@ -100,7 +100,7 @@ jobs:
 
       - name: Check for secrets with TruffleHog
         if: steps.trufflehog_params.outputs.skip_scan != 'true'
-        uses: trufflesecurity/trufflehog@v3.93.1
+        uses: trufflesecurity/trufflehog@v3.93.3
         continue-on-error: true
         with:
           path: ./
