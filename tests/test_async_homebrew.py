@@ -258,12 +258,17 @@ def test_async_check_brew_install_candidates_no_homebrew():
 
 def test_async_check_brew_update_candidates():
     """Test checking brew update candidates."""
-    # Mock the process_all method
+
+    # Mock process_all_async (the function now uses await process_all_async()
+    # instead of process_all() to avoid deadlock)
+    async def mock_process_all_async(data):
+        return [("Firefox", "100.0", "firefox", "101.0")]
+
     with patch("versiontracker.async_homebrew.is_homebrew_available", return_value=True):
         with patch.object(
             HomebrewVersionChecker,
-            "process_all",
-            return_value=[("Firefox", "100.0", "firefox", "101.0")],
+            "process_all_async",
+            side_effect=mock_process_all_async,
         ):
             # Call the sync version of the function (wrapped by @async_to_sync)
             results = async_check_brew_update_candidates([("Firefox", "100.0", "firefox")])
