@@ -10,6 +10,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 env:
   HOMEBREW_NO_AUTO_UPDATE: 1
 

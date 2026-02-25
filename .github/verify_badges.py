@@ -7,6 +7,8 @@ a comprehensive status report for CI/CD pipeline health.
 
 import sys
 import time
+from typing import Any
+from urllib.parse import urlparse
 
 import requests
 
@@ -14,9 +16,9 @@ import requests
 class BadgeVerifier:
     """Verifies GitHub badges and provides status reports."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the badge verifier with session and results storage."""
-        self.results = []
+        self.results: list[dict[str, Any]] = []
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": "VersionTracker-Badge-Verifier/1.0"})
 
@@ -45,7 +47,8 @@ class BadgeVerifier:
             }
 
             # Additional checks for GitHub Actions badges
-            if "github.com" in url and "actions/workflows" in url:
+            parsed = urlparse(url)
+            if parsed.hostname == "github.com" and "actions/workflows" in parsed.path:
                 # These might return different status codes when no runs exist
                 result["success"] = status in [200, 404]  # 404 is OK for new workflows
 
@@ -207,11 +210,11 @@ class BadgeVerifier:
 
         return self.results
 
-    def print_summary(self):
+    def print_summary(self) -> bool:
         """Print a comprehensive summary of badge verification results."""
         if not self.results:
             print("No badges were checked.")
-            return
+            return False
 
         successful = [r for r in self.results if r["success"]]
         failed = [r for r in self.results if not r["success"]]
@@ -248,9 +251,13 @@ class BadgeVerifier:
             print(f"Slowest Response: {max_time:.2f}s")
 
         # Badge Categories
-        github_actions = [r for r in self.results if "github.com/docdyhr/versiontracker/actions" in r["url"]]
-        shields_io = [r for r in self.results if "img.shields.io" in r["url"]]
-        codecov = [r for r in self.results if "codecov.io" in r["url"]]
+        github_actions = [
+            r
+            for r in self.results
+            if urlparse(r["url"]).hostname == "github.com" and "/actions" in urlparse(r["url"]).path
+        ]
+        shields_io = [r for r in self.results if urlparse(r["url"]).hostname == "img.shields.io"]
+        codecov = [r for r in self.results if urlparse(r["url"]).hostname == "codecov.io"]
 
         print("\n📋 BADGE CATEGORIES:")
         print("-" * 40)
@@ -260,7 +267,7 @@ class BadgeVerifier:
 
         return len(failed) == 0
 
-    def check_workflow_files(self):
+    def check_workflow_files(self) -> bool:
         """Verify that all referenced workflow files exist."""
         print("\n🔧 WORKFLOW FILE VERIFICATION:")
         print("-" * 40)
@@ -286,7 +293,7 @@ class BadgeVerifier:
         return True
 
 
-def main():
+def main() -> None:
     """Main function to run badge verification."""
     print("🏆 VersionTracker Badge Verification Tool")
     print("=" * 80)

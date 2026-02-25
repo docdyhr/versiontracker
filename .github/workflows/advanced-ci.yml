@@ -26,6 +26,9 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+
 env:
   PYTHON_VERSION: "3.12"
   HOMEBREW_NO_AUTO_UPDATE: 1

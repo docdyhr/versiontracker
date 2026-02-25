@@ -16,6 +16,9 @@ name: Release
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 env:
   PYTHONUNBUFFERED: 1
   FORCE_COLOR: 1
