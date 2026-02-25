@@ -298,6 +298,10 @@ source = ["versiontracker"]
 omit = [
     "versiontracker/__main__.py",
     "versiontracker/test_*.py",
+    "versiontracker/experimental/*",
+    "versiontracker/plugins/*",
+    "versiontracker/ml/*",
+    "versiontracker/menubar_app.py",
     "*/tests/*",
     "*/venv/*",
     "*/.venv/*",
