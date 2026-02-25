@@ -7,7 +7,7 @@ using asyncio for improved performance and resource utilization.
 import builtins
 import logging
 import re
-from typing import Any, cast
+from typing import Any
 
 import aiohttp
 from aiohttp import ClientError, ClientResponseError, ClientTimeout
@@ -399,5 +399,8 @@ async def async_check_brew_update_candidates(
         rate_limit=rate_limit,
     )
 
-    # Call the method directly (it's sync due to @async_to_sync decorator)
-    return cast(list[tuple[str, str, str, str | None]], processor.process_all(data))
+    # Use process_all_async() — NOT process_all() — to avoid deadlock.
+    # This function is already wrapped with @async_to_sync, so calling
+    # process_all() (also @async_to_sync wrapped) would create nested
+    # event loops and deadlock.
+    return await processor.process_all_async(data)

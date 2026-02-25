@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-02-25
 
 ### Added
+- **Async Homebrew for update candidates**: `check_brew_update_candidates()` now routes through async Homebrew API by default, matching the existing async path for install candidates (P10)
+- 77 new handler + utility tests (P17): `macos_handlers.py`, `backup_handlers.py`, `brew_handlers.py` error paths, `export_handlers.py`, `utils_handlers.py`, `utils.py` — coverage 61% → 78%
 - `ConfigLoader` class: extracted file I/O, env-var loading, and brew detection from `Config` into dedicated static methods (P9)
 - 122 new tests across 4 test files:
   - `test_matcher_coverage.py` (48 tests): apps/matcher.py 54% → 98%
@@ -20,10 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ML optional dependencies group (`pip install homebrew-versiontracker[ml]`)
 - `is_ml_available()` function to check ML dependency status
 
+### Fixed
+- **Deadlock in `async_check_brew_update_candidates`**: was calling `processor.process_all()` (`@async_to_sync`) from inside an `@async_to_sync` context; fixed to use `await processor.process_all_async()`
+
 ### Changed
 - **Config architecture**: `Config` is now a data container + accessor; all loading/persistence delegated to `ConfigLoader` (backward-compatible — no import changes needed)
 - **Module migration complete**: deleted `version_legacy.py` (-2,110 lines) and `app_finder.py` (-1,579 lines); all functions migrated to `versiontracker/version/` and `versiontracker/apps/`
-- **Test coverage**: 58.84% → 61%+ overall; 1,885 tests passing, 16 skipped
+- **Test coverage**: 58.84% → 78%+ overall; 1,962+ tests passing, 16 skipped
 - **Development Status**: Updated from Alpha to Beta in pyproject.toml
 - Consolidated CLI to use argparse only (removed unused Click dependency)
 - ML module now gracefully handles missing numpy/scikit-learn dependencies
