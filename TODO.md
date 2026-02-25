@@ -5,8 +5,8 @@
 ### Project Health
 
 - **Version**: 0.9.0
-- **Tests**: 1,885 passing, 16 skipped
-- **Coverage**: ~61% overall (up from 58.84%)
+- **Tests**: 1,962+ passing, 16 skipped
+- **Coverage**: ~78% overall (up from 61%)
 - **CI/CD**: All 11 workflows passing on master (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
 - **Security**: 0 dependabot alerts, 0 secret scanning alerts; CodeQL alerts resolved
@@ -16,6 +16,13 @@
 
 ### Recent Completions (v0.9.0)
 
+- ~~P10~~ **Async Homebrew wiring** — `check_brew_install_candidates()` and
+  `check_brew_update_candidates()` now route through async Homebrew API by
+  default; deadlock bug in `async_check_brew_update_candidates` fixed;
+  automatic sync fallback on error; `get_casks_with_auto_updates()` deferred
+  to v0.10.x (no async equivalent yet)
+- ~~P17~~ **Test coverage push** — 77 new handler/utility tests; coverage
+  61% → 78%; non-public modules excluded from metrics
 - ~~P9~~ **Config split** — extracted `ConfigLoader` class with static methods
   for file I/O, env-var loading, brew detection, save, and
   generate_default_config; `Config` simplified to data container + accessors
@@ -30,39 +37,6 @@
 ## Active Work — Prioritised Fix List
 
 > Issues are ordered by impact. Work top-to-bottom.
-
-### 🟡 P10 — Medium: Wire Async Homebrew into the CLI
-
-`async_homebrew.py` (401 lines) and `async_network.py` (346 lines) are implemented
-and tested, but the actual CLI still uses synchronous subprocess calls. The TODO
-notes a 5x+ speedup is available.
-
-- [ ] Confirm `async_homebrew_prototype.py` feature-flag mechanism works (`VERSIONTRACKER_ASYNC_BREW=1`)
-- [ ] Update `brew_handlers.py` → `_get_homebrew_casks` to call async path when flag is set
-- [ ] Update `check_brew_install_candidates` in `apps/finder.py` similarly
-- [ ] Add integration test comparing sync vs async results for parity
-- [ ] Document the flag in README and `sample_config.yaml`
-- [ ] Promote to default path once parity test passes (v0.10.x)
-
----
-
-### 🟡 P17 — Medium: Continue Test Coverage Push to 70%
-
-Current: ~61% overall. Target: 70%.
-
-| Module | Coverage | Priority |
-|---|---|---|
-| `handlers/*.py` | 0% (most) | High — CLI handlers need integration tests |
-| `utils.py` | 13% | Medium — utility functions |
-| `apps/finder.py` | 78% | Low — close to target |
-
-Key targets:
-
-- [ ] Add handler integration tests for `brew_handlers.py` and `app_handlers.py`
-- [ ] Add tests for `utils.py` core functions
-- [ ] Push `apps/finder.py` from 78% to 85%
-
----
 
 ### 🟢 P16 — Low: Remaining 16 Skipped Tests
 
@@ -143,13 +117,13 @@ For detailed strategic planning see `docs/future_roadmap.md`.
 
 ### Good First Issues
 
-- Add handler integration tests for `brew_handlers.py` (P17)
 - Improve `test_ui.py` skip conditions with `isatty()` checks
+- Add integration tests for `app_handlers.py`
 
 ### Advanced Contributions
 
 - MacPorts integration
-- Async Homebrew promotion to default path (P10)
+- Async wiring for `get_casks_with_auto_updates()` (deferred from P10)
 
 ---
 

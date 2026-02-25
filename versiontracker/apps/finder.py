@@ -869,6 +869,26 @@ def check_brew_update_candidates(
     if not data:
         return {}
 
+    # Use async implementation if available
+    if _is_async_homebrew_available():
+        try:
+            from versiontracker.async_homebrew import async_check_brew_update_candidates
+
+            logging.debug("Using async Homebrew for update candidate check (%d apps)", len(data))
+            # Prepare data: async expects (app_name, version, cask_name) tuples
+            async_data = [(name, version, name.lower().replace(" ", "-")) for name, version in data]
+            rl = float(rate_limit) if isinstance(rate_limit, int) else 1.0
+            async_result = async_check_brew_update_candidates(async_data, rate_limit=rl)
+            # Convert async format → sync format
+            result: dict[str, dict[str, str | float]] = {}
+            for _app_name, _version, cask_name, latest_version in async_result:
+                if latest_version is not None:
+                    result[cask_name] = {"version": latest_version, "similarity": 1.0}
+            return result
+        except Exception as e:
+            logging.warning("Async Homebrew failed for update candidates, falling back to sync: %s", e)
+
+    # Synchronous implementation (fallback)
     existing_brews = _get_existing_brews()
     rate_limiter = _create_rate_limiter(rate_limit)
     batches = _create_batches(data, batch_size=5)

@@ -490,6 +490,28 @@ additional-app-dirs:
 show-progress: true
 ```
 
+### Async Homebrew Operations
+
+VersionTracker uses asynchronous Homebrew API calls by default for checking install and
+update candidates. This provides significantly faster results when checking many applications
+against the Homebrew catalog.
+
+To disable async and fall back to synchronous subprocess calls:
+
+```shell
+export VERSIONTRACKER_ASYNC_BREW=0   # or: false, no, off
+```
+
+Or in `config.yaml`:
+
+```yaml
+async_homebrew:
+  enabled: false
+```
+
+If the async path encounters an error at runtime, VersionTracker automatically falls back
+to the synchronous implementation — no manual intervention needed.
+
 ### Environment Variables
 
 You can also configure VersionTracker using environment variables, which will override any settings in the
@@ -516,6 +538,9 @@ export VERSIONTRACKER_ADDITIONAL_APP_DIRS=/Users/username/Applications:/opt/Appl
 
 # Disable progress bars
 export VERSIONTRACKER_PROGRESS_BARS=false
+
+# Disable async Homebrew operations (use synchronous subprocess calls)
+export VERSIONTRACKER_ASYNC_BREW=0
 ```
 
 ## Testing
