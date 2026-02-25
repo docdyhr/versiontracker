@@ -193,37 +193,24 @@ def test_is_homebrew_available_arm(mock_run_command, mock_machine, mock_system):
 
 def test_get_homebrew_casks_success():
     """Test successful retrieval of Homebrew casks."""
-    # Access the dynamically loaded module directly
     import versiontracker.apps.finder as finder_module
 
-    # Use finder module directly (no more dynamic loading)
-
-    # Clear cache in the dynamically loaded module
-    finder_module._brew_casks_cache = None  # type: ignore[attr-defined]
     finder_module.get_homebrew_casks.cache_clear()
 
-    # Set up mocks
-    with patch("versiontracker.config.get_config") as mock_get_config:
-        mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
-        mock_get_config.return_value = mock_config
+    with patch.object(finder_module, "run_command") as mock_run_command:
+        mock_run_command.return_value = ("cask1\ncask2\ncask3", 0)
 
-        # Mock run_command in the dynamically loaded module
-        with patch.object(finder_module, "run_command") as mock_run_command:
-            # Mock run_command to return a list of casks
-            mock_run_command.return_value = ("cask1\ncask2\ncask3", 0)
+        casks = finder_module.get_homebrew_casks()
 
-            # Call the function from the dynamically loaded module
-            casks = finder_module.get_homebrew_casks()
+        # Verify run_command was called once with a brew list command
+        mock_run_command.assert_called_once()
+        call_args = mock_run_command.call_args
+        assert "list --cask" in call_args[0][0]
+        assert call_args[1].get("timeout") == 30 or call_args[0][1:] == ()
 
-            # Verify the expected command was run (uses default BREW_PATH)
-            mock_run_command.assert_called_once_with("brew list --cask", timeout=30)
+        assert casks == ["cask1", "cask2", "cask3"]
 
-            # Verify the result
-            assert casks == ["cask1", "cask2", "cask3"]
-
-    # Check the result
-    assert casks == ["cask1", "cask2", "cask3"]
+    finder_module.get_homebrew_casks.cache_clear()
 
 
 def test_get_homebrew_casks_empty():
