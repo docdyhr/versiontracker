@@ -7,7 +7,7 @@ that have auto-updates enabled, with user feedback and confirmation.
 import logging
 from typing import Any
 
-from versiontracker.app_finder import get_homebrew_casks
+from versiontracker.apps import get_homebrew_casks
 from versiontracker.config import get_config
 from versiontracker.homebrew import get_casks_with_auto_updates
 from versiontracker.ui import create_progress_bar

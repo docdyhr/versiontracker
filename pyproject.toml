@@ -211,11 +211,6 @@ module = "versiontracker.enhanced_matching"
 disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
-module = "versiontracker.version_legacy"
-# fuzzywuzzy is an optional dependency with no stubs - suppress import-untyped
-disable_error_code = ["import-untyped"]
-
-[[tool.mypy.overrides]]
 module = "versiontracker.ai.*"
 ignore_errors = true
 
@@ -226,6 +221,11 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "versiontracker.experimental.*"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["benchmarks", "benchmarks.*", "examples.*"]
+ignore_errors = true
+disable_error_code = ["no-untyped-def"]
 
 # Pytest configuration
 [tool.pytest.ini_options]

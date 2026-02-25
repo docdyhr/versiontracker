@@ -349,7 +349,7 @@ def check_and_notify() -> None:
     This is the main function called by the scheduled service.
     """
     try:
-        from versiontracker.app_finder import get_applications
+        from versiontracker.apps import get_applications
         from versiontracker.version import check_outdated_apps
 
         logger.info("Starting scheduled application check")

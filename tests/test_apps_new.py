@@ -4,7 +4,7 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     SimpleRateLimiter,
     _process_brew_batch,
     _process_brew_search,
@@ -27,10 +27,10 @@ from versiontracker.exceptions import (
 class TestApps(unittest.TestCase):
     """Test cases for the apps module."""
 
-    @patch("versiontracker.app_finder.is_homebrew_available")
-    @patch("versiontracker.app_finder.is_brew_cask_installable")
+    @patch("versiontracker.apps.finder.is_homebrew_available")
+    @patch("versiontracker.apps.finder.is_brew_cask_installable")
     @patch("concurrent.futures.ThreadPoolExecutor")
-    @patch("versiontracker.app_finder._AdaptiveRateLimiter")
+    @patch("versiontracker.apps.finder._AdaptiveRateLimiter")
     def test_process_brew_batch_with_adaptive_rate_limiting(
         self,
         mock_rate_limiter_class,
@@ -66,7 +66,7 @@ class TestApps(unittest.TestCase):
             config.ui = {"adaptive_rate_limiting": True}
 
             # Patch the _process_brew_search function to return "Firefox" for the search
-            with patch("versiontracker.app_finder._process_brew_search", return_value="Firefox"):
+            with patch("versiontracker.apps.matcher._process_brew_search", return_value="Firefox"):
                 with patch("versiontracker.config.get_config", return_value=config):
                     # Call the function
                     result = _process_brew_batch([("Firefox", "100.0")], 1, True)
@@ -162,7 +162,7 @@ class TestApps(unittest.TestCase):
         # TestApp5 should be filtered out as its path starts with /System/
         self.assertNotIn(("TestApp", "5.0.0"), result)
 
-    @patch("versiontracker.app_finder.partial_ratio")
+    @patch("versiontracker.apps.matcher.partial_ratio")
     def test_filter_out_brews(self, mock_partial_ratio):
         """Test filtering out applications already installed via Homebrew."""
 
@@ -196,7 +196,7 @@ class TestApps(unittest.TestCase):
         self.assertEqual(len(result), 1)  # Only Slack should remain
         self.assertIn(("Slack", "4.23.0"), result)
 
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.matcher.run_command")
     def test_process_brew_search(self, mock_run_command):
         """Test processing a brew search."""
         # Mock rate limiter
@@ -222,7 +222,7 @@ class TestApps(unittest.TestCase):
     @patch("platform.system")
     @patch("platform.machine")
     @patch("os.path.exists")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.run_command")
     def test_is_homebrew_available_true(self, mock_run_command, mock_exists, mock_machine, mock_system):
         """Test is_homebrew_available when Homebrew is installed."""
         # Mock platform.system() to return "Darwin" (macOS)
@@ -237,9 +237,9 @@ class TestApps(unittest.TestCase):
         # Test that is_homebrew_available returns True
         self.assertTrue(is_homebrew_available())
 
-    @patch("versiontracker.app_finder.platform.system")
-    @patch("versiontracker.app_finder.get_config")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.platform.system")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
     @patch("os.path.exists")
     def test_is_homebrew_available_false(self, mock_exists, mock_run_command, mock_get_config, mock_system):
         """Test is_homebrew_available when Homebrew is not installed."""
@@ -272,7 +272,7 @@ class TestApps(unittest.TestCase):
     @patch("platform.system")
     @patch("platform.machine")
     @patch("os.path.exists")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.run_command")
     def test_is_homebrew_available_arm(self, mock_run_command, mock_exists, mock_machine, mock_system):
         """Test is_homebrew_available on ARM macOS (Apple Silicon)."""
         # Mock platform.system() to return "Darwin" (macOS)
@@ -300,87 +300,94 @@ class TestApps(unittest.TestCase):
 
     def test_get_homebrew_casks_success(self):
         """Test successful retrieval of Homebrew casks."""
-        # Test the function by mocking it directly rather than its dependencies
-        # This avoids cache-related issues during testing
-        with patch("versiontracker.app_finder.get_homebrew_casks") as mock_func:
-            mock_func.return_value = ["cask1", "cask2", "cask3"]
+        import versiontracker.apps.finder as finder_module
 
-            # Import and call the function under test
-            from versiontracker.app_finder import get_homebrew_casks
+        finder_module.get_homebrew_casks.cache_clear()
 
-            casks = get_homebrew_casks()
-
-            # Verify the result
+        with patch.object(finder_module, "run_command") as mock_run:
+            mock_run.return_value = ("cask1\ncask2\ncask3", 0)
+            casks = finder_module.get_homebrew_casks()
             self.assertEqual(casks, ["cask1", "cask2", "cask3"])
-            mock_func.assert_called_once()
+            mock_run.assert_called_once()
+
+        finder_module.get_homebrew_casks.cache_clear()
 
     def test_get_homebrew_casks_empty(self):
         """Test when no casks are installed."""
-        with patch("versiontracker.app_finder.get_homebrew_casks") as mock_func:
-            mock_func.return_value = []
+        import versiontracker.apps.finder as finder_module
 
-            from versiontracker.app_finder import get_homebrew_casks
+        finder_module.get_homebrew_casks.cache_clear()
 
-            casks = get_homebrew_casks()
-
+        with patch.object(finder_module, "run_command") as mock_run:
+            mock_run.return_value = ("", 0)
+            casks = finder_module.get_homebrew_casks()
             self.assertEqual(casks, [])
-            mock_func.assert_called_once()
+
+        finder_module.get_homebrew_casks.cache_clear()
 
     def test_get_homebrew_casks_error(self):
         """Test error handling for Homebrew command failures."""
-        with patch("versiontracker.app_finder.get_homebrew_casks") as mock_func:
-            mock_func.side_effect = HomebrewError("Homebrew command failed")
+        import versiontracker.apps.finder as finder_module
 
-            from versiontracker.app_finder import get_homebrew_casks
+        finder_module.get_homebrew_casks.cache_clear()
 
+        with patch.object(finder_module, "run_command") as mock_run:
+            mock_run.return_value = ("Error: command failed", 1)
             with self.assertRaises(HomebrewError):
-                get_homebrew_casks()
+                finder_module.get_homebrew_casks()
 
-            mock_func.assert_called_once()
+        finder_module.get_homebrew_casks.cache_clear()
 
     def test_get_homebrew_casks_network_error(self):
         """Test network error handling."""
-        with patch("versiontracker.app_finder.get_homebrew_casks") as mock_func:
-            mock_func.side_effect = NetworkError("Network unavailable")
+        import versiontracker.apps.finder as finder_module
 
-            from versiontracker.app_finder import get_homebrew_casks
+        finder_module.get_homebrew_casks.cache_clear()
 
+        with patch.object(finder_module, "run_command") as mock_run:
+            mock_run.side_effect = NetworkError("Network unavailable")
             with self.assertRaises(NetworkError):
-                get_homebrew_casks()
+                finder_module.get_homebrew_casks()
 
-            mock_func.assert_called_once()
+        finder_module.get_homebrew_casks.cache_clear()
 
     def test_get_homebrew_casks_timeout(self):
         """Test timeout error handling."""
-        with patch("versiontracker.app_finder.get_homebrew_casks") as mock_func:
-            mock_func.side_effect = BrewTimeoutError("Operation timed out")
+        import versiontracker.apps.finder as finder_module
 
-            from versiontracker.app_finder import get_homebrew_casks
+        finder_module.get_homebrew_casks.cache_clear()
 
+        with patch.object(finder_module, "run_command") as mock_run:
+            mock_run.side_effect = BrewTimeoutError("Operation timed out")
             with self.assertRaises(BrewTimeoutError):
-                get_homebrew_casks()
+                finder_module.get_homebrew_casks()
 
-            mock_func.assert_called_once()
+        finder_module.get_homebrew_casks.cache_clear()
 
     def test_get_homebrew_casks_cache(self):
         """Test caching behavior of get_homebrew_casks."""
-        with patch("versiontracker.app_finder.get_homebrew_casks") as mock_func:
+        import versiontracker.apps.finder as finder_module
+
+        # Clear lru_cache before testing
+        finder_module.get_homebrew_casks.cache_clear()
+
+        with patch.object(finder_module, "run_command") as mock_run:
             # First call returns data
-            mock_func.return_value = ["cask1", "cask2"]
+            mock_run.return_value = ("cask1\ncask2", 0)
 
-            from versiontracker.app_finder import get_homebrew_casks
+            casks1 = finder_module.get_homebrew_casks()
+            casks2 = finder_module.get_homebrew_casks()
 
-            casks1 = get_homebrew_casks()
-            casks2 = get_homebrew_casks()
-
-            # Both calls should return same data
+            # Both calls should return same data (due to lru_cache)
             self.assertEqual(casks1, ["cask1", "cask2"])
             self.assertEqual(casks2, ["cask1", "cask2"])
             self.assertEqual(casks1, casks2)
 
-            # Since we're mocking the entire function, it gets called each time
-            # but in reality the @lru_cache would prevent multiple actual calls
-            self.assertEqual(mock_func.call_count, 2)
+            # lru_cache should prevent multiple calls to run_command
+            mock_run.assert_called_once()
+
+        # Clean up cache after test
+        finder_module.get_homebrew_casks.cache_clear()
 
     def test_homebrew_casks_cache_clearing_api(self):
         """Test that the cache clearing API works correctly."""
@@ -505,10 +512,10 @@ class TestApps(unittest.TestCase):
         self.assertIn(("TestApp", "2.0"), apps)
         self.assertIn(("RegularApp", "3.0"), apps)
 
-    @patch("versiontracker.app_finder.BREW_PATH", "brew")
+    @patch("versiontracker.apps.finder.BREW_PATH", "brew")
     def test_get_cask_version_found(self):
         """Test getting version when it exists."""
-        import versiontracker.app_finder as apps_module
+        import versiontracker.apps.finder as apps_module
 
         # Mock brew info output with version information
         brew_output = """==> firefox: 95.0.1
@@ -525,83 +532,59 @@ version: 95.0.1"""
             # Verify the command that was run (using BREW_PATH which defaults to "brew")
             mock_run_command.assert_called_once_with("brew info --cask firefox", timeout=30)
 
-    @unittest.skip("Skip due to complex mocking requirements in CI")
-    @patch("versiontracker.app_finder.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.app_finder.run_command")
-    def test_get_cask_version_not_found(self, mock_run_command):
+    def test_get_cask_version_not_found(self):
         """Test when version is not found in output."""
-        # Mock brew info output without version information
-        mock_run_command.return_value = ("Some output without version info", 0)
+        import versiontracker.apps.finder as finder_module
 
-        # Call the function
-        version = get_cask_version("unknown-app")
+        with patch.object(finder_module, "run_command") as mock_run_command:
+            mock_run_command.return_value = ("Some output without version info", 0)
+            version = get_cask_version("unknown-app")
+            self.assertIsNone(version)
 
-        # Verify the result
-        self.assertIsNone(version)
-
-    @unittest.skip("Skip due to complex mocking requirements in CI")
-    @patch("versiontracker.app_finder.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.app_finder.run_command")
-    def test_get_cask_version_latest(self, mock_run_command):
+    def test_get_cask_version_latest(self):
         """Test handling 'latest' version tag."""
-        # Mock brew info output with 'latest' as the version
-        mock_run_command.return_value = ("version: latest", 0)
+        import versiontracker.apps.finder as finder_module
 
-        # Call the function
-        version = get_cask_version("app-with-latest-version")
+        with patch.object(finder_module, "run_command") as mock_run_command:
+            mock_run_command.return_value = ("version: latest", 0)
+            version = get_cask_version("app-with-latest-version")
+            self.assertIsNone(version)
 
-        # Verify the result is None for 'latest' versions
-        self.assertIsNone(version)
-
-    @unittest.skip("Skip due to complex mocking requirements in CI")
-    @patch("versiontracker.app_finder.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.app_finder.run_command")
-    def test_get_cask_version_error(self, mock_run_command):
+    def test_get_cask_version_error(self):
         """Test error handling when brew command fails."""
-        # Mock brew info command failure
-        mock_run_command.return_value = ("Error: cask not found", 1)
+        import versiontracker.apps.finder as finder_module
 
-        # Call the function
-        version = get_cask_version("non-existent-cask")
+        with patch.object(finder_module, "run_command") as mock_run_command:
+            mock_run_command.return_value = ("Error: cask not found", 1)
+            version = get_cask_version("non-existent-cask")
+            self.assertIsNone(version)
 
-        # Verify the result
-        self.assertIsNone(version)
-
-    @unittest.skip("Skip test temporarily - mock not working as expected")
-    @patch("versiontracker.app_finder.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.utils.run_command")
-    def test_get_cask_version_network_error(self, mock_run_command):
+    def test_get_cask_version_network_error(self):
         """Test network error handling."""
-        # Mock run_command to raise NetworkError
-        mock_run_command.side_effect = NetworkError("Network unavailable")
+        import versiontracker.apps.finder as finder_module
 
-        # Test that NetworkError is re-raised
-        with self.assertRaises(NetworkError):
-            get_cask_version("firefox")
+        with patch.object(finder_module, "run_command") as mock_run_command:
+            mock_run_command.side_effect = NetworkError("Network unavailable")
+            with self.assertRaises(NetworkError):
+                get_cask_version("firefox")
 
-    @unittest.skip("Skip due to complex mocking requirements in CI")
-    @patch("versiontracker.app_finder.BREW_PATH", "/usr/local/bin/brew")
-    @patch("versiontracker.app_finder.run_command")
-    def test_get_cask_version_timeout(self, mock_run_command):
+    def test_get_cask_version_timeout(self):
         """Test timeout error handling."""
-        # Mock run_command to raise BrewTimeoutError
-        mock_run_command.side_effect = BrewTimeoutError("Operation timed out")
+        import versiontracker.apps.finder as finder_module
 
-        # Test that BrewTimeoutError is re-raised
-        with self.assertRaises(BrewTimeoutError):
-            get_cask_version("firefox")
+        with patch.object(finder_module, "run_command") as mock_run_command:
+            mock_run_command.side_effect = BrewTimeoutError("Operation timed out")
+            with self.assertRaises(BrewTimeoutError):
+                get_cask_version("firefox")
 
-    @unittest.skip("Skip test temporarily - mock not working as expected")
     def test_get_cask_version_general_exception(self):
         """Test general exception handling."""
-        with patch("versiontracker.apps.BREW_PATH", "/usr/local/bin/brew"):
-            with patch("versiontracker.apps.run_command") as mock_run_command:
-                # Mock run_command to raise a general exception
-                mock_run_command.side_effect = ValueError("Some unexpected error")
+        import versiontracker.apps.finder as finder_module
 
-                # Test that a HomebrewError is raised with the original error wrapped
-                with self.assertRaises(HomebrewError):
-                    get_cask_version("firefox")
+        with patch.object(finder_module, "run_command") as mock_run_command:
+            mock_run_command.side_effect = ValueError("Some unexpected error")
+            with self.assertRaises(HomebrewError):
+                get_cask_version("firefox")
 
 
 if __name__ == "__main__":

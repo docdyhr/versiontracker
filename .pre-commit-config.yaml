@@ -61,7 +61,7 @@ repos:
             --disable-error-code=import-untyped,
             --disable-error-code=misc,
           ]
-        exclude: ^(tests/|docs/|versiontracker/experimental/)
+        exclude: ^(tests/|docs/|benchmarks/|examples/|versiontracker/experimental/)
 
   # Security linting with bandit
   - repo: https://github.com/PyCQA/bandit

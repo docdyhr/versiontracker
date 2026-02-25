@@ -526,3 +526,79 @@ class TestIsHomebrewAvailable:
         mock_run.side_effect = subprocess.SubprocessError("error")
 
         assert is_homebrew_available() is False
+
+
+# ---------------------------------------------------------------------------
+# _search_homebrew_casks — error paths
+# ---------------------------------------------------------------------------
+
+
+class TestSearchHomebrewCasksErrorPaths:
+    """Tests for error handling in _search_homebrew_casks."""
+
+    @patch("versiontracker.version.homebrew._get_homebrew_casks_list")
+    def test_timeout_raises_vttimeouterror(self, mock_get_casks):
+        """TimeoutExpired in _search_homebrew_casks raises VTTimeoutError."""
+        mock_get_casks.side_effect = subprocess.TimeoutExpired(cmd="brew", timeout=5)
+
+        with pytest.raises(VTTimeoutError, match="timed out"):
+            _search_homebrew_casks("Firefox")
+
+    @patch("versiontracker.version.homebrew._get_homebrew_casks_list")
+    def test_subprocess_error_returns_none(self, mock_get_casks):
+        """SubprocessError in _search_homebrew_casks returns None."""
+        mock_get_casks.side_effect = subprocess.SubprocessError("error")
+
+        result = _search_homebrew_casks("Firefox")
+        assert result is None
+
+    @patch("versiontracker.version.homebrew._get_homebrew_casks_list")
+    def test_oserror_returns_none(self, mock_get_casks):
+        """OSError in _search_homebrew_casks returns None."""
+        mock_get_casks.side_effect = OSError("brew not found")
+
+        result = _search_homebrew_casks("Firefox")
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# find_matching_cask — enhanced matching ImportError fallback
+# ---------------------------------------------------------------------------
+
+
+class TestFindMatchingCaskFallback:
+    """Tests for find_matching_cask when enhanced matching is unavailable."""
+
+    @patch("versiontracker.version.homebrew.subprocess.run")
+    def test_find_matching_cask_enhanced_import_error(self, mock_run):
+        """find_matching_cask falls back to basic matching when enhanced_matching unavailable."""
+        import builtins
+
+        mock_run.return_value = _make_completed_process(stdout="firefox\nfirefox-developer-edition\nwaterfox")
+
+        original_import = builtins.__import__
+
+        def import_side_effect(name, *args, **kwargs):
+            if name == "versiontracker.enhanced_matching":
+                raise ImportError("No module named 'versiontracker.enhanced_matching'")
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=import_side_effect):
+            with patch("versiontracker.version.homebrew.get_fuzz") as mock_fuzz:
+                mock_fuzz_instance = MagicMock()
+                mock_fuzz_instance.ratio.return_value = 95
+                mock_fuzz.return_value = mock_fuzz_instance
+
+                result = find_matching_cask("Firefox", use_enhanced=True)
+                # Should fall back to basic fuzzy matching and return a result
+                assert result is not None
+
+    @patch("versiontracker.version.homebrew.subprocess.run")
+    def test_find_matching_cask_no_fuzz(self, mock_run):
+        """find_matching_cask when fuzz library is not available."""
+        mock_run.return_value = _make_completed_process(stdout="firefox\nchrome")
+
+        with patch("versiontracker.version.homebrew.get_fuzz", return_value=None):
+            result = find_matching_cask("Firefox", use_enhanced=False)
+            # Without fuzz, should return None (no matching possible)
+            assert result is None

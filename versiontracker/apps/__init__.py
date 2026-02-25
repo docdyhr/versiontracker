@@ -1,377 +1,151 @@
 """Application management module for VersionTracker."""
 
-# Import cache components
-# Import legacy functions from main apps.py file that weren't refactored
-import importlib.util
-import os
-from typing import Any
-
-# Import cache functions that tests depend on
-from ..cache import read_cache
-
-# Import partial_ratio from version module for compatibility with tests
+# Backward-compatibility imports from parent modules
+from ..cache import read_cache, write_cache
+from ..utils import run_command
 from ..version import partial_ratio
+
+# Cache components
 from .cache import (
     AdaptiveRateLimiter,
     RateLimiter,
     RateLimiterProtocol,
     SimpleRateLimiter,
     _AdaptiveRateLimiter,
+    _brew_casks_cache,
+    _brew_search_cache,
     clear_homebrew_casks_cache,
+    get_homebrew_casks_cached,
 )
 
-# Import finder components
+# Finder components
 from .finder import (
+    BREW_CMD,
+    BREW_PATH,
+    BREW_SEARCH,
+    HAS_PROGRESS,
+    MAX_ERRORS,
+    _brew_search_cache,  # noqa: F811 - finder's cache shadows cache.py's
+    _check_cache_for_cask,
+    _check_cask_installable_with_cache,
     _create_batches,
+    _create_future_submissions,
+    _create_rate_limiter,
+    _execute_brew_search,
+    _execute_cask_installable_check,
+    _get_error_message,
+    _get_existing_brews,
+    _handle_batch_error,
+    _handle_brew_search_result,
+    _handle_cask_installable_error,
+    _handle_future_exception,
+    _handle_future_result,
+    _is_async_homebrew_available,
+    _populate_cask_versions,
+    _process_batch_result,
+    _process_brew_batch,
+    _process_brew_search_batches,
+    _process_completed_futures,
+    _process_with_progress_bar,
+    _process_without_progress_bar,
+    _should_show_progress,
+    _update_cache_with_installable,
+    _validate_batch_preconditions,
+    check_brew_install_candidates,
+    check_brew_update_candidates,
     get_applications,
     get_applications_from_system_profiler,
+    get_cask_version,
+    get_homebrew_casks,
     get_homebrew_casks_list,
     is_app_in_app_store,
+    is_brew_cask_installable,
     is_homebrew_available,
+    smart_progress,
 )
 
-# Import matcher components
+# Matcher components
 from .matcher import (
+    _batch_process_brew_search,
+    _find_matching_cask,
+    _normalize_and_validate_search_term,
     _process_brew_search,
+    _process_single_app_search,
+    _wait_for_rate_limit,
     filter_brew_candidates,
     filter_out_brews,
     get_homebrew_cask_name,
     search_brew_cask,
 )
 
-# Import the main app_finder.py file directly (not the apps/ package)
-_apps_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "app_finder.py")
-_spec = importlib.util.spec_from_file_location("versiontracker_apps_main", _apps_py_path)
-if _spec is not None and _spec.loader is not None:
-    _apps_main = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(_apps_main)
-
-    # Import ALL EXISTING functions from main apps.py (safe imports only)
-
-    def _batch_process_brew_search(*args: Any, **kwargs: Any) -> list[Any]:
-        """Process brew search in batches."""
-        from typing import cast
-
-        return cast(list[Any], _apps_main._batch_process_brew_search(*args, **kwargs))
-
-    def _check_cache_for_cask(*args: Any, **kwargs: Any) -> bool | None:
-        """Check cache for cask information."""
-        from typing import cast
-
-        return cast(bool | None, _apps_main._check_cache_for_cask(*args, **kwargs))
-
-    def _create_rate_limiter(*args: Any, **kwargs: Any) -> Any:
-        """Create appropriate rate limiter."""
-        return _apps_main._create_rate_limiter(*args, **kwargs)
-
-    def _execute_brew_search(*args: Any, **kwargs: Any) -> tuple[str, int]:
-        """Execute brew search command."""
-        from typing import cast
-
-        return cast(tuple[str, int], _apps_main._execute_brew_search(*args, **kwargs))
-
-    def _get_error_message(*args: Any, **kwargs: Any) -> str:
-        """Get error message from exception."""
-        from typing import cast
-
-        return cast(str, _apps_main._get_error_message(*args, **kwargs))
-
-    def _get_existing_brews(*args: Any, **kwargs: Any) -> list[str]:
-        """Get existing brew installations."""
-        from typing import cast
-
-        return cast(list[str], _apps_main._get_existing_brews(*args, **kwargs))
-
-    def _handle_batch_error(*args: Any, **kwargs: Any) -> Any:
-        """Handle batch processing errors."""
-        return _apps_main._handle_batch_error(*args, **kwargs)
-
-    def _handle_brew_search_result(*args: Any, **kwargs: Any) -> bool:
-        """Handle brew search result."""
-        from typing import cast
-
-        return cast(bool, _apps_main._handle_brew_search_result(*args, **kwargs))
-
-    def _handle_future_result(*args: Any, **kwargs: Any) -> tuple[tuple[str, str, bool], None]:
-        """Handle future execution result."""
-        from typing import cast
-
-        return cast(tuple[tuple[str, str, bool], None], _apps_main._handle_future_result(*args, **kwargs))
-
-    def _populate_cask_versions(*args: Any, **kwargs: Any) -> dict[str, str]:
-        """Populate cask version information."""
-        from typing import cast
-
-        return cast(dict[str, str], _apps_main._populate_cask_versions(*args, **kwargs))
-
-    def _process_batch_result(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Process batch execution result."""
-        from typing import cast
-
-        return cast(list[tuple[str, str, bool]], _apps_main._process_batch_result(*args, **kwargs))
-
-    def _process_brew_batch(*args: Any, **kwargs: Any) -> Any:
-        """Process batch of brew operations."""
-        return _apps_main._process_brew_batch(*args, **kwargs)
-
-    def _process_brew_search_batches(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Process brew search operations in batches."""
-        from typing import cast
-
-        return cast(list[tuple[str, str, bool]], _apps_main._process_brew_search_batches(*args, **kwargs))
-
-    def _process_with_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Process operations with progress bar."""
-        from typing import cast
-
-        return cast(list[tuple[str, str, bool]], _apps_main._process_with_progress_bar(*args, **kwargs))
-
-    def _process_without_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Process operations without progress bar."""
-        from typing import cast
-
-        return cast(list[tuple[str, str, bool]], _apps_main._process_without_progress_bar(*args, **kwargs))
-
-    def _should_show_progress(*args: Any, **kwargs: Any) -> bool:
-        """Determine if progress bar should be shown."""
-        from typing import cast
-
-        return cast(bool, _apps_main._should_show_progress(*args, **kwargs))
-
-    def _update_cache_with_installable(*args: Any, **kwargs: Any) -> None:
-        """Update cache with installable cask information."""
-        _apps_main._update_cache_with_installable(*args, **kwargs)
-
-    def check_brew_install_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Check which applications can be installed via Homebrew."""
-        from typing import cast
-
-        return cast(list[tuple[str, str, bool]], _apps_main.check_brew_install_candidates(*args, **kwargs))
-
-    def check_brew_update_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, str]]:
-        """Check which Homebrew casks can be updated."""
-        from typing import cast
-
-        return cast(list[tuple[str, str, str]], _apps_main.check_brew_update_candidates(*args, **kwargs))
-
-    def get_cask_version(*args: Any, **kwargs: Any) -> str | None:
-        """Get version of a Homebrew cask."""
-        from typing import cast
-
-        return cast(str | None, _apps_main.get_cask_version(*args, **kwargs))
-
-    def get_homebrew_casks(*args: Any, **kwargs: Any) -> list[str]:
-        """Get list of installed Homebrew casks."""
-        from typing import cast
-
-        return cast(list[str], _apps_main.get_homebrew_casks(*args, **kwargs))
-
-    # Expose the cache_clear method from the original decorated function
-    get_homebrew_casks.cache_clear = _apps_main.get_homebrew_casks.cache_clear  # type: ignore  # type: ignore
-
-    # Also expose the manual cache clearing function for comprehensive cache management
-    get_homebrew_casks.clear_all_caches = _apps_main.clear_homebrew_casks_cache  # type: ignore
-
-    def is_brew_cask_installable(*args: Any, **kwargs: Any) -> bool:
-        """Check if a cask can be installed via Homebrew."""
-        from typing import cast
-
-        return cast(bool, _apps_main.is_brew_cask_installable(*args, **kwargs))
-
-    def smart_progress(*args: Any, **kwargs: Any) -> Any:
-        """Smart progress bar wrapper."""
-        return _apps_main.smart_progress(*args, **kwargs)
-
-    def run_command(*args: Any, **kwargs: Any) -> tuple[str, int]:
-        """Run system command."""
-        from typing import cast
-
-        return cast(tuple[str, int], _apps_main.run_command(*args, **kwargs))
-
-    def write_cache(*args: Any, **kwargs: Any) -> bool:
-        """Write data to cache."""
-        from typing import cast
-
-        return cast(bool, _apps_main.write_cache(*args, **kwargs))
-
-    # Import ALL EXISTING constants from main apps.py
-    BREW_CMD = _apps_main.BREW_CMD
-    BREW_PATH = _apps_main.BREW_PATH
-    BREW_SEARCH = _apps_main.BREW_SEARCH
-    HAS_PROGRESS = _apps_main.HAS_PROGRESS
-    MAX_ERRORS = _apps_main.MAX_ERRORS
-    _brew_search_cache = _apps_main._brew_search_cache
-else:
-    # Comprehensive fallback functions if main apps.py cannot be loaded
-    def get_homebrew_casks(*args: Any, **kwargs: Any) -> list[str]:
-        """Fallback: Get list of installed Homebrew casks."""
-        return []
-
-    def check_brew_install_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Fallback: Check which applications can be installed via Homebrew."""
-        return []
-
-    def _process_brew_batch(*args: Any, **kwargs: Any) -> Any:
-        """Fallback: Process batch of brew operations."""
-        return []
-
-    def get_cask_version(*args: Any, **kwargs: Any) -> str | None:
-        """Fallback: Get version of a Homebrew cask."""
-        return None
-
-    def is_brew_cask_installable(*args: Any, **kwargs: Any) -> bool:
-        """Fallback: Check if a cask can be installed via Homebrew."""
-        return False
-
-    def _create_rate_limiter(*args: Any, **kwargs: Any) -> Any:
-        """Fallback: Create appropriate rate limiter."""
-        return SimpleRateLimiter(1.0)
-
-    def run_command(*args: Any, **kwargs: Any) -> tuple[str, int]:
-        """Fallback: Run system command."""
-        return ("", 1)
-
-    def write_cache(*args: Any, **kwargs: Any) -> bool:
-        """Fallback: Write data to cache."""
-        return False
-
-    def check_brew_update_candidates(*args: Any, **kwargs: Any) -> list[tuple[str, str, str]]:
-        """Fallback: Check which Homebrew casks can be updated."""
-        return []
-
-    # Private function fallbacks
-    def _batch_process_brew_search(*args: Any, **kwargs: Any) -> list[Any]:
-        """Fallback: Process brew search in batches."""
-        return []
-
-    def _check_cache_for_cask(*args: Any, **kwargs: Any) -> bool | None:
-        """Fallback: Check cache for cask information."""
-        return None
-
-    def _execute_brew_search(*args: Any, **kwargs: Any) -> tuple[str, int]:
-        """Fallback: Execute brew search command."""
-        return ("", 1)
-
-    def _get_error_message(*args: Any, **kwargs: Any) -> str:
-        """Fallback: Get error message from exception."""
-        return "Unknown error"
-
-    def _get_existing_brews(*args: Any, **kwargs: Any) -> list[str]:
-        """Fallback: Get existing brew installations."""
-        return []
-
-    def _handle_batch_error(*args: Any, **kwargs: Any) -> Any:
-        """Fallback: Handle batch processing errors."""
-        # Extract arguments for backward compatibility
-        args[0] if len(args) > 0 else kwargs.get("error")
-        error_count = args[1] if len(args) > 1 else kwargs.get("error_count", 0)
-        batch = args[2] if len(args) > 2 else kwargs.get("batch", [])
-        # Return proper tuple structure: (results, error_count, exception)
-        failed_results = [(name, version, False) for name, version in batch] if batch else []
-        return (failed_results, error_count + 1, None)
-
-    def _handle_brew_search_result(*args: Any, **kwargs: Any) -> bool:
-        """Fallback: Handle brew search result."""
-        return False
-
-    def _handle_future_result(*args: Any, **kwargs: Any) -> tuple[tuple[str, str, bool], None]:
-        """Fallback: Handle future execution result."""
-        # Extract arguments for backward compatibility
-        args[0] if len(args) > 0 else kwargs.get("future")
-        name = args[1] if len(args) > 1 else kwargs.get("name", "unknown")
-        version = args[2] if len(args) > 2 else kwargs.get("version", "0.0.0")
-        # Return proper tuple structure: ((name, version, result), exception)
-        return ((name, version, False), None)
-
-    def _populate_cask_versions(*args: Any, **kwargs: Any) -> dict[str, str]:
-        """Fallback: Populate cask version information."""
-        return {}
-
-    def _process_batch_result(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Fallback: Process batch execution result."""
-        return []
-
-    def _process_brew_search_batches(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Fallback: Process brew search operations in batches."""
-        return []
-
-    def _process_with_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Fallback: Process operations with progress bar."""
-        return []
-
-    def _process_without_progress_bar(*args: Any, **kwargs: Any) -> list[tuple[str, str, bool]]:
-        """Fallback: Process operations without progress bar."""
-        return []
-
-    def _should_show_progress(*args: Any, **kwargs: Any) -> bool:
-        """Fallback: Determine if progress bar should be shown."""
-        return False
-
-    def _update_cache_with_installable(*args: Any, **kwargs: Any) -> None:
-        """Fallback: Update cache with installable cask information."""
-        return None
-
-    # Fallback constants
-    BREW_CMD = "brew"
-    BREW_PATH = "/usr/local/bin/brew"
-    BREW_SEARCH = "brew search --cask"
-    HAS_PROGRESS = False
-    MAX_ERRORS = 5
-    _brew_search_cache = {}
-
-
 __all__ = [
-    # Cache components from submodules
+    # Backward-compatibility
+    "read_cache",
+    "write_cache",
+    "run_command",
+    "partial_ratio",
+    # Cache components
     "AdaptiveRateLimiter",
     "RateLimiter",
     "RateLimiterProtocol",
     "SimpleRateLimiter",
     "_AdaptiveRateLimiter",
+    "_brew_casks_cache",
+    "_brew_search_cache",
     "clear_homebrew_casks_cache",
-    "read_cache",
-    # Finder components from submodules
-    "get_applications",
-    "get_applications_from_system_profiler",
-    "get_homebrew_casks_list",
-    "is_app_in_app_store",
-    "is_homebrew_available",
-    "_create_batches",
-    # Matcher components from submodules
-    "filter_brew_candidates",
-    "filter_out_brews",
-    "get_homebrew_cask_name",
-    "search_brew_cask",
-    "_process_brew_search",
-    # ALL functions from main apps.py
-    "_batch_process_brew_search",
-    "_check_cache_for_cask",
-    "_create_rate_limiter",
-    "_execute_brew_search",
-    "_get_error_message",
-    "_get_existing_brews",
-    "_handle_batch_error",
-    "_handle_brew_search_result",
-    "_handle_future_result",
-    "_populate_cask_versions",
-    "_process_batch_result",
-    "_process_brew_batch",
-    "_process_brew_search_batches",
-    "_process_with_progress_bar",
-    "_process_without_progress_bar",
-    "_should_show_progress",
-    "_update_cache_with_installable",
-    "check_brew_install_candidates",
-    "check_brew_update_candidates",
-    "get_cask_version",
-    "get_homebrew_casks",
-    "is_brew_cask_installable",
-    # Constants
+    "get_homebrew_casks_cached",
+    # Finder constants
     "BREW_CMD",
     "BREW_PATH",
     "BREW_SEARCH",
     "HAS_PROGRESS",
     "MAX_ERRORS",
-    "_brew_search_cache",
-    # Compatibility import for tests
-    "partial_ratio",
+    # Finder functions
+    "_check_cache_for_cask",
+    "_check_cask_installable_with_cache",
+    "_create_batches",
+    "_create_future_submissions",
+    "_create_rate_limiter",
+    "_execute_brew_search",
+    "_execute_cask_installable_check",
+    "_get_error_message",
+    "_get_existing_brews",
+    "_handle_batch_error",
+    "_handle_brew_search_result",
+    "_handle_cask_installable_error",
+    "_handle_future_exception",
+    "_handle_future_result",
+    "_is_async_homebrew_available",
+    "_populate_cask_versions",
+    "_process_batch_result",
+    "_process_brew_batch",
+    "_process_brew_search_batches",
+    "_process_completed_futures",
+    "_process_with_progress_bar",
+    "_process_without_progress_bar",
+    "_should_show_progress",
+    "_update_cache_with_installable",
+    "_validate_batch_preconditions",
+    "check_brew_install_candidates",
+    "check_brew_update_candidates",
+    "get_applications",
+    "get_applications_from_system_profiler",
+    "get_cask_version",
+    "get_homebrew_casks",
+    "get_homebrew_casks_list",
+    "is_app_in_app_store",
+    "is_brew_cask_installable",
+    "is_homebrew_available",
+    "smart_progress",
+    # Matcher functions
+    "_batch_process_brew_search",
+    "_find_matching_cask",
+    "_normalize_and_validate_search_term",
+    "_process_brew_search",
+    "_process_single_app_search",
+    "_wait_for_rate_limit",
+    "filter_brew_candidates",
+    "filter_out_brews",
+    "get_homebrew_cask_name",
+    "search_brew_cask",
 ]

@@ -16,7 +16,7 @@ from typing import Any
 
 from tabulate import tabulate
 
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     filter_out_brews,
     get_applications,
     get_homebrew_casks,

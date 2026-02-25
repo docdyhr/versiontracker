@@ -1,7 +1,6 @@
-"""Comprehensive test coverage for version_legacy module.
+"""Comprehensive test coverage for version module.
 
-This test suite specifically targets untested code paths in version_legacy.py
-to increase coverage from ~11% to 40%+. Focus areas:
+This test suite targets code paths in the version/ subpackage. Focus areas:
 - Special beta formats (1.2b3, 2.0a1)
 - Build metadata extraction (+build123, ~build456)
 - Prerelease comparisons (alpha < beta < rc)
@@ -12,7 +11,7 @@ to increase coverage from ~11% to 40%+. Focus areas:
 Target: Improve test coverage while documenting version handling behavior.
 """
 
-from versiontracker.version_legacy import (
+from versiontracker.version import (
     ApplicationInfo,
     VersionStatus,
     _build_final_version_tuple,

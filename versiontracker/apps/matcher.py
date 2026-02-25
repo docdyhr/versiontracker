@@ -1,27 +1,14 @@
 """Fuzzy matching and Homebrew search functionality."""
 
-# Import partial_ratio directly from the main version.py file (not the version/ submodule)
-import importlib.util
 import logging
-import os
 from typing import cast
 
-# Import from main version module (partial_ratio wasn't moved to submodules)
 from versiontracker.cache import read_cache, write_cache
 from versiontracker.config import get_config
 from versiontracker.utils import normalise_name, run_command
+from versiontracker.version.fuzzy import partial_ratio
 
-from .cache import RateLimiterProtocol
-
-# Import the main version.py file directly (not the version/ package)
-_version_py_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version_legacy.py")
-_spec = importlib.util.spec_from_file_location("versiontracker_version_main", _version_py_path)
-if _spec is not None and _spec.loader is not None:
-    _version_main = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(_version_main)
-    partial_ratio = _version_main.partial_ratio
-else:
-    raise ImportError("Could not load version.py module")
+from .cache import RateLimiterProtocol, SimpleRateLimiter, _AdaptiveRateLimiter
 
 # Module constants
 BREW_PATH = "brew"  # Will be updated based on architecture detection
@@ -108,15 +95,12 @@ def _process_brew_search(app: tuple[str, str], rate_limiter: RateLimiterProtocol
             if return_code == 0:
                 response = [item for item in stdout.splitlines() if item and "==>" not in item]
             else:
-                # Log with % formatting
                 logging.warning("Homebrew search failed with code %d: %s", return_code, stdout)
                 response = []
         except Exception as e:
-            # Log with % formatting
             logging.warning("Command failed, falling back to cached search: %s", e)
             response = search_brew_cask(app[0])
 
-        # Log with % formatting
         logging.debug("Brew search results: %s", response)
 
         # Check if any brew matches the app name
@@ -125,7 +109,6 @@ def _process_brew_search(app: tuple[str, str], rate_limiter: RateLimiterProtocol
                 return app[0]
 
     except Exception as e:
-        # Log with % formatting
         logging.error("Error searching for %s: %s", app[0], e)
 
     return None
@@ -203,6 +186,7 @@ def filter_out_brews(
         List of application tuples that are not managed by Homebrew
     """
     logging.info("Getting installable casks from Homebrew...")
+    print("Getting installable casks from Homebrew...")
 
     candidates = []
     search_list = []
@@ -224,3 +208,111 @@ def filter_out_brews(
             search_list.append(app)
 
     return search_list
+
+
+# --- Search helper functions ---
+
+
+def _wait_for_rate_limit(rate_limiter: object) -> None:
+    """Wait for rate limit if needed.
+
+    Args:
+        rate_limiter: Rate limiter object with wait() method
+    """
+    if rate_limiter is not None and isinstance(rate_limiter, SimpleRateLimiter | _AdaptiveRateLimiter):
+        rate_limiter.wait()
+
+
+def _normalize_and_validate_search_term(app_name: str) -> str | None:
+    """Normalize app name and validate for search.
+
+    Args:
+        app_name: Application name to normalize
+
+    Returns:
+        str or None: Normalized search term or None if invalid
+    """
+    search_term = normalise_name(app_name)
+    return search_term if search_term else None
+
+
+def _find_matching_cask(search_results: list[str], app_name: str) -> str | None:
+    """Find matching cask from search results using various strategies.
+
+    Args:
+        search_results: List of search results from brew
+        app_name: Original application name
+
+    Returns:
+        str or None: Matching cask name or None if no match found
+    """
+    search_results_normalized = [normalise_name(r) for r in search_results]
+    app_name_normalized = normalise_name(app_name)
+
+    for i, result in enumerate(search_results_normalized):
+        if not result:
+            continue
+
+        # Check for exact match
+        if result == app_name_normalized:
+            return search_results[i]
+
+        # Check for substring match (app name in result)
+        if app_name_normalized in result or result in app_name_normalized:
+            return search_results[i]
+
+        # Use fuzzy matching for less strict matches
+        similarity = partial_ratio(app_name_normalized, result)
+        if similarity >= 80:
+            return search_results[i]
+
+    return None
+
+
+def _process_single_app_search(app_name: str, rate_limiter: object) -> str | None:
+    """Process search for a single application.
+
+    Args:
+        app_name: Application name to search for
+        rate_limiter: Rate limiter object
+
+    Returns:
+        str or None: Matching cask name or None if no match found
+    """
+    _wait_for_rate_limit(rate_limiter)
+
+    try:
+        search_term = _normalize_and_validate_search_term(app_name)
+        if not search_term:
+            return None
+
+        search_results = search_brew_cask(search_term)
+
+        if search_results:
+            return _find_matching_cask(search_results, app_name)
+
+    except Exception as e:
+        logging.error("Error searching for %s: %s", app_name, e)
+
+    return None
+
+
+def _batch_process_brew_search(apps_batch: list[tuple[str, str]], rate_limiter: object) -> list[str]:
+    """Process a batch of brew searches to reduce API calls.
+
+    Args:
+        apps_batch: List of (app_name, version) tuples
+        rate_limiter: Rate limiter object with wait() method
+
+    Returns:
+        List of Homebrew cask names that could be used to install the applications
+    """
+    results: list[str] = []
+
+    for app in apps_batch:
+        app_name, _ = app
+        match = _process_single_app_search(app_name, rate_limiter)
+        if match:
+            results.append(match)
+
+    return results

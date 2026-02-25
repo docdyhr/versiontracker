@@ -163,7 +163,7 @@ class TestIntegration(unittest.TestCase):
         )
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.app_finder.get_applications")
+    @patch("versiontracker.apps.finder.get_applications")
     @patch("versiontracker.utils.get_json_data")
     @patch("versiontracker.ui.create_progress_bar")
     @patch("versiontracker.__main__.setup_logging")
@@ -233,11 +233,11 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(os.path.exists(project_root))
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
-    @patch("versiontracker.app_finder.get_applications")
-    @patch("versiontracker.app_finder.get_homebrew_casks")
-    @patch("versiontracker.app_finder.filter_out_brews")
-    @patch("versiontracker.app_finder.check_brew_install_candidates")
+    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.apps.finder.get_applications")
+    @patch("versiontracker.apps.finder.get_homebrew_casks")
+    @patch("versiontracker.apps.matcher.filter_out_brews")
+    @patch("versiontracker.apps.finder.check_brew_install_candidates")
     @patch("versiontracker.handlers.brew_handlers.check_brew_install_candidates")
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
     @patch("versiontracker.utils.get_json_data")
@@ -414,8 +414,8 @@ class TestIntegration(unittest.TestCase):
         self.assertLess(object_growth, 1000, "Excessive memory usage detected")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.app_finder.get_applications")
-    @patch("versiontracker.app_finder.check_brew_install_candidates")
+    @patch("versiontracker.apps.finder.get_applications")
+    @patch("versiontracker.apps.finder.check_brew_install_candidates")
     @patch("versiontracker.utils.get_json_data")
     def test_rate_limiting_integration(self, mock_get_json_data, mock_check_candidates, mock_get_apps, mock_check_deps):
         """Test that rate limiting is properly enforced across operations."""
@@ -602,10 +602,10 @@ class TestIntegration(unittest.TestCase):
                             self.fail(f"Export format {fmt} failed unexpectedly: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.app_finder.is_homebrew_available", return_value=True)
-    @patch("versiontracker.app_finder.get_applications")
-    @patch("versiontracker.app_finder.get_homebrew_casks")
-    @patch("versiontracker.app_finder.filter_out_brews")
+    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.apps.finder.get_applications")
+    @patch("versiontracker.apps.finder.get_homebrew_casks")
+    @patch("versiontracker.apps.matcher.filter_out_brews")
     @patch("versiontracker.utils.get_json_data")
     @patch("versiontracker.ui.create_progress_bar")
     @patch("versiontracker.config.get_config")

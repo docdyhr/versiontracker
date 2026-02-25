@@ -14,7 +14,7 @@ The functionality is organized into focused submodules:
 import logging
 from typing import Any
 
-from versiontracker.app_finder import get_homebrew_casks
+from versiontracker.apps import get_homebrew_casks
 from versiontracker.config import get_config
 
 # Import types from dedicated module
