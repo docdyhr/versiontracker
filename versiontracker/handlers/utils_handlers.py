@@ -153,5 +153,5 @@ def safe_function_call(
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logging.error(f"{error_msg}: {e}")
+        logging.error("%s: %s", error_msg, e)
         return default_value

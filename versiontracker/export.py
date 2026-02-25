@@ -58,10 +58,10 @@ def export_data(
                 f.write(content)
             return filename
         except PermissionError as e:
-            logging.error(f"Permission error writing to {filename}: {e}")
+            logging.error("Permission error writing to %s: %s", filename, e)
             raise PermissionError(f"Permission denied writing to {filename}") from e
         except Exception as e:
-            logging.error(f"Error writing to {filename}: {e}")
+            logging.error("Error writing to %s: %s", filename, e)
             raise ExportError(f"Failed to write to {filename}: {e}") from e
     else:
         return content
@@ -114,7 +114,7 @@ def _export_to_json(
 
         return json.dumps(output_data, indent=2)
     except Exception as e:
-        logging.error(f"Error exporting to JSON: {e}")
+        logging.error("Error exporting to JSON: %s", e)
         raise ExportError(f"Failed to export to JSON: {e}") from e
 
 
@@ -197,7 +197,7 @@ def _export_to_csv(
 
         return output.getvalue()
     except Exception as e:
-        logging.error(f"Error exporting to CSV: {e}")
+        logging.error("Error exporting to CSV: %s", e)
         raise ExportError(f"Failed to export to CSV: {e}") from e
 
 
@@ -225,7 +225,7 @@ def export_to_json(
                 f.write(content)
             return filename
         except Exception as e:
-            logging.error(f"Error writing to {filename}: {e}")
+            logging.error("Error writing to %s: %s", filename, e)
             raise ExportError(f"Failed to write to {filename}: {e}") from e
 
     return content
@@ -250,7 +250,7 @@ def export_to_csv(
     try:
         content = _export_to_csv(data)
     except Exception as e:
-        logging.error(f"Error exporting to CSV: {e}")
+        logging.error("Error exporting to CSV: %s", e)
         raise ExportError(f"Failed to export to CSV: {e}") from e
 
     if filename:
@@ -259,7 +259,7 @@ def export_to_csv(
                 f.write(content)
             return filename
         except Exception as e:
-            logging.error(f"Error writing to {filename}: {e}")
+            logging.error("Error writing to %s: %s", filename, e)
             raise ExportError(f"Failed to write to {filename}: {e}") from e
 
     return content

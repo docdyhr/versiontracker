@@ -74,7 +74,7 @@ async def search_casks(query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bo
     if use_cache:
         cached_data = read_cache(cache_key, CACHE_EXPIRY)
         if cached_data:
-            logging.debug(f"Using cached search results for {query}")
+            logging.debug("Using cached search results for %s", query)
             # cached_data should be a list, but cache functions are typed for Dict only
             return cached_data  # type: ignore[return-value]
 
@@ -100,16 +100,16 @@ async def search_casks(query: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bo
                 return casks
 
     except builtins.TimeoutError as e:
-        logging.error(f"Search request to {url} timed out after {timeout}s: {e}")
+        logging.error("Search request to %s timed out after %ss: %s", url, timeout, e)
         raise TimeoutError(f"Search request timed out: {query}") from e
     except ClientResponseError as e:
-        logging.error(f"HTTP error from {url}: {e.status} {e.message}")
+        logging.error("HTTP error from %s: %s %s", url, e.status, e.message)
         raise NetworkError(f"HTTP error {e.status}: {e.message}") from e
     except ClientError as e:
-        logging.error(f"Network error searching {url}: {e}")
+        logging.error("Network error searching %s: %s", url, e)
         raise NetworkError(f"Network error: {str(e)}") from e
     except Exception as e:
-        logging.error(f"Unexpected error searching {url}: {e}")
+        logging.error("Unexpected error searching %s: %s", url, e)
         raise NetworkError(f"Unexpected error: {str(e)}") from e
 
 
@@ -166,7 +166,7 @@ class HomebrewBatchProcessor(AsyncBatchProcessor[tuple[str, str], tuple[str, str
             return (app_name, version, result)
 
         except (NetworkError, TimeoutError, HomebrewError) as e:
-            logging.error(f"Error checking installability for {app_name}: {e}")
+            logging.error("Error checking installability for %s: %s", app_name, e)
             return (app_name, version, False)
 
     async def _check_exact_match(self, cask_name: str) -> bool:
@@ -251,7 +251,7 @@ class HomebrewBatchProcessor(AsyncBatchProcessor[tuple[str, str], tuple[str, str
             Tuple of (app_name, version, False)
         """
         app_name, version = item
-        logging.error(f"Error checking installability for {app_name}: {error}")
+        logging.error("Error checking installability for %s: %s", app_name, error)
         return (app_name, version, False)
 
 
@@ -313,7 +313,7 @@ async def async_get_cask_version(cask_name: str, use_cache: bool = True) -> str 
         # Other network errors should be propagated
         raise
     except Exception as e:
-        logging.error(f"Error getting cask version for {cask_name}: {e}")
+        logging.error("Error getting cask version for %s: %s", cask_name, e)
         raise HomebrewError(f"Error getting cask version: {e}") from e
 
 
@@ -357,7 +357,7 @@ class HomebrewVersionChecker(AsyncBatchProcessor[tuple[str, str, str], tuple[str
             return (app_name, version, cask_name, latest_version)
 
         except (NetworkError, TimeoutError, HomebrewError) as e:
-            logging.error(f"Error checking version for {app_name} ({cask_name}): {e}")
+            logging.error("Error checking version for %s (%s): %s", app_name, cask_name, e)
             return (app_name, version, cask_name, None)
 
     def handle_error(self, item: tuple[str, str, str], error: Exception) -> tuple[str, str, str, str | None]:
@@ -371,7 +371,7 @@ class HomebrewVersionChecker(AsyncBatchProcessor[tuple[str, str, str], tuple[str
             Tuple of (app_name, version, cask_name, None)
         """
         app_name, version, cask_name = item
-        logging.error(f"Error checking version for {app_name} ({cask_name}): {error}")
+        logging.error("Error checking version for %s (%s): %s", app_name, cask_name, error)
         return (app_name, version, cask_name, None)
 
 

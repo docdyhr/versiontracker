@@ -49,7 +49,7 @@ def is_homebrew_available() -> bool:
         stdout, returncode = run_command("brew --version", timeout=5)
         return returncode == 0
     except Exception as e:
-        logging.warning(f"Homebrew availability check failed: {e}")
+        logging.warning("Homebrew availability check failed: %s", e)
         return False
 
 
@@ -81,7 +81,7 @@ def get_homebrew_path() -> str:
 
         raise HomebrewError("Homebrew not found in common locations")
     except Exception as e:
-        logging.error(f"Failed to find Homebrew: {e}")
+        logging.error("Failed to find Homebrew: %s", e)
         raise HomebrewError(f"Homebrew not found: {e}") from e
 
 
@@ -352,13 +352,13 @@ def _fetch_cask_batch(batch: list[str]) -> dict[str, dict[str, Any]]:
         stdout, returncode = run_command(command, timeout=60)
 
         if returncode != 0:
-            logging.warning(f"Failed to retrieve info for cask batch: {stdout}")
+            logging.warning("Failed to retrieve info for cask batch: %s", stdout)
             return {}
 
         return _parse_and_cache_batch_response(stdout)
 
     except Exception as e:
-        logging.warning(f"Error retrieving info for cask batch: {e}")
+        logging.warning("Error retrieving info for cask batch: %s", e)
         return {}
 
 
@@ -398,7 +398,7 @@ def _parse_and_cache_batch_response(stdout: str) -> dict[str, dict[str, Any]]:
         return result
 
     except json.JSONDecodeError as e:
-        logging.warning(f"Failed to parse cask info JSON for batch: {e}")
+        logging.warning("Failed to parse cask info JSON for batch: %s", e)
         return {}
 
 
@@ -631,7 +631,7 @@ def has_auto_updates(cask_name: str) -> bool:
 
         return False
     except Exception as e:
-        logging.debug(f"Error checking auto-updates for cask {cask_name}: {e}")
+        logging.debug("Error checking auto-updates for cask %s: %s", cask_name, e)
         return False
 
 

@@ -113,10 +113,9 @@ class TestMain(unittest.TestCase):
         mock_logging.INFO = 20
 
         # Call the function (using handle_setup_logging which is imported at the top)
-        result = handle_setup_logging(mock_options)
+        handle_setup_logging(mock_options)
 
         # Verify logging was configured
-        self.assertEqual(result, 0)
         mock_logging.basicConfig.assert_called_once_with(level=20)
 
     @patch("logging.getLogger")

@@ -85,7 +85,7 @@ def handle_blacklist_auto_updates(options: Any) -> int:
             return 1
 
     except Exception as e:
-        logging.error(f"Error blocklisting (legacy: blacklisting) auto-update casks: {e}")
+        logging.error("Error blocklisting (legacy: blacklisting) auto-update casks: %s", e)
         print(create_progress_bar().color("red")(f"Error: {e}"))
         return 1
 
@@ -256,7 +256,7 @@ def handle_uninstall_auto_updates(options: Any) -> int:
         return _display_uninstall_results(successful, failed, errors)
 
     except Exception as e:
-        logging.error(f"Error uninstalling auto-update casks: {e}")
+        logging.error("Error uninstalling auto-update casks: %s", e)
         print(create_progress_bar().color("red")(f"Error: {e}"))
         return 1
 
@@ -320,6 +320,6 @@ def handle_list_auto_updates(options: Any) -> int:
         return 0
 
     except Exception as e:
-        logging.error(f"Error listing auto-update casks: {e}")
+        logging.error("Error listing auto-update casks: %s", e)
         print(create_progress_bar().color("red")(f"Error: {e}"))
         return 1

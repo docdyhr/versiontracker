@@ -7,7 +7,7 @@ to show how to extend VersionTracker functionality.
 import datetime
 import difflib
 import logging
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405
 from pathlib import Path
 from typing import Any
 
@@ -68,7 +68,7 @@ class XMLExportPlugin(ExportPlugin):
 
         if output_file:
             output_file.write_text(xml_string, encoding="utf-8")
-            logger.info(f"XML data exported to {output_file}")
+            logger.info("XML data exported to %s", output_file)
 
         return xml_string
 
@@ -157,7 +157,7 @@ class YAMLExportPlugin(ExportPlugin):
 
         if output_file:
             output_file.write_text(yaml_string, encoding="utf-8")
-            logger.info(f"YAML data exported to {output_file}")
+            logger.info("YAML data exported to %s", output_file)
 
         return yaml_string
 
@@ -224,7 +224,7 @@ class AdvancedMatchingPlugin(MatchingPlugin):
                 score = algorithm_func(app_name, cask_name)
                 scores.append(score)
             except Exception as e:
-                logger.warning(f"Algorithm {algorithm_name} failed: {e}")
+                logger.warning("Algorithm %s failed: %s", algorithm_name, e)
 
         # Return weighted average of scores
         if scores:
@@ -368,7 +368,7 @@ class MacAppStoreDataSource(DataSourcePlugin):
                     if app_info:
                         mas_apps.append(app_info)
 
-        logger.info(f"Discovered {len(mas_apps)} Mac App Store applications")
+        logger.info("Discovered %s Mac App Store applications", len(mas_apps))
         return mas_apps
 
     def get_version_info(self, app_name: str) -> dict[str, Any] | None:
@@ -413,7 +413,7 @@ class MacAppStoreDataSource(DataSourcePlugin):
             }
 
         except Exception as e:
-            logger.warning(f"Failed to parse app info for {app_path}: {e}")
+            logger.warning("Failed to parse app info for %s: %s", app_path, e)
             return None
 
 

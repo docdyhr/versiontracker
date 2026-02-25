@@ -19,7 +19,7 @@ def _ensure_cache_dir() -> None:
         if not os.path.exists(CACHE_DIR):
             os.makedirs(CACHE_DIR, exist_ok=True)
     except Exception as e:
-        logging.error(f"Error creating cache directory: {e}")
+        logging.error("Error creating cache directory: %s", e)
         raise CacheError(f"Failed to create cache directory: {e}") from e
 
 
@@ -48,7 +48,7 @@ def read_cache(cache_name: str, max_age_seconds: int = 86400) -> dict[str, Any] 
         # Check if cache is expired
         file_age = time.time() - os.path.getmtime(cache_file)
         if file_age > max_age_seconds:
-            logging.debug(f"Cache {cache_name} expired (age: {file_age:.1f}s)")
+            logging.debug("Cache %s expired (age: %.1fs)", cache_name, file_age)
             return None
 
         # Read cache
@@ -57,10 +57,10 @@ def read_cache(cache_name: str, max_age_seconds: int = 86400) -> dict[str, Any] 
 
         return cast(dict[str, Any], data)
     except json.JSONDecodeError as e:
-        logging.warning(f"Invalid JSON in cache {cache_name}: {e}")
+        logging.warning("Invalid JSON in cache %s: %s", cache_name, e)
         return None
     except Exception as e:
-        logging.error(f"Error reading cache {cache_name}: {e}")
+        logging.error("Error reading cache %s: %s", cache_name, e)
         return None
 
 
@@ -98,7 +98,7 @@ def write_cache(cache_name: str, data: dict[str, Any]) -> bool:
 
         return True
     except Exception as e:
-        logging.error(f"Error writing cache {cache_name}: {e}")
+        logging.error("Error writing cache %s: %s", cache_name, e)
         raise CacheError(f"Failed to write to cache {cache_name}: {e}") from e
 
 
@@ -130,5 +130,5 @@ def clear_cache(cache_name: str | None = None) -> bool:
 
         return True
     except Exception as e:
-        logging.error(f"Error clearing cache: {e}")
+        logging.error("Error clearing cache: %s", e)
         raise CacheError(f"Failed to clear cache: {e}") from e

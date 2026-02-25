@@ -63,10 +63,10 @@ class MenubarApp:
                 choice = result.stdout.strip()
                 self.handle_menu_choice(choice)
             else:
-                logger.error(f"Failed to show menu: {result.stderr}")
+                logger.error("Failed to show menu: %s", result.stderr)
 
         except Exception as e:
-            logger.error(f"Error showing menu: {e}")
+            logger.error("Error showing menu: %s", e)
 
     def handle_menu_choice(self, choice: str) -> None:
         """Handle menu selection.
@@ -92,7 +92,7 @@ class MenubarApp:
         if choice in commands:
             self.run_versiontracker_command(commands[choice])
         elif choice not in ["VersionTracker", "─────────────────"]:
-            logger.warning(f"Unknown menu choice: {choice}")
+            logger.warning("Unknown menu choice: %s", choice)
 
     def run_versiontracker_command(self, args: list) -> None:
         """Run a versiontracker command in a separate thread.
@@ -120,7 +120,7 @@ class MenubarApp:
                     self.show_result_dialog("VersionTracker Error", error_msg)
 
             except Exception as e:
-                logger.error(f"Error running command: {e}")
+                logger.error("Error running command: %s", e)
                 self.show_result_dialog("VersionTracker Error", f"Failed to run command: {e}")
 
         # Run in background thread
@@ -152,7 +152,7 @@ class MenubarApp:
             )
 
         except Exception as e:
-            logger.error(f"Error showing result dialog: {e}")
+            logger.error("Error showing result dialog: %s", e)
 
     def create_status_item(self) -> bool:
         """Create a status bar item using SwiftBar-style script.
@@ -168,7 +168,7 @@ class MenubarApp:
             return True
 
         except Exception as e:
-            logger.error(f"Error creating status item: {e}")
+            logger.error("Error creating status item: %s", e)
             return False
 
     def start(self) -> None:

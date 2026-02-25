@@ -36,13 +36,13 @@ def handle_initialize_config(options: Any) -> int:
                 # Create a new Config instance if needed
                 Config(config_file=config_file)
         except Exception as e:
-            logging.debug(f"Config initialization error: {e}")
+            logging.debug("Config initialization error: %s", e)
             # Create a new Config instance with defaults
             Config()
 
         return 0
     except Exception as e:
-        logging.error(f"Failed to initialize configuration: {e}")
+        logging.error("Failed to initialize configuration: %s", e)
         return 1
 
 
@@ -71,18 +71,15 @@ def handle_configure_from_options(options: Any) -> int:
 
         return 0
     except Exception as e:
-        logging.error(f"Failed to configure options: {e}")
+        logging.error("Failed to configure options: %s", e)
         return 1
 
 
-def handle_setup_logging(options: Any) -> int:
+def handle_setup_logging(options: Any) -> None:
     """Set up logging based on command-line options.
 
     Args:
         options: Command line options
-
-    Returns:
-        int: Exit code (0 for success, non-zero for failure)
     """
     try:
         # Configure logging based on debug option
@@ -100,15 +97,12 @@ def handle_setup_logging(options: Any) -> int:
             "Logging setup complete with level: %s",
             logging.getLevelName(logging.getLogger().level),
         )
-
-        return 0
     except Exception as e:
         # If logging setup fails, try a basic configuration and log the error
         try:
             logging.basicConfig(level=logging.WARNING)
-            logging.error(f"Error setting up logging: {e}")
+            logging.error("Error setting up logging: %s", e)
         except Exception as basic_error:
             # Last resort if even basic logging fails - print to stderr
             print(f"Critical error: Unable to set up logging: {e}", file=sys.stderr)
             print(f"Basic logging also failed: {basic_error}", file=sys.stderr)
-        return 1

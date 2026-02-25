@@ -317,16 +317,16 @@ class Config:
 
             # Update configuration with validated values
             self._config.update(normalized_config)
-            logging.debug(f"Successfully updated configuration from {config_path}")
+            logging.debug("Successfully updated configuration from %s", config_path)
 
         except yaml.YAMLError as e:
-            logging.error(f"YAML parsing error in configuration file {config_path}: {e}")
+            logging.error("YAML parsing error in configuration file %s: %s", config_path, e)
             raise ConfigError(f"Invalid YAML in configuration file: {str(e)}") from e
         except OSError as e:
-            logging.error(f"Error reading configuration file {config_path}: {e}")
+            logging.error("Error reading configuration file %s: %s", config_path, e)
             raise ConfigError(f"Error loading configuration: {str(e)}") from e
         except Exception as e:
-            logging.error(f"Unexpected error loading configuration from {config_path}: {e}")
+            logging.error("Unexpected error loading configuration from %s: %s", config_path, e)
             raise ConfigError(f"Error in configuration processing: {str(e)}") from e
 
     def _normalize_config_keys(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -431,7 +431,7 @@ class Config:
         if validation_errors:
             self._handle_validation_errors(validation_errors, env_config)
         else:
-            logging.debug(f"Applying all environment variables: {list(env_config.keys())}")
+            logging.debug("Applying all environment variables: %s", list(env_config.keys()))
             self._config.update(env_config)
 
     def _handle_validation_errors(self, validation_errors: dict, env_config: dict) -> None:
@@ -448,11 +448,11 @@ class Config:
             if key not in validation_errors:
                 valid_env_config[key] = value
             else:
-                logging.warning(f"Ignoring invalid environment configuration for '{key}'")
+                logging.warning("Ignoring invalid environment configuration for '%s'", key)
 
         # Update configuration with valid values only
         if valid_env_config:
-            logging.debug(f"Applying valid environment variables: {list(valid_env_config.keys())}")
+            logging.debug("Applying valid environment variables: %s", list(valid_env_config.keys()))
             self._config.update(valid_env_config)
 
     def _load_version_comparison_env_vars(self) -> None:
@@ -709,11 +709,11 @@ class Config:
             with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(save_config, f, default_flow_style=False, sort_keys=True)
 
-            logging.info(f"Configuration saved to {config_path}")
+            logging.info("Configuration saved to %s", config_path)
             return True
 
         except Exception as e:
-            logging.error(f"Failed to save configuration: {e}")
+            logging.error("Failed to save configuration: %s", e)
             return False
 
     def get_blacklist(self) -> list[str]:

@@ -7,6 +7,7 @@ from typing import Any
 
 from versiontracker import __version__
 from versiontracker.cli import get_arguments
+from versiontracker.deprecation import warn_deprecated_flag
 from versiontracker.handlers import (
     handle_blacklist_auto_updates,
     handle_brew_recommendations,
@@ -101,15 +102,15 @@ def _get_basic_action_result(options: Any) -> int | None:
     Returns:
         int | None: Result code or None if no basic action matched
     """
-    if hasattr(options, "apps") and options.apps:
+    if options.apps:
         return handle_list_apps(options)
-    elif hasattr(options, "brews") and options.brews:
+    elif options.brews:
         return handle_list_brews(options)
-    elif hasattr(options, "recom") and options.recom:
+    elif options.recom:
         return handle_brew_recommendations(options)
-    elif hasattr(options, "strict_recom") and options.strict_recom:
+    elif options.strict_recom:
         return handle_brew_recommendations(options)
-    elif hasattr(options, "check_outdated") and options.check_outdated:
+    elif options.check_outdated:
         return handle_outdated_check(options)
     return None
 
@@ -123,11 +124,9 @@ def _get_auto_update_action_result(options: Any) -> int | None:
     Returns:
         int | None: Result code or None if no auto-update action matched
     """
-    if (hasattr(options, "blocklist_auto_updates") and options.blocklist_auto_updates) or (
-        hasattr(options, "blacklist_auto_updates") and options.blacklist_auto_updates
-    ):
+    if options.blocklist_auto_updates or options.blacklist_auto_updates:
         return handle_blacklist_auto_updates(options)
-    elif hasattr(options, "uninstall_auto_updates") and options.uninstall_auto_updates:
+    elif options.uninstall_auto_updates:
         return handle_uninstall_auto_updates(options)
     return None
 
@@ -142,7 +141,7 @@ def handle_main_actions(options: Any) -> int:
         int: Exit code (0 for success, non-zero for failure)
     """
     # Handle config generation first if requested
-    if hasattr(options, "generate_config") and options.generate_config:
+    if options.generate_config:
         return handle_config_generation(options)
 
     # Try basic actions first
@@ -156,15 +155,15 @@ def handle_main_actions(options: Any) -> int:
         return result
 
     # Handle macOS service actions
-    if hasattr(options, "install_service") and options.install_service:
+    if options.install_service:
         return _handle_macos_service_action(options, "install_service")
-    elif hasattr(options, "uninstall_service") and options.uninstall_service:
+    elif options.uninstall_service:
         return _handle_macos_service_action(options, "uninstall_service")
-    elif hasattr(options, "service_status") and options.service_status:
+    elif options.service_status:
         return _handle_macos_service_action(options, "service_status")
-    elif hasattr(options, "test_notification") and options.test_notification:
+    elif options.test_notification:
         return _handle_macos_service_action(options, "test_notification")
-    elif hasattr(options, "menubar") and options.menubar:
+    elif options.menubar:
         return _handle_macos_service_action(options, "menubar_app")
     else:
         # No valid option selected
@@ -188,15 +187,29 @@ def versiontracker_main() -> int:
     # Parse arguments
     options = get_arguments()
 
+    # Emit deprecation warnings for legacy flags (once per process)
+    if options.blacklist:
+        warn_deprecated_flag(
+            "--blacklist",
+            replacement="--blocklist",
+            removal_version="1.0.0",
+        )
+    if options.blacklist_auto_updates:
+        warn_deprecated_flag(
+            "--blacklist-auto-updates",
+            replacement="--blocklist-auto-updates",
+            removal_version="1.0.0",
+        )
+
     # Enable profiling if requested
-    if hasattr(options, "profile") and options.profile:
+    if options.profile:
         enable_profiling()
 
     # Set up logging
     handle_setup_logging(options)
 
     # Check and inform about ML features if debug mode is enabled
-    if hasattr(options, "debug") and options.debug:
+    if options.debug:
         _check_ml_availability()
 
     # Initialize configuration
@@ -218,12 +231,12 @@ def versiontracker_main() -> int:
         result = handle_main_actions(options)
 
         # Save filter if requested
-        if hasattr(options, "save_filter") and options.save_filter:
+        if options.save_filter:
             handle_save_filter(options, filter_manager)
 
         # Print performance report if profiling was enabled
-        if hasattr(options, "profile") and options.profile:
-            print_report(detailed=hasattr(options, "detailed_profile") and options.detailed_profile)
+        if options.profile:
+            print_report(detailed=options.detailed_profile)
             disable_profiling()
 
         return result
@@ -232,7 +245,7 @@ def versiontracker_main() -> int:
         print(create_progress_bar().color("red")(f"Error: {str(e)}"))
 
         # Print performance report even on error if profiling was enabled
-        if hasattr(options, "profile") and options.profile:
+        if options.profile:
             print_report(detailed=False)
             disable_profiling()
 

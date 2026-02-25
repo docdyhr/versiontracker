@@ -301,7 +301,7 @@ class CommandInterpreter:
             return command_structure
 
         except Exception as e:
-            logger.error(f"Error interpreting command: {e}")
+            logger.error("Error interpreting command: %s", e)
             return {"command": "error", "error": str(e), "natural_language": natural_language_input, "confidence": 0.0}
 
     def _map_intent_to_command(self, intent: Intent) -> dict[str, Any]:
@@ -367,7 +367,7 @@ class AIInsights:
                 category_insights = generator(apps, system_data)
                 insights.extend(category_insights)
             except Exception as e:
-                logger.warning(f"Failed to generate {category} insights: {e}")
+                logger.warning("Failed to generate %s insights: %s", category, e)
 
         # Sort by priority and confidence
         priority_order = {"critical": 4, "high": 3, "medium": 2, "low": 1}
@@ -755,7 +755,7 @@ class ConversationalInterface:
 
         import random
 
-        base_response = random.choice(templates)
+        base_response = random.choice(templates)  # nosec B311
 
         # Add parameter information if available
         parameters = command_result.get("parameters", {})
@@ -777,7 +777,7 @@ class ConversationalInterface:
 
         import random
 
-        base_response = random.choice(clarification_responses)
+        base_response = random.choice(clarification_responses)  # nosec B311
 
         # Add helpful suggestions
         suggestions = [
@@ -786,7 +786,7 @@ class ConversationalInterface:
             "I can help with tasks like finding outdated apps, generating reports, or managing your applications.",
         ]
 
-        return base_response + " " + random.choice(suggestions)
+        return base_response + " " + random.choice(suggestions)  # nosec B311
 
     def _format_parameters(self, parameters: dict[str, Any]) -> str:
         """Format parameters for conversational response."""

@@ -166,6 +166,6 @@ def handle_list_apps(options: Any) -> int:
 
         return 0
     except Exception as e:
-        logging.error(f"Error listing applications: {e}")
+        logging.error("Error listing applications: %s", e)
         traceback.print_exc()
         return 1

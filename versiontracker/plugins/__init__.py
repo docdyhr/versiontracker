@@ -77,12 +77,12 @@ class BasePlugin(ABC):
     def enable(self) -> None:
         """Enable the plugin."""
         self._enabled = True
-        logger.info(f"Plugin '{self.name}' enabled")
+        logger.info("Plugin '%s' enabled", self.name)
 
     def disable(self) -> None:
         """Disable the plugin."""
         self._enabled = False
-        logger.info(f"Plugin '{self.name}' disabled")
+        logger.info("Plugin '%s' disabled", self.name)
 
     def get_info(self) -> dict[str, Any]:
         """Get plugin information."""
@@ -276,7 +276,7 @@ class PluginManager:
             if plugin_class_name in self._plugin_types:
                 self._plugin_types[plugin_class_name].append(plugin)
 
-            logger.info(f"Plugin '{plugin.name}' registered successfully")
+            logger.info("Plugin '%s' registered successfully", plugin.name)
 
         except Exception as e:
             raise PluginError(f"Failed to initialize plugin '{plugin.name}': {str(e)}") from e
@@ -304,7 +304,7 @@ class PluginManager:
                 self._plugin_types[plugin_class_name].remove(plugin)
 
             del self._plugins[name]
-            logger.info(f"Plugin '{name}' unregistered successfully")
+            logger.info("Plugin '%s' unregistered successfully", name)
 
         except Exception as e:
             raise PluginError(f"Failed to cleanup plugin '{name}': {str(e)}") from e
@@ -396,7 +396,7 @@ class PluginManager:
             plugin_dir: Directory containing plugin files
         """
         if not plugin_dir.exists() or not plugin_dir.is_dir():
-            logger.warning(f"Plugin directory not found: {plugin_dir}")
+            logger.warning("Plugin directory not found: %s", plugin_dir)
             return
 
         for plugin_file in plugin_dir.glob("*.py"):
@@ -406,7 +406,7 @@ class PluginManager:
             try:
                 self.load_plugin_from_file(plugin_file)
             except PluginError as e:
-                logger.error(f"Failed to load plugin {plugin_file}: {e}")
+                logger.error("Failed to load plugin %s: %s", plugin_file, e)
 
     def enable_plugin(self, name: str) -> None:
         """Enable a plugin.
@@ -442,7 +442,7 @@ class PluginManager:
             try:
                 self.unregister_plugin(name)
             except PluginError as e:
-                logger.error(f"Failed to cleanup plugin '{name}': {e}")
+                logger.error("Failed to cleanup plugin '%s': %s", name, e)
 
 
 # Global plugin manager instance

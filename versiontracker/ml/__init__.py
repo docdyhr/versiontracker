@@ -13,7 +13,7 @@ Note:
 
 import json
 import logging
-import pickle
+import pickle  # nosec B403
 import time
 from pathlib import Path
 from typing import Any
@@ -222,7 +222,7 @@ class MatchingConfidenceModel:
         if not training_data:
             raise MLError("No training data provided")
 
-        logger.info(f"Training confidence model with {len(training_data)} examples")
+        logger.info("Training confidence model with %s examples", len(training_data))
 
         X, y = self._prepare_training_data(training_data)
 
@@ -242,7 +242,7 @@ class MatchingConfidenceModel:
         self._save_model()
         self.trained = True
 
-        logger.info(f"Model trained with accuracy: {accuracy:.3f}")
+        logger.info("Model trained with accuracy: %s", accuracy)
 
         return {
             "accuracy": accuracy,
@@ -280,7 +280,7 @@ class MatchingConfidenceModel:
                 labels.append(label)
 
             except KeyError as e:
-                logger.warning(f"Skipping invalid training example: missing key {e}")
+                logger.warning("Skipping invalid training example: missing key %s", e)
                 continue
 
         return np.array(features_list), np.array(labels)
@@ -306,7 +306,7 @@ class MatchingConfidenceModel:
         with open(scaler_file, "wb") as f:
             pickle.dump(self.scaler, f)
 
-        logger.info(f"Model saved to {model_file}")
+        logger.info("Model saved to %s", model_file)
 
     def _load_model(self) -> None:
         """Load trained model and scaler."""
@@ -328,7 +328,7 @@ class MatchingConfidenceModel:
             logger.info("Model loaded successfully")
 
         except Exception as e:
-            logger.error(f"Failed to load model: {e}")
+            logger.error("Failed to load model: %s", e)
 
 
 class UsageAnalyzer:
@@ -360,7 +360,7 @@ class UsageAnalyzer:
         self.usage_data["match_feedback"].append(feedback_entry)
         self._save_usage_data()
 
-        logger.info(f"Recorded feedback: {app_name} -> {cask_name} ({'accepted' if accepted else 'rejected'})")
+        logger.info("Recorded feedback: %s -> %s (%s)", app_name, cask_name, "accepted" if accepted else "rejected")
 
     def record_app_usage(self, app_name: str, action: str, metadata: dict[str, Any] | None = None) -> None:
         """Record application usage patterns."""
@@ -483,7 +483,7 @@ class UsageAnalyzer:
             with open(self.data_path) as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError) as e:
-            logger.warning(f"Failed to load usage data: {e}")
+            logger.warning("Failed to load usage data: %s", e)
             return {}
 
     def _save_usage_data(self) -> None:
@@ -493,7 +493,7 @@ class UsageAnalyzer:
             with open(self.data_path, "w") as f:
                 json.dump(self.usage_data, f, indent=2)
         except OSError as e:
-            logger.error(f"Failed to save usage data: {e}")
+            logger.error("Failed to save usage data: %s", e)
 
 
 class MLRecommendationEngine:
@@ -516,7 +516,7 @@ class MLRecommendationEngine:
 
     def initialize(self, apps: list[dict[str, Any]], casks: list[dict[str, Any]]) -> None:
         """Initialize the engine with application and cask data."""
-        logger.info(f"Initializing ML engine with {len(apps)} apps and {len(casks)} casks")
+        logger.info("Initializing ML engine with %s apps and %s casks", len(apps), len(casks))
 
         app_texts = [self._prepare_app_text(app) for app in apps]
         cask_texts = [self._prepare_cask_text(cask) for cask in casks]
@@ -565,7 +565,7 @@ class MLRecommendationEngine:
                 try:
                     confidence = self.confidence_model.predict_confidence(app, cask)
                 except Exception as e:
-                    logger.warning(f"Failed to get ML confidence: {e}")
+                    logger.warning("Failed to get ML confidence: %s", e)
                     confidence = similarity
 
                 combined_score = (similarity * 0.4) + (confidence * 0.6)
@@ -584,7 +584,7 @@ class MLRecommendationEngine:
 
         recommendations.sort(key=lambda x: x["combined_score"], reverse=True)
 
-        logger.info(f"Generated {len(recommendations)} ML-powered recommendations")
+        logger.info("Generated %s ML-powered recommendations", len(recommendations))
         return recommendations
 
     def record_feedback(self, app_name: str, cask_name: str, accepted: bool, confidence: float) -> None:
@@ -651,7 +651,7 @@ class ModelTrainer:
         for app, cask in negative_pairs:
             training_data.append({"app": app, "cask": cask, "match": 0})
 
-        logger.info(f"Generated {len(training_data)} synthetic training examples")
+        logger.info("Generated %s synthetic training examples", len(training_data))
         return training_data
 
     def _generate_positive_pairs(
@@ -688,8 +688,8 @@ class ModelTrainer:
         max_attempts = count * 10
 
         while len(pairs) < count and attempts < max_attempts:
-            app = random.choice(apps)
-            cask = random.choice(casks)
+            app = random.choice(apps)  # nosec B311
+            cask = random.choice(casks)  # nosec B311
 
             app_name = app.get("name", "").lower()
             cask_name = cask.get("name", "").lower().replace("-", " ")

@@ -55,10 +55,10 @@ class BackupManager:
                 json.dump(backup_data, f, indent=2)
 
             backup.backup_file = backup_file
-            logging.info(f"Created blacklist backup at: {backup_file}")
+            logging.info("Created blacklist backup at: %s", backup_file)
 
         except Exception as e:
-            logging.warning(f"Failed to create blacklist backup: {e}")
+            logging.warning("Failed to create blacklist backup: %s", e)
             # Continue without backup file
 
         return backup
@@ -81,7 +81,7 @@ class BackupManager:
                 logging.error("Failed to save restored blacklist")
                 return False
         except Exception as e:
-            logging.error(f"Failed to restore blacklist from backup: {e}")
+            logging.error("Failed to restore blacklist from backup: %s", e)
             return False
 
     def cleanup_backup(self, backup: BlacklistBackup) -> None:
@@ -93,9 +93,9 @@ class BackupManager:
         if backup.backup_file and os.path.exists(backup.backup_file):
             try:
                 os.remove(backup.backup_file)
-                logging.info(f"Cleaned up backup file: {backup.backup_file}")
+                logging.info("Cleaned up backup file: %s", backup.backup_file)
             except Exception as e:
-                logging.warning(f"Failed to clean up backup file: {e}")
+                logging.warning("Failed to clean up backup file: %s", e)
 
     def handle_save_failure(self, backup: BlacklistBackup) -> int:
         """Handle configuration save failure with rollback.
@@ -131,7 +131,7 @@ class BackupManager:
         Returns:
             Exit code 1
         """
-        logging.error(f"Config operation failed: {error}")
+        logging.error("Config operation failed: %s", error)
         print(self.progress_bar.color("red")(f"Configuration error: {error}"))
         print(self.progress_bar.color("yellow")("Attempting to restore original blacklist..."))
 

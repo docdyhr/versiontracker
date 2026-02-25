@@ -245,7 +245,7 @@ class EnhancedAutoUpdateHandler:
             return self._perform_blacklist_update(current_blacklist, new_additions, backup)
 
         except Exception as e:
-            logging.error(f"Critical error in blacklist operation: {e}")
+            logging.error("Critical error in blacklist operation: %s", e)
             print(self.progress_bar.color("red")(f"Critical error: {e}"))
 
             if backup and backup.backup_file:
@@ -530,7 +530,7 @@ class EnhancedAutoUpdateHandler:
             return self._determine_exit_code(critical_errors, failed)
 
         except Exception as e:
-            logging.error(f"Critical error in uninstall operation: {e}")
+            logging.error("Critical error in uninstall operation: %s", e)
             print(self.progress_bar.color("red")(f"Critical error: {e}"))
             return 2
 

@@ -59,7 +59,7 @@ def handle_install_service(options: Namespace) -> int:
             return 1
 
     except Exception as e:
-        logger.error(f"Error installing service: {e}")
+        logger.error("Error installing service: %s", e)
         print(progress_bar.color("red")(f"Error: {e}"))
         return 1
 
@@ -95,7 +95,7 @@ def handle_uninstall_service(options: Namespace) -> int:
             return 1
 
     except Exception as e:
-        logger.error(f"Error uninstalling service: {e}")
+        logger.error("Error uninstalling service: %s", e)
         print(progress_bar.color("red")(f"Error: {e}"))
         return 1
 
@@ -161,7 +161,7 @@ def handle_service_status(options: Namespace) -> int:
         return 0
 
     except Exception as e:
-        logger.error(f"Error checking service status: {e}")
+        logger.error("Error checking service status: %s", e)
         print(progress_bar.color("red")(f"Error: {e}"))
         return 1
 
@@ -200,7 +200,7 @@ def handle_test_notification(options: Namespace) -> int:
             return 1
 
     except Exception as e:
-        logger.error(f"Error sending test notification: {e}")
+        logger.error("Error sending test notification: %s", e)
         print(progress_bar.color("red")(f"Error: {e}"))
         return 1
 
@@ -236,6 +236,6 @@ def handle_menubar_app(options: Namespace) -> int:
         print(progress_bar.color("yellow")("\nMenubar application stopped by user"))
         return 0
     except Exception as e:
-        logger.error(f"Error launching menubar app: {e}")
+        logger.error("Error launching menubar app: %s", e)
         print(progress_bar.color("red")(f"Error: {e}"))
         return 1

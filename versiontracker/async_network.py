@@ -60,7 +60,7 @@ async def fetch_json(
     if use_cache:
         cached_data = read_cache(cache_key, CACHE_EXPIRY)
         if cached_data:
-            logging.debug(f"Using cached data for {url}")
+            logging.debug("Using cached data for %s", url)
             return cached_data
 
     # Configure timeout
@@ -82,16 +82,16 @@ async def fetch_json(
                 return cast(dict[str, Any], data)
 
     except builtins.TimeoutError as e:
-        logging.error(f"Request to {url} timed out after {timeout}s: {e}")
+        logging.error("Request to %s timed out after %ss: %s", url, timeout, e)
         raise TimeoutError(f"Request timed out: {url}") from e
     except ClientResponseError as e:
-        logging.error(f"HTTP error from {url}: {e.status} {e.message}")
+        logging.error("HTTP error from %s: %s %s", url, e.status, e.message)
         raise NetworkError(f"HTTP error {e.status}: {e.message}") from e
     except ClientError as e:
-        logging.error(f"Network error accessing {url}: {e}")
+        logging.error("Network error accessing %s: %s", url, e)
         raise NetworkError(f"Network error: {str(e)}") from e
     except Exception as e:
-        logging.error(f"Unexpected error fetching {url}: {e}")
+        logging.error("Unexpected error fetching %s: %s", url, e)
         raise NetworkError(f"Unexpected error: {str(e)}") from e
 
 
@@ -154,7 +154,7 @@ async def batch_fetch_json(
     processed_results: list[dict[str, Any]] = []
     for i, result in enumerate(results):
         if isinstance(result, Exception):
-            logging.error(f"Error fetching {urls[i]}: {result}")
+            logging.error("Error fetching %s: %s", urls[i], result)
             # Convert to appropriate exception type
             if isinstance(result, TimeoutError):
                 raise result
@@ -297,7 +297,7 @@ class AsyncBatchProcessor[T, R]:
         processed_results: list[R] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logging.error(f"Error processing item {batch[i]}: {result}")
+                logging.error("Error processing item %s: %s", batch[i], result)
                 # Handle the error in a subclass-specific way
                 processed_results.append(self.handle_error(batch[i], result))
             else:

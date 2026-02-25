@@ -4,6 +4,7 @@ This module defines all custom exceptions used throughout the application,
 following the established error handling patterns with structured error support.
 """
 
+import builtins
 from typing import Any
 
 from versiontracker.error_codes import ErrorCode, StructuredError, create_error
@@ -309,20 +310,26 @@ class ExportError(VersionTrackerError):
 
 
 # Custom versions of built-in exceptions that are used in utils.py
-class FileNotFoundError(VersionTrackerError):
+# These inherit from both VersionTrackerError and the corresponding builtins
+# so they can be caught by either except clause (custom or builtin).
+class FileNotFoundError(VersionTrackerError, builtins.FileNotFoundError):
     """File not found errors.
 
     This exception is raised when a file cannot be found at the specified path.
+    It inherits from both VersionTrackerError and the built-in FileNotFoundError
+    so it is interchangeable in except clauses with the built-in version.
     """
 
     pass
 
 
-class PermissionError(VersionTrackerError):
+class PermissionError(VersionTrackerError, builtins.PermissionError):
     """Permission errors.
 
     This exception is raised when the application doesn't have
     sufficient permissions to access a file or directory.
+    It inherits from both VersionTrackerError and the built-in PermissionError
+    so it is interchangeable in except clauses with the built-in version.
     """
 
     pass
