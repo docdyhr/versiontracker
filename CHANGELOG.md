@@ -5,14 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.2] - 2025-01-09
-
-### Fixed
-- **Cache Corruption Bug**: Fixed JSON cache file corruption in `brew_installable.json`
-  - Implemented atomic file writes using temporary file + rename pattern
-  - Prevents corruption from interrupted writes or concurrent access
-  - Cache files now always contain complete, valid JSON
-
 ## [Unreleased]
 
 ### Added
@@ -50,6 +42,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documented actual behavior vs expected behavior for future refactoring
 - **Module Documentation**: Updated deprecation notice in version_legacy.py with clear migration status
 
+## [0.8.2] - 2026-01-09
+
+### Fixed
+- **Cache Corruption Bug**: Fixed JSON cache file corruption in `brew_installable.json`
+  - Implemented atomic file writes using temporary file + rename pattern
+  - Prevents corruption from interrupted writes or concurrent access
+  - Cache files now always contain complete, valid JSON
+
 ## [0.8.1] - 2025-10-29
 
 ### Fixed
@@ -86,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All 11 CI/CD workflows now passing consistently
 - Fixed Security Analysis workflow to run on all PRs
 
-## [0.8.0] - 2025-01-27
+## [0.8.0] - 2025-10-27
 
 ### Added - Major AI/ML Transformation
 - **AI-Powered Recommendations Engine**: Natural language processing for intelligent application suggestions
@@ -142,7 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security: No critical or high vulnerabilities
 - Code complexity: All functions < 15 (excellent)
 
-## [0.7.2] - 2025-08-30
+## [0.7.2] - 2025-09-02
 
 ### Changed
 
@@ -154,7 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Homebrew tap will need its tarball sha256 refreshed after the GitHub tag is created
   and the automated tap workflow runs.
 
-## [0.7.1] - 2025-01-14
+## [0.7.1] - 2025-08-20
 ### Fixed
 - **BREAKING**: Fixed PyPI package naming conflict by changing from `versiontracker` to `macos-versiontracker`
 - Fixed CI/CD release workflow version mismatch issue
@@ -176,7 +176,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI commands remain the same: `versiontracker` or use new `macos-versiontracker`
 - No configuration changes required
 
-## [0.7.0] - 2025-01-13
+## [0.7.0] - 2025-08-14
 ### Documentation Corrections (August 2025)
 - Updated README: corrected overstated "70%+ test coverage" to actual ≈10–11% with rationale tied to heavy mocking strategy.
 - Added "Testing Strategy & Coverage Philosophy" section detailing isolation approach, planned integration test expansion, and future meaningful coverage target (25–30%).
@@ -478,7 +478,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Maintained 100% test pass rate throughout all refactoring efforts
 - Only 3 lower-priority functions remain at/near complexity threshold
 
-## [0.6.5] - 2025-01-14
+## [0.6.5] - 2025-07-31
 
 ### Fixed
 - **CI/CD Pipeline Improvements**:

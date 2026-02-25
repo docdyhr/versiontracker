@@ -29,7 +29,6 @@ def get_applications(data: dict[str, Any]) -> list[tuple[str, str]]:
         List[Tuple[str, str]]: List of (app_name, version) pairs
     """
     logging.info("Getting Apps from Applications/...")
-    print("Getting Apps from Applications/...")
 
     apps: list[tuple[str, str]] = []
     for app in data["SPApplicationsDataType"]:

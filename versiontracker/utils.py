@@ -1,5 +1,4 @@
-"""
-Utility functions for VersionTracker.
+"""Utility functions for VersionTracker.
 
 This module provides common utility functions used throughout the application.
 """
@@ -64,7 +63,7 @@ def setup_logging(debug: bool = False) -> None:
         log_dir.mkdir(parents=True, exist_ok=True)
         log_file = log_dir / "versiontracker.log"
     except OSError as e:
-        logging.error(f"Failed to create log directory {log_dir}: {e}")
+        logging.error("Failed to create log directory %s: %s", log_dir, e)
         # Continue without file logging if directory creation fails
 
     # Python 3.9+ supports encoding parameter
@@ -120,7 +119,7 @@ def _ensure_cache_dir() -> None:
         cache_dir = os.path.dirname(APP_CACHE_FILE)
         os.makedirs(cache_dir, exist_ok=True)
     except OSError as e:
-        logging.warning(f"Could not create cache directory: {e}")
+        logging.warning("Could not create cache directory: %s", e)
         # Continue without caching if directory creation fails
 
 
@@ -141,7 +140,7 @@ def _read_cache_file() -> dict[str, Any]:
 
             logging.info("Cache expired, will refresh application data")
     except Exception as e:
-        logging.warning(f"Failed to read application cache: {e}")
+        logging.warning("Failed to read application cache: %s", e)
 
     return {}
 
@@ -161,9 +160,9 @@ def _write_cache_file(data: dict[str, Any]) -> None:
         with open(APP_CACHE_FILE, "w") as f:
             json.dump(cache_data, f)
 
-        logging.info(f"Application data cached to {APP_CACHE_FILE}")
+        logging.info("Application data cached to %s", APP_CACHE_FILE)
     except Exception as e:
-        logging.warning(f"Failed to write application cache: {e}")
+        logging.warning("Failed to write application cache: %s", e)
 
 
 @functools.lru_cache(maxsize=4)
@@ -186,13 +185,13 @@ def _parse_json_output(stdout: str, command: str) -> dict[str, Any]:
         parsed_data = json.loads(stdout)
         return cast(dict[str, Any], parsed_data)
     except json.JSONDecodeError as e:
-        logging.error(f"Failed to parse JSON output from '{command}': {e}")
+        logging.error("Failed to parse JSON output from '%s': %s", command, e)
         raise DataParsingError(f"Failed to parse JSON from command output: {e}") from e
 
 
 def _handle_command_execution_error(e: subprocess.CalledProcessError, command: str) -> NoReturn:
     """Handle errors from command execution and raise appropriate exceptions."""
-    logging.error(f"Command '{command}' failed with error code {e.returncode}")
+    logging.error("Command '%s' failed with error code %s", command, e.returncode)
     error_output = str(e.output) if e.output else str(e)
 
     if "command not found" in error_output.lower():
@@ -205,7 +204,7 @@ def _handle_command_execution_error(e: subprocess.CalledProcessError, command: s
 
 def _handle_unexpected_error(e: Exception, command: str) -> NoReturn:
     """Handle unexpected errors and categorize them appropriately."""
-    logging.error(f"Unexpected error executing command '{command}': {e}")
+    logging.error("Unexpected error executing command '%s': %s", command, e)
 
     # Check for network-related terms in the error message
     if any(term in str(e).lower() for term in ["network", "connection", "timeout"]):
@@ -288,7 +287,7 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> dict[str, Any]:
         output, returncode = run_command(cmd, timeout=timeout)
 
         if returncode != 0:
-            logging.error(f"Command failed with return code {returncode}: {output}")
+            logging.error("Command failed with return code %s: %s", returncode, output)
             raise DataParsingError(f"Command failed with return code {returncode}: {output}")
 
         # Parse JSON data
@@ -296,19 +295,19 @@ def get_shell_json_data(cmd: str, timeout: int = 30) -> dict[str, Any]:
             data = json.loads(output)
             return cast(dict[str, Any], data)
         except json.JSONDecodeError as e:
-            logging.error(f"Invalid JSON data: {e}")
+            logging.error("Invalid JSON data: %s", e)
             raise DataParsingError(f"Invalid JSON data: {e}") from e
     except TimeoutError:
-        logging.error(f"Command timed out: {cmd}")
+        logging.error("Command timed out: %s", cmd)
         raise
     except PermissionError:
-        logging.error(f"Permission denied: {cmd}")
+        logging.error("Permission denied: %s", cmd)
         raise
     except DataParsingError:
         # Re-raise DataParsingError as-is
         raise
     except Exception as e:
-        logging.error(f"Error getting JSON data: {e}")
+        logging.error("Error getting JSON data: %s", e)
         raise DataParsingError(f"Failed to get JSON data: {e}") from e
 
 
@@ -335,7 +334,7 @@ def run_command_secure(command_parts: list[str], timeout: int | None = None) -> 
     process = None
     try:
         # Run the command without shell=True for security
-        logging.debug(f"Running secure command: {' '.join(command_parts)}")
+        logging.debug("Running secure command: %s", " ".join(command_parts))
         # Using Popen with shell=False and list args is secure
         process = subprocess.Popen(  # nosec B603
             command_parts,
@@ -357,7 +356,10 @@ def run_command_secure(command_parts: list[str], timeout: int | None = None) -> 
             else:
                 # Log other failures as warnings
                 logging.warning(
-                    f"Command {' '.join(command_parts)} failed with return code {process.returncode}: {stderr}"
+                    "Command %s failed with return code %s: %s",
+                    " ".join(command_parts),
+                    process.returncode,
+                    stderr,
                 )
 
         return stdout, process.returncode
@@ -419,7 +421,7 @@ def shell_command_to_args(cmd: str) -> list[str]:
     except ValueError as e:
         # If shlex.split fails due to unmatched quotes or other issues,
         # fall back to simple split but log a warning
-        logging.warning(f"Failed to parse command with shlex.split: {cmd}. Error: {e}")
+        logging.warning("Failed to parse command with shlex.split: %s. Error: %s", cmd, e)
         return cmd.split()
 
 
@@ -466,7 +468,7 @@ def _handle_process_output(stdout: str, stderr: str, return_code: int, cmd: str)
             pass
         else:
             # Log other failures as warnings
-            logging.warning(f"Command failed with return code {return_code}: {stderr}")
+            logging.warning("Command failed with return code %s: %s", return_code, stderr)
             # Check for specific errors that should raise exceptions
             _classify_command_error(stderr, cmd)
 
@@ -485,9 +487,9 @@ def _handle_timeout_error(process: subprocess.Popen | None, timeout: int | None,
         try:
             process.kill()
         except Exception as kill_error:
-            logging.debug(f"Error killing timed out process: {kill_error}")
+            logging.debug("Error killing timed out process: %s", kill_error)
 
-    logging.error(f"Command timed out after {timeout} seconds: {cmd}")
+    logging.error("Command timed out after %s seconds: %s", timeout, cmd)
     raise TimeoutError(f"Command timed out after {timeout} seconds: {cmd}")
 
 
@@ -535,7 +537,7 @@ def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
     process = None
     try:
         # Run the command
-        logging.debug(f"Running command: {cmd}")
+        logging.debug("Running command: %s", cmd)
         # Parse command safely to avoid shell injection
         cmd_list = shlex.split(cmd)
         process = _execute_subprocess(cmd_list, timeout)
@@ -551,18 +553,18 @@ def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
     except (builtins.FileNotFoundError, FileNotFoundError):
         # Catch both built-in FileNotFoundError (from subprocess) and
         # custom FileNotFoundError (from _classify_command_error)
-        logging.error(f"Command not found: {cmd}")
+        logging.error("Command not found: %s", cmd)
         raise
     except (builtins.PermissionError, PermissionError):
         # Catch both built-in PermissionError (from subprocess) and
         # custom PermissionError (from _classify_command_error)
-        logging.error(f"Permission error running command: {cmd}")
+        logging.error("Permission error running command: %s", cmd)
         raise
     except subprocess.SubprocessError as e:
-        logging.error(f"Subprocess error running command: {cmd} - {e}")
+        logging.error("Subprocess error running command: %s - %s", cmd, e)
         raise
     except Exception as e:
-        logging.error(f"Error running command '{cmd}': {e}")
+        logging.error("Error running command '%s': %s", cmd, e)
         # Check for network-related errors in the exception message
         _handle_network_error_check(e, cmd)
         # Re-raise with more context
@@ -609,13 +611,13 @@ def run_command_original(command: str, timeout: int = 30) -> list[str]:
         stderr = e.stderr or ""
         # Check for common error patterns to provide better messages
         if e.returncode == 13 or "permission denied" in stderr.lower():
-            logging.error(f"{error_msg}: Permission denied. Try running with sudo or check file permissions.")
+            logging.error("%s: Permission denied. Try running with sudo or check file permissions.", error_msg)
             raise PermissionError(f"Permission denied while executing '{command}'") from e
         elif "command not found" in stderr.lower():
-            logging.error(f"{error_msg}: Command not found. Check if the required program is installed.")
+            logging.error("%s: Command not found. Check if the required program is installed.", error_msg)
             raise FileNotFoundError(f"Command not found: '{command}'") from e
         elif "no such file or directory" in stderr.lower():
-            logging.error(f"{error_msg}: File or directory not found. Check if the path exists.")
+            logging.error("%s: File or directory not found. Check if the path exists.", error_msg)
             raise FileNotFoundError(f"File or directory not found in command: '{command}'") from e
         elif any(
             network_err in stderr.lower()
@@ -629,14 +631,14 @@ def run_command_original(command: str, timeout: int = 30) -> list[str]:
                 "timed out",
             ]
         ):
-            logging.error(f"{error_msg}: Network error: {stderr}")
+            logging.error("%s: Network error: %s", error_msg, stderr)
             raise NetworkError(f"Network error while executing '{command}': {stderr}") from e
         else:
             detailed_error = stderr.strip() if stderr else "Unknown error"
-            logging.error(f"{error_msg}: {detailed_error}")
+            logging.error("%s: %s", error_msg, detailed_error)
             raise RuntimeError(f"Command '{command}' failed: {detailed_error}") from e
     except Exception as e:
-        logging.error(f"Failed to execute command '{command}': {e}")
+        logging.error("Failed to execute command '%s': %s", command, e)
         raise RuntimeError(f"Failed to execute command '{command}': {e}") from e
 
 
@@ -678,7 +680,7 @@ class RateLimiter:
             if len(self.timestamps) >= self.calls_per_period:
                 sleep_time = self.period - (current_time - self.timestamps[0])
                 if sleep_time > 0:
-                    logging.debug(f"Rate limiting: waiting for {sleep_time:.2f} seconds")
+                    logging.debug("Rate limiting: waiting for %.2f seconds", sleep_time)
                     # Release the lock while sleeping to avoid blocking other threads
                     self._lock.release()
                     try:
@@ -696,8 +698,7 @@ class RateLimiter:
 
 
 def format_size(size_bytes: float) -> str:
-    """
-    Format a byte size into a human-readable string.
+    """Format a byte size into a human-readable string.
 
     Args:
         size_bytes: Size in bytes.
@@ -723,8 +724,7 @@ def format_size(size_bytes: float) -> str:
 
 
 def sanitize_filename(filename: str) -> str:
-    """
-    Sanitize a filename to be safe for filesystem use.
+    """Sanitize a filename to be safe for filesystem use.
 
     Args:
         filename: The filename to sanitize.
@@ -751,8 +751,7 @@ def sanitize_filename(filename: str) -> str:
 
 
 def get_terminal_width() -> int:
-    """
-    Get the terminal width in characters.
+    """Get the terminal width in characters.
 
     Returns:
         Terminal width in characters, defaults to 80 if cannot be determined.
@@ -764,8 +763,7 @@ def get_terminal_width() -> int:
 
 
 def is_homebrew_installed() -> bool:
-    """
-    Check if Homebrew is installed on the system.
+    """Check if Homebrew is installed on the system.
 
     Returns:
         True if Homebrew is installed, False otherwise.
@@ -790,8 +788,7 @@ def is_homebrew_installed() -> bool:
 
 
 def get_homebrew_prefix() -> str | None:
-    """
-    Get the Homebrew installation prefix.
+    """Get the Homebrew installation prefix.
 
     Returns:
         The Homebrew prefix path, or None if not found.
@@ -818,8 +815,7 @@ def get_homebrew_prefix() -> str | None:
 def run_command_subprocess(
     command: list[str], timeout: int | None = 30, check: bool = True
 ) -> subprocess.CompletedProcess:
-    """
-    Run a shell command with timeout and error handling.
+    """Run a shell command with timeout and error handling.
 
     Args:
         command: Command and arguments as a list.
@@ -840,8 +836,7 @@ def run_command_subprocess(
 
 
 def ensure_directory(path: Path) -> None:
-    """
-    Ensure a directory exists, creating it if necessary.
+    """Ensure a directory exists, creating it if necessary.
 
     Args:
         path: Path to the directory.
@@ -851,8 +846,7 @@ def ensure_directory(path: Path) -> None:
 
 
 def human_readable_time(seconds: float) -> str:
-    """
-    Convert seconds to a human-readable time format.
+    """Convert seconds to a human-readable time format.
 
     Args:
         seconds: Time in seconds.

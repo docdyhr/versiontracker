@@ -203,7 +203,6 @@ def filter_out_brews(
         List of application tuples that are not managed by Homebrew
     """
     logging.info("Getting installable casks from Homebrew...")
-    print("Getting installable casks from Homebrew...")
 
     candidates = []
     search_list = []

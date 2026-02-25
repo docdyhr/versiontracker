@@ -42,8 +42,6 @@ __all__ = [
     "parse_version",
     "compare_versions",
     "is_version_newer",
-    "get_config",
-    "VersionTrackerError",
 ]
 
 

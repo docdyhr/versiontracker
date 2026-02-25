@@ -288,7 +288,7 @@ def _send_notification_if_available(
             print(create_progress_bar().color("yellow")("⚠️  Failed to send notification"))
 
     except Exception as e:
-        logger.error(f"Error sending notification: {e}")
+        logger.error("Error sending notification: %s", e)
         print(create_progress_bar().color("yellow")(f"Warning: Failed to send notification: {e}"))
 
 
@@ -443,7 +443,7 @@ def _handle_top_level_exceptions(e: BaseException) -> int:
         print(create_progress_bar().color("yellow")("\nOperation canceled by user."))
         return 130  # Standard exit code for SIGINT
     else:
-        logging.error(f"Error checking outdated applications: {e}")
+        logging.error("Error checking outdated applications: %s", e)
         print(create_progress_bar().color("red")(f"Error: {e}"))
         if get_config().debug:
             traceback.print_exc()

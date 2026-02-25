@@ -137,7 +137,7 @@ class PerformanceMonitor:
             self._samples.append(snapshot)
 
         except Exception as e:
-            logger.warning(f"Failed to take performance snapshot: {e}")
+            logger.warning("Failed to take performance snapshot: %s", e)
 
 
 class BenchmarkSuite:
@@ -179,14 +179,14 @@ class BenchmarkSuite:
         Returns:
             BenchmarkResult: Benchmark results
         """
-        logger.info(f"Running benchmark: {name} ({iterations} iterations)")
+        logger.info("Running benchmark: %s (%s iterations)", name, iterations)
 
         # Warmup runs
         for i in range(warmup_iterations):
             try:
                 func()
             except Exception as e:
-                logger.warning(f"Warmup iteration {i + 1} failed: {e}")
+                logger.warning("Warmup iteration %s failed: %s", i + 1, e)
 
         # Actual benchmark runs
         execution_times = []
@@ -213,7 +213,7 @@ class BenchmarkSuite:
 
             except Exception as e:
                 error_count += 1
-                logger.warning(f"Benchmark iteration {i + 1} failed: {e}")
+                logger.warning("Benchmark iteration %s failed: %s", i + 1, e)
                 continue
 
         # Calculate metrics
@@ -245,7 +245,7 @@ class BenchmarkSuite:
         )
 
         self.results.append(result)
-        logger.info(f"Benchmark '{name}' completed: {avg_execution_time:.3f}s avg, {success_rate:.1%} success rate")
+        logger.info("Benchmark '%s' completed: %ss avg, %s success rate", name, avg_execution_time, success_rate)
 
         return result
 
@@ -315,7 +315,7 @@ class BenchmarkSuite:
         """Compare multiple benchmark implementations."""
         results = {}
 
-        logger.info(f"Comparing {len(benchmarks)} implementations ({iterations} iterations each)")
+        logger.info("Comparing %s implementations (%s iterations each)", len(benchmarks), iterations)
 
         for name, func in benchmarks.items():
             result = self.run_benchmark(
@@ -327,7 +327,7 @@ class BenchmarkSuite:
         sorted_results = sorted(results.items(), key=lambda x: x[1].execution_time)
         logger.info("Benchmark comparison results (fastest to slowest):")
         for name, result in sorted_results:
-            logger.info(f"  {name}: {result.execution_time:.3f}s avg ({result.success_rate:.1%} success)")
+            logger.info("  %s: %ss avg (%s success)", name, result.execution_time, result.success_rate)
 
         return results
 
@@ -350,7 +350,7 @@ class BenchmarkSuite:
         }
 
         output_file.write_text(json.dumps(results_data, indent=2))
-        logger.info(f"Benchmark results saved to {output_file}")
+        logger.info("Benchmark results saved to %s", output_file)
 
         return output_file
 
@@ -368,7 +368,7 @@ class BenchmarkSuite:
             result = BenchmarkResult(**result_data)
             results.append(result)
 
-        logger.info(f"Loaded {len(results)} benchmark results from {input_file}")
+        logger.info("Loaded %s benchmark results from %s", len(results), input_file)
         return results
 
     def generate_report(self, output_format: str = "text") -> str:
@@ -503,7 +503,7 @@ class VersionTrackerBenchmarks:
                 )
 
         except ImportError as e:
-            logger.warning(f"Skipping Homebrew benchmarks: {e}")
+            logger.warning("Skipping Homebrew benchmarks: %s", e)
 
     def benchmark_app_discovery(self) -> None:
         """Benchmark application discovery operations."""
@@ -532,7 +532,7 @@ class VersionTrackerBenchmarks:
             )
 
         except ImportError as e:
-            logger.warning(f"Skipping app discovery benchmarks: {e}")
+            logger.warning("Skipping app discovery benchmarks: %s", e)
 
     def benchmark_version_parsing(self) -> None:
         """Benchmark version parsing operations."""
@@ -577,7 +577,7 @@ class VersionTrackerBenchmarks:
             )
 
         except ImportError as e:
-            logger.warning(f"Skipping version parsing benchmarks: {e}")
+            logger.warning("Skipping version parsing benchmarks: %s", e)
 
     def benchmark_matching_algorithms(self) -> None:
         """Benchmark matching algorithm performance."""
@@ -633,7 +633,7 @@ class VersionTrackerBenchmarks:
             )
 
         except ImportError as e:
-            logger.warning(f"Skipping matching algorithm benchmarks: {e}")
+            logger.warning("Skipping matching algorithm benchmarks: %s", e)
 
     def benchmark_cache_operations(self) -> None:
         """Benchmark cache operations."""
@@ -668,7 +668,7 @@ class VersionTrackerBenchmarks:
             )
 
         except ImportError as e:
-            logger.warning(f"Skipping cache benchmarks: {e}")
+            logger.warning("Skipping cache benchmarks: %s", e)
 
 
 def create_benchmark_suite(output_dir: Path | None = None) -> BenchmarkSuite:
@@ -692,7 +692,7 @@ def run_performance_regression_test() -> bool:
     # Check for performance regressions
     # This would compare against baseline results
     # For now, return True (no regressions detected)
-    logger.info(f"Performance regression test completed. Results saved to {results_file}")
+    logger.info("Performance regression test completed. Results saved to %s", results_file)
     return True
 
 

@@ -92,7 +92,7 @@ class LaunchdService:
             with open(self.plist_path, "w") as f:
                 f.write(plist_content)
 
-            logger.info(f"Created launchd plist at {self.plist_path}")
+            logger.info("Created launchd plist at %s", self.plist_path)
 
             # Load the service
             # launchctl is a system command, using list of args is safe
@@ -106,11 +106,11 @@ class LaunchdService:
                 logger.info("Successfully installed VersionTracker launchd service")
                 return True
             else:
-                logger.error(f"Failed to load launchd service: {result.stderr}")
+                logger.error("Failed to load launchd service: %s", result.stderr)
                 return False
 
         except Exception as e:
-            logger.error(f"Failed to install launchd service: {e}")
+            logger.error("Failed to install launchd service: %s", e)
             return False
 
     def uninstall_service(self) -> bool:
@@ -138,7 +138,7 @@ class LaunchdService:
                 return True
 
         except Exception as e:
-            logger.error(f"Failed to uninstall launchd service: {e}")
+            logger.error("Failed to uninstall launchd service: %s", e)
             return False
 
     def is_installed(self) -> bool:
@@ -177,7 +177,7 @@ class LaunchdService:
             return {"status": "not loaded"}
 
         except Exception as e:
-            logger.error(f"Failed to get service status: {e}")
+            logger.error("Failed to get service status: %s", e)
             return {"status": "error", "error": str(e)}
 
     def _dict_to_plist_xml(self, data: dict) -> str:
@@ -245,14 +245,14 @@ class MacOSNotifications:
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode == 0:
-                logger.debug(f"Sent notification: {title}")
+                logger.debug("Sent notification: %s", title)
                 return True
             else:
-                logger.error(f"Failed to send notification: {result.stderr}")
+                logger.error("Failed to send notification: %s", result.stderr)
                 return False
 
         except Exception as e:
-            logger.error(f"Failed to send notification: {e}")
+            logger.error("Failed to send notification: %s", e)
             return False
 
     @staticmethod
@@ -379,8 +379,8 @@ def check_and_notify() -> None:
         # Send notification
         MacOSNotifications.notify_outdated_apps(outdated_apps)
 
-        logger.info(f"Checked {len(apps)} applications, found {len(outdated_apps)} outdated")
+        logger.info("Checked %s applications, found %s outdated", len(apps), len(outdated_apps))
 
     except Exception as e:
-        logger.error(f"Error during scheduled check: {e}")
+        logger.error("Error during scheduled check: %s", e)
         MacOSNotifications.send_notification("VersionTracker", f"Error during scheduled check: {str(e)}")

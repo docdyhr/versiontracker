@@ -177,7 +177,7 @@ def handle_list_brews(options: Any) -> int:
             print(create_progress_bar().color("red")(f"Error: {e}"))
             return 1
     except Exception as e:
-        logging.error(f"Unexpected error listing brews: {e}")
+        logging.error("Unexpected error listing brews: %s", e)
         traceback.print_exc()
         return 1
 
@@ -480,6 +480,6 @@ def handle_brew_recommendations(options: Any) -> int:
 
         return 0
     except Exception as e:
-        logging.error(f"Error in brew recommendations: {e}")
+        logging.error("Error in brew recommendations: %s", e)
         traceback.print_exc()
         return 1

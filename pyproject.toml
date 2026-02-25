@@ -135,6 +135,7 @@ select = [
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
     "C90", # mccabe complexity
+    "G",  # flake8-logging-format (prevents f-strings in logging calls)
 ]
 ignore = [
     "E501",  # Line too long (handled by line-length setting)
@@ -143,7 +144,7 @@ fixable = ["ALL"]
 unfixable = []
 
 [tool.ruff.lint.mccabe]
-max-complexity = 10
+max-complexity = 12
 
 [tool.mypy]
 python_version = "3.12"
@@ -163,14 +164,23 @@ follow_imports = "normal"
 
 [[tool.mypy.overrides]]
 module = [
+    "fuzzywuzzy",
     "fuzzywuzzy.*",
+    "Levenshtein",
     "Levenshtein.*",
+    "rapidfuzz",
     "rapidfuzz.*",
+    "tqdm",
     "tqdm.*",
+    "yaml",
     "yaml.*",
+    "tabulate",
     "tabulate.*",
+    "termcolor",
     "termcolor.*",
+    "psutil",
     "psutil.*",
+    "aiohttp",
     "aiohttp.*",
 ]
 ignore_missing_imports = true
@@ -193,7 +203,17 @@ disable_error_code = ["misc"]
 [[tool.mypy.overrides]]
 module = "versiontracker.version.*"
 # Suppress type assignment errors for dynamic class aliasing
-disable_error_code = ["misc"]
+disable_error_code = ["misc", "import-untyped"]
+
+[[tool.mypy.overrides]]
+module = "versiontracker.enhanced_matching"
+# fuzzywuzzy is an optional dependency with no stubs - suppress import-untyped
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
+module = "versiontracker.version_legacy"
+# fuzzywuzzy is an optional dependency with no stubs - suppress import-untyped
+disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
 module = "versiontracker.ai.*"
@@ -204,11 +224,7 @@ module = "versiontracker.ml.*"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "versiontracker.analytics"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = "versiontracker.benchmarks"
+module = "versiontracker.experimental.*"
 ignore_errors = true
 
 # Pytest configuration

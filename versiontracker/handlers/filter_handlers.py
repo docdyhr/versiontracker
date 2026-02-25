@@ -170,6 +170,6 @@ def handle_save_filter(options: Any, filter_manager: QueryFilterManager) -> int:
                 return 1
         return 0
     except Exception as e:
-        logging.error(f"Error saving filter: {str(e)}")
+        logging.error("Error saving filter: %s", str(e))
         print(create_progress_bar().color("red")(f"Error saving filter: {str(e)}"))
         return 1

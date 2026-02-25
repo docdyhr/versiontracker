@@ -249,7 +249,7 @@ class EventLogger:
             self._last_flush = time.time()
 
         except Exception as e:
-            logger.error(f"Failed to flush events to database: {e}")
+            logger.error("Failed to flush events to database: %s", e)
 
     def _insert_system_metrics(self, conn: sqlite3.Connection, metrics: SystemMetrics):
         """Insert system metrics into database."""
@@ -448,7 +448,7 @@ class MetricsCollector:
             )
 
         except Exception as e:
-            logger.warning(f"Failed to collect system metrics: {e}")
+            logger.warning("Failed to collect system metrics: %s", e)
             # Return minimal metrics
             return SystemMetrics(
                 timestamp=time.time(),
@@ -954,7 +954,7 @@ class AnalyticsEngine:
                     metrics = self.metrics_collector.collect_system_metrics()
                     self.event_logger.log_system_metrics(metrics)
                 except Exception as e:
-                    logger.warning(f"Failed to collect system metrics: {e}")
+                    logger.warning("Failed to collect system metrics: %s", e)
 
                 time.sleep(60)  # Collect every minute
 

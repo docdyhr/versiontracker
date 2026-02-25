@@ -67,7 +67,7 @@ def handle_export(
         print(create_progress_bar().color("red")(f"Export Error: {e}"))
         return 1
     except Exception as e:
-        logging.error(f"Error exporting data: {e}")
+        logging.error("Error exporting data: %s", e)
         print(create_progress_bar().color("red")(f"Error: Failed to export data: {e}"))
         if get_config().debug:
             traceback.print_exc()
