@@ -7,40 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-02-25
+
 ### Added
+- `ConfigLoader` class: extracted file I/O, env-var loading, and brew detection from `Config` into dedicated static methods (P9)
+- 122 new tests across 4 test files:
+  - `test_matcher_coverage.py` (48 tests): apps/matcher.py 54% → 98%
+  - `test_finder_coverage.py` (34 tests): apps/finder.py 68% → 78%
+  - `test_config_coverage.py` (24 tests): config.py 43% → 68%
+  - `test_config_loader.py` (16 tests): ConfigLoader methods + backward-compat
 - Quick Start section in README for faster onboarding
 - ML optional dependencies group (`pip install homebrew-versiontracker[ml]`)
 - `is_ml_available()` function to check ML dependency status
-- Runtime deprecation warning when importing `version_legacy` module directly
-- ML availability check in CLI that informs users in debug mode when ML features are unavailable
-- Python 3.12+ requirement note in constraints.txt header
 
 ### Changed
+- **Config architecture**: `Config` is now a data container + accessor; all loading/persistence delegated to `ConfigLoader` (backward-compatible — no import changes needed)
+- **Module migration complete**: deleted `version_legacy.py` (-2,110 lines) and `app_finder.py` (-1,579 lines); all functions migrated to `versiontracker/version/` and `versiontracker/apps/`
+- **Test coverage**: 58.84% → 61%+ overall; 1,885 tests passing, 16 skipped
 - **Development Status**: Updated from Alpha to Beta in pyproject.toml
 - Consolidated CLI to use argparse only (removed unused Click dependency)
-- Improved CLI help output with grouped options and usage examples
-- Clarified Python version requirement: 3.12+ (3.13 compatible)
-- Updated TODO.md with current development status and async integration notes
-- Consolidated future roadmap documentation with clear references in TODO.md
 - ML module now gracefully handles missing numpy/scikit-learn dependencies
 
 ### Removed
-- **Click dependency**: Completely removed from requirements.txt (was unused, CLI uses argparse)
+- `version_legacy.py` — fully migrated to `versiontracker/version/` subpackage
+- `app_finder.py` — fully migrated to `versiontracker/apps/` subpackage
+- `analytics.py`, `benchmarks.py` — moved to `versiontracker/experimental/`
+- **Click dependency**: Completely removed from requirements.txt
 
 ### Security
-- Updated `filelock` constraint to >=3.20.3 (fixes GHSA-qmgc-5h2g-mvrw TOCTOU vulnerability)
-- Updated `virtualenv` constraint to >=20.36.1 (latest available, GHSA-597g-3phw-6986 fix pending)
-- Added security-critical indirect dependency constraints to `constraints.txt`
-
-### Developer Notes
-- Async Homebrew module (`async_homebrew.py`) is implemented and ready for integration
-- `version_legacy.py` migration to `versiontracker.version` package is in progress
-- **Test Coverage Improvements**: version_legacy.py coverage improved from 11% to 61%+ (5.5x increase)
-  - Added 125 tests covering version parsing, comparison, and utility functions
-  - Tests cover: build metadata, prerelease handling, special formats, Unicode normalization
-  - Tests cover: similarity scoring, version decomposition, tuple/dict conversion
-  - Documented actual behavior vs expected behavior for future refactoring
-- **Module Documentation**: Updated deprecation notice in version_legacy.py with clear migration status
+- Fixed 15 CodeQL security alerts (3 high URL sanitization + 12 medium workflow permissions)
+- Added explicit `permissions: contents: read` to all CI workflow files
+- Updated `filelock` constraint to >=3.20.3 (fixes GHSA-qmgc-5h2g-mvrw)
+- Updated `virtualenv` constraint to >=20.36.1 (GHSA-597g-3phw-6986)
 
 ## [0.8.2] - 2026-01-09
 
