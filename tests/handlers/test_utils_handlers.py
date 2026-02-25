@@ -7,6 +7,7 @@ in the versiontracker.handlers.utils_handlers module.
 from unittest import mock
 
 from versiontracker.handlers.utils_handlers import (
+    safe_function_call,
     setup_logging,
     suppress_console_warnings,
 )
@@ -67,3 +68,23 @@ class TestUtilsHandlers:
 
         # Verify filter was added to handler
         mock_handler.addFilter.assert_called_once()
+
+
+class TestSafeFunctionCall:
+    """Tests for safe_function_call()."""
+
+    def test_success_returns_result(self):
+        result = safe_function_call(lambda: 42)
+        assert result == 42
+
+    def test_exception_returns_default(self):
+        result = safe_function_call(lambda: 1 / 0, default_value="fallback")
+        assert result == "fallback"
+
+    def test_custom_default_value(self):
+        result = safe_function_call(lambda: [][0], default_value=-1)
+        assert result == -1
+
+    def test_passes_args_and_kwargs(self):
+        result = safe_function_call(lambda x, y=0: x + y, 10, y=5)
+        assert result == 15
