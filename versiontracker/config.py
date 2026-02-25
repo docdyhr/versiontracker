@@ -127,8 +127,435 @@ class ConfigValidator:
         return errors
 
 
+class ConfigLoader:
+    """Configuration loading and persistence utilities.
+
+    Handles file I/O, environment variable loading, and brew path detection.
+    All methods are static so they can be called without a Config instance.
+    """
+
+    @staticmethod
+    def detect_brew_path() -> str:
+        """Detect the Homebrew path based on the system architecture.
+
+        Returns:
+            str: The path to the brew executable
+        """
+        # Skip brew detection in CI environments or when explicitly disabled
+        if (
+            os.environ.get("CI")
+            or os.environ.get("GITHUB_ACTIONS")
+            or os.environ.get("VERSIONTRACKER_SKIP_BREW_DETECTION")
+        ):
+            logging.debug("Skipping brew detection in CI/test environment")
+            return "/usr/local/bin/brew"
+
+        # Define all possible Homebrew paths
+        paths = [
+            "/opt/homebrew/bin/brew",  # Apple Silicon default
+            "/usr/local/bin/brew",  # Intel default
+            "/usr/local/Homebrew/bin/brew",  # Alternative Intel location
+            "/homebrew/bin/brew",  # Custom installation
+            "brew",  # PATH-based installation
+        ]
+
+        # First try the architecture-appropriate path
+        is_arm = platform.machine().startswith("arm")
+        prioritized_paths = paths if is_arm else [paths[1]] + [p for p in paths if p != paths[1]]
+
+        for path in prioritized_paths:
+            try:
+                # Skip if path doesn't exist (except for bare "brew" command)
+                if path != "brew" and not os.path.exists(path):
+                    logging.debug("Homebrew path does not exist: %s", path)
+                    continue
+
+                cmd = f"{path} --version"
+                import subprocess
+
+                try:
+                    result = subprocess.run(cmd.split(), capture_output=True, timeout=2, check=False)
+                    returncode = result.returncode
+                except subprocess.TimeoutExpired:
+                    returncode = 1
+                if returncode == 0:
+                    logging.debug("Found working Homebrew at: %s", path)
+                    return path
+            except (
+                FileNotFoundError,
+                PermissionError,
+                TimeoutError,
+                OSError,
+                Exception,
+            ) as e:
+                logging.debug("Failed to check Homebrew at %s: %s", path, e)
+                continue
+
+        # Fallback to Intel path if nothing else works
+        logging.warning("No working Homebrew found, falling back to default Intel path")
+        return "/usr/local/bin/brew"
+
+    @staticmethod
+    def normalize_config_keys(config: dict[str, Any]) -> dict[str, Any]:
+        """Normalize configuration keys from kebab-case to snake_case recursively.
+
+        Args:
+            config: Raw configuration dictionary
+
+        Returns:
+            Dict[str, Any]: Normalized configuration dictionary
+        """
+        if not isinstance(config, dict):
+            return config
+
+        normalized = {}
+        for key, value in config.items():
+            normalized_key = key.lower().replace("-", "_")
+
+            # Recursively normalize nested dictionaries
+            if isinstance(value, dict):
+                normalized[normalized_key] = ConfigLoader.normalize_config_keys(value)
+            elif isinstance(value, list):
+                # Normalize dictionaries in lists
+                normalized_value = []
+                for item in value:
+                    if isinstance(item, dict):
+                        normalized_value.append(ConfigLoader.normalize_config_keys(item))
+                    else:
+                        normalized_value.append(item)
+                normalized[normalized_key] = normalized_value  # type: ignore
+            else:
+                normalized[normalized_key] = value
+
+        return normalized
+
+    @staticmethod
+    def load_from_file(config: dict[str, Any], config_path: Path) -> None:
+        """Load configuration from YAML configuration file.
+
+        Validates configuration values according to rules and updates the
+        provided configuration dict with values from the file.
+
+        Args:
+            config: Configuration dictionary to update in-place
+            config_path: Path to the configuration file
+
+        Raises:
+            ConfigError: If configuration validation fails
+            IOError: If file operations fail
+        """
+        if not config_path.exists():
+            logging.debug("Configuration file not found: %s", config_path)
+            return
+
+        try:
+            with open(config_path, encoding="utf-8") as f:
+                yaml_config = yaml.safe_load(f)
+
+            if not yaml_config:
+                logging.debug("Empty configuration file: %s", config_path)
+                return
+
+            logging.debug("Loaded configuration from %s", config_path)
+
+            # Parse and normalize configuration
+            normalized_config = ConfigLoader.normalize_config_keys(yaml_config)
+
+            # Validate configuration values
+            validation_errors = ConfigValidator.validate_config(normalized_config)
+            if validation_errors:
+                error_msg = "Configuration validation failed:"
+                for param, errors in validation_errors.items():
+                    for error in errors:
+                        error_msg += f"\n  - {param}: {error}"
+                logging.error(error_msg)
+                raise ConfigError(error_msg)
+
+            # Update configuration with validated values
+            config.update(normalized_config)
+            logging.debug("Successfully updated configuration from %s", config_path)
+
+        except yaml.YAMLError as e:
+            logging.error("YAML parsing error in configuration file %s: %s", config_path, e)
+            raise ConfigError(f"Invalid YAML in configuration file: {str(e)}") from e
+        except OSError as e:
+            logging.error("Error reading configuration file %s: %s", config_path, e)
+            raise ConfigError(f"Error loading configuration: {str(e)}") from e
+        except Exception as e:
+            logging.error("Unexpected error loading configuration from %s: %s", config_path, e)
+            raise ConfigError(f"Error in configuration processing: {str(e)}") from e
+
+    @staticmethod
+    def _load_integer_env_var(env_var: str, config_key: str, env_config: dict) -> None:
+        """Load and validate an integer environment variable."""
+        if os.environ.get(env_var):
+            try:
+                env_config[config_key] = int(os.environ[env_var])
+            except ValueError:
+                logging.warning("Invalid %s: %s", config_key, os.environ[env_var])
+
+    @staticmethod
+    def _load_boolean_env_var(
+        env_var: str,
+        config_key: str,
+        env_config: dict,
+        nested_key: str | None = None,
+    ) -> None:
+        """Load and validate a boolean environment variable."""
+        if os.environ.get(env_var, "").lower() in ("0", "false", "no"):
+            if nested_key:
+                if nested_key not in env_config:
+                    env_config[nested_key] = {}
+                env_config[nested_key][config_key] = False
+            else:
+                env_config[config_key] = False
+
+    @staticmethod
+    def _load_basic_env_vars(config: dict[str, Any], env_config: dict) -> None:
+        """Load basic environment variables."""
+        # Debug mode
+        if os.environ.get("VERSIONTRACKER_DEBUG", "").lower() in ("1", "true", "yes"):
+            config["log_level"] = logging.DEBUG
+
+        # Integer configurations
+        ConfigLoader._load_integer_env_var("VERSIONTRACKER_API_RATE_LIMIT", "api_rate_limit", env_config)
+        ConfigLoader._load_integer_env_var("VERSIONTRACKER_MAX_WORKERS", "max_workers", env_config)
+        ConfigLoader._load_integer_env_var("VERSIONTRACKER_SIMILARITY_THRESHOLD", "similarity_threshold", env_config)
+
+        # Additional app directories
+        if os.environ.get("VERSIONTRACKER_ADDITIONAL_APP_DIRS"):
+            dirs = os.environ["VERSIONTRACKER_ADDITIONAL_APP_DIRS"].split(":")
+            env_config["additional_app_dirs"] = [d for d in dirs if os.path.isdir(d)]
+
+        # Blacklist
+        if os.environ.get("VERSIONTRACKER_BLACKLIST"):
+            env_config["blacklist"] = os.environ["VERSIONTRACKER_BLACKLIST"].split(",")
+
+    @staticmethod
+    def _load_ui_env_vars(env_config: dict) -> None:
+        """Load UI-related environment variables."""
+        # Progress bars
+        ConfigLoader._load_boolean_env_var("VERSIONTRACKER_PROGRESS_BARS", "show_progress", env_config)
+
+        # UI options
+        ui_vars = [
+            ("VERSIONTRACKER_UI_USE_COLOR", "use_color"),
+            ("VERSIONTRACKER_UI_MONITOR_RESOURCES", "monitor_resources"),
+            ("VERSIONTRACKER_UI_ADAPTIVE_RATE_LIMITING", "adaptive_rate_limiting"),
+            ("VERSIONTRACKER_UI_ENHANCED_PROGRESS", "enhanced_progress"),
+        ]
+
+        for env_var, config_key in ui_vars:
+            ConfigLoader._load_boolean_env_var(env_var, config_key, env_config, "ui")
+
+    @staticmethod
+    def _validate_and_apply_env_config(config: dict[str, Any], env_config: dict) -> None:
+        """Validate and apply environment configuration."""
+        if not env_config:
+            return
+
+        validation_errors = ConfigValidator.validate_config(env_config)
+        if validation_errors:
+            ConfigLoader._handle_validation_errors(config, validation_errors, env_config)
+        else:
+            logging.debug("Applying all environment variables: %s", list(env_config.keys()))
+            config.update(env_config)
+
+    @staticmethod
+    def _handle_validation_errors(config: dict[str, Any], validation_errors: dict, env_config: dict) -> None:
+        """Handle validation errors for environment configuration."""
+        error_msg = "Environment configuration validation failed:"
+        for param, errors in validation_errors.items():
+            for error in errors:
+                error_msg += f"\n  - {param}: {error}"
+        logging.warning(error_msg)
+
+        # Filter out invalid configuration values
+        valid_env_config = {}
+        for key, value in env_config.items():
+            if key not in validation_errors:
+                valid_env_config[key] = value
+            else:
+                logging.warning("Ignoring invalid environment configuration for '%s'", key)
+
+        # Update configuration with valid values only
+        if valid_env_config:
+            logging.debug("Applying valid environment variables: %s", list(valid_env_config.keys()))
+            config.update(valid_env_config)
+
+    @staticmethod
+    def _load_version_comparison_env_vars(config: dict[str, Any]) -> None:
+        """Load version comparison specific environment variables."""
+        ConfigLoader._load_version_comparison_int_vars(config)
+        ConfigLoader._load_version_comparison_bool_vars(config)
+        ConfigLoader._load_outdated_detection_vars(config)
+
+    @staticmethod
+    def _load_version_comparison_int_vars(config: dict[str, Any]) -> None:
+        """Load integer-based version comparison environment variables."""
+        int_var_mappings = [
+            ("VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT", "version_comparison", "rate_limit"),
+            ("VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL", "version_comparison", "cache_ttl"),
+            ("VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD", "version_comparison", "similarity_threshold"),
+            ("VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF", "outdated_detection", "min_version_diff"),
+        ]
+
+        for env_var, section, config_key in int_var_mappings:
+            ConfigLoader._load_int_env_var(config, env_var, section, config_key)
+
+    @staticmethod
+    def _load_version_comparison_bool_vars(config: dict[str, Any]) -> None:
+        """Load boolean-based version comparison environment variables."""
+        bool_var_mappings = [
+            ("VERSIONTRACKER_VERSION_COMPARISON_INCLUDE_BETA_VERSIONS", "version_comparison", "include_beta_versions"),
+            ("VERSIONTRACKER_VERSION_COMPARISON_SORT_BY_OUTDATED", "version_comparison", "sort_by_outdated"),
+        ]
+
+        for env_var, section, config_key in bool_var_mappings:
+            ConfigLoader._load_bool_env_var(config, env_var, section, config_key)
+
+    @staticmethod
+    def _load_outdated_detection_vars(config: dict[str, Any]) -> None:
+        """Load outdated detection specific environment variables."""
+        bool_var_mappings = [
+            ("VERSIONTRACKER_OUTDATED_DETECTION_ENABLED", "outdated_detection", "enabled"),
+            ("VERSIONTRACKER_OUTDATED_DETECTION_INCLUDE_PRE_RELEASES", "outdated_detection", "include_pre_releases"),
+        ]
+
+        for env_var, section, config_key in bool_var_mappings:
+            ConfigLoader._load_bool_env_var(config, env_var, section, config_key)
+
+    @staticmethod
+    def _load_int_env_var(config: dict[str, Any], env_var: str, section: str, config_key: str) -> None:
+        """Load and validate an integer environment variable into a nested section."""
+        if os.environ.get(env_var):
+            try:
+                config[section][config_key] = int(os.environ[env_var])
+            except ValueError:
+                logging.warning("Invalid %s: %s", env_var, os.environ[env_var])
+
+    @staticmethod
+    def _load_bool_env_var(config: dict[str, Any], env_var: str, section: str, config_key: str) -> None:
+        """Load and validate a boolean environment variable into a nested section."""
+        if os.environ.get(env_var, "").lower() in ("1", "true", "yes"):
+            config[section][config_key] = True
+
+    @staticmethod
+    def load_from_env(config: dict[str, Any]) -> None:
+        """Load configuration from environment variables.
+
+        Validates and applies configuration values from environment variables.
+        Environment variables take precedence over file configuration.
+
+        Args:
+            config: Configuration dictionary to update in-place
+        """
+        env_config: dict[str, Any] = {}
+
+        # Load different categories of environment variables
+        ConfigLoader._load_basic_env_vars(config, env_config)
+        ConfigLoader._load_ui_env_vars(env_config)
+
+        # Validate and apply standard environment configuration
+        ConfigLoader._validate_and_apply_env_config(config, env_config)
+
+        # Load version comparison specific variables (these update config directly)
+        ConfigLoader._load_version_comparison_env_vars(config)
+
+    @staticmethod
+    def save(config: dict[str, Any], config_path: Path) -> bool:
+        """Save the configuration to a YAML file.
+
+        Args:
+            config: Configuration dictionary to save
+            config_path: Path to write the configuration file
+
+        Returns:
+            bool: True if save was successful, False otherwise
+        """
+        try:
+            # Create parent directories if they don't exist
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Prepare config for saving (exclude non-serializable values)
+            save_config = {}
+            for key, value in config.items():
+                # Skip certain keys that shouldn't be saved
+                if key in ["config_file", "log_dir"]:
+                    continue
+                # Convert Path objects to strings
+                if isinstance(value, Path):
+                    save_config[key] = str(value)
+                else:
+                    save_config[key] = value
+
+            # Write to file
+            with open(config_path, "w", encoding="utf-8") as f:
+                yaml.dump(save_config, f, default_flow_style=False, sort_keys=True)
+
+            logging.info("Configuration saved to %s", config_path)
+            return True
+
+        except Exception as e:
+            logging.error("Failed to save configuration: %s", e)
+            return False
+
+    @staticmethod
+    def generate_default_config(config: dict[str, Any], path: Path) -> str:
+        """Generate a default configuration file.
+
+        Args:
+            config: Configuration dictionary with current values
+            path: The path to write the configuration file
+
+        Returns:
+            str: The path to the generated configuration file
+        """
+        # Ensure parent directory exists
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Create a dictionary with the current configuration
+        config_dict = {
+            "api-rate-limit": config["api_rate_limit"],
+            "max-workers": config["max_workers"],
+            "similarity-threshold": config["similarity_threshold"],
+            "additional-app-dirs": config["additional_app_dirs"],
+            "blacklist": config["blacklist"],
+            "show-progress": config["show_progress"],
+            "ui": {
+                "use-color": config["ui"].get("use_color", True),
+                "monitor-resources": config["ui"].get("monitor_resources", True),
+                "adaptive-rate-limiting": config["ui"].get("adaptive_rate_limiting", True),
+                "enhanced-progress": config["ui"].get("enhanced_progress", True),
+            },
+            "version-comparison": {
+                "rate-limit": config["version_comparison"]["rate_limit"],
+                "cache-ttl": config["version_comparison"]["cache_ttl"],
+                "similarity-threshold": config["version_comparison"]["similarity_threshold"],
+                "include-beta-versions": config["version_comparison"]["include_beta_versions"],
+                "sort-by-outdated": config["version_comparison"]["sort_by_outdated"],
+            },
+            "outdated-detection": {
+                "enabled": config["outdated_detection"]["enabled"],
+                "min-version-diff": config["outdated_detection"]["min_version_diff"],
+                "include-pre-releases": config["outdated_detection"]["include_pre_releases"],
+            },
+        }
+
+        # Write the configuration to a file
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.dump(config_dict, f, default_flow_style=False)
+
+        logging.info("Generated configuration file: %s", path)
+        return str(path)
+
+
 class Config:
-    """Configuration manager for VersionTracker."""
+    """Configuration manager for VersionTracker.
+
+    Data container and accessor for configuration values. File I/O and
+    environment variable loading are delegated to ConfigLoader.
+    """
 
     def __init__(self, config_file: str | None = None):
         """Initialize the configuration.
@@ -148,7 +575,7 @@ class Config:
             # Default commands
             "system_profiler_cmd": "/usr/sbin/system_profiler -json SPApplicationsDataType",
             # Set up Homebrew path based on architecture (Apple Silicon or Intel)
-            "brew_path": self._detect_brew_path(),
+            "brew_path": ConfigLoader.detect_brew_path(),
             # Default max workers for parallel processing
             "max_workers": 10,
             # Default similarity threshold for app matching (%)
@@ -212,357 +639,27 @@ class Config:
             },
         }
 
-        # Load configuration values
+        # Load configuration values via ConfigLoader
         self._load_from_file()
         self._load_from_env()
 
+    # --- Backward-compatible delegation to ConfigLoader ---
+
     def _detect_brew_path(self) -> str:
-        """Detect the Homebrew path based on the system architecture.
-
-        Returns:
-            str: The path to the brew executable
-        """
-        # Skip brew detection in CI environments or when explicitly disabled
-        if (
-            os.environ.get("CI")
-            or os.environ.get("GITHUB_ACTIONS")
-            or os.environ.get("VERSIONTRACKER_SKIP_BREW_DETECTION")
-        ):
-            logging.debug("Skipping brew detection in CI/test environment")
-            return "/usr/local/bin/brew"
-
-        # Define all possible Homebrew paths
-        paths = [
-            "/opt/homebrew/bin/brew",  # Apple Silicon default
-            "/usr/local/bin/brew",  # Intel default
-            "/usr/local/Homebrew/bin/brew",  # Alternative Intel location
-            "/homebrew/bin/brew",  # Custom installation
-            "brew",  # PATH-based installation
-        ]
-
-        # First try the architecture-appropriate path
-        is_arm = platform.machine().startswith("arm")
-        prioritized_paths = paths if is_arm else [paths[1]] + [p for p in paths if p != paths[1]]
-
-        for path in prioritized_paths:
-            try:
-                # Skip if path doesn't exist (except for bare "brew" command)
-                if path != "brew" and not os.path.exists(path):
-                    logging.debug("Homebrew path does not exist: %s", path)
-                    continue
-
-                cmd = f"{path} --version"
-                import subprocess
-
-                try:
-                    result = subprocess.run(cmd.split(), capture_output=True, timeout=2, check=False)
-                    returncode = result.returncode
-                except subprocess.TimeoutExpired:
-                    returncode = 1
-                if returncode == 0:
-                    logging.debug("Found working Homebrew at: %s", path)
-                    return path
-            except (
-                FileNotFoundError,
-                PermissionError,
-                TimeoutError,
-                OSError,
-                Exception,
-            ) as e:
-                logging.debug("Failed to check Homebrew at %s: %s", path, e)
-                continue
-
-        # Fallback to Intel path if nothing else works
-        logging.warning("No working Homebrew found, falling back to default Intel path")
-        return "/usr/local/bin/brew"
+        """Detect the Homebrew path. Delegates to ConfigLoader."""
+        return ConfigLoader.detect_brew_path()
 
     def _load_from_file(self) -> None:
-        """Load configuration from YAML configuration file.
-
-        Validates configuration values according to rules and updates the
-        current configuration with values from the file.
-
-        Raises:
-            ConfigError: If configuration validation fails
-            IOError: If file operations fail
-        """
-        config_path = Path(self._config["config_file"])
-
-        if not config_path.exists():
-            logging.debug("Configuration file not found: %s", config_path)
-            return
-
-        try:
-            with open(config_path, encoding="utf-8") as f:
-                yaml_config = yaml.safe_load(f)
-
-            if not yaml_config:
-                logging.debug("Empty configuration file: %s", config_path)
-                return
-
-            logging.debug("Loaded configuration from %s", config_path)
-
-            # Parse and normalize configuration
-            normalized_config = self._normalize_config_keys(yaml_config)
-
-            # Validate configuration values
-            validation_errors = ConfigValidator.validate_config(normalized_config)
-            if validation_errors:
-                error_msg = "Configuration validation failed:"
-                for param, errors in validation_errors.items():
-                    for error in errors:
-                        error_msg += f"\n  - {param}: {error}"
-                logging.error(error_msg)
-                raise ConfigError(error_msg)
-
-            # Update configuration with validated values
-            self._config.update(normalized_config)
-            logging.debug("Successfully updated configuration from %s", config_path)
-
-        except yaml.YAMLError as e:
-            logging.error("YAML parsing error in configuration file %s: %s", config_path, e)
-            raise ConfigError(f"Invalid YAML in configuration file: {str(e)}") from e
-        except OSError as e:
-            logging.error("Error reading configuration file %s: %s", config_path, e)
-            raise ConfigError(f"Error loading configuration: {str(e)}") from e
-        except Exception as e:
-            logging.error("Unexpected error loading configuration from %s: %s", config_path, e)
-            raise ConfigError(f"Error in configuration processing: {str(e)}") from e
+        """Load configuration from YAML file. Delegates to ConfigLoader."""
+        ConfigLoader.load_from_file(self._config, Path(self._config["config_file"]))
 
     def _normalize_config_keys(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Normalize configuration keys from kebab-case to snake_case recursively.
-
-        Args:
-            config: Raw configuration dictionary
-
-        Returns:
-            Dict[str, Any]: Normalized configuration dictionary
-        """
-        if not isinstance(config, dict):
-            return config
-
-        normalized = {}
-        for key, value in config.items():
-            normalized_key = key.lower().replace("-", "_")
-
-            # Recursively normalize nested dictionaries
-            if isinstance(value, dict):
-                normalized[normalized_key] = self._normalize_config_keys(value)
-            elif isinstance(value, list):
-                # Normalize dictionaries in lists
-                normalized_value = []
-                for item in value:
-                    if isinstance(item, dict):
-                        normalized_value.append(self._normalize_config_keys(item))
-                    else:
-                        normalized_value.append(item)
-                normalized[normalized_key] = normalized_value  # type: ignore
-            else:
-                normalized[normalized_key] = value
-
-        return normalized
-
-    def _load_integer_env_var(self, env_var: str, config_key: str, env_config: dict) -> None:
-        """Load and validate an integer environment variable."""
-        if os.environ.get(env_var):
-            try:
-                env_config[config_key] = int(os.environ[env_var])
-            except ValueError:
-                logging.warning("Invalid %s: %s", config_key, os.environ[env_var])
-
-    def _load_boolean_env_var(
-        self,
-        env_var: str,
-        config_key: str,
-        env_config: dict,
-        nested_key: str | None = None,
-    ) -> None:
-        """Load and validate a boolean environment variable."""
-        if os.environ.get(env_var, "").lower() in ("0", "false", "no"):
-            if nested_key:
-                if nested_key not in env_config:
-                    env_config[nested_key] = {}
-                env_config[nested_key][config_key] = False
-            else:
-                env_config[config_key] = False
-
-    def _load_basic_env_vars(self, env_config: dict) -> None:
-        """Load basic environment variables."""
-        # Debug mode
-        if os.environ.get("VERSIONTRACKER_DEBUG", "").lower() in ("1", "true", "yes"):
-            self._config["log_level"] = logging.DEBUG
-
-        # Integer configurations
-        self._load_integer_env_var("VERSIONTRACKER_API_RATE_LIMIT", "api_rate_limit", env_config)
-        self._load_integer_env_var("VERSIONTRACKER_MAX_WORKERS", "max_workers", env_config)
-        self._load_integer_env_var("VERSIONTRACKER_SIMILARITY_THRESHOLD", "similarity_threshold", env_config)
-
-        # Additional app directories
-        if os.environ.get("VERSIONTRACKER_ADDITIONAL_APP_DIRS"):
-            dirs = os.environ["VERSIONTRACKER_ADDITIONAL_APP_DIRS"].split(":")
-            env_config["additional_app_dirs"] = [d for d in dirs if os.path.isdir(d)]
-
-        # Blacklist
-        if os.environ.get("VERSIONTRACKER_BLACKLIST"):
-            env_config["blacklist"] = os.environ["VERSIONTRACKER_BLACKLIST"].split(",")
-
-    def _load_ui_env_vars(self, env_config: dict) -> None:
-        """Load UI-related environment variables."""
-        # Progress bars
-        self._load_boolean_env_var("VERSIONTRACKER_PROGRESS_BARS", "show_progress", env_config)
-
-        # UI options
-        ui_vars = [
-            ("VERSIONTRACKER_UI_USE_COLOR", "use_color"),
-            ("VERSIONTRACKER_UI_MONITOR_RESOURCES", "monitor_resources"),
-            ("VERSIONTRACKER_UI_ADAPTIVE_RATE_LIMITING", "adaptive_rate_limiting"),
-            ("VERSIONTRACKER_UI_ENHANCED_PROGRESS", "enhanced_progress"),
-        ]
-
-        for env_var, config_key in ui_vars:
-            self._load_boolean_env_var(env_var, config_key, env_config, "ui")
-
-    def _validate_and_apply_env_config(self, env_config: dict) -> None:
-        """Validate and apply environment configuration."""
-        if not env_config:
-            return
-
-        validation_errors = ConfigValidator.validate_config(env_config)
-        if validation_errors:
-            self._handle_validation_errors(validation_errors, env_config)
-        else:
-            logging.debug("Applying all environment variables: %s", list(env_config.keys()))
-            self._config.update(env_config)
-
-    def _handle_validation_errors(self, validation_errors: dict, env_config: dict) -> None:
-        """Handle validation errors for environment configuration."""
-        error_msg = "Environment configuration validation failed:"
-        for param, errors in validation_errors.items():
-            for error in errors:
-                error_msg += f"\n  - {param}: {error}"
-        logging.warning(error_msg)
-
-        # Filter out invalid configuration values
-        valid_env_config = {}
-        for key, value in env_config.items():
-            if key not in validation_errors:
-                valid_env_config[key] = value
-            else:
-                logging.warning("Ignoring invalid environment configuration for '%s'", key)
-
-        # Update configuration with valid values only
-        if valid_env_config:
-            logging.debug("Applying valid environment variables: %s", list(valid_env_config.keys()))
-            self._config.update(valid_env_config)
-
-    def _load_version_comparison_env_vars(self) -> None:
-        """Load version comparison specific environment variables."""
-        # Load integer configuration values
-        self._load_version_comparison_int_vars()
-
-        # Load boolean configuration values
-        self._load_version_comparison_bool_vars()
-
-        # Load outdated detection configuration
-        self._load_outdated_detection_vars()
-
-    def _load_version_comparison_int_vars(self) -> None:
-        """Load integer-based version comparison environment variables."""
-        int_var_mappings = [
-            (
-                "VERSIONTRACKER_VERSION_COMPARISON_RATE_LIMIT",
-                "version_comparison",
-                "rate_limit",
-            ),
-            (
-                "VERSIONTRACKER_VERSION_COMPARISON_CACHE_TTL",
-                "version_comparison",
-                "cache_ttl",
-            ),
-            (
-                "VERSIONTRACKER_VERSION_COMPARISON_SIMILARITY_THRESHOLD",
-                "version_comparison",
-                "similarity_threshold",
-            ),
-            (
-                "VERSIONTRACKER_OUTDATED_DETECTION_MIN_VERSION_DIFF",
-                "outdated_detection",
-                "min_version_diff",
-            ),
-        ]
-
-        for env_var, section, config_key in int_var_mappings:
-            self._load_int_env_var(env_var, section, config_key)
-
-    def _load_version_comparison_bool_vars(self) -> None:
-        """Load boolean-based version comparison environment variables."""
-        bool_var_mappings = [
-            (
-                "VERSIONTRACKER_VERSION_COMPARISON_INCLUDE_BETA_VERSIONS",
-                "version_comparison",
-                "include_beta_versions",
-            ),
-            (
-                "VERSIONTRACKER_VERSION_COMPARISON_SORT_BY_OUTDATED",
-                "version_comparison",
-                "sort_by_outdated",
-            ),
-        ]
-
-        for env_var, section, config_key in bool_var_mappings:
-            self._load_bool_env_var(env_var, section, config_key)
-
-    def _load_outdated_detection_vars(self) -> None:
-        """Load outdated detection specific environment variables."""
-        bool_var_mappings = [
-            (
-                "VERSIONTRACKER_OUTDATED_DETECTION_ENABLED",
-                "outdated_detection",
-                "enabled",
-            ),
-            (
-                "VERSIONTRACKER_OUTDATED_DETECTION_INCLUDE_PRE_RELEASES",
-                "outdated_detection",
-                "include_pre_releases",
-            ),
-        ]
-
-        for env_var, section, config_key in bool_var_mappings:
-            self._load_bool_env_var(env_var, section, config_key)
-
-    def _load_int_env_var(self, env_var: str, section: str, config_key: str) -> None:
-        """Load and validate an integer environment variable."""
-        if os.environ.get(env_var):
-            try:
-                self._config[section][config_key] = int(os.environ[env_var])
-            except ValueError:
-                logging.warning("Invalid %s: %s", env_var, os.environ[env_var])
-
-    def _load_bool_env_var(self, env_var: str, section: str, config_key: str) -> None:
-        """Load and validate a boolean environment variable."""
-        if os.environ.get(env_var, "").lower() in ("1", "true", "yes"):
-            self._config[section][config_key] = True
+        """Normalize config keys. Delegates to ConfigLoader."""
+        return ConfigLoader.normalize_config_keys(config)
 
     def _load_from_env(self) -> None:
-        """Load configuration from environment variables.
-
-        Validates and applies configuration values from environment variables.
-        Environment variables take precedence over file configuration.
-
-        Environment variables are in the format VERSIONTRACKER_UPPER_SNAKE_CASE,
-        which maps to the configuration keys in lower_snake_case.
-        """
-        env_config: dict[str, Any] = {}
-
-        # Load different categories of environment variables
-        self._load_basic_env_vars(env_config)
-        self._load_ui_env_vars(env_config)
-
-        # Validate and apply standard environment configuration
-        self._validate_and_apply_env_config(env_config)
-
-        # Load version comparison specific variables (these update config directly)
-        self._load_version_comparison_env_vars()
+        """Load configuration from env vars. Delegates to ConfigLoader."""
+        ConfigLoader.load_from_env(self._config)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value.
@@ -681,40 +778,12 @@ class Config:
     def save(self) -> bool:
         """Save the current configuration to the YAML file.
 
-        Saves all current configuration values to the configuration file,
-        creating the file and parent directories if they don't exist.
+        Delegates to ConfigLoader.save().
 
         Returns:
             bool: True if save was successful, False otherwise
         """
-        try:
-            config_path = Path(self._config["config_file"])
-
-            # Create parent directories if they don't exist
-            config_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Prepare config for saving (exclude non-serializable values)
-            save_config = {}
-            for key, value in self._config.items():
-                # Skip certain keys that shouldn't be saved
-                if key in ["config_file", "log_dir"]:
-                    continue
-                # Convert Path objects to strings
-                if isinstance(value, Path):
-                    save_config[key] = str(value)
-                else:
-                    save_config[key] = value
-
-            # Write to file
-            with open(config_path, "w", encoding="utf-8") as f:
-                yaml.dump(save_config, f, default_flow_style=False, sort_keys=True)
-
-            logging.info("Configuration saved to %s", config_path)
-            return True
-
-        except Exception as e:
-            logging.error("Failed to save configuration: %s", e)
-            return False
+        return ConfigLoader.save(self._config, Path(self._config["config_file"]))
 
     def get_blacklist(self) -> list[str]:
         """(DEPRECATED) Get the blacklisted applications.
@@ -820,6 +889,8 @@ class Config:
     def generate_default_config(self, path: Path | None = None) -> str:
         """Generate a default configuration file.
 
+        Delegates to ConfigLoader.generate_default_config().
+
         Args:
             path (Path, optional): The path to write the configuration file.
                                   If not provided, will use the default path.
@@ -828,44 +899,7 @@ class Config:
             str: The path to the generated configuration file
         """
         config_path = path or Path(self._config["config_file"])
-
-        # Ensure parent directory exists
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Create a dictionary with the current configuration
-        config_dict = {
-            "api-rate-limit": self._config["api_rate_limit"],
-            "max-workers": self._config["max_workers"],
-            "similarity-threshold": self._config["similarity_threshold"],
-            "additional-app-dirs": self._config["additional_app_dirs"],
-            "blacklist": self._config["blacklist"],
-            "show-progress": self._config["show_progress"],
-            "ui": {
-                "use-color": self._config["ui"].get("use_color", True),
-                "monitor-resources": self._config["ui"].get("monitor_resources", True),
-                "adaptive-rate-limiting": self._config["ui"].get("adaptive_rate_limiting", True),
-                "enhanced-progress": self._config["ui"].get("enhanced_progress", True),
-            },
-            "version-comparison": {
-                "rate-limit": self._config["version_comparison"]["rate_limit"],
-                "cache-ttl": self._config["version_comparison"]["cache_ttl"],
-                "similarity-threshold": self._config["version_comparison"]["similarity_threshold"],
-                "include-beta-versions": self._config["version_comparison"]["include_beta_versions"],
-                "sort-by-outdated": self._config["version_comparison"]["sort_by_outdated"],
-            },
-            "outdated-detection": {
-                "enabled": self._config["outdated_detection"]["enabled"],
-                "min-version-diff": self._config["outdated_detection"]["min_version_diff"],
-                "include-pre-releases": self._config["outdated_detection"]["include_pre_releases"],
-            },
-        }
-
-        # Write the configuration to a file
-        with open(config_path, "w", encoding="utf-8") as f:
-            yaml.dump(config_dict, f, default_flow_style=False)
-
-        logging.info("Generated configuration file: %s", config_path)
-        return str(config_path)
+        return ConfigLoader.generate_default_config(self._config, config_path)
 
 
 def check_dependencies() -> bool:
