@@ -21,6 +21,9 @@ name: Performance Testing
           - outdated
           - all
 
+permissions:
+  contents: read
+
 env:
   PYTHONUNBUFFERED: 1
   FORCE_COLOR: 1
