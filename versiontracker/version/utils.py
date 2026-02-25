@@ -245,3 +245,104 @@ def pad_version_tuple(version_tuple: tuple[int, ...], length: int = 3, pad_value
     if len(version_tuple) >= length:
         return version_tuple[:length]
     return version_tuple + (pad_value,) * (length - len(version_tuple))
+
+
+def _parse_version_components(version_string: str) -> dict[str, int]:
+    """Parse version string into components dictionary.
+
+    Args:
+        version_string: Version string to parse
+
+    Returns:
+        Dictionary with version components
+    """
+    parsed = parse_version(version_string)
+    if parsed is None:
+        parsed = (0, 0, 0)
+    return {
+        "major": parsed[0] if len(parsed) > 0 else 0,
+        "minor": parsed[1] if len(parsed) > 1 else 0,
+        "patch": parsed[2] if len(parsed) > 2 else 0,
+        "build": parsed[3] if len(parsed) > 3 else 0,
+    }
+
+
+def _parse_version_to_dict(
+    version_string: str,
+) -> dict[str, str | int | tuple[int, ...] | None]:
+    """Parse version string to dictionary format.
+
+    Args:
+        version_string: Version string to parse
+
+    Returns:
+        Dictionary representation of version
+    """
+    from .comparator import get_version_info
+
+    info = get_version_info(version_string)
+    parsed = info.parsed
+
+    # Extract version components
+    if parsed is not None:
+        major = parsed[0] if len(parsed) > 0 else 0
+        minor = parsed[1] if len(parsed) > 1 else 0
+        patch = parsed[2] if len(parsed) > 2 else 0
+        build = parsed[3] if len(parsed) > 3 else 0
+    else:
+        major = minor = patch = build = 0
+
+    return {
+        "original": version_string,
+        "parsed": parsed,
+        "pattern_type": "semantic" if parsed and len(parsed) >= 3 else "unknown",
+        "major": major,
+        "minor": minor,
+        "patch": patch,
+        "build": build,
+    }
+
+
+def _dict_to_tuple(version_dict: dict[str, int] | None) -> tuple[int, ...] | None:
+    """Convert version dictionary to tuple.
+
+    Args:
+        version_dict: Dictionary with version components
+
+    Returns:
+        Tuple of version numbers or None if input is None
+    """
+    if version_dict is None:
+        return None
+
+    return (
+        version_dict.get("major", 0),
+        version_dict.get("minor", 0),
+        version_dict.get("patch", 0),
+        version_dict.get("build", 0),
+    )
+
+
+def _tuple_to_dict(version_tuple: tuple[int, ...] | None) -> dict[str, int]:
+    """Convert version tuple to dictionary.
+
+    Args:
+        version_tuple: Tuple of version numbers
+
+    Returns:
+        Dictionary with version components
+    """
+    if version_tuple is None:
+        return {
+            "major": 0,
+            "minor": 0,
+            "patch": 0,
+            "build": 0,
+        }
+
+    return {
+        "major": version_tuple[0] if len(version_tuple) > 0 else 0,
+        "minor": version_tuple[1] if len(version_tuple) > 1 else 0,
+        "patch": version_tuple[2] if len(version_tuple) > 2 else 0,
+        "build": version_tuple[3] if len(version_tuple) > 3 else 0,
+    }

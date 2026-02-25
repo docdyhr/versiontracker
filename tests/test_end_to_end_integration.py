@@ -129,7 +129,7 @@ class TestEndToEndIntegration:
         """Test complete recommendations workflow."""
         with (
             mock.patch("sys.argv", ["versiontracker", "--recom"]),
-            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+            mock.patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False),
         ):
             result = versiontracker_main()
 
@@ -142,8 +142,8 @@ class TestEndToEndIntegration:
         # Test export with json format - result may be 0 or 1 depending on
         # whether recommendations are found; we just assert it doesn't crash.
         with (
-            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
-            mock.patch("versiontracker.app_finder.check_brew_install_candidates", return_value=[]),
+            mock.patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False),
+            mock.patch("versiontracker.apps.finder.check_brew_install_candidates", return_value=[]),
             mock.patch("sys.argv", ["versiontracker", "--recom", "--export", "json"]),
         ):
             result = versiontracker_main()
@@ -221,8 +221,8 @@ class TestEndToEndIntegration:
         # return a non-zero code gracefully rather than raise SystemExit.
         with (
             mock.patch("versiontracker.homebrew.is_homebrew_available", return_value=False),
-            mock.patch("versiontracker.app_finder.is_homebrew_available", return_value=False),
-            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+            mock.patch("versiontracker.apps.finder.is_homebrew_available", return_value=False),
+            mock.patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False),
             mock.patch(
                 "versiontracker.handlers.brew_handlers._get_homebrew_casks",
                 side_effect=Exception("Homebrew not available"),
@@ -238,7 +238,7 @@ class TestEndToEndIntegration:
         """Test network error handling workflow."""
         # Patch the cask retrieval inside the handler path used by --recom
         with (
-            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+            mock.patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False),
             mock.patch(
                 "versiontracker.handlers.brew_handlers._get_homebrew_casks",
                 side_effect=NetworkError("Network unavailable"),
@@ -257,7 +257,7 @@ class TestEndToEndIntegration:
 
         with (
             mock.patch("versiontracker.config.get_config") as mock_config,
-            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+            mock.patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False),
         ):
             config = Config()
             config.cache_dir = str(cache_dir)
@@ -326,7 +326,7 @@ class TestEndToEndIntegration:
                 return_value=large_sp_data,
             ),
             mock.patch(
-                "versiontracker.app_finder.get_homebrew_casks",
+                "versiontracker.apps.finder.get_homebrew_casks",
                 return_value=large_cask_list,
             ),
             mock.patch("sys.argv", ["versiontracker", "--apps"]),
@@ -406,7 +406,7 @@ class TestEndToEndIntegration:
             mock.patch("versiontracker.apps.get_applications", return_value=large_apps),
             mock.patch("versiontracker.apps.get_homebrew_casks", return_value=large_casks),
             mock.patch("sys.argv", ["versiontracker", "--recom"]),
-            mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+            mock.patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False),
         ):
             result = versiontracker_main()
 
@@ -498,7 +498,7 @@ class TestEndToEndIntegration:
         for _ in range(3):
             with (
                 mock.patch("sys.argv", ["versiontracker", "--recom"]),
-                mock.patch("versiontracker.app_finder._is_async_homebrew_available", return_value=False),
+                mock.patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False),
             ):
                 result = versiontracker_main()
                 results.append(result)

@@ -19,7 +19,7 @@ from benchmarks import (
     clear_benchmarks,
     print_benchmark_summary,
 )
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     check_brew_install_candidates,
     get_applications,
     is_brew_cask_installable,

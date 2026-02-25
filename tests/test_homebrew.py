@@ -12,22 +12,22 @@ class TestHomebrew(unittest.TestCase):
     def setUp(self):
         """Set up the test environment."""
         # Clear the cache before each test
-        from versiontracker.app_finder import get_homebrew_casks
+        from versiontracker.apps import get_homebrew_casks
 
         get_homebrew_casks.cache_clear()
 
     def tearDown(self):
         """Restore the original function."""
         # Clear the cache after each test to avoid interference
-        from versiontracker.app_finder import get_homebrew_casks
+        from versiontracker.apps import get_homebrew_casks
 
         get_homebrew_casks.cache_clear()
 
-    @patch("versiontracker.app_finder.get_config")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
     def test_get_homebrew_casks_success(self, mock_run_command, mock_get_config):
         """Test successful retrieval of Homebrew casks."""
-        from versiontracker.app_finder import get_homebrew_casks
+        from versiontracker.apps import get_homebrew_casks
 
         # Set up the mocks
         mock_config = MagicMock()
@@ -46,11 +46,11 @@ class TestHomebrew(unittest.TestCase):
         # Check the result
         self.assertEqual(casks, ["cask1", "cask2", "cask3"])
 
-    @patch("versiontracker.app_finder.get_config")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
     def test_get_homebrew_casks_empty(self, mock_run_command, mock_get_config):
         """Test when no casks are installed."""
-        from versiontracker.app_finder import get_homebrew_casks
+        from versiontracker.apps import get_homebrew_casks
 
         # Set up the mocks
         mock_config = MagicMock()
@@ -66,11 +66,11 @@ class TestHomebrew(unittest.TestCase):
         # Check the result
         self.assertEqual(casks, [])
 
-    @patch("versiontracker.app_finder.get_config")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
     def test_get_homebrew_casks_error(self, mock_run_command, mock_get_config):
         """Test error handling for Homebrew command failures."""
-        from versiontracker.app_finder import get_homebrew_casks
+        from versiontracker.apps import get_homebrew_casks
 
         # Set up the mocks
         mock_config = MagicMock()
@@ -84,11 +84,11 @@ class TestHomebrew(unittest.TestCase):
         with self.assertRaises(HomebrewError):
             get_homebrew_casks()
 
-    @patch("versiontracker.app_finder.get_config")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
     def test_get_homebrew_casks_network_error(self, mock_run_command, mock_get_config):
         """Test network error handling."""
-        from versiontracker.app_finder import get_homebrew_casks
+        from versiontracker.apps import get_homebrew_casks
 
         # Set up the mocks
         mock_config = MagicMock()
@@ -102,11 +102,11 @@ class TestHomebrew(unittest.TestCase):
         with self.assertRaises(NetworkError):
             get_homebrew_casks()
 
-    @patch("versiontracker.app_finder.get_config")
-    @patch("versiontracker.app_finder.run_command")
+    @patch("versiontracker.apps.finder.get_config")
+    @patch("versiontracker.apps.finder.run_command")
     def test_get_homebrew_casks_timeout(self, mock_run_command, mock_get_config):
         """Test timeout error handling."""
-        from versiontracker.app_finder import get_homebrew_casks
+        from versiontracker.apps import get_homebrew_casks
 
         # Set up the mocks
         mock_config = MagicMock()

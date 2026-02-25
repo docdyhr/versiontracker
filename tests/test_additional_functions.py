@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from tests.mock_adaptive_rate_limiter import MockAdaptiveRateLimiter
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     filter_brew_candidates,
     get_homebrew_casks_list,
 )
@@ -14,8 +14,8 @@ from versiontracker.exceptions import BrewTimeoutError, NetworkError
 class TestAdditionalAppsFunctions(unittest.TestCase):
     """Test cases for additional functions in the apps module."""
 
-    @patch("versiontracker.app_finder.is_homebrew_available")
-    @patch("versiontracker.app_finder.get_homebrew_casks")
+    @patch("versiontracker.apps.finder.is_homebrew_available")
+    @patch("versiontracker.apps.finder.get_homebrew_casks")
     def test_get_homebrew_casks_list(self, mock_get_homebrew_casks, mock_is_homebrew_available):
         """Test get_homebrew_casks_list function."""
         # Mock is_homebrew_available to return True

@@ -3,6 +3,8 @@
 import logging
 import re
 
+from .models import ApplicationInfo, VersionStatus
+
 # Import parse_version from parser module
 from .parser import parse_version
 
@@ -753,3 +755,113 @@ def get_version_difference(
     differences = tuple(v1_padded[i] - v2_padded[i] for i in range(max_len))
 
     return differences
+
+
+def get_version_info(current_version: str | None, latest_version: str | None = None) -> ApplicationInfo:
+    """Get information about version(s) and comparison.
+
+    Args:
+        current_version: Current version string to analyze
+        latest_version: Optional latest version for comparison
+
+    Returns:
+        ApplicationInfo object with version information and status
+    """
+    if current_version is None:
+        current_version = ""
+
+    # Parse current version
+    current_parsed = parse_version(current_version)
+    if current_parsed is None:
+        current_parsed = (0, 0, 0)
+
+    # Create base ApplicationInfo object
+    app_info = ApplicationInfo(name="Unknown", version_string=current_version, status=VersionStatus.UNKNOWN)
+
+    if latest_version is None:
+        # Single version analysis - just return basic info
+        return app_info
+
+    # Two version comparison
+    return _perform_version_comparison(app_info, current_version, latest_version)
+
+
+def _perform_version_comparison(
+    app_info: ApplicationInfo, current_version: str, latest_version: str
+) -> ApplicationInfo:
+    """Perform comparison between current and latest versions.
+
+    Args:
+        app_info: Base ApplicationInfo object to update
+        current_version: Current version string (already normalized from None to "")
+        latest_version: Latest version string
+
+    Returns:
+        Updated ApplicationInfo object with comparison results
+    """
+    latest_parsed = parse_version(latest_version)
+    if latest_parsed is None:
+        latest_parsed = (0, 0, 0)
+
+    app_info.latest_version = latest_version
+    app_info.latest_parsed = latest_parsed
+
+    # Check for empty string cases
+    status = _handle_empty_version_cases(current_version, latest_version)
+    if status is not None:
+        app_info.status = status
+        return app_info
+
+    # Check for malformed versions
+    if _is_version_malformed(current_version) or _is_version_malformed(latest_version):
+        app_info.status = VersionStatus.UNKNOWN
+        return app_info
+
+    # Perform version comparison and set status
+    _set_version_comparison_status(app_info, current_version, latest_version)
+    return app_info
+
+
+def _handle_empty_version_cases(current_version: str, latest_version: str) -> VersionStatus | None:
+    """Handle cases where one or both versions are empty strings.
+
+    Args:
+        current_version: Current version string
+        latest_version: Latest version string
+
+    Returns:
+        VersionStatus if a special case is detected, None otherwise
+    """
+    # Both empty strings should be considered equal
+    if current_version == "" and latest_version == "":
+        return VersionStatus.UP_TO_DATE
+
+    # One empty string but not both - return UNKNOWN
+    if current_version == "" or latest_version == "":
+        return VersionStatus.UNKNOWN
+
+    return None
+
+
+def _set_version_comparison_status(app_info: ApplicationInfo, current_version: str, latest_version: str) -> None:
+    """Set the version comparison status and difference information.
+
+    Args:
+        app_info: ApplicationInfo object to update
+        current_version: Current version string
+        latest_version: Latest version string
+    """
+    comparison = compare_versions(current_version, latest_version)
+
+    if comparison == 0:
+        app_info.status = VersionStatus.UP_TO_DATE
+    elif comparison < 0:
+        app_info.status = VersionStatus.OUTDATED
+        diff = get_version_difference(current_version, latest_version)
+        if diff is not None:
+            app_info.outdated_by = tuple(abs(x) for x in diff)
+    else:
+        app_info.status = VersionStatus.NEWER
+        diff = get_version_difference(latest_version, current_version)
+        if diff is not None:
+            app_info.newer_by = tuple(abs(x) for x in diff)

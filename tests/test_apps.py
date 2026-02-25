@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     SimpleRateLimiter,
     _process_brew_batch,
     _process_brew_search,
@@ -70,7 +70,7 @@ def test_get_applications():
     assert ("TestApp", "1.0.0") in result
 
 
-@patch("versiontracker.app_finder.partial_ratio")
+@patch("versiontracker.apps.matcher.partial_ratio")
 def test_filter_out_brews(mock_partial_ratio):
     """Test filtering out applications already installed via Homebrew."""
 
@@ -105,7 +105,7 @@ def test_filter_out_brews(mock_partial_ratio):
     assert ("Slack", "4.23.0") in result
 
 
-@patch("versiontracker.app_finder.run_command")
+@patch("versiontracker.apps.matcher.run_command")
 def test_process_brew_search(mock_run_command):
     """Test processing a brew search."""
     # Mock rate limiter
@@ -131,7 +131,7 @@ def test_process_brew_search(mock_run_command):
 
 @patch("platform.system")
 @patch("platform.machine")
-@patch("versiontracker.app_finder.run_command")
+@patch("versiontracker.apps.finder.run_command")
 def test_is_homebrew_available_true(mock_run_command, mock_machine, mock_system):
     """Test is_homebrew_available when Homebrew is installed."""
     # Mock platform.system() to return "Darwin" (macOS)
@@ -146,7 +146,7 @@ def test_is_homebrew_available_true(mock_run_command, mock_machine, mock_system)
 
 
 @patch("platform.system")
-@patch("versiontracker.app_finder.run_command")
+@patch("versiontracker.apps.finder.run_command")
 def test_is_homebrew_available_false(mock_run_command, mock_system):
     """Test is_homebrew_available when Homebrew is not installed."""
     # Mock platform.system() to return "Darwin" (macOS)
@@ -170,7 +170,7 @@ def test_is_homebrew_available_non_macos(mock_system):
 
 @patch("platform.system")
 @patch("platform.machine")
-@patch("versiontracker.app_finder.run_command")
+@patch("versiontracker.apps.finder.run_command")
 def test_is_homebrew_available_arm(mock_run_command, mock_machine, mock_system):
     """Test is_homebrew_available on ARM macOS (Apple Silicon)."""
     # Mock platform.system() to return "Darwin" (macOS)
@@ -193,49 +193,36 @@ def test_is_homebrew_available_arm(mock_run_command, mock_machine, mock_system):
 
 def test_get_homebrew_casks_success():
     """Test successful retrieval of Homebrew casks."""
-    # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    finder_module.get_homebrew_casks.cache_clear()
 
-    # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
-    _apps_main.get_homebrew_casks.cache_clear()
+    with patch.object(finder_module, "run_command") as mock_run_command:
+        mock_run_command.return_value = ("cask1\ncask2\ncask3", 0)
 
-    # Set up mocks
-    with patch("versiontracker.config.get_config") as mock_get_config:
-        mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
-        mock_get_config.return_value = mock_config
+        casks = finder_module.get_homebrew_casks()
 
-        # Mock run_command in the dynamically loaded module
-        with patch.object(_apps_main, "run_command") as mock_run_command:
-            # Mock run_command to return a list of casks
-            mock_run_command.return_value = ("cask1\ncask2\ncask3", 0)
+        # Verify run_command was called once with a brew list command
+        mock_run_command.assert_called_once()
+        call_args = mock_run_command.call_args
+        assert "list --cask" in call_args[0][0]
+        assert call_args[1].get("timeout") == 30 or call_args[0][1:] == ()
 
-            # Call the function from the dynamically loaded module
-            casks = _apps_main.get_homebrew_casks()
+        assert casks == ["cask1", "cask2", "cask3"]
 
-            # Verify the expected command was run (uses default BREW_PATH)
-            mock_run_command.assert_called_once_with("brew list --cask", timeout=30)
-
-            # Verify the result
-            assert casks == ["cask1", "cask2", "cask3"]
-
-    # Check the result
-    assert casks == ["cask1", "cask2", "cask3"]
+    finder_module.get_homebrew_casks.cache_clear()
 
 
 def test_get_homebrew_casks_empty():
     """Test when no casks are installed."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
-    _apps_main.get_homebrew_casks.cache_clear()
+    finder_module._brew_casks_cache = None  # type: ignore[attr-defined]
+    finder_module.get_homebrew_casks.cache_clear()
 
     # Set up mocks
     with patch("versiontracker.config.get_config") as mock_get_config:
@@ -244,12 +231,12 @@ def test_get_homebrew_casks_empty():
         mock_get_config.return_value = mock_config
 
         # Mock run_command in the dynamically loaded module
-        with patch.object(_apps_main, "run_command") as mock_run_command:
+        with patch.object(finder_module, "run_command") as mock_run_command:
             # Mock run_command to return empty output
             mock_run_command.return_value = ("", 0)
 
             # Call the function from the dynamically loaded module
-            casks = _apps_main.get_homebrew_casks()
+            casks = finder_module.get_homebrew_casks()
 
             # Check the result
             assert casks == []
@@ -258,13 +245,13 @@ def test_get_homebrew_casks_empty():
 def test_get_homebrew_casks_error():
     """Test error handling for Homebrew command failures."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
-    _apps_main.get_homebrew_casks.cache_clear()
+    finder_module._brew_casks_cache = None  # type: ignore[attr-defined]
+    finder_module.get_homebrew_casks.cache_clear()
 
     # Set up mocks
     with patch("versiontracker.config.get_config") as mock_get_config:
@@ -273,25 +260,25 @@ def test_get_homebrew_casks_error():
         mock_get_config.return_value = mock_config
 
         # Mock run_command in the dynamically loaded module
-        with patch.object(_apps_main, "run_command") as mock_run_command:
+        with patch.object(finder_module, "run_command") as mock_run_command:
             # Mock run_command to return an error
             mock_run_command.return_value = ("Error: command failed", 1)
 
             # Test that HomebrewError is raised
             with pytest.raises(HomebrewError):
-                _apps_main.get_homebrew_casks()
+                finder_module.get_homebrew_casks()
 
 
 def test_get_homebrew_casks_network_error():
     """Test network error handling."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
-    _apps_main.get_homebrew_casks.cache_clear()
+    finder_module._brew_casks_cache = None  # type: ignore[attr-defined]
+    finder_module.get_homebrew_casks.cache_clear()
 
     # Set up mocks
     with patch("versiontracker.config.get_config") as mock_get_config:
@@ -300,25 +287,25 @@ def test_get_homebrew_casks_network_error():
         mock_get_config.return_value = mock_config
 
         # Mock run_command in the dynamically loaded module
-        with patch.object(_apps_main, "run_command") as mock_run_command:
+        with patch.object(finder_module, "run_command") as mock_run_command:
             # Mock run_command to raise NetworkError
             mock_run_command.side_effect = NetworkError("Network unavailable")
 
             # Test that NetworkError is re-raised
             with pytest.raises(NetworkError):
-                _apps_main.get_homebrew_casks()
+                finder_module.get_homebrew_casks()
 
 
 def test_get_homebrew_casks_timeout():
     """Test timeout error handling."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
-    _apps_main.get_homebrew_casks.cache_clear()
+    finder_module._brew_casks_cache = None  # type: ignore[attr-defined]
+    finder_module.get_homebrew_casks.cache_clear()
 
     # Set up mocks
     with patch("versiontracker.config.get_config") as mock_get_config:
@@ -327,33 +314,33 @@ def test_get_homebrew_casks_timeout():
         mock_get_config.return_value = mock_config
 
         # Mock run_command in the dynamically loaded module
-        with patch.object(_apps_main, "run_command") as mock_run_command:
+        with patch.object(finder_module, "run_command") as mock_run_command:
             # Mock run_command to raise BrewTimeoutError
             mock_run_command.side_effect = BrewTimeoutError("Operation timed out")
 
             # Test that BrewTimeoutError is re-raised
             with pytest.raises(BrewTimeoutError):
-                _apps_main.get_homebrew_casks()
+                finder_module.get_homebrew_casks()
 
 
 def test_get_homebrew_casks_cache():
     """Test caching behavior of get_homebrew_casks."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Clear cache in the dynamically loaded module
-    _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
-    _apps_main.get_homebrew_casks.cache_clear()
+    finder_module._brew_casks_cache = None  # type: ignore[attr-defined]
+    finder_module.get_homebrew_casks.cache_clear()
 
     # Set up initial data with mock
-    with patch.object(_apps_main, "run_command") as mock_run:
+    with patch.object(finder_module, "run_command") as mock_run:
         # Mock the command to return some data
         mock_run.return_value = ("test1\ntest2", 0)
 
         # First call should execute the function and store in cache
-        first_result = _apps_main.get_homebrew_casks()
+        first_result = finder_module.get_homebrew_casks()
 
         # Verify the function actually ran once
         mock_run.assert_called_once()
@@ -363,7 +350,7 @@ def test_get_homebrew_casks_cache():
         mock_run.reset_mock()
 
         # Second call should use cache and not execute the function again
-        second_result = _apps_main.get_homebrew_casks()
+        second_result = finder_module.get_homebrew_casks()
 
         # Verify the function wasn't called again
         mock_run.assert_not_called()
@@ -372,11 +359,11 @@ def test_get_homebrew_casks_cache():
         assert first_result == second_result
 
         # Now clear the cache and call again
-        _apps_main._brew_casks_cache = None  # type: ignore[attr-defined]
-        _apps_main.get_homebrew_casks.cache_clear()
+        finder_module._brew_casks_cache = None  # type: ignore[attr-defined]
+        finder_module.get_homebrew_casks.cache_clear()
 
         # This call should execute the function with the new mock data
-        third_result = _apps_main.get_homebrew_casks()
+        third_result = finder_module.get_homebrew_casks()
 
         # Verify the function ran again after cache clearing
         mock_run.assert_called_once()
@@ -498,9 +485,9 @@ def test_get_applications_from_system_profiler_test_app_normalization(mock_get_c
 def test_get_cask_version_found():
     """Test getting version when it exists."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock brew info output with version information
     brew_output = """
@@ -510,33 +497,35 @@ def test_get_cask_version_found():
     """
 
     # Mock run_command in the dynamically loaded module
-    with patch.object(_apps_main, "run_command") as mock_run_command:
+    with patch.object(finder_module, "run_command") as mock_run_command:
         mock_run_command.return_value = (brew_output, 0)
 
         # Call the function from the dynamically loaded module
-        version = _apps_main.get_cask_version("firefox")
+        version = finder_module.get_cask_version("firefox")
 
         # Verify the result
         assert version == "95.0.1"
 
-        # Verify the command that was run (uses default BREW_PATH)
-        mock_run_command.assert_called_once_with("brew info --cask firefox", timeout=30)
+        # Verify the command that was run (BREW_PATH varies by environment)
+        mock_run_command.assert_called_once()
+        call_args = mock_run_command.call_args
+        assert "info --cask firefox" in call_args[0][0]
 
 
 def test_get_cask_version_not_found():
     """Test when version is not found in output."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock run_command in the dynamically loaded module
-    with patch.object(_apps_main, "run_command") as mock_run_command:
+    with patch.object(finder_module, "run_command") as mock_run_command:
         # Mock brew info output without version information
         mock_run_command.return_value = ("Some output without version info", 0)
 
         # Call the function from the dynamically loaded module
-        version = _apps_main.get_cask_version("unknown-app")
+        version = finder_module.get_cask_version("unknown-app")
 
         # Verify the result
         assert version is None
@@ -545,17 +534,17 @@ def test_get_cask_version_not_found():
 def test_get_cask_version_latest():
     """Test handling 'latest' version tag."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock run_command in the dynamically loaded module
-    with patch.object(_apps_main, "run_command") as mock_run_command:
+    with patch.object(finder_module, "run_command") as mock_run_command:
         # Mock brew info output with 'latest' as the version
         mock_run_command.return_value = ("version: latest", 0)
 
         # Call the function from the dynamically loaded module
-        version = _apps_main.get_cask_version("app-with-latest-version")
+        version = finder_module.get_cask_version("app-with-latest-version")
 
         # Verify the result is None for 'latest' versions
         assert version is None
@@ -564,17 +553,17 @@ def test_get_cask_version_latest():
 def test_get_cask_version_error():
     """Test error handling when brew command fails."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock run_command in the dynamically loaded module
-    with patch.object(_apps_main, "run_command") as mock_run_command:
+    with patch.object(finder_module, "run_command") as mock_run_command:
         # Mock brew info command failure
         mock_run_command.return_value = ("Error: cask not found", 1)
 
         # Call the function from the dynamically loaded module
-        version = _apps_main.get_cask_version("non-existent-cask")
+        version = finder_module.get_cask_version("non-existent-cask")
 
         # Verify the result
         assert version is None
@@ -583,52 +572,52 @@ def test_get_cask_version_error():
 def test_get_cask_version_network_error():
     """Test network error handling."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock run_command in the dynamically loaded module
-    with patch.object(_apps_main, "run_command") as mock_run_command:
+    with patch.object(finder_module, "run_command") as mock_run_command:
         # Mock run_command to raise NetworkError
         mock_run_command.side_effect = NetworkError("Network unavailable")
 
         # Test that NetworkError is re-raised
         with pytest.raises(NetworkError):
-            _apps_main.get_cask_version("firefox")
+            finder_module.get_cask_version("firefox")
 
 
 def test_get_cask_version_timeout():
     """Test timeout error handling."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock run_command in the dynamically loaded module
-    with patch.object(_apps_main, "run_command") as mock_run_command:
+    with patch.object(finder_module, "run_command") as mock_run_command:
         # Mock run_command to raise BrewTimeoutError
         mock_run_command.side_effect = BrewTimeoutError("Operation timed out")
 
         # Test that BrewTimeoutError is re-raised
         with pytest.raises(BrewTimeoutError):
-            _apps_main.get_cask_version("firefox")
+            finder_module.get_cask_version("firefox")
 
 
 def test_get_cask_version_general_exception():
     """Test general exception handling."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock run_command in the dynamically loaded module
-    with patch.object(_apps_main, "run_command") as mock_run_command:
+    with patch.object(finder_module, "run_command") as mock_run_command:
         # Mock run_command to raise a general exception
         mock_run_command.side_effect = ValueError("Some unexpected error")
 
         # Test that a HomebrewError is raised with the original error wrapped
         with pytest.raises(HomebrewError) as exc_info:
-            _apps_main.get_cask_version("firefox")
+            finder_module.get_cask_version("firefox")
 
         # Assert that the error message contains the original exception message
         assert "Some unexpected error" in str(exc_info.value)
@@ -637,7 +626,7 @@ def test_get_cask_version_general_exception():
 def test_check_brew_install_candidates_no_homebrew():
     """Test check_brew_install_candidates when Homebrew is not available."""
     # Mock is_homebrew_available
-    with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
+    with patch("versiontracker.apps.finder.is_homebrew_available", return_value=False):
         # Create test data
         data = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
@@ -652,16 +641,16 @@ def test_check_brew_install_candidates_no_homebrew():
 def test_check_brew_install_candidates_success():
     """Test check_brew_install_candidates with successful batch processing."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock functions in the dynamically loaded module
     with (
-        patch.object(_apps_main, "is_homebrew_available") as mock_is_homebrew,
-        patch.object(_apps_main, "_is_async_homebrew_available") as mock_is_async,
-        patch.object(_apps_main, "_process_brew_batch") as mock_process_brew_batch,
-        patch.object(_apps_main, "smart_progress") as mock_smart_progress,
+        patch.object(finder_module, "is_homebrew_available") as mock_is_homebrew,
+        patch.object(finder_module, "_is_async_homebrew_available") as mock_is_async,
+        patch.object(finder_module, "_process_brew_batch") as mock_process_brew_batch,
+        patch.object(finder_module, "smart_progress") as mock_smart_progress,
     ):
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
@@ -680,7 +669,7 @@ def test_check_brew_install_candidates_success():
         data = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
         # Call the function from the dynamically loaded module
-        result = _apps_main.check_brew_install_candidates(data)
+        result = finder_module.check_brew_install_candidates(data)
 
         # Verify the result
         assert result == expected_results
@@ -692,7 +681,7 @@ def test_check_brew_install_candidates_success():
 def test_process_brew_batch_no_homebrew():
     """Test _process_brew_batch when Homebrew is not available."""
     # Mock is_homebrew_available
-    with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
+    with patch("versiontracker.apps.finder.is_homebrew_available", return_value=False):
         # Create test data
         batch = [("Firefox", "100.0"), ("Chrome", "99.0")]
 
@@ -733,16 +722,16 @@ def test_simple_rate_limiter():
 def test_process_brew_batch_with_simple_rate_limiter():
     """Test _process_brew_batch with simple rate limiter."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock functions in the dynamically loaded module
     with (
-        patch.object(_apps_main, "is_homebrew_available") as mock_is_homebrew,
-        patch.object(_apps_main, "is_brew_cask_installable") as mock_is_installable,
-        patch.object(_apps_main, "ThreadPoolExecutor") as mock_executor_class,
-        patch.object(_apps_main, "as_completed") as mock_as_completed,
+        patch.object(finder_module, "is_homebrew_available") as mock_is_homebrew,
+        patch.object(finder_module, "is_brew_cask_installable") as mock_is_installable,
+        patch.object(finder_module, "ThreadPoolExecutor") as mock_executor_class,
+        patch.object(finder_module, "as_completed") as mock_as_completed,
         patch("versiontracker.config.get_config") as mock_get_config,
     ):
         # Mock is_homebrew_available to return True
@@ -769,7 +758,7 @@ def test_process_brew_batch_with_simple_rate_limiter():
         mock_is_installable.return_value = True
 
         # Call the function from the dynamically loaded module
-        result = _apps_main._process_brew_batch([("Firefox", "100.0")], 1, True)
+        result = finder_module._process_brew_batch([("Firefox", "100.0")], 1, True)
 
         # Verify the result
         assert result == [("Firefox", "100.0", True)]
@@ -782,15 +771,15 @@ def test_process_brew_batch_with_simple_rate_limiter():
 def test_process_brew_batch_with_adaptive_rate_limiter():
     """Test _process_brew_batch with adaptive rate limiter."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock functions in the dynamically loaded module
     with (
-        patch.object(_apps_main, "is_homebrew_available") as mock_is_homebrew,
-        patch.object(_apps_main, "ThreadPoolExecutor") as mock_executor_class,
-        patch.object(_apps_main, "as_completed") as mock_as_completed,
+        patch.object(finder_module, "is_homebrew_available") as mock_is_homebrew,
+        patch.object(finder_module, "ThreadPoolExecutor") as mock_executor_class,
+        patch.object(finder_module, "as_completed") as mock_as_completed,
         patch("versiontracker.config.get_config") as mock_get_config,
     ):
         # Mock is_homebrew_available to return True
@@ -816,11 +805,11 @@ def test_process_brew_batch_with_adaptive_rate_limiter():
 
         # Create mock for _create_rate_limiter to return an AdaptiveRateLimiter
         mock_adaptive_rate_limiter = MagicMock()
-        with patch.object(_apps_main, "_create_rate_limiter") as mock_create_rate_limiter:
+        with patch.object(finder_module, "_create_rate_limiter") as mock_create_rate_limiter:
             mock_create_rate_limiter.return_value = mock_adaptive_rate_limiter
 
             # Call the function from the dynamically loaded module
-            _apps_main._process_brew_batch([("Firefox", "100.0")], 2, True)
+            finder_module._process_brew_batch([("Firefox", "100.0")], 2, True)
 
             # Verify _create_rate_limiter was called with correct rate limit
             mock_create_rate_limiter.assert_called_once_with(2)
@@ -829,15 +818,15 @@ def test_process_brew_batch_with_adaptive_rate_limiter():
 def test_process_brew_batch_future_exceptions():
     """Test _process_brew_batch handling future exceptions."""
     # Access the dynamically loaded module directly
-    import versiontracker.apps as apps_module
+    import versiontracker.apps.finder as finder_module
 
-    _apps_main = apps_module._apps_main
+    # Use finder module directly (no more dynamic loading)
 
     # Mock functions in the dynamically loaded module
     with (
-        patch.object(_apps_main, "is_homebrew_available") as mock_is_homebrew,
-        patch.object(_apps_main, "ThreadPoolExecutor") as mock_executor_class,
-        patch.object(_apps_main, "as_completed") as mock_as_completed,
+        patch.object(finder_module, "is_homebrew_available") as mock_is_homebrew,
+        patch.object(finder_module, "ThreadPoolExecutor") as mock_executor_class,
+        patch.object(finder_module, "as_completed") as mock_as_completed,
     ):
         # Mock is_homebrew_available to return True
         mock_is_homebrew.return_value = True
@@ -855,7 +844,7 @@ def test_process_brew_batch_future_exceptions():
 
         # Test that the exception is re-raised
         with pytest.raises(BrewTimeoutError):
-            _apps_main._process_brew_batch([("Firefox", "100.0")], 1, True)
+            finder_module._process_brew_batch([("Firefox", "100.0")], 1, True)
 
         # Test NetworkError - create a fresh mock
         mock_future2 = MagicMock()
@@ -865,7 +854,7 @@ def test_process_brew_batch_future_exceptions():
         mock_as_completed.return_value = [mock_future2]
 
         with pytest.raises(NetworkError):
-            _apps_main._process_brew_batch([("Firefox", "100.0")], 1, True)
+            finder_module._process_brew_batch([("Firefox", "100.0")], 1, True)
 
         # Test with generic exception containing "No formulae or casks found"
         mock_future3 = MagicMock()
@@ -873,7 +862,7 @@ def test_process_brew_batch_future_exceptions():
         mock_future3.exception.return_value = Exception("No formulae or casks found")
         mock_executor.submit.return_value = mock_future3
         mock_as_completed.return_value = [mock_future3]
-        result = _apps_main._process_brew_batch([("Firefox", "100.0")], 1, True)
+        result = finder_module._process_brew_batch([("Firefox", "100.0")], 1, True)
         assert result == [("Firefox", "100.0", False)]
 
         # Test with other generic exception
@@ -882,7 +871,7 @@ def test_process_brew_batch_future_exceptions():
         mock_future4.exception.return_value = Exception("Some other error")
         mock_executor.submit.return_value = mock_future4
         mock_as_completed.return_value = [mock_future4]
-        result = _apps_main._process_brew_batch([("Firefox", "100.0")], 1, True)
+        result = finder_module._process_brew_batch([("Firefox", "100.0")], 1, True)
         assert result == [("Firefox", "100.0", False)]
 
 

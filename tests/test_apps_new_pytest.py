@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     filter_out_brews,
     get_applications,
 )

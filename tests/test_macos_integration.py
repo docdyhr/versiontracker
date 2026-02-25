@@ -219,7 +219,7 @@ class TestGlobalFunctions(unittest.TestCase):
         self.assertEqual(status["status"], "loaded")
         self.assertTrue(status["installed"])
 
-    @patch("versiontracker.app_finder.get_applications")
+    @patch("versiontracker.apps.get_applications")
     @patch("versiontracker.version.check_outdated_apps")
     @patch("versiontracker.macos_integration.MacOSNotifications")
     def test_check_and_notify(self, mock_notifications, mock_check_apps, mock_get_apps):

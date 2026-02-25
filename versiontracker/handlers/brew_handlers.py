@@ -17,7 +17,7 @@ import time
 import traceback
 from typing import Any, TypedDict
 
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     check_brew_install_candidates,
     filter_out_brews,
     get_applications,

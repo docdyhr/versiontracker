@@ -5,7 +5,7 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
-from versiontracker.app_finder import (
+from versiontracker.apps import (
     AdaptiveRateLimiter,
     SimpleRateLimiter,
     _AdaptiveRateLimiter,
@@ -120,14 +120,14 @@ class TestAdaptiveRateLimiterAlias(unittest.TestCase):
 class TestAppStoreCheck(unittest.TestCase):
     """Test App Store checking functionality."""
 
-    @patch("versiontracker.app_finder.read_cache")
+    @patch("versiontracker.apps.finder.read_cache")
     def test_is_app_in_app_store_cache_hit(self, mock_read_cache):
         """Test is_app_in_app_store with cache hit."""
         mock_read_cache.return_value = {"apps": ["TestApp", "AnotherApp"]}
         result = is_app_in_app_store("TestApp", use_cache=True)
         self.assertTrue(result)
 
-    @patch("versiontracker.app_finder.read_cache")
+    @patch("versiontracker.apps.finder.read_cache")
     def test_is_app_in_app_store_cache_miss(self, mock_read_cache):
         """Test is_app_in_app_store with cache miss."""
         mock_read_cache.return_value = None
@@ -139,7 +139,7 @@ class TestAppStoreCheck(unittest.TestCase):
         result = is_app_in_app_store("TestApp", use_cache=False)
         self.assertFalse(result)
 
-    @patch("versiontracker.app_finder.read_cache")
+    @patch("versiontracker.apps.finder.read_cache")
     def test_is_app_in_app_store_exception(self, mock_read_cache):
         """Test is_app_in_app_store exception handling."""
         mock_read_cache.side_effect = Exception("Cache error")
@@ -152,16 +152,16 @@ class TestBrewCaskInstallable(unittest.TestCase):
 
     def test_is_brew_cask_installable_no_homebrew(self):
         """Test cask check when Homebrew not available."""
-        with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
+        with patch("versiontracker.apps.finder.is_homebrew_available", return_value=False):
             with self.assertRaises(HomebrewError):
                 is_brew_cask_installable("testapp")
 
     def test_is_brew_cask_installable_cache_hit(self):
         """Test cask check with cache hit."""
         with (
-            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
-            patch("versiontracker.app_finder.read_cache", return_value={"installable": ["testapp"]}),
-            patch("versiontracker.app_finder._check_cache_for_cask", return_value=True),
+            patch("versiontracker.apps.finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.apps.finder.read_cache", return_value={"installable": ["testapp"]}),
+            patch("versiontracker.apps.finder._check_cache_for_cask", return_value=True),
         ):
             result = is_brew_cask_installable("testapp", use_cache=True)
             # When cache returns True (cask is installable), function should return True
@@ -170,8 +170,8 @@ class TestBrewCaskInstallable(unittest.TestCase):
     def test_is_brew_cask_installable_cache_miss(self):
         """Test cask check with cache miss."""
         with (
-            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
-            patch("versiontracker.app_finder.read_cache") as mock_read_cache,
+            patch("versiontracker.apps.finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.apps.finder.read_cache") as mock_read_cache,
         ):
             mock_read_cache.return_value = None
 
@@ -191,15 +191,15 @@ class TestHomebrewCasksList(unittest.TestCase):
     def test_get_homebrew_casks_list_no_homebrew(self):
         """Test get_homebrew_casks_list when Homebrew not available."""
 
-        with patch("versiontracker.app_finder.is_homebrew_available", return_value=False):
+        with patch("versiontracker.apps.finder.is_homebrew_available", return_value=False):
             with self.assertRaises(HomebrewError):
                 get_homebrew_casks_list()
 
     def test_get_homebrew_casks_list_with_homebrew(self):
         """Test get_homebrew_casks_list when Homebrew is available."""
         with (
-            patch("versiontracker.app_finder.is_homebrew_available", return_value=True),
-            patch("versiontracker.app_finder.get_homebrew_casks", return_value=["firefox", "chrome", "vscode"]),
+            patch("versiontracker.apps.finder.is_homebrew_available", return_value=True),
+            patch("versiontracker.apps.finder.get_homebrew_casks", return_value=["firefox", "chrome", "vscode"]),
         ):
             result = get_homebrew_casks_list()
             self.assertEqual(result, ["firefox", "chrome", "vscode"])

@@ -159,7 +159,7 @@ class YAMLExportPlugin(ExportPlugin):
             output_file.write_text(yaml_string, encoding="utf-8")
             logger.info("YAML data exported to %s", output_file)
 
-        return yaml_string
+        return str(yaml_string)
 
 
 class AdvancedMatchingPlugin(MatchingPlugin):
