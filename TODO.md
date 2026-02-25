@@ -4,127 +4,32 @@
 
 ### Project Health
 
-- **Version**: 0.8.2-dev
-- **Tests**: 1,717 passing, 22 skipped (of 1,739 collected)
-- **CI/CD**: All 11 workflows passing
+- **Version**: 0.9.0
+- **Tests**: 1,885 passing, 16 skipped
+- **Coverage**: ~61% overall (up from 58.84%)
+- **CI/CD**: All 11 workflows passing on master (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
-- **Security**: No known vulnerabilities; all Bandit findings suppressed with justification
-- **Linting**: ruff clean, mypy clean (59 source files)
+- **Security**: 0 dependabot alerts, 0 secret scanning alerts; CodeQL alerts resolved
+- **Linting**: ruff clean, mypy clean
+- **Open Issues**: 0
+- **Open PRs**: 0
 
-### Recent Completions (v0.8.2 audit pass)
+### Recent Completions (v0.9.0)
 
-- Fixed `FileNotFoundError`/`PermissionError` builtin-shadowing bug in `exceptions.py`
-- Fixed duplicate `get_config` / `VersionTrackerError` entries in `__init__.__all__`
-- Resolved all 9 mypy errors (fuzzywuzzy import-untyped, version/**init**.py misc)
-- Aligned `requirements.txt` version constraints with `pyproject.toml`
-- Suppressed all Bandit false-positive findings with `# nosec` + justification comments
-- Removed stale `pytest.xml` artifact from source tree
-- Removed redundant `print()` calls shadowing `logging.info()` in `apps/finder.py` and `apps/matcher.py`
-- ~~P1~~ Deleted dead `versiontracker/version.py` (unreachable, 0% coverage)
-- ~~P5~~ Removed unused `commands/` directory (215 lines, zero imports from production or tests)
-- ~~P7~~ Removed all f-string-in-logging violations; `G004` ruff rule enforced
-- ~~P8~~ Moved `analytics.py` and `benchmarks.py` to `versiontracker/experimental/`
-- ~~P11~~ Fixed CHANGELOG dates to match actual git tag dates; moved `[Unreleased]` to top
-- ~~P12~~ Wired `warn_deprecated_flag` for `--blacklist` and `--blacklist-auto-updates`
-- ~~P13~~ Removed unnecessary `hasattr` guards in `__main__.py`
-- Fixed `requirements.txt` / `pyproject.toml` rapidfuzz dependency discrepancy
+- ~~P9~~ **Config split** — extracted `ConfigLoader` class with static methods
+  for file I/O, env-var loading, brew detection, save, and
+  generate_default_config; `Config` simplified to data container + accessors
+- ~~P15~~ **Test coverage improvement** — 122 new tests:
+  - `apps/matcher.py`: 54% → 98%
+  - `apps/finder.py`: 68% → 78%
+  - `config.py`: 43% → 68%
+- ~~P1–P8, P11–P14~~ All completed in v0.8.2 (module migration, dead code removal, security fixes)
 
 ---
 
 ## Active Work — Prioritised Fix List
 
 > Issues are ordered by impact. Work top-to-bottom.
-
-### 🔴 P2 — Critical: Complete the `version_legacy.py` Migration
-
-The refactoring from `version_legacy.py` → `version/` package stalled with ~50%
-complete. The `version/__init__.py` currently uses `importlib.util` to dynamically
-load `version_legacy.py` at import time and manually re-exports every symbol — a
-fragile pattern that breaks static analysis, IDE navigation, and test mocking.
-
-**Remaining functions to migrate** (all still in `version_legacy.py`):
-
-- [ ] Fuzzy matching utilities → `version/fuzzy.py`
-  - `partial_ratio`, `similarity_score`, `compare_fuzzy`, `get_partial_ratio_scorer`
-- [ ] Homebrew integration functions → `version/homebrew.py`
-  - `get_homebrew_cask_info`, `find_matching_cask`, `check_latest_version`, `_search_homebrew_casks`
-- [ ] Batch processing functions → `version/batch.py`
-  - `check_outdated_apps`, `_process_app_batch`, `_create_app_batches`, `_process_single_app`
-- [ ] Version info helpers → `version/utils.py`
-  - `get_version_info`, `decompose_version`, `compose_version_tuple`
-
-**Cleanup once migration is complete**:
-
-- [ ] Replace `importlib.util` dynamic loading in `version/__init__.py` with direct imports
-- [ ] Delete `version_legacy.py`
-- [ ] Update all import sites that reference `version_legacy` directly
-- [ ] Verify 100% of tests still pass
-
-**Target**: v0.9.0
-
----
-
-### 🔴 P3 — Critical: Complete the `app_finder.py` Migration
-
-Mirrors the `version_legacy.py` situation. `apps/__init__.py` uses
-`importlib.util` to dynamically load `app_finder.py` and wraps every function in
-a thin typed shim. This is why several test mocks silently miss the real code.
-
-- [ ] Audit remaining functions in `app_finder.py` not yet in `apps/finder.py` or `apps/matcher.py`
-- [ ] Migrate `check_brew_install_candidates` and batch helpers → `apps/matcher.py`
-- [ ] Migrate `get_homebrew_casks`, `get_cask_version`, `check_brew_update_candidates` → `apps/finder.py`
-- [ ] Migrate rate limiter classes (duplicated in `app_finder.py` and `apps/cache.py`)
-  — keep only `apps/cache.py` version
-- [ ] Replace `importlib.util` dynamic loading in `apps/__init__.py` with direct imports
-- [ ] Delete `app_finder.py`
-- [ ] Fix the 4 skipped tests in `test_apps_new.py` whose mocks were broken by the dynamic loading pattern
-
-**Target**: v0.9.0
-
----
-
-### 🔴 P4 — Fix Remaining 22 Skipped Tests
-
-Current skip breakdown (down from 29):
-
-| File | Count | Root Cause | Action |
-|---|---|---|---|
-| `test_apps_new.py` | 7 | Mock targets wrong due to dynamic loading | Blocked by P3 |
-| `test_ui.py` | 12 | Environment-specific terminal/colour | Leave as-is |
-| `test_ui_new.py` | 1 | Environment-specific colour handling | Leave as-is |
-| `test_platform_compatibility.py` | 2 | macOS-only guards | Leave as-is |
-
-- [ ] Fix `test_apps_new.py` skipped tests (blocked by P3 above)
-
----
-
-### 🟠 P6 — High: Add Tests for Core Version Comparison ✅ DONE
-
-Added 147 parameterised tests in `test_version_edge_cases.py` covering:
-prerelease handling (alpha/beta/rc/final/Unicode), build metadata,
-malformed inputs, None/empty, tuple inputs, trailing zeros, date-based
-versions, application prefixes, and `is_version_newer`.
-
-Remaining coverage work:
-
-- [ ] Add tests for `version/homebrew.py` (currently 9.3%)
-- [ ] Reach ≥ 60% coverage on `version/comparator.py` and `version/parser.py`
-
----
-
-### 🟡 P9 — Medium: Split `Config` Class
-
-`Config` in `config.py` has 34 methods across 941 lines handling: brew path
-detection, YAML file loading, 4 categories of env-var loading, validation, saving,
-blocklist management, and property accessors. Single-responsibility principle is
-violated.
-
-- [ ] Extract `ConfigLoader` — handles file parsing and env-var ingestion, returns a plain dict
-- [ ] Keep `Config` as a validated data container with `get`/`set` and the property accessors
-- [ ] Keep `ConfigValidator` where it is (already a separate class)
-- [ ] Ensure all 22 import sites still work via `from versiontracker.config import Config, get_config`
-
----
 
 ### 🟡 P10 — Medium: Wire Async Homebrew into the CLI
 
@@ -134,28 +39,50 @@ notes a 5x+ speedup is available.
 
 - [ ] Confirm `async_homebrew_prototype.py` feature-flag mechanism works (`VERSIONTRACKER_ASYNC_BREW=1`)
 - [ ] Update `brew_handlers.py` → `_get_homebrew_casks` to call async path when flag is set
-- [ ] Update `check_brew_install_candidates` in `app_finder.py` similarly
+- [ ] Update `check_brew_install_candidates` in `apps/finder.py` similarly
 - [ ] Add integration test comparing sync vs async results for parity
 - [ ] Document the flag in README and `sample_config.yaml`
-- [ ] Promote to default path once parity test passes (v0.9.x)
+- [ ] Promote to default path once parity test passes (v0.10.x)
 
 ---
 
-### 🟢 P14 — Low: `handle_setup_logging` Should Not Return on Error ✅ DONE
+### 🟡 P17 — Medium: Continue Test Coverage Push to 70%
 
-Changed `handle_setup_logging` return type from `int` to `None`.
-Updated tests to not assert on return value.
+Current: ~61% overall. Target: 70%.
 
-- [ ] Or: make it raise on failure so the caller can decide
+| Module | Coverage | Priority |
+|---|---|---|
+| `handlers/*.py` | 0% (most) | High — CLI handlers need integration tests |
+| `utils.py` | 13% | Medium — utility functions |
+| `apps/finder.py` | 78% | Low — close to target |
+
+Key targets:
+
+- [ ] Add handler integration tests for `brew_handlers.py` and `app_handlers.py`
+- [ ] Add tests for `utils.py` core functions
+- [ ] Push `apps/finder.py` from 78% to 85%
 
 ---
 
-## Homebrew Release Preparation (v0.8.2 → v0.9.0)
+### 🟢 P16 — Low: Remaining 16 Skipped Tests
+
+| File | Count | Root Cause | Action |
+|---|---|---|---|
+| `test_ui.py` | 12 | Environment-specific terminal/colour | Leave as-is |
+| `test_platform_compatibility.py` | 2 | macOS-only / non-macOS guards | Leave as-is |
+| `test_ui_new.py` | 1 | Environment-specific colour handling | Leave as-is |
+| `test_apps_extra.py` | 1 | Complex mocking requirements | Consider fixing |
+
+All skips are environment-specific or CI-specific — no action needed for most.
+
+---
+
+## Homebrew Release Preparation (v0.9.0)
 
 ### Phase 1: Pre-Release Validation
 
-- [ ] Confirm version tag exists: `git fetch --tags && git tag -l v0.8.2`
-- [ ] Ensure CHANGELOG has correct dated entry for this version
+- [x] Bump version to 0.9.0 in `__init__.py` and `pyproject.toml`
+- [x] Update CHANGELOG.md with v0.9.0 entry
 - [ ] Run full test suite locally: `pytest`
 - [ ] Validate packaging: `python -m build && twine check dist/*`
 
@@ -216,15 +143,13 @@ For detailed strategic planning see `docs/future_roadmap.md`.
 
 ### Good First Issues
 
-- Add tests for `version/homebrew.py` (P6 remaining)
+- Add handler integration tests for `brew_handlers.py` (P17)
 - Improve `test_ui.py` skip conditions with `isatty()` checks
 
 ### Advanced Contributions
 
 - MacPorts integration
 - Async Homebrew promotion to default path (P10)
-- Complete `version_legacy.py` migration (P2)
-- Complete `app_finder.py` migration (P3)
 
 ---
 
