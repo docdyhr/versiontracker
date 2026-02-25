@@ -75,14 +75,11 @@ def handle_configure_from_options(options: Any) -> int:
         return 1
 
 
-def handle_setup_logging(options: Any) -> int:
+def handle_setup_logging(options: Any) -> None:
     """Set up logging based on command-line options.
 
     Args:
         options: Command line options
-
-    Returns:
-        int: Exit code (0 for success, non-zero for failure)
     """
     try:
         # Configure logging based on debug option
@@ -100,8 +97,6 @@ def handle_setup_logging(options: Any) -> int:
             "Logging setup complete with level: %s",
             logging.getLevelName(logging.getLogger().level),
         )
-
-        return 0
     except Exception as e:
         # If logging setup fails, try a basic configuration and log the error
         try:
@@ -111,4 +106,3 @@ def handle_setup_logging(options: Any) -> int:
             # Last resort if even basic logging fails - print to stderr
             print(f"Critical error: Unable to set up logging: {e}", file=sys.stderr)
             print(f"Basic logging also failed: {basic_error}", file=sys.stderr)
-        return 1

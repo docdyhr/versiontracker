@@ -134,10 +134,9 @@ class TestSetupHandlers:
         mock_logging.INFO = 20
 
         # Execute
-        result = handle_setup_logging(mock_options)
+        handle_setup_logging(mock_options)
 
         # Assert
-        assert result == 0
         mock_logging.basicConfig.assert_called_once_with(level=20)
         mock_logging.debug.assert_called_once()
 
@@ -152,10 +151,9 @@ class TestSetupHandlers:
         mock_logging.DEBUG = 10
 
         # Execute
-        result = handle_setup_logging(mock_options)
+        handle_setup_logging(mock_options)
 
         # Assert
-        assert result == 0
         mock_logging.basicConfig.assert_called_once_with(level=10)
         mock_logging.debug.assert_called_once()
 
@@ -170,10 +168,9 @@ class TestSetupHandlers:
         mock_logging.WARNING = 30
 
         # Execute
-        result = handle_setup_logging(mock_options)
+        handle_setup_logging(mock_options)
 
         # Assert
-        assert result == 0
         mock_logging.basicConfig.assert_called_once_with(level=30)
         mock_logging.debug.assert_called_once()
 
@@ -185,10 +182,8 @@ class TestSetupHandlers:
         # Only mock the first call to raise exception
         mock_logging.basicConfig.side_effect = Exception("First error")
 
-        # Execute
-        result = handle_setup_logging(mock_options)
+        # Execute — should not raise, errors are handled internally
+        handle_setup_logging(mock_options)
 
         # Assert
-        assert result == 1
         assert mock_logging.basicConfig.call_count >= 1
-        # Skip checking error logging as implementation may vary

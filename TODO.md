@@ -5,7 +5,7 @@
 ### Project Health
 
 - **Version**: 0.8.2-dev
-- **Tests**: 1,563 passing, 29 skipped (of 1,592 collected)
+- **Tests**: 1,717 passing, 22 skipped (of 1,739 collected)
 - **CI/CD**: All 11 workflows passing
 - **Python Support**: 3.12+ (with 3.13 compatibility)
 - **Security**: No known vulnerabilities; all Bandit findings suppressed with justification
@@ -83,39 +83,30 @@ a thin typed shim. This is why several test mocks silently miss the real code.
 
 ---
 
-### 🔴 P4 — Critical: Fix the 29 Skipped Tests
+### 🔴 P4 — Fix Remaining 22 Skipped Tests
 
-| File | Count | Root Cause |
-|---|---|---|
-| `test_apps_new.py` | 4 | Mock path targets `apps.*` but real code runs from `app_finder.py` |
-| `test_end_to_end_integration.py` | 7 | Wrong import/function paths, unrealistic exit code expectations |
-| `test_platform_compatibility.py` | 2 | macOS-only guards (acceptable, leave skipped) |
-| `test_ui.py` | 12 | Environment-specific terminal/colour behaviour |
-| `test_ui_new.py` | 1 | Environment-specific colour handling |
-| `test_apps_new.py` | 3 | (counted above) |
+Current skip breakdown (down from 29):
+
+| File | Count | Root Cause | Action |
+|---|---|---|---|
+| `test_apps_new.py` | 7 | Mock targets wrong due to dynamic loading | Blocked by P3 |
+| `test_ui.py` | 12 | Environment-specific terminal/colour | Leave as-is |
+| `test_ui_new.py` | 1 | Environment-specific colour handling | Leave as-is |
+| `test_platform_compatibility.py` | 2 | macOS-only guards | Leave as-is |
 
 - [ ] Fix `test_apps_new.py` skipped tests (blocked by P3 above)
-- [ ] Fix `test_end_to_end_integration.py` — update mock targets to real import paths
-- [ ] Fix `test_end_to_end_integration.py` — correct `SystemExit` vs return-code expectations
-- [ ] Review `test_ui.py` skips — use `pytest.mark.skipif` with `isatty()` checks
-- [ ] Leave the 2 non-macOS `test_platform_compatibility.py` skips as-is
 
 ---
 
-### 🟠 P6 — High: Add Tests for Core Version Comparison
+### 🟠 P6 — High: Add Tests for Core Version Comparison ✅ DONE
 
-`version/comparator.py` (7.3% coverage) and `version/parser.py` (8.3% coverage)
-are the heart of the tool. Any regression goes undetected.
+Added 147 parameterised tests in `test_version_edge_cases.py` covering:
+prerelease handling (alpha/beta/rc/final/Unicode), build metadata,
+malformed inputs, None/empty, tuple inputs, trailing zeros, date-based
+versions, application prefixes, and `is_version_newer`.
 
-- [ ] Add parameterised tests for `compare_versions` edge cases:
-  - `1.0` vs `1.0.0` (trailing zeros)
-  - `2.0-beta` vs `2.0` (prerelease < release)
-  - `1.2.3+build` vs `1.2.3` (build metadata)
-  - Date-based versions: `2024.1` vs `2024.2`
-  - Single-component: `5` vs `6`
-  - Non-numeric suffixes: `1.0a` vs `1.0b`
-  - Mixed: `1.2.3` vs `(1, 2, 3)` tuple input
-- [ ] Add parameterised tests for `parse_version` covering all `VERSION_PATTERNS`
+Remaining coverage work:
+
 - [ ] Add tests for `version/homebrew.py` (currently 9.3%)
 - [ ] Reach ≥ 60% coverage on `version/comparator.py` and `version/parser.py`
 
@@ -150,14 +141,11 @@ notes a 5x+ speedup is available.
 
 ---
 
-### 🟢 P14 — Low: `handle_setup_logging` Should Not Return on Error
+### 🟢 P14 — Low: `handle_setup_logging` Should Not Return on Error ✅ DONE
 
-Currently `handle_setup_logging` returns exit code `1` if `logging.basicConfig`
-fails — but callers in `versiontracker_main` ignore this return value entirely,
-meaning a logging failure silently continues.
+Changed `handle_setup_logging` return type from `int` to `None`.
+Updated tests to not assert on return value.
 
-- [ ] Change `handle_setup_logging` to return `None` (it's a side-effect function, not an action)
-- [ ] Update the call site in `versiontracker_main` to not assign the return value
 - [ ] Or: make it raise on failure so the caller can decide
 
 ---
@@ -228,8 +216,8 @@ For detailed strategic planning see `docs/future_roadmap.md`.
 
 ### Good First Issues
 
-- Fix `handle_setup_logging` return behavior (P14)
-- Add parameterised tests for version comparison edge cases (P6)
+- Add tests for `version/homebrew.py` (P6 remaining)
+- Improve `test_ui.py` skip conditions with `isatty()` checks
 
 ### Advanced Contributions
 
