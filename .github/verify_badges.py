@@ -12,6 +12,15 @@ from urllib.parse import urlparse
 
 import requests
 
+# Trusted badge hostnames (scheme must be https)
+_TRUSTED_HOSTS = frozenset({"github.com", "img.shields.io", "codecov.io"})
+
+
+def _is_trusted_host(url: str, hostname: str) -> bool:
+    """Validate that a URL uses HTTPS and matches an exact trusted hostname."""
+    parsed = urlparse(url)
+    return parsed.scheme == "https" and parsed.hostname == hostname and hostname in _TRUSTED_HOSTS
+
 
 class BadgeVerifier:
     """Verifies GitHub badges and provides status reports."""
@@ -47,8 +56,9 @@ class BadgeVerifier:
             }
 
             # Additional checks for GitHub Actions badges
-            parsed = urlparse(url)
-            if parsed.hostname == "github.com" and "actions/workflows" in parsed.path:
+            if _is_trusted_host(url, "github.com") and urlparse(url).path.startswith(
+                "/docdyhr/versiontracker/actions/workflows/"
+            ):
                 # These might return different status codes when no runs exist
                 result["success"] = status in [200, 404]  # 404 is OK for new workflows
 
@@ -254,10 +264,11 @@ class BadgeVerifier:
         github_actions = [
             r
             for r in self.results
-            if urlparse(r["url"]).hostname == "github.com" and "/actions" in urlparse(r["url"]).path
+            if _is_trusted_host(r["url"], "github.com")
+            and urlparse(r["url"]).path.startswith("/docdyhr/versiontracker/actions/")
         ]
-        shields_io = [r for r in self.results if urlparse(r["url"]).hostname == "img.shields.io"]
-        codecov = [r for r in self.results if urlparse(r["url"]).hostname == "codecov.io"]
+        shields_io = [r for r in self.results if _is_trusted_host(r["url"], "img.shields.io")]
+        codecov = [r for r in self.results if _is_trusted_host(r["url"], "codecov.io")]
 
         print("\n📋 BADGE CATEGORIES:")
         print("-" * 40)
