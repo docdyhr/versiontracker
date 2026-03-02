@@ -88,9 +88,12 @@ class TestAutoUpdates(unittest.TestCase):
 
         self.assertFalse(result)
 
+    @patch(
+        "versiontracker.async_homebrew.async_get_casks_with_auto_updates", side_effect=Exception("force sync fallback")
+    )
     @patch("versiontracker.homebrew.has_auto_updates")
-    def test_get_casks_with_auto_updates(self, mock_has_auto_updates):
-        """Test getting list of casks with auto-updates."""
+    def test_get_casks_with_auto_updates(self, mock_has_auto_updates, _mock_async):
+        """Test getting list of casks with auto-updates (sync fallback)."""
         test_casks = ["visual-studio-code", "slack", "firefox", "iterm2"]
         # Mock that first two have auto-updates
         mock_has_auto_updates.side_effect = [True, True, False, True]
@@ -247,8 +250,11 @@ class TestAutoUpdatesEdgeCases(unittest.TestCase):
         result = has_auto_updates("test-app")
         self.assertFalse(result)
 
+    @patch(
+        "versiontracker.async_homebrew.async_get_casks_with_auto_updates", side_effect=Exception("force sync fallback")
+    )
     @patch("versiontracker.homebrew.has_auto_updates")
-    def test_get_casks_with_auto_updates_mixed_results(self, mock_has_auto_updates):
+    def test_get_casks_with_auto_updates_mixed_results(self, mock_has_auto_updates, _mock_async):
         """Test with mixed auto-update results and errors."""
         test_casks = ["app1", "app2", "app3", "app4", "app5"]
         # app1: True, app2: False, app3: True, app4: Error (returns False), app5: True
@@ -369,8 +375,11 @@ class TestAutoUpdatesPerformance(unittest.TestCase):
         # Should complete in less than 0.1 seconds even with large text
         self.assertLess(end_time - start_time, 0.1)
 
+    @patch(
+        "versiontracker.async_homebrew.async_get_casks_with_auto_updates", side_effect=Exception("force sync fallback")
+    )
     @patch("versiontracker.homebrew.has_auto_updates")
-    def test_get_casks_with_auto_updates_performance(self, mock_has_auto_updates):
+    def test_get_casks_with_auto_updates_performance(self, mock_has_auto_updates, _mock_async):
         """Test performance with large number of casks."""
         # Test with 1000 casks
         test_casks = [f"app{i}" for i in range(1000)]
