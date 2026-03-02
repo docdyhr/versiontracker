@@ -321,26 +321,28 @@ class TestPrintReport:
             p.print_report()
             mock_print.assert_called_once_with("No timing data collected.")
 
-    def test_print_report_with_data(self, capsys):
+    def test_print_report_with_data(self):
         """print_report prints table with timing data."""
         p = PerformanceProfiler(enabled=True)
         p._update_timing_stats("func_x", 1.234, 100.0, 101.0)
-        p.print_report()
-        output = capsys.readouterr().out
-        assert "Performance Report" in output
-        assert "func_x" in output
+        with patch("builtins.print") as mock_print:
+            p.print_report()
+            printed = " ".join(str(c) for c in mock_print.call_args_list)
+            assert "Performance Report" in printed
+            assert "func_x" in printed
 
-    def test_print_report_detailed(self, capsys):
+    def test_print_report_detailed(self):
         """print_report(detailed=True) prints detailed profile stats."""
         p = PerformanceProfiler(enabled=True)
         p.start()
         _ = sum(range(100))
         p.stop()
         p._update_timing_stats("func_y", 0.01, 50.0, 50.1)
-        p.print_report(detailed=True)
-        output = capsys.readouterr().out
-        assert "Performance Report" in output
-        assert "Detailed Profile" in output
+        with patch("builtins.print") as mock_print:
+            p.print_report(detailed=True)
+            printed = " ".join(str(c) for c in mock_print.call_args_list)
+            assert "Performance Report" in printed
+            assert "Detailed Profile" in printed
 
 
 # ---------------------------------------------------------------------------
@@ -386,9 +388,8 @@ class TestModuleLevelFunctions:
         result = generate_report()
         assert isinstance(result, dict)
 
-    def test_print_report_module_level(self, capsys):
+    def test_print_report_module_level(self):
         """Module-level print_report() delegates to global profiler."""
-        print_report()
-        output = capsys.readouterr().out
-        # Global profiler is disabled by default
-        assert "Profiling is disabled." in output
+        with patch("builtins.print") as mock_print:
+            print_report()
+            mock_print.assert_called_once_with("Profiling is disabled.")
