@@ -1,20 +1,30 @@
 # VersionTracker TODO
 
-## Current Status (February 2026)
+## Current Status (March 2026)
 
 ### Project Health
 
 - **Version**: 0.9.0
-- **Tests**: 1,962+ passing, 16 skipped
-- **Coverage**: ~78% overall (up from 61%)
-- **CI/CD**: All 11 workflows passing on master (all green)
+- **Tests**: 1,993 collected, 16 skipped
+- **Coverage**: ~78% overall
+- **CI/CD**: All workflows passing on master (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
-- **Security**: 0 dependabot alerts, 0 secret scanning alerts; CodeQL alerts resolved
+- **Security**: 0 dependabot alerts, 0 secret scanning alerts, 0 CodeQL findings
 - **Linting**: ruff clean, mypy clean
 - **Open Issues**: 0
 - **Open PRs**: 0
 
-### Recent Completions (v0.9.0)
+### Recent Completions
+
+- ~~PR #108~~ **CodeQL security fixes** — 3 high-severity URL sanitization
+  alerts resolved in `verify_badges.py` (strict scheme+hostname allowlist);
+  12 medium-severity missing-workflow-permissions alerts resolved across
+  `ci.yml`, `lint.yml`, `performance.yml`, `release.yml`, `security.yml`
+  (job-level `permissions:` blocks added to all jobs)
+- ~~PR #106~~ **Dependency update** — `actions/upload-artifact` v6→v7,
+  `actions/download-artifact` v7→v8 across all workflows
+
+### Previous Completions (v0.9.0)
 
 - ~~P10~~ **Async Homebrew wiring** — `check_brew_install_candidates()` and
   `check_brew_update_candidates()` now route through async Homebrew API by
@@ -51,26 +61,14 @@ All skips are environment-specific or CI-specific — no action needed for most.
 
 ---
 
-## Homebrew Release Preparation (v0.9.0)
-
-### Phase 1: Pre-Release Validation
+## Homebrew Release (v0.9.0) — Complete
 
 - [x] Bump version to 0.9.0 in `__init__.py` and `pyproject.toml`
 - [x] Update CHANGELOG.md with v0.9.0 entry
-- [ ] Run full test suite locally: `pytest`
-- [ ] Validate packaging: `python -m build && twine check dist/*`
-
-### Phase 2: Formula Creation
-
-- [ ] Download canonical GitHub tag archive
-- [ ] Compute SHA256 checksum
-- [ ] Update `versiontracker.rb` formula with new version/checksum
-- [ ] Run: `brew audit --new-formula --strict ./versiontracker.rb`
-
-### Phase 3: Tap Repository
-
-- [ ] Update `homebrew-versiontracker` repository
-- [ ] Test tap: `brew tap docdyhr/versiontracker && brew install versiontracker`
+- [x] Formula created at `docdyhr/homebrew-tap` with verified SHA256
+- [x] `brew install docdyhr/tap/macversiontracker` tested and working
+- [x] Legacy root `versiontracker.rb` removed (superseded by tap formula)
+- [x] `release-homebrew.yml` workflow updated to push to tap repo
 
 ---
 
@@ -127,5 +125,5 @@ For detailed strategic planning see `docs/future_roadmap.md`.
 
 ---
 
-**Last Updated**: February 2026
+**Last Updated**: March 2026
 **Maintainer**: @docdyhr

@@ -1,12 +1,13 @@
+---
 name: Update Homebrew Formula
 
-on:
+"on":
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to update (e.g., v0.6.5)"
+        description: "Version to update (e.g., v0.9.0)"
         required: true
         type: string
 
@@ -15,19 +16,20 @@ permissions:
 
 env:
   HOMEBREW_NO_AUTO_UPDATE: 1
+  TAP_REPO: docdyhr/homebrew-tap
+  FORMULA_PATH: Formula/macversiontracker.rb
 
 jobs:
   update-homebrew:
+    name: Update Homebrew Tap
     runs-on: macos-latest
+    permissions:
+      contents: read
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
       - name: Set up environment
         run: |
-          # Set version from tag or manual input
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
           else
@@ -38,105 +40,58 @@ jobs:
 
       - name: Download release tarball and calculate SHA256
         run: |
-          # Download the source tarball for this release
-          curl -L -o versiontracker-${VERSION_NUMBER}.tar.gz \
+          curl -fSL -o release.tar.gz \
             "https://github.com/docdyhr/versiontracker/archive/refs/tags/${VERSION}.tar.gz"
-
-          # Calculate SHA256 checksum
-          SHA256=$(shasum -a 256 versiontracker-${VERSION_NUMBER}.tar.gz | cut -d' ' -f1)
+          SHA256=$(shasum -a 256 release.tar.gz | cut -d' ' -f1)
           echo "SHA256=${SHA256}" >> $GITHUB_ENV
+          echo "Tarball SHA256: ${SHA256}"
 
-          # Verify the download
-          ls -la versiontracker-${VERSION_NUMBER}.tar.gz
-          echo "Calculated SHA256: ${SHA256}"
+      - name: Clone tap repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh repo clone "${TAP_REPO}" homebrew-tap
+          cd homebrew-tap
+          echo "Current formula:"
+          head -10 "${FORMULA_PATH}"
 
-      - name: Update Homebrew formula
+      - name: Update formula version and checksum
         run: |
           set -euo pipefail
-          # Update the version URL line and sha256 in the formula deterministically
+          cd homebrew-tap
           awk -v ver="${VERSION}" -v sha="${SHA256}" '
-            BEGIN{updated_url=0; updated_sha=0}
             /archive\/refs\/tags\/v[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz/ {
               sub(/v[0-9]+\.[0-9]+\.[0-9]+/, ver)
-              updated_url=1
             }
-            /sha256 "/ {
+            /^  sha256 "/ {
               sub(/"[0-9a-f]+"/, "\"" sha "\"")
-              updated_sha=1
             }
             { print }
-            END{
-              if (!updated_url) { exit 2 }
-              if (!updated_sha) { exit 3 }
-            }
-          ' versiontracker.rb > versiontracker.rb.tmp
-          mv versiontracker.rb.tmp versiontracker.rb
+          ' "${FORMULA_PATH}" > formula.tmp
+          mv formula.tmp "${FORMULA_PATH}"
+          echo "Updated formula:"
+          head -10 "${FORMULA_PATH}"
 
-          echo "Updated formula preview:"
-          sed -n '1,20p' versiontracker.rb
-
-      - name: Install and test formula
+      - name: Test formula installation
         run: |
-          # Install from the local formula
-          brew install --build-from-source ./versiontracker.rb
-
-          # Test the installation
+          cd homebrew-tap
+          brew install --build-from-source "./${FORMULA_PATH}"
           versiontracker --help
           versiontracker --version
+          brew uninstall macversiontracker || true
 
-          # Test core functionality
-          echo "Testing core functionality..."
-          timeout 30s versiontracker list || echo "List command completed"
-
-      - name: Clean up test installation
-        run: |
-          brew uninstall versiontracker || true
-
-      - name: Commit and open PR
+      - name: Push updated formula to tap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-          if git diff --quiet versiontracker.rb; then
-            echo "No changes to commit"
+          cd homebrew-tap
+          if git diff --quiet "${FORMULA_PATH}"; then
+            echo "Formula already up to date"
             exit 0
           fi
-
-          BRANCH="homebrew/update-${VERSION}"
-          git checkout -b "$BRANCH"
-          git add versiontracker.rb
-          git commit -m "Update Homebrew formula to ${VERSION}\n\n- Updated URL to ${VERSION}\n- Updated SHA256 to ${SHA256}\n- Verified installation and CLI availability"
-          git push -u origin "$BRANCH"
-          gh pr create --fill --base master --head "$BRANCH" || echo "PR creation skipped (gh not available)"
-
-      - name: Create or update release notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Add Homebrew installation instructions to release notes if this is a new release
-          if [ "${{ github.event_name }}" = "release" ]; then
-            echo "
-          ## Homebrew Installation
-
-          This version is now available via Homebrew:
-
-          \`\`\`bash
-          brew tap thomas/versiontracker
-          brew install versiontracker
-          \`\`\`
-
-          ### Installation Verification
-
-          \`\`\`bash
-          versiontracker --version
-          versiontracker --help
-          \`\`\`
-
-          The formula has been tested and verified to work correctly." > homebrew_notes.md
-
-            # Note: In a real implementation, you would append this to the release notes
-            echo "Homebrew installation notes prepared for release ${VERSION}"
-          fi
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add "${FORMULA_PATH}"
+          git commit -m "Update macversiontracker to ${VERSION}"
+          git push origin main
+          echo "Tap updated to ${VERSION}"
