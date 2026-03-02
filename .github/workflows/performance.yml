@@ -83,7 +83,7 @@ jobs:
           python scripts/performance_test.py
 
       - name: Upload performance results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: performance-results-${{ matrix.os }}
           path: performance_results.json
@@ -121,7 +121,7 @@ jobs:
 
     steps:
       - name: Download performance results
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: performance-results-*
           merge-multiple: true
