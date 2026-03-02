@@ -404,3 +404,82 @@ async def async_check_brew_update_candidates(
     # process_all() (also @async_to_sync wrapped) would create nested
     # event loops and deadlock.
     return await processor.process_all_async(data)
+
+
+class CaskAutoUpdateChecker(AsyncBatchProcessor[str, str | None]):
+    """Check which casks have auto-updates enabled (async batch processor)."""
+
+    AUTO_UPDATE_PATTERNS = [
+        "auto.?update",
+        "automatically update",
+        "self.?update",
+        "sparkle",
+        "update automatically",
+    ]
+
+    def __init__(
+        self,
+        batch_size: int = 10,
+        max_concurrency: int = 5,
+        rate_limit: float = 1.0,
+        use_cache: bool = True,
+    ):
+        """Initialize the auto-update checker.
+
+        Args:
+            batch_size: Number of casks per batch
+            max_concurrency: Maximum concurrent requests
+            rate_limit: Seconds between batches
+            use_cache: Whether to use cached cask info
+        """
+        super().__init__(batch_size, max_concurrency, rate_limit)
+        self.use_cache = use_cache
+
+    async def process_item(self, cask_name: str) -> str | None:
+        """Check if a single cask has auto-updates enabled."""
+        try:
+            cask_info = await fetch_cask_info(cask_name, use_cache=self.use_cache)
+            if not cask_info:
+                return None
+            if cask_info.get("auto_updates"):
+                return cask_name
+            caveats = cask_info.get("caveats", "")
+            if caveats and isinstance(caveats, str):
+                caveats_lower = caveats.lower()
+                for pattern in self.AUTO_UPDATE_PATTERNS:
+                    if re.search(pattern, caveats_lower):
+                        return cask_name
+            return None
+        except (NetworkError, TimeoutError, HomebrewError) as e:
+            logging.error("Error checking auto-updates for %s: %s", cask_name, e)
+            return None
+
+    def handle_error(self, item: str, error: Exception) -> str | None:
+        """Handle errors during processing."""
+        logging.error("Error checking auto-updates for %s: %s", item, error)
+        return None
+
+
+@async_to_sync
+async def async_get_casks_with_auto_updates(cask_names: list[str], rate_limit: float = 1.0) -> list[str]:
+    """Get casks with auto-updates enabled (async version).
+
+    Args:
+        cask_names: List of cask names to check
+        rate_limit: Rate limit between requests
+
+    Returns:
+        List of cask names that have auto-updates enabled
+    """
+    if not cask_names:
+        return []
+
+    processor = CaskAutoUpdateChecker(
+        batch_size=10,
+        max_concurrency=int(5 / rate_limit),
+        rate_limit=rate_limit,
+    )
+
+    # Use process_all_async() — NOT process_all() — to avoid deadlock.
+    results = await processor.process_all_async(cask_names)
+    return [name for name in results if name is not None]

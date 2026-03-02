@@ -644,10 +644,19 @@ def get_casks_with_auto_updates(cask_names: list[str]) -> list[str]:
     Returns:
         List[str]: List of cask names with auto-updates enabled
     """
-    auto_update_casks = []
+    # Try async implementation first
+    try:
+        from versiontracker.async_homebrew import async_get_casks_with_auto_updates
 
+        logging.debug("Using async Homebrew for auto-update check (%d casks)", len(cask_names))
+        result: list[str] = async_get_casks_with_auto_updates(cask_names)
+        return result
+    except Exception as e:
+        logging.warning("Async auto-update check failed, falling back to sync: %s", e)
+
+    # Synchronous fallback
+    auto_update_casks = []
     for cask_name in cask_names:
         if has_auto_updates(cask_name):
             auto_update_casks.append(cask_name)
-
     return auto_update_casks
