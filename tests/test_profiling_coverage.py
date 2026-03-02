@@ -307,19 +307,19 @@ class TestReport:
 class TestPrintReport:
     """Tests for print_report()."""
 
-    def test_print_report_when_disabled(self, capsys):
+    def test_print_report_when_disabled(self):
         """print_report prints 'Profiling is disabled.' when disabled."""
         p = PerformanceProfiler(enabled=False)
-        p.print_report()
-        output = capsys.readouterr().out
-        assert "Profiling is disabled." in output
+        with patch("builtins.print") as mock_print:
+            p.print_report()
+            mock_print.assert_called_once_with("Profiling is disabled.")
 
-    def test_print_report_when_enabled_no_data(self, capsys):
+    def test_print_report_when_enabled_no_data(self):
         """print_report prints 'No timing data collected.' when no data."""
         p = PerformanceProfiler(enabled=True)
-        p.print_report()
-        output = capsys.readouterr().out
-        assert "No timing data collected." in output
+        with patch("builtins.print") as mock_print:
+            p.print_report()
+            mock_print.assert_called_once_with("No timing data collected.")
 
     def test_print_report_with_data(self, capsys):
         """print_report prints table with timing data."""
