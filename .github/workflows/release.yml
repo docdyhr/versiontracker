@@ -27,6 +27,8 @@ jobs:
   validate-release:
     name: Validate Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
@@ -85,6 +87,8 @@ jobs:
     name: Pre-Release Quality Checks
     runs-on: ubuntu-latest
     needs: validate-release
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -203,6 +207,8 @@ jobs:
     name: Build and Test Package
     runs-on: ${{ matrix.os }}
     needs: [validate-release, pre-release-checks]
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -343,6 +349,7 @@ jobs:
     name: Verify Release
     runs-on: ubuntu-latest
     needs: [validate-release, publish-package]
+    permissions: {}
     if: always() && needs.publish-package.result == 'success'
     steps:
       - name: Set up Python

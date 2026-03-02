@@ -33,6 +33,7 @@ jobs:
   smoke:
     name: Performance Smoke Check
     runs-on: ubuntu-latest
+    permissions: {}
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     steps:
       - name: No-op performance status
@@ -42,6 +43,8 @@ jobs:
   performance-test:
     name: Performance Testing on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     # Only run full performance suite on schedule or manual dispatch
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     strategy:
@@ -116,6 +119,7 @@ jobs:
     name: Performance Analysis
     runs-on: ubuntu-latest
     needs: performance-test
+    permissions: {}
     # Only analyze when full performance-test runs
     if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && always()
 
@@ -141,6 +145,7 @@ jobs:
     name: Performance Testing
     runs-on: ubuntu-latest
     needs: [performance-test, performance-analysis]
+    permissions: {}
     # Only report final status when full suite runs
     if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && always()
 
