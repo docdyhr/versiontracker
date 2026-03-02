@@ -250,7 +250,7 @@ jobs:
           versiontracker --version
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         with:
           name: dist-packages
@@ -280,7 +280,7 @@ jobs:
           cache: "pip"
 
       - name: Download built artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: dist-packages
           path: dist/
