@@ -326,7 +326,7 @@ jobs:
       - name: Run performance benchmarks
         run: |
           python -c "
-          from versiontracker.benchmarks import create_benchmark_suite, VersionTrackerBenchmarks
+          from versiontracker.experimental.benchmarks import create_benchmark_suite, VersionTrackerBenchmarks
           import json
 
           suite = create_benchmark_suite()
@@ -347,7 +347,7 @@ jobs:
       - name: Check performance regression
         run: |
           python -c "
-          from versiontracker.benchmarks import run_performance_regression_test
+          from versiontracker.experimental.benchmarks import run_performance_regression_test
 
           no_regression = run_performance_regression_test()
           if not no_regression:
