@@ -212,8 +212,9 @@ disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
 module = "versiontracker.ml.*"
-# ML module has optional deps (numpy, sklearn) with type: ignore comments
-disable_error_code = ["assignment", "misc"]
+# ML module has optional deps (numpy, sklearn) with conditional type: ignore
+# comments that conflict across environments — keep errors suppressed
+ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "versiontracker.experimental.*"

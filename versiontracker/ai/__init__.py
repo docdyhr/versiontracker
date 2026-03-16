@@ -58,7 +58,7 @@ class AIInsight:
 class NLPProcessor:
     """Natural language processing engine for command understanding."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize NLP processor."""
         self.intent_patterns = self._load_intent_patterns()
         self.entity_extractors = self._initialize_entity_extractors()
@@ -187,7 +187,7 @@ class NLPProcessor:
                     # Consider context from previous interactions
                     confidence = self._adjust_confidence_with_context(action, confidence)
 
-                    if confidence > best_match["confidence"]:
+                    if confidence > float(best_match["confidence"]):
                         best_match = {"action": action, "confidence": confidence}
 
         return best_match
