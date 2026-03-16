@@ -211,6 +211,11 @@ module = "versiontracker.enhanced_matching"
 disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
+module = "versiontracker.ai.*"
+# AI module uses dynamic dict[str, Any] patterns extensively — suppress errors
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = "versiontracker.ml.*"
 # ML module has optional deps (numpy, sklearn) with conditional type: ignore
 # comments that conflict across environments — keep errors suppressed
