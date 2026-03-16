@@ -53,7 +53,7 @@ def test_get_applications():
     assert ("TestApp", "1.0.0") in result
 
 
-@patch("versiontracker.apps.partial_ratio")
+@patch("versiontracker.apps.matcher.partial_ratio")
 def test_filter_out_brews(mock_partial_ratio):
     """Test filtering out applications already installed via Homebrew."""
 
