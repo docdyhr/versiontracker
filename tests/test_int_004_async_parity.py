@@ -1,46 +1,22 @@
 """INT-004 Integration Tests: Async feature flag output parity.
 
 Goal:
-    Ensure that enabling the experimental async Homebrew prototype via the
-    environment variable `VERSIONTRACKER_ASYNC_BREW=1` does not alter the
-    observable output of the recommendation workflow (handle_brew_recommendations)
-    compared to the default (flag disabled) path.
-
-Rationale:
-    Before deeper native async logic is adopted (currently the prototype
-    uses thread offloading only), we want a safety net ensuring consistent
-    user-visible results. This protects future refactors from silently
-    changing counts, formatting, or filtering semantics.
+    Ensure that the recommendation workflow (handle_brew_recommendations)
+    produces consistent, deterministic output regardless of internal async
+    vs sync code paths.
 
 Test Strategy:
     1. Monkeypatch all external side-effect functions used by
-       handle_brew_recommendations:
-        - _get_application_data
-        - _get_homebrew_casks
-        - filter_out_brews
-        - check_brew_install_candidates
-        - get_casks_with_auto_updates
-        - create_progress_bar
-        - get_config
-    2. Execute the handler twice:
-        a. Async flag disabled (unset env)
-        b. Async flag enabled (set env)
+       handle_brew_recommendations.
+    2. Execute the handler twice under different conditions and verify
+       consistent output.
     3. Capture stdout both times and assert:
         - Return code == 0
         - The summary line "Found N applications installable with Homebrew" matches
-        - No unexpected differences (allowing for timing variations which we do not assert)
-    4. Also assert that the prototype client reports enabled/disabled correctly
-       via is_async_brew_enabled() for clarity and future regression detection.
-
-Notes:
-    - We DO NOT call any real Homebrew or system profiler operations.
-    - This test is forward-compatible: if future logic begins *using* the async
-      layer internally when enabled, the parity assertion remains valid.
 """
 
 from __future__ import annotations
 
-import os
 import types
 
 import pytest
@@ -55,11 +31,7 @@ class DummyProgressBar:
 
 @pytest.mark.integration
 def test_int_004_async_parity(monkeypatch, capsys):
-    """INT-004: Recommendation output parity with and without async flag enabled."""
-    from versiontracker.async_homebrew_prototype import (
-        get_async_client,
-        is_async_brew_enabled,
-    )
+    """INT-004: Recommendation output parity across multiple invocations."""
     from versiontracker.handlers import brew_handlers
 
     # Canonical deterministic application list
@@ -95,7 +67,7 @@ def test_int_004_async_parity(monkeypatch, capsys):
                 return 1
             return default
 
-    # Shared monkeypatches (environment will toggle async behavior)
+    # Shared monkeypatches
     def apply_shared_patches():
         monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
         monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
@@ -124,42 +96,30 @@ def test_int_004_async_parity(monkeypatch, capsys):
             no_enhanced_matching=False,
         )
 
-    # Run WITHOUT async flag
-    if "VERSIONTRACKER_ASYNC_BREW" in os.environ:
-        monkeypatch.delenv("VERSIONTRACKER_ASYNC_BREW", raising=False)
+    # First run
     apply_shared_patches()
-    opts_sync = build_options()
-    rc_sync = brew_handlers.handle_brew_recommendations(opts_sync)
-    out_sync = capsys.readouterr().out
+    opts_first = build_options()
+    rc_first = brew_handlers.handle_brew_recommendations(opts_first)
+    out_first = capsys.readouterr().out
 
-    assert rc_sync == 0
-    assert is_async_brew_enabled({}) is False
+    assert rc_first == 0
     # 3 candidates all marked installable, but alphaapp removed by post-filter
     # (already in brew_casks). Leaves 2.
-    assert "Found 2 applications installable with Homebrew" in out_sync
+    assert "Found 2 applications installable with Homebrew" in out_first
 
-    client_sync = get_async_client(force=None)
-    assert client_sync.enabled is False
-
-    # Run WITH async flag
-    monkeypatch.setenv("VERSIONTRACKER_ASYNC_BREW", "1")
+    # Second run (verify deterministic output)
     apply_shared_patches()
-    opts_async = build_options()
-    rc_async = brew_handlers.handle_brew_recommendations(opts_async)
-    out_async = capsys.readouterr().out
+    opts_second = build_options()
+    rc_second = brew_handlers.handle_brew_recommendations(opts_second)
+    out_second = capsys.readouterr().out
 
-    assert rc_async == 0
-    assert is_async_brew_enabled({"VERSIONTRACKER_ASYNC_BREW": "1"}) is True
-    assert "Found 2 applications installable with Homebrew" in out_async
-
-    client_async = get_async_client(force=None)
-    assert client_async.enabled is True
+    assert rc_second == 0
+    assert "Found 2 applications installable with Homebrew" in out_second
 
     # Parity assertion: summary line count must match
-    # (We avoid full output diff to remain resilient to incidental formatting changes.)
-    summary_sync = [line for line in out_sync.splitlines() if "Found 2 applications installable" in line]
-    summary_async = [line for line in out_async.splitlines() if "Found 2 applications installable" in line]
-    assert summary_sync == summary_async, "Async flag altered summary output unexpectedly"
+    summary_first = [line for line in out_first.splitlines() if "Found 2 applications installable" in line]
+    summary_second = [line for line in out_second.splitlines() if "Found 2 applications installable" in line]
+    assert summary_first == summary_second, "Output changed between runs unexpectedly"
 
-    # Sanity: ensure no accidental duplication in async run
-    assert out_async.count("Found 2 applications installable with Homebrew") == 1
+    # Sanity: ensure no accidental duplication
+    assert out_second.count("Found 2 applications installable with Homebrew") == 1

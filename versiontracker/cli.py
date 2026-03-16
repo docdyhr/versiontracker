@@ -199,6 +199,29 @@ For more information, visit: https://github.com/docdyhr/versiontracker
         help="Delete a saved filter",
     )
 
+    # Plugin management
+    plugin_group = parser.add_argument_group("Plugin Management")
+    plugin_group.add_argument(
+        "--list-plugins",
+        dest="list_plugins",
+        action="store_true",
+        help="List all loaded plugins",
+    )
+    plugin_group.add_argument(
+        "--plugin-info",
+        dest="plugin_info",
+        type=str,
+        metavar="NAME",
+        help="Show detailed information about a plugin",
+    )
+    plugin_group.add_argument(
+        "--load-plugin",
+        dest="load_plugin",
+        type=str,
+        metavar="PATH",
+        help="Load a plugin from a Python file",
+    )
+
     # Debugging and profiling
     debug_group = parser.add_argument_group("Debugging Options")
     debug_group.add_argument(

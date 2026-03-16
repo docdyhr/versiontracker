@@ -211,12 +211,9 @@ module = "versiontracker.enhanced_matching"
 disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
-module = "versiontracker.ai.*"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = "versiontracker.ml.*"
-ignore_errors = true
+# ML module has optional deps (numpy, sklearn) with type: ignore comments
+disable_error_code = ["assignment", "misc"]
 
 [[tool.mypy.overrides]]
 module = "versiontracker.experimental.*"
@@ -300,7 +297,6 @@ omit = [
     "versiontracker/test_*.py",
     "versiontracker/experimental/*",
     "versiontracker/plugins/*",
-    "versiontracker/ml/*",
     "versiontracker/menubar_app.py",
     "*/tests/*",
     "*/venv/*",

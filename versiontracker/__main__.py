@@ -61,6 +61,55 @@ def setup_logging(*args: Any, **kwargs: Any) -> None:
     pass
 
 
+def _handle_plugin_actions(options: Any) -> int | None:
+    """Handle plugin management CLI actions.
+
+    Args:
+        options: Parsed command-line arguments
+
+    Returns:
+        int exit code if a plugin action was handled, None otherwise
+    """
+    from versiontracker.plugins import plugin_manager
+
+    if getattr(options, "list_plugins", False) is True:
+        plugins = plugin_manager.list_plugins()
+        if not plugins:
+            print("No plugins loaded.")
+            print(f"Place plugins in: {Path.home() / '.config' / 'versiontracker' / 'plugins'}")
+        else:
+            print(f"Loaded plugins ({len(plugins)}):")
+            for name in sorted(plugins):
+                info = plugin_manager.get_plugin_info(name)
+                if info:
+                    status = "enabled" if info["enabled"] else "disabled"
+                    print(f"  {name} v{info['version']} [{status}] - {info['description']}")
+        return 0
+
+    plugin_info_name = getattr(options, "plugin_info", None)
+    if isinstance(plugin_info_name, str):
+        info = plugin_manager.get_plugin_info(plugin_info_name)
+        if info is None:
+            print(f"Plugin '{plugin_info_name}' not found.")
+            return 1
+        for key, value in info.items():
+            print(f"  {key}: {value}")
+        return 0
+
+    load_plugin_path = getattr(options, "load_plugin", None)
+    if isinstance(load_plugin_path, str):
+        plugin_path = Path(load_plugin_path)
+        try:
+            plugin_manager.load_plugin_from_file(plugin_path)
+            print(f"Plugin loaded from: {plugin_path}")
+            return 0
+        except Exception as e:
+            print(f"Failed to load plugin: {e}")
+            return 1
+
+    return None
+
+
 def _check_ml_availability() -> None:
     """Check ML feature availability and inform user if unavailable.
 
@@ -171,6 +220,32 @@ def handle_main_actions(options: Any) -> int:
         return 1
 
 
+def _emit_deprecation_warnings(options: Any) -> None:
+    """Emit deprecation warnings for legacy CLI flags."""
+    if options.blacklist:
+        warn_deprecated_flag(
+            "--blacklist",
+            replacement="--blocklist",
+            removal_version="1.0.0",
+        )
+    if options.blacklist_auto_updates:
+        warn_deprecated_flag(
+            "--blacklist-auto-updates",
+            replacement="--blocklist-auto-updates",
+            removal_version="1.0.0",
+        )
+
+
+def _initialize_plugins() -> None:
+    """Load plugins from configured directories."""
+    try:
+        from versiontracker.plugins import load_plugins
+
+        load_plugins()
+    except Exception as e:
+        logging.debug("Plugin loading skipped: %s", e)
+
+
 @profile_function("versiontracker_main")
 def versiontracker_main() -> int:
     """Execute the main VersionTracker functionality.
@@ -187,19 +262,7 @@ def versiontracker_main() -> int:
     # Parse arguments
     options = get_arguments()
 
-    # Emit deprecation warnings for legacy flags (once per process)
-    if options.blacklist:
-        warn_deprecated_flag(
-            "--blacklist",
-            replacement="--blocklist",
-            removal_version="1.0.0",
-        )
-    if options.blacklist_auto_updates:
-        warn_deprecated_flag(
-            "--blacklist-auto-updates",
-            replacement="--blocklist-auto-updates",
-            removal_version="1.0.0",
-        )
+    _emit_deprecation_warnings(options)
 
     # Enable profiling if requested
     if options.profile:
@@ -217,6 +280,13 @@ def versiontracker_main() -> int:
 
     # Configure settings from command-line options
     handle_configure_from_options(options)
+
+    _initialize_plugins()
+
+    # Handle plugin management commands
+    plugin_result = _handle_plugin_actions(options)
+    if plugin_result is not None:
+        return plugin_result
 
     # Create filter manager
     filter_manager = QueryFilterManager(str(Path.home() / ".config" / "versiontracker"))
