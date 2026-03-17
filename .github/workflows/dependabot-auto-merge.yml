@@ -60,30 +60,33 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Wait for CI checks
-        uses: fountainhead/action-wait-for-check@v1.2.0
-        id: wait-for-ci
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: "ci"
-          ref: ${{ github.event.pull_request.head.sha }}
-          timeoutSeconds: 1800
-          intervalSeconds: 30
-
-      - name: Wait for security checks
-        uses: fountainhead/action-wait-for-check@v1.2.0
-        id: wait-for-security
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: "security"
-          ref: ${{ github.event.pull_request.head.sha }}
-          timeoutSeconds: 900
-          intervalSeconds: 30
+      - name: Wait for CI and security checks
+        run: |
+          echo "Waiting for required checks to pass..."
+          # Use gh pr checks which respects branch protection required checks
+          for i in $(seq 1 60); do
+            STATUS=$(gh pr checks "$PR_URL" 2>&1 || true)
+            if echo "$STATUS" | grep -q "fail"; then
+              echo "Some checks failed:"
+              echo "$STATUS"
+              exit 1
+            elif echo "$STATUS" | grep -q "pending"; then
+              echo "Checks still pending (attempt $i/60)..."
+              sleep 30
+            else
+              echo "All checks passed!"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "Timed out waiting for checks"
+              exit 1
+            fi
+          done
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge security updates
-        if: |
-          steps.wait-for-ci.outputs.conclusion == 'success' &&
-          steps.wait-for-security.outputs.conclusion == 'success'
         run: |
           echo "Auto-merging Dependabot security update after CI passes"
           gh pr merge --auto --squash "$PR_URL"

@@ -6,6 +6,7 @@ the accuracy of matching application names with package manager entries.
 
 import logging
 import re
+from difflib import SequenceMatcher
 from typing import Any
 
 # Try to import fuzzy matching libraries
@@ -292,6 +293,16 @@ class EnhancedMatcher:
             # Token set ratio for subset matching
             if hasattr(fuzz, "token_set_ratio"):
                 scores.append(fuzz.token_set_ratio(norm1, norm2) * 0.9)
+
+        # Character-level similarity fallback (when fuzz libraries unavailable)
+        if not fuzz:
+            seq_ratio = SequenceMatcher(None, norm1, norm2).ratio() * 100
+            scores.append(seq_ratio)
+            # Also try with spaces stripped for cases like "app name" vs "appname"
+            collapsed1 = norm1.replace(" ", "")
+            collapsed2 = norm2.replace(" ", "")
+            if collapsed1 != norm1 or collapsed2 != norm2:
+                scores.append(SequenceMatcher(None, collapsed1, collapsed2).ratio() * 100)
 
         # Token-based similarity
         tokens1 = self.tokenize(name1)

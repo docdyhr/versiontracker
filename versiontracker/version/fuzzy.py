@@ -13,6 +13,7 @@ Typical usage:
 
 import logging
 from collections.abc import Callable
+from difflib import SequenceMatcher
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -140,15 +141,16 @@ def similarity_score(s1: str | None, s2: str | None) -> int:
     if s1 == "" or s2 == "":
         return 0
 
-    # Use the existing fuzzy matching logic
-    try:
-        if _fuzz and hasattr(_fuzz, "ratio"):
-            return int(_fuzz.ratio(s1, s2))
-    except (AttributeError, TypeError, ValueError) as e:
-        logger.error("Error calculating similarity score for '%s' vs '%s': %s", s1, s2, e)
+    # Use real fuzzy matching library if available
+    if USE_RAPIDFUZZ or USE_FUZZYWUZZY:
+        try:
+            if _fuzz and hasattr(_fuzz, "ratio"):
+                return int(_fuzz.ratio(s1, s2))
+        except (AttributeError, TypeError, ValueError) as e:
+            logger.error("Error calculating similarity score for '%s' vs '%s': %s", s1, s2, e)
 
-    # Simple fallback
-    return 100 if s1.lower() == s2.lower() else (70 if s1.lower() in s2.lower() or s2.lower() in s1.lower() else 0)
+    # Fallback using SequenceMatcher for proper fuzzy matching
+    return int(SequenceMatcher(None, s1.lower(), s2.lower()).ratio() * 100)
 
 
 def partial_ratio(s1: str, s2: str, score_cutoff: int | None = None) -> int:
@@ -177,14 +179,19 @@ def partial_ratio(s1: str, s2: str, score_cutoff: int | None = None) -> int:
     if not s1 or not s2:
         return 0
 
-    try:
-        if _fuzz and hasattr(_fuzz, "partial_ratio"):
-            return int(_fuzz.partial_ratio(s1, s2))
-    except (AttributeError, TypeError, ValueError) as e:
-        logger.error("Error calculating partial ratio for '%s' vs '%s': %s", s1, s2, e)
+    # Use real fuzzy matching library if available
+    if USE_RAPIDFUZZ or USE_FUZZYWUZZY:
+        try:
+            if _fuzz and hasattr(_fuzz, "partial_ratio"):
+                return int(_fuzz.partial_ratio(s1, s2))
+        except (AttributeError, TypeError, ValueError) as e:
+            logger.error("Error calculating partial ratio for '%s' vs '%s': %s", s1, s2, e)
 
-    # Simple fallback
-    return 100 if s1.lower() == s2.lower() else (70 if s1.lower() in s2.lower() or s2.lower() in s1.lower() else 0)
+    # Fallback: check substring containment, then use SequenceMatcher
+    s1_lower, s2_lower = s1.lower(), s2.lower()
+    if s1_lower in s2_lower or s2_lower in s1_lower:
+        return 100
+    return int(SequenceMatcher(None, s1_lower, s2_lower).ratio() * 100)
 
 
 def get_partial_ratio_scorer() -> Callable[[str, str], float]:
@@ -244,10 +251,10 @@ def compare_fuzzy(version1: str, version2: str, threshold: int = 80) -> float:
     """
     _ = threshold  # Unused but kept for API compatibility
 
-    if _fuzz:
+    if USE_RAPIDFUZZ or USE_FUZZYWUZZY:
         return float(_fuzz.ratio(version1, version2))
-    # Fallback when no fuzzy library available
-    return 100.0 if version1.lower() == version2.lower() else 0.0
+    # Fallback when no real fuzzy library available — use SequenceMatcher
+    return SequenceMatcher(None, version1.lower(), version2.lower()).ratio() * 100.0
 
 
 def extract_best_match(query: str, choices: list[str], score_cutoff: int = 0) -> tuple[str, int] | None:

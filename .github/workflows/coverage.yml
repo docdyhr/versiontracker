@@ -44,7 +44,7 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing \
             --cov-branch \
-            --cov-fail-under=15 \
+            --cov-fail-under=50 \
             --timeout=$TIMEOUT \
             --timeout-method=thread \
             --maxfail=10 \
