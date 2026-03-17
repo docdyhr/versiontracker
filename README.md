@@ -21,13 +21,15 @@
 [![CodeQL](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/codeql-analysis.yml?branch=master&label=CodeQL&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/codeql-analysis.yml)
 [![Coverage](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/coverage.yml?branch=master&label=Coverage&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/coverage.yml)
 [![Performance](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/performance.yml?branch=master&label=Performance&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/performance.yml)
-[![Release](https://img.shields.io/github/v/release/docdyhr/versiontracker?logo=github&logoColor=white&label=Release)](https://github.com/docdyhr/versiontracker/releases/latest)
+[![Release Workflow](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=Release%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/docdyhr/versiontracker?logo=github&logoColor=white&label=Latest%20Release)](https://github.com/docdyhr/versiontracker/releases/latest)
+[![PyPI](https://img.shields.io/pypi/v/macversiontracker?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/macversiontracker/)
 
 ### 🔒 Security & Quality
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
 [![Test Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-1,136%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-2,158%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)

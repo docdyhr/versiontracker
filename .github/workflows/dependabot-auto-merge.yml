@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2.5.0
+        uses: dependabot/fetch-metadata@v2
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -56,34 +56,44 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2.5.0
+        uses: dependabot/fetch-metadata@v2
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Wait for CI checks
-        uses: fountainhead/action-wait-for-check@v1.2.0
-        id: wait-for-ci
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: "ci"
-          ref: ${{ github.event.pull_request.head.sha }}
-          timeoutSeconds: 1800
-          intervalSeconds: 30
+      - name: Wait for CI checks to complete
+        run: |
+          echo "Waiting for required checks to pass..."
+          MAX_ATTEMPTS=60
+          SLEEP_SECONDS=30
 
-      - name: Wait for security checks
-        uses: fountainhead/action-wait-for-check@v1.2.0
-        id: wait-for-security
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: "security"
-          ref: ${{ github.event.pull_request.head.sha }}
-          timeoutSeconds: 900
-          intervalSeconds: 30
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            # gh pr checks exits non-zero if any check failed
+            if gh pr checks "$PR_URL" --watch --fail-fast 2>/dev/null; then
+              echo "All checks passed!"
+              break
+            fi
+
+            EXIT_CODE=$?
+            # Exit code 1 = checks failed, don't retry
+            if [ "$EXIT_CODE" -eq 1 ]; then
+              echo "::error::Some checks failed — aborting auto-merge"
+              gh pr checks "$PR_URL" 2>&1 || true
+              exit 1
+            fi
+
+            # Other exit codes (e.g. checks not yet created) — wait and retry
+            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::error::Timed out waiting for checks after $((MAX_ATTEMPTS * SLEEP_SECONDS))s"
+              exit 1
+            fi
+            echo "Checks not yet available (attempt $i/$MAX_ATTEMPTS), retrying in ${SLEEP_SECONDS}s..."
+            sleep "$SLEEP_SECONDS"
+          done
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Auto-merge security updates
-        if: |
-          steps.wait-for-ci.outputs.conclusion == 'success' &&
-          steps.wait-for-security.outputs.conclusion == 'success'
         run: |
           echo "Auto-merging Dependabot security update after CI passes"
           gh pr merge --auto --squash "$PR_URL"
@@ -99,8 +109,8 @@ jobs:
     steps:
       - name: Notify on failure
         run: |
-          echo "Dependabot auto-merge failed. Manual review required."
-          gh pr comment "$PR_URL" --body "🤖 Dependabot auto-merge failed. Please review this PR manually."
+          echo "::warning::Dependabot auto-merge failed. Manual review required."
+          gh pr comment "$PR_URL" --body "🤖 Dependabot auto-merge failed. Please review this PR manually." || true
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,7 +3,9 @@ name: Performance Testing
 
 "on":
   pull_request:
+    branches: [master]
   push:
+    branches: [master]
   schedule:
     # Run performance tests weekly on Sunday at 23:00 UTC
     - cron: "0 23 * * 0"
@@ -20,6 +22,10 @@ name: Performance Testing
           - recommend
           - outdated
           - all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -90,6 +96,7 @@ jobs:
         with:
           name: performance-results-${{ matrix.os }}
           path: performance_results.json
+          retention-days: 30
 
       - name: Compare with previous results (if available)
         run: |

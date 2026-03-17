@@ -3,8 +3,14 @@ name: Coverage Analysis
 
 "on":
   push:
+    branches: [master]
   pull_request:
+    branches: [master]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -44,7 +50,7 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing \
             --cov-branch \
-            --cov-fail-under=15 \
+            --cov-fail-under=50 \
             --timeout=$TIMEOUT \
             --timeout-method=thread \
             --maxfail=10 \
@@ -70,7 +76,7 @@ jobs:
                 --cov-report=html \
                 --cov-report=term-missing \
                 --cov-branch \
-                --cov-fail-under=15 \
+                --cov-fail-under=50 \
                 --timeout=$TIMEOUT \
                 --timeout-method=thread \
                 --maxfail=10 \
@@ -97,6 +103,7 @@ jobs:
         with:
           name: coverage-html-report
           path: htmlcov/
+          retention-days: 14
 
       - name: Coverage summary
         run: |

@@ -3,8 +3,14 @@ name: Code Linting and Formatting
 
 "on":
   push:
+    branches: [master]
   pull_request:
+    branches: [master]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -56,3 +62,4 @@ jobs:
           name: lint-reports
           path: |
             mypy-report.xml
+          retention-days: 14

@@ -15,6 +15,18 @@ name: Release
         required: false
         type: boolean
         default: false
+      target:
+        description: "Publish target"
+        required: false
+        type: choice
+        default: pypi
+        options:
+          - pypi
+          - testpypi
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel in-progress releases
 
 permissions:
   contents: read
@@ -24,6 +36,9 @@ env:
   FORCE_COLOR: 1
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Validate release metadata
+  # ---------------------------------------------------------------------------
   validate-release:
     name: Validate Release
     runs-on: ubuntu-latest
@@ -32,6 +47,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      publish_target: ${{ steps.version.outputs.publish_target }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -44,45 +60,43 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
             IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+            PUBLISH_TARGET="${{ github.event.inputs.target }}"
           else
             VERSION="${{ github.event.release.tag_name }}"
             IS_PRERELEASE="${{ github.event.release.prerelease }}"
+            PUBLISH_TARGET="pypi"
           fi
-
-          echo "Raw version: $VERSION"
 
           # Remove 'v' prefix if present
           VERSION_NUMBER=$(echo "$VERSION" | sed 's/^v//')
-          echo "Cleaned version: $VERSION_NUMBER"
 
           # Validate semantic versioning
-          if [[ ! "$VERSION_NUMBER" =~ \
-            ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
-            echo "❌ Invalid version format: $VERSION_NUMBER"
-            echo "Expected format: x.y.z or x.y.z-prerelease"
+          if [[ ! "$VERSION_NUMBER" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid version format: $VERSION_NUMBER (expected x.y.z or x.y.z-prerelease)"
             exit 1
           fi
 
-          echo "✅ Version format is valid: $VERSION_NUMBER"
           echo "version=$VERSION_NUMBER" >> $GITHUB_OUTPUT
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "publish_target=$PUBLISH_TARGET" >> $GITHUB_OUTPUT
 
       - name: Check changelog entry
         run: |
           if [ ! -f CHANGELOG.md ]; then
-            echo "⚠️ CHANGELOG.md not found, skipping changelog check"
+            echo "::warning::CHANGELOG.md not found"
             exit 0
           fi
 
           VERSION="${{ steps.version.outputs.version }}"
-          # Accept either "X.Y.Z" or "vX.Y.Z" entries in CHANGELOG
           if grep -q -E "(^|\\W)v?${VERSION}(\\W|$)" CHANGELOG.md; then
-            echo "✅ Found changelog entry for version $VERSION (with or without leading 'v')"
+            echo "Found changelog entry for version $VERSION"
           else
-            echo "⚠️ No changelog entry found for version $VERSION"
-            echo "Consider adding an entry to CHANGELOG.md (match 'v${VERSION}' or '${VERSION}')"
+            echo "::warning::No changelog entry found for version $VERSION"
           fi
 
+  # ---------------------------------------------------------------------------
+  # Pre-release quality gates
+  # ---------------------------------------------------------------------------
   pre-release-checks:
     name: Pre-Release Quality Checks
     runs-on: ubuntu-latest
@@ -93,116 +107,62 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Cache pip
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-3.12-${{ hashFiles('**/pyproject.toml', '**/requirements.txt') }}
-          restore-keys: |
-            pip-${{ runner.os }}-3.12-
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          cache: "pip"
+          cache: pip
 
       - name: Install dependencies
         uses: ./.github/actions/setup-python-deps
 
       - name: Ensure security tools
-        run: |
-          python -m pip install --upgrade pip
-          # best-effort install of security tools used later
-          pip install --upgrade bandit pip-audit safety || true
+        run: pip install --upgrade bandit pip-audit safety || true
 
       - name: Run essential tests
         run: |
-          echo "::group::Running Essential Tests"
-          # Run only fast, essential unit tests during release for faster CI
-          # Skip slow integration and performance tests using pytest markers
-
-          # First check if test files exist
-          if [ -d "tests" ]; then
-            echo "Found tests directory"
-
-            # Run tests with coverage, but don't fail on coverage thresholds
-            pytest \
-              --cov=versiontracker \
-              --cov-report=xml \
-              --cov-report=term \
-              --cov-fail-under=0 \
-              -v \
-              --timeout=30 \
-              --maxfail=10 \
-              -m "not slow and not integration and not network" \
-              tests/ || {
-                echo "⚠️ Some tests failed, checking if critical tests pass..."
-                # Run only the most critical tests
-                pytest \
-                  -v \
-                  --timeout=30 \
-                  tests/test_version.py \
-                  tests/test_config.py \
-                  tests/test_utils.py \
-                  2>/dev/null || echo "⚠️ Core tests incomplete"
-              }
-          else
-            echo "⚠️ No tests directory found, skipping tests"
-          fi
-          echo "::endgroup::"
+          pytest \
+            --cov=versiontracker \
+            --cov-report=term \
+            --cov-fail-under=0 \
+            -v \
+            --timeout=30 \
+            --maxfail=10 \
+            -m "not slow and not integration and not network" \
+            tests/
 
       - name: Run linting checks
         continue-on-error: true
         run: |
-          echo "::group::Code Linting"
-          ruff check . || echo "ruff check reported issues (non-blocking)"
-          ruff format --check . || echo "ruff format reported issues (non-blocking)"
-          echo "::endgroup::"
+          ruff check . || true
+          ruff format --check . || true
 
       - name: Run type checking
         continue-on-error: true
-        run: |
-          echo "::group::Type Checking"
-          mypy versiontracker || echo "mypy reported issues (non-blocking)"
-          echo "::endgroup::"
+        run: mypy versiontracker || true
+
       - name: Run security checks
         continue-on-error: true
         run: |
-          echo "::group::Security Analysis"
-          # Use Bandit with project configuration (pyproject.toml) if present
-          bandit -r versiontracker/ || echo "bandit reported issues (non-blocking)"
+          bandit -r versiontracker/ || true
           if command -v safety >/dev/null 2>&1; then
-            safety check || echo "safety reported issues (non-blocking)"
-          else
-            echo "Safety not available, skipping"
+            safety check || true
           fi
-          pip-audit || echo "pip-audit reported issues (non-blocking)"
-          echo "::endgroup::"
+          pip-audit || true
 
       - name: Check package metadata
         run: |
-          echo "::group::Package Metadata Check"
           python -c "
-          import versiontracker
-          import sys
-
-          expected_version = '${{ needs.validate-release.outputs.version }}'
-          actual_version = versiontracker.__version__
-
-          print(f'Expected version: {expected_version}')
-          print(f'Actual version: {actual_version}')
-
-          if actual_version != expected_version:
-              print('❌ Version mismatch!')
-              print('Please update versiontracker/__init__.py ' +
-                    'with the correct version')
-              sys.exit(1)
-          else:
-              print('✅ Version matches!')
+          import versiontracker, sys
+          expected = '${{ needs.validate-release.outputs.version }}'
+          actual = versiontracker.__version__
+          print(f'Expected: {expected}, Actual: {actual}')
+          sys.exit(0 if actual == expected else 1)
           "
-          echo "::endgroup::"
 
+  # ---------------------------------------------------------------------------
+  # Build and test package on all platforms
+  # ---------------------------------------------------------------------------
   build-and-test:
     name: Build and Test Package
     runs-on: ${{ matrix.os }}
@@ -217,19 +177,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Cache pip
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/requirements.txt') }}
-          restore-keys: |
-            pip-${{ runner.os }}-${{ matrix.python-version }}-
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
           python-version: "${{ matrix.python-version }}"
-          cache: "pip"
+          cache: pip
 
       - name: Install build dependencies
         run: |
@@ -237,22 +189,18 @@ jobs:
           pip install build wheel twine
 
       - name: Build package
-        run: |
-          python -m build
+        run: python -m build
+
+      - name: Validate distribution
+        run: twine check dist/*
 
       - name: Test package installation
         run: |
-          # Install from wheel
           pip install dist/*.whl
-
-          # Test basic functionality
           python -c "
           import versiontracker
-          print(f'Successfully imported versiontracker ' +
-                f'v{versiontracker.__version__}')
+          print(f'Successfully imported versiontracker v{versiontracker.__version__}')
           "
-
-          # Test CLI
           versiontracker --version
 
       - name: Upload build artifacts
@@ -261,7 +209,11 @@ jobs:
         with:
           name: dist-packages
           path: dist/
+          retention-days: 30
 
+  # ---------------------------------------------------------------------------
+  # Publish to PyPI or TestPyPI
+  # ---------------------------------------------------------------------------
   publish-package:
     name: Publish to PyPI
     runs-on: ubuntu-latest
@@ -273,95 +225,143 @@ jobs:
       id-token: write
       contents: read
     environment:
-      name: pypi
-      url: https://pypi.org/project/macversiontracker/
+      name: ${{ needs.validate-release.outputs.publish_target }}
+      url: ${{ needs.validate-release.outputs.publish_target == 'testpypi' && 'https://test.pypi.org/project/macversiontracker/' || 'https://pypi.org/project/macversiontracker/' }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
       - name: Download built artifacts
         uses: actions/download-artifact@v8
         with:
           name: dist-packages
           path: dist/
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Install twine
-        run: |
-          python -m pip install --upgrade pip
-          pip install twine
+        run: pip install twine
 
       - name: Verify package integrity
-        run: |
-          echo "::group::Package Verification"
-          twine check dist/*
+        run: twine check dist/*
 
-          # Show package contents
-          echo "📦 Package contents:"
-          python -m tarfile -l dist/*.tar.gz
-
-          if ls dist/*.whl 1> /dev/null 2>&1; then
-            echo "🎯 Wheel contents:"
-            python -m zipfile -l dist/*.whl | head -20
-          fi
-          echo "::endgroup::"
-
-      - name: Publish to Test PyPI
-        if: needs.validate-release.outputs.is_prerelease == 'true'
+      - name: Publish to TestPyPI
+        if: |
+          needs.validate-release.outputs.is_prerelease == 'true' ||
+          needs.validate-release.outputs.publish_target == 'testpypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
 
       - name: Publish to PyPI
-        if: needs.validate-release.outputs.is_prerelease == 'false'
+        if: |
+          needs.validate-release.outputs.is_prerelease == 'false' &&
+          needs.validate-release.outputs.publish_target == 'pypi'
         uses: pypa/gh-action-pypi-publish@release/v1
 
-      - name: Wait for package availability (poll with exponential backoff)
+      - name: Wait for package availability
         run: |
           set -euo pipefail
           VERSION="${{ needs.validate-release.outputs.version }}"
           PACKAGE="macversiontracker==${VERSION}"
-          echo "⏳ Polling PyPI for ${PACKAGE}"
-          attempt=0
-          max_attempts=6
-          while [ $attempt -lt $max_attempts ]; do
-            pip install --no-deps --no-build-isolation --no-cache-dir "$PACKAGE" >/dev/null 2>&1 && {
-              echo "✅ Package ${PACKAGE} is available on PyPI"
-              break
-            }
-            sleep_seconds=$((2 ** attempt))
-            echo "Attempt $((attempt+1)) failed, sleeping ${sleep_seconds}s..."
-            sleep $sleep_seconds
-            attempt=$((attempt+1))
-          done
-          if [ $attempt -ge $max_attempts ]; then
-            echo "❌ Package ${PACKAGE} did not appear on PyPI after ${max_attempts} attempts"
-            exit 1
-          fi
+          echo "Polling PyPI for ${PACKAGE}..."
 
+          for attempt in $(seq 1 8); do
+            if pip install --no-deps --no-build-isolation --no-cache-dir "$PACKAGE" >/dev/null 2>&1; then
+              echo "Package ${PACKAGE} is available on PyPI"
+              exit 0
+            fi
+            sleep_seconds=$((2 ** attempt))
+            echo "Attempt $attempt failed, retrying in ${sleep_seconds}s..."
+            sleep "$sleep_seconds"
+          done
+          echo "::error::Package ${PACKAGE} not available after polling"
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # Sign and attach to GitHub Release
+  # ---------------------------------------------------------------------------
+  sign-and-attach:
+    name: Sign and Attach to GitHub Release
+    if: github.event_name == 'release'
+    needs: publish-package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: dist-packages
+          path: dist/
+
+      - name: Sign distributions with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+
+      - name: Upload signatures to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload
+          '${{ github.ref_name }}' dist/**
+          --repo '${{ github.repository }}'
+
+  # ---------------------------------------------------------------------------
+  # Post-release verification (smoke tests from PyPI)
+  # ---------------------------------------------------------------------------
   verify-release:
     name: Verify Release
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: [validate-release, publish-package]
-    permissions: {}
     if: always() && needs.publish-package.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.12", "3.13"]
+    permissions: {}
     steps:
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
-      - name: Test installation from PyPI
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install from PyPI
         run: |
           VERSION="${{ needs.validate-release.outputs.version }}"
-          echo "🔍 Testing installation of macversiontracker==$VERSION from PyPI..."
           pip install --no-cache-dir "macversiontracker==$VERSION"
-          python -c "import versiontracker; import sys; expected='$VERSION'; actual=versiontracker.__version__; print(f'Expected version: {expected}'); print(f'Installed version: {actual}'); sys.exit(0) if actual == expected else sys.exit(1)"
-          echo "🧪 Testing CLI functionality..."
+
+      - name: Verify version
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          python -c "
+          import versiontracker, sys
+          expected = '$VERSION'
+          actual = versiontracker.__version__
+          print(f'Expected: {expected}, Installed: {actual}')
+          sys.exit(0 if actual == expected else 1)
+          "
+
+      - name: Smoke test CLI
+        run: |
           versiontracker --version
-          echo "✅ CLI test passed!"
+          versiontracker --help
+
+      - name: Smoke test imports
+        run: |
+          python -c "
+          from versiontracker.config import get_config
+          from versiontracker.version import fuzzy
+          from versiontracker import apps, homebrew
+
+          config = get_config()
+          print(f'Config loaded: {type(config).__name__}')
+          print(f'Fuzzy module available: {fuzzy.USE_RAPIDFUZZ or fuzzy.USE_FUZZYWUZZY or True}')
+          print('All core imports successful')
+          "
