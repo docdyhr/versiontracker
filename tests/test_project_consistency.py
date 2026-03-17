@@ -173,8 +173,9 @@ class TestProjectConsistency:
         with open(ci_path, encoding="utf-8") as f:
             ci_config = yaml.safe_load(f)
 
-        # Extract Python versions from test matrix
-        test_job = ci_config["jobs"]["test"]
+        # Extract Python versions from test matrix (supports both "test" and "test-matrix" job names)
+        test_job = ci_config["jobs"].get("test") or ci_config["jobs"].get("test-matrix")
+        assert test_job is not None, "No 'test' or 'test-matrix' job found in ci.yml"
         ci_versions = test_job["strategy"]["matrix"]["python-version"]
 
         # Validate all supported versions are tested
