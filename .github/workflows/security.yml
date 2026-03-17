@@ -3,7 +3,9 @@ name: Security Analysis
 
 "on":
   push:
+    branches: [master]
   pull_request:
+    branches: [master]
   workflow_dispatch:
   schedule:
     # Run comprehensive security checks daily at 6 AM UTC
@@ -107,7 +109,7 @@ jobs:
 
       - name: Check for secrets with TruffleHog
         if: steps.trufflehog_params.outputs.skip_scan != 'true'
-        uses: trufflesecurity/trufflehog@v3.93.8
+        uses: trufflesecurity/trufflehog@v3
         continue-on-error: true
         with:
           path: ./

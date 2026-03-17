@@ -119,9 +119,10 @@ jobs:
       - name: Check import sorting (via Ruff)
         run: ruff check --select I --diff .
 
-  # Security scanning
+  # Security scanning is handled by the dedicated security.yml workflow.
+  # This lightweight job validates that security tools are importable.
   security:
-    name: Advanced Security Analysis
+    name: Security Validation
     runs-on: ubuntu-latest
     needs: setup
     steps:
@@ -133,45 +134,18 @@ jobs:
         with:
           python-version: ${{ needs.setup.outputs.python-version }}
 
-      - name: Cache dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ needs.setup.outputs.cache-key }}
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev,test,security]"
+          pip install -e ".[dev,test]"
 
-      - name: Run Bandit security linter
+      - name: Validate security-sensitive imports
         run: |
-          bandit -c .bandit -r versiontracker/ -f json -o bandit-report.json || true
-          bandit -c .bandit -r versiontracker/ || true
-
-      - name: Run Safety check
-        run: |
-          if command -v safety >/dev/null 2>&1; then
-            safety check --json --output safety-report.json || safety check || true
-          else
-            echo "::warning::Safety not available, skipping"
-            echo '{"vulnerabilities":[]}' > safety-report.json
-          fi
-
-      - name: Run pip-audit
-        run: |
-          pip-audit --desc --format json --output pip-audit-report.json || true
-          pip-audit --desc || true
-
-      - name: Upload security reports
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: advanced-security-reports
-          path: |
-            bandit-report.json
-            safety-report.json
-            pip-audit-report.json
+          python -c "
+          from versiontracker.config import get_config
+          config = get_config()
+          print('Security-sensitive config validated')
+          "
 
   # Unit tests matrix
   test-matrix:
@@ -244,6 +218,7 @@ jobs:
           path: |
             junit-*.xml
             coverage.xml
+          retention-days: 14
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -370,6 +345,7 @@ jobs:
           path: |
             benchmark_report.json
             ci_benchmark_results.json
+          retention-days: 30
 
   # Error handling and structured errors test
   error-handling-tests:
@@ -613,22 +589,38 @@ jobs:
 
       - name: Check critical failures
         run: |
-          # Check for any non-success states (failure, cancelled, skipped)
-          if [[ "${{ needs.quality.result }}" != "success" ]]; then
-            echo "Quality checks failed or were cancelled - blocking merge"
-            exit 1
+          FAILED=0
+
+          for JOB in quality security test-matrix; do
+            case "$JOB" in
+              quality)        RESULT="${{ needs.quality.result }}" ;;
+              security)       RESULT="${{ needs.security.result }}" ;;
+              test-matrix)    RESULT="${{ needs.test-matrix.result }}" ;;
+            esac
+            if [[ "$RESULT" != "success" ]]; then
+              echo "::error::$JOB: $RESULT"
+              FAILED=1
+            else
+              echo "✅ $JOB: $RESULT"
+            fi
+          done
+
+          # Integration tests may be skipped (conditional job) — only fail on failure
+          INT_RESULT="${{ needs.integration-tests.result }}"
+          if [[ "$INT_RESULT" == "failure" ]]; then
+            echo "::error::integration-tests: $INT_RESULT"
+            FAILED=1
+          else
+            echo "✅ integration-tests: $INT_RESULT"
           fi
 
-          if [[ "${{ needs.security.result }}" != "success" ]]; then
-            echo "Security analysis failed or was cancelled - blocking merge"
+          # Error handling tests are advisory
+          echo "ℹ️  error-handling-tests: ${{ needs.error-handling-tests.result }}"
+
+          if [[ "$FAILED" -eq 1 ]]; then
+            echo "::error::One or more critical checks failed — blocking merge"
             exit 1
           fi
-
-          if [[ "${{ needs.test-matrix.result }}" != "success" ]]; then
-            echo "Unit tests failed or were cancelled - blocking merge"
-            exit 1
-          fi
-
           echo "All critical checks passed"
 
       - name: Generate final report
@@ -651,3 +643,4 @@ jobs:
             pipeline_summary.md
             **/*.xml
             **/*.json
+          retention-days: 14

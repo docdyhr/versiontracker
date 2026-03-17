@@ -3,7 +3,9 @@ name: Code Linting and Formatting
 
 "on":
   push:
+    branches: [master]
   pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -56,3 +58,4 @@ jobs:
           name: lint-reports
           path: |
             mypy-report.xml
+          retention-days: 14

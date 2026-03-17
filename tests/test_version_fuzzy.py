@@ -455,16 +455,28 @@ class TestCompareFuzzy:
     # -- Fallback when _fuzz is None --
 
     def test_no_fuzz_identical(self):
-        with patch.object(fuzzy, "_fuzz", None):
+        with (
+            patch.object(fuzzy, "USE_RAPIDFUZZ", False),
+            patch.object(fuzzy, "USE_FUZZYWUZZY", False),
+            patch.object(fuzzy, "_fuzz", None),
+        ):
             assert compare_fuzzy("1.2.3", "1.2.3") == 100.0
 
     def test_no_fuzz_different(self):
-        with patch.object(fuzzy, "_fuzz", None):
+        with (
+            patch.object(fuzzy, "USE_RAPIDFUZZ", False),
+            patch.object(fuzzy, "USE_FUZZYWUZZY", False),
+            patch.object(fuzzy, "_fuzz", None),
+        ):
             score = compare_fuzzy("1.2.3", "4.5.6")
             assert score < 50.0
 
     def test_no_fuzz_case_insensitive(self):
-        with patch.object(fuzzy, "_fuzz", None):
+        with (
+            patch.object(fuzzy, "USE_RAPIDFUZZ", False),
+            patch.object(fuzzy, "USE_FUZZYWUZZY", False),
+            patch.object(fuzzy, "_fuzz", None),
+        ):
             assert compare_fuzzy("ABC", "abc") == 100.0
 
     # -- Minimal fallback path --

@@ -3,7 +3,9 @@ name: CI
 
 "on":
   push:
+    branches: [master]
   pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -163,3 +165,4 @@ jobs:
         with:
           name: dist-packages
           path: dist/
+          retention-days: 14
