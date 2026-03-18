@@ -25,11 +25,18 @@
 [![Release](https://img.shields.io/github/v/release/docdyhr/versiontracker?logo=github&logoColor=white&label=Latest%20Release)](https://github.com/docdyhr/versiontracker/releases/latest)
 [![PyPI](https://img.shields.io/pypi/v/macversiontracker?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/macversiontracker/)
 
+#### 🧪 Test Matrix
+
+| Platform | Python 3.12 | Python 3.13 |
+|----------|:-----------:|:-----------:|
+| **Ubuntu 22.04** | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=ubuntu&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=ubuntu&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) |
+| **macOS Latest** | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=apple&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=apple&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) |
+
 ### 🔒 Security & Quality
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
 [![Test Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-2,158%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-1%2C885%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
@@ -64,12 +71,12 @@
 ---
 
 * Name: Versiontracker
-* Version: 0.8.1
+* Version: 0.9.0
 * Programming language: Python 3.12+
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
-* Release date: 21. Feb 2022 (Updated: January 2026)
-* Code Quality: **70%+ test coverage with 1,230+ passing tests**,
+* Release date: 21. Feb 2022 (Updated: March 2026)
+* Code Quality: **~61% overall test coverage with 1,885+ passing tests**,
   **all previously identified high & medium complexity issues resolved**,
   **AI/ML capabilities and advanced analytics platform**
 
@@ -99,7 +106,7 @@ versiontracker --help
 
 Versiontracker is a command-line tool for macOS that helps you manage applications
 installed outside of the App Store. Recently undergone complete technical debt cleanup
-with **70%+ test coverage** and **all high & medium-priority complexity issues resolved**.
+with **1,885+ passing tests** and **all high & medium-priority complexity issues resolved**.
 
 It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed
 using Homebrew casks, making it easier to keep your applications up to date.

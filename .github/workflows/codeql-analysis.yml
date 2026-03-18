@@ -13,6 +13,10 @@ name: "CodeQL Analysis"
   schedule:
     - cron: "0 3 * * 0" # Runs weekly at 03:00 UTC on Sundays
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze:
     name: Analyze code with CodeQL
