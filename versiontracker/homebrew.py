@@ -21,7 +21,7 @@ from versiontracker.advanced_cache import (
 from versiontracker.config import get_config
 from versiontracker.exceptions import DataParsingError, HomebrewError, NetworkError
 from versiontracker.ui import create_progress_bar
-from versiontracker.utils import run_command
+from versiontracker.utils import run_command, run_command_secure
 
 # Cache keys for different Homebrew operations
 CACHE_KEY_ALL_CASKS = "homebrew:all_casks"
@@ -45,10 +45,12 @@ def is_homebrew_available() -> bool:
         bool: True if Homebrew is available
     """
     try:
-        # Try to run brew --version
-        stdout, returncode = run_command("brew --version", timeout=5)
+        brew_path = get_brew_command()
+        stdout, returncode = run_command_secure([brew_path, "--version"], timeout=5)
         return returncode == 0
-    except Exception as e:
+    except HomebrewError:
+        return False
+    except OSError as e:
         logging.warning("Homebrew availability check failed: %s", e)
         return False
 
@@ -80,7 +82,9 @@ def get_homebrew_path() -> str:
             return stdout.strip()
 
         raise HomebrewError("Homebrew not found in common locations")
-    except Exception as e:
+    except HomebrewError:
+        raise
+    except OSError as e:
         logging.error("Failed to find Homebrew: %s", e)
         raise HomebrewError(f"Homebrew not found: {e}") from e
 
@@ -122,16 +126,16 @@ def get_all_homebrew_casks() -> list[dict[str, Any]]:
 
     try:
         brew_path = get_brew_command()
-        command = (
-            f"{brew_path} info --json=v2 --cask $(ls $(brew --repository)/Library/Taps/homebrew/homebrew-cask/Casks/)"
-        )
+        # Use --eval-all to enumerate all known casks without shell substitution.
+        # Requires Homebrew 4.0+ (default since 2023).
+        cmd_args = [brew_path, "info", "--json=v2", "--eval-all", "--cask"]
 
         # Show progress message
         progress_bar = create_progress_bar()
         print(progress_bar.color("blue")("Fetching all Homebrew casks (this may take a while)..."))
 
         # Execute command with timeout
-        stdout, returncode = run_command(command, timeout=120)  # 2 minute timeout
+        stdout, returncode = run_command_secure(cmd_args, timeout=120)  # 2 minute timeout
 
         if returncode != 0:
             error_msg = f"Failed to retrieve Homebrew casks: {stdout}"

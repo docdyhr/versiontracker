@@ -4,10 +4,10 @@
 
 <div align="center">
 
-## 🚀 Production-Ready macOS Application Manager
+## macOS Application Version Manager
 
-[![Project Grade](https://img.shields.io/badge/Grade-A-brightgreen?style=for-the-badge&logo=gradle&logoColor=white)](PROJECT_REVIEW.md)
-[![Production Ready](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge&logo=checkmarx&logoColor=white)](PROJECT_REVIEW.md)
+[![Project Grade](https://img.shields.io/badge/Grade-B-blue?style=for-the-badge&logo=gradle&logoColor=white)](TODO.md)
+[![Status](https://img.shields.io/badge/Status-Beta%20%E2%80%94%20Stabilising-orange?style=for-the-badge&logo=checkmarx&logoColor=white)](TODO.md)
 
 </div>
 
@@ -36,7 +36,7 @@
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
 [![Test Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-1%2C885%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-2%2C173%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
@@ -76,9 +76,8 @@
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
 * Release date: 21. Feb 2022 (Updated: March 2026)
-* Code Quality: **~61% overall test coverage with 1,885+ passing tests**,
-  **all previously identified high & medium complexity issues resolved**,
-  **AI/ML capabilities and advanced analytics platform**
+* Code Quality: **~78% overall test coverage with 2,173+ passing tests**,
+  **all previously identified high & medium complexity issues resolved**
 
 ## Quick Start
 
@@ -105,8 +104,9 @@ versiontracker --help
 ## Overview
 
 Versiontracker is a command-line tool for macOS that helps you manage applications
-installed outside of the App Store. Recently undergone complete technical debt cleanup
-with **1,885+ passing tests** and **all high & medium-priority complexity issues resolved**.
+installed outside of the App Store. Currently in active stabilisation (v0.9.x → v1.0):
+core CLI/config/Homebrew paths are being made operationally consistent before the v1.0 release.
+See [TODO.md](TODO.md) for the current stabilisation roadmap.
 
 It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed
 using Homebrew casks, making it easier to keep your applications up to date.

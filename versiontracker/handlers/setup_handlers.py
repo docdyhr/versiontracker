@@ -35,7 +35,7 @@ def handle_initialize_config(options: Any) -> int:
             if not hasattr(get_config(), "_config"):
                 # Create a new Config instance if needed
                 Config(config_file=config_file)
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logging.debug("Config initialization error: %s", e)
             # Create a new Config instance with defaults
             Config()
@@ -61,13 +61,14 @@ def handle_configure_from_options(options: Any) -> int:
 
         # Configure UI options from command-line arguments
         if hasattr(options, "no_color") and options.no_color:
-            current_config._config["ui"]["use_color"] = False
+            current_config.set("ui.use_color", False)
 
         if hasattr(options, "no_progress") and options.no_progress:
-            current_config._config["ui"]["show_progress"] = False
+            # no_progress is the canonical key; Config.show_progress is derived from it
+            current_config.set("no_progress", True)
 
         if hasattr(options, "no_adaptive_rate") and options.no_adaptive_rate:
-            current_config._config["ui"]["adaptive_rate_limiting"] = False
+            current_config.set("ui.adaptive_rate_limiting", False)
 
         return 0
     except Exception as e:

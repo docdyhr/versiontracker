@@ -105,7 +105,7 @@ def _is_async_homebrew_available() -> bool:
         logging.debug("Async Homebrew module not available: %s", e)
         _async_homebrew_available = False
         return False
-    except Exception as e:
+    except (AttributeError, RuntimeError) as e:
         logging.warning("Error checking async Homebrew availability: %s", e)
         _async_homebrew_available = False
         return False
@@ -258,7 +258,7 @@ def get_applications_from_system_profiler(
                 apps_list.append((app_name, version))
 
         return apps_list
-    except Exception as e:
+    except (KeyError, IndexError, TypeError) as e:
         logging.error("Error parsing application data: %s", e)
         raise DataParsingError(f"Error parsing application data: {e}") from e
 
