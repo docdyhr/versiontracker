@@ -40,7 +40,7 @@
 ## Active Work — Stabilisation Cycle (v0.9.x → v1.0)
 
 > Objective: make the project operationally consistent before adding features.
-> P0/P1/P2/P4/P5 done. P3 is the last blocker before v1.0.
+> All P0–P5 complete. Stabilisation cycle done — ready for v1.0.
 
 ### ✅ P0 — Homebrew command execution contract — **done in PR #117**
 
@@ -56,7 +56,7 @@
 - [x] `setup_handlers.py`: replace `_config["ui"]["show_progress"]` mutation with `config.set("no_progress", True)`
 - [x] `setup_handlers.py`: replace other `_config[...]` mutations with `config.set()` calls
 - [x] `outdated_handlers.py`: remove dead `config.set("show_progress", False)` call
-- [ ] Integration tests for `--no-progress` across `--apps` and `--outdated` (deferred)
+- [x] Integration tests for `--no-progress` (PR #122)
 
 ---
 
@@ -65,23 +65,15 @@
 - [x] Audit every `options.<name>` in handlers and `__main__.py`
 - [x] Add `--output-file` to Export Options group in `cli.py`
 - [x] `hasattr`-gated dead paths (`options.notify`) left as-is — safe, low risk
-- [ ] Integration test for `--export --output-file` (deferred)
+- [x] Integration test for `--export --output-file` (PR #122)
 
 ---
 
-### 🔴 P3 — Import-time side effects — **next priority**
+### ✅ P3 — Import-time side effects — **done in PR #121**
 
-**Problem**: Config singleton creation at import time triggers Homebrew detection
-and env inspection before CLI args are parsed. Slow startup and makes module-level
-mocking brittle in tests.
-
-**Files**: `versiontracker/config.py`, `versiontracker/__main__.py`
-
-- [ ] Delay expensive config initialisation until CLI startup
-- [ ] Minimise subprocess/filesystem work at import time
-- [ ] Tests no longer need broad patching just to import modules safely
-
-**Verify**: `pytest -q tests/test_config.py tests/test_main.py tests/test_integration.py`
+- [x] Delay expensive config initialisation until CLI startup (`get_config()` lazy init)
+- [x] `Config()` singleton no longer created at import time — eliminates `brew --version` subprocess on import
+- [x] `conftest.py` `reset_config` fixture now correctly resets `_config_instance`
 
 ---
 
@@ -100,8 +92,8 @@ mocking brittle in tests.
 - [x] Replace "Production-Ready" badge/heading with "Beta — Stabilising"
 - [x] Update test count (1,885 → 2,173) and coverage claim (61% → 78%)
 - [x] Rewrite TODO.md Active Work section with P0–P5 issue definitions
-- [ ] Update CHANGELOG.md with user-visible behaviour changes (before v1.0 tag)
-- [ ] Remove `PROJECT_REVIEW.md` from repo root after full stabilisation
+- [x] Update CHANGELOG.md with user-visible behaviour changes (PR #121)
+- [x] Remove `PROJECT_REVIEW.md` from repo root (PR #121)
 
 ---
 
