@@ -702,6 +702,67 @@ class TestIntegration(unittest.TestCase):
                     if "timeout" not in str(e).lower():
                         self.fail(f"Unexpected error handling timeout: {e}")
 
+    @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
+    def test_no_progress_suppresses_progress(self, mock_get_casks, mock_check_deps):
+        """--no-progress sets the canonical no_progress config key for --apps and --brews."""
+        import versiontracker.config as _cfg_mod
+        from versiontracker.handlers.setup_handlers import handle_configure_from_options
+
+        mock_get_casks.return_value = ["firefox", "chrome"]
+
+        # Simulate what versiontracker_main does when --no-progress is passed
+        options = MagicMock()
+        options.no_progress = True
+        options.no_color = False
+        options.no_adaptive_rate = False
+        options.rate_limit = None
+        options.timeout = None
+
+        handle_configure_from_options(options)
+
+        cfg = _cfg_mod.get_config()
+        self.assertTrue(cfg.no_progress, "--no-progress should set config.no_progress=True")
+        self.assertFalse(cfg.show_progress, "show_progress should be False when no_progress is True")
+
+    @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
+    def test_export_output_file_writes_file(self, mock_get_casks, mock_check_deps):
+        """--export --output-file PATH writes export output to a file, not stdout."""
+        import os
+        import tempfile
+
+        mock_get_casks.return_value = ["firefox", "chrome"]
+
+        options = MagicMock()
+        options.brews = True
+        options.debug = False
+        options.export_format = "json"
+
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            options.output_file = tmp_path
+            with patch("builtins.print") as mock_print:
+                handle_list_brews(options)
+
+            # File should have been written
+            self.assertTrue(os.path.exists(tmp_path), "output file should be created")
+            with open(tmp_path) as f:
+                contents = f.read()
+            self.assertTrue(len(contents) > 0, "output file should not be empty")
+
+            # print() should NOT have been called with the export data
+            # (it may be called for other reasons, but the export result is written to file)
+            for call in mock_print.call_args_list:
+                args = call[0]
+                if args and isinstance(args[0], str):
+                    self.assertNotIn('"firefox"', args[0], "export data must not be printed when output_file is set")
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
 
 if __name__ == "__main__":
     unittest.main()
