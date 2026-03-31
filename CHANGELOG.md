@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-03-31
+
 ### Fixed
 - **Homebrew command construction (P0)**: `get_all_homebrew_casks()` now uses
   `brew info --json=v2 --eval-all --cask` via `run_command_secure()` (argv list,

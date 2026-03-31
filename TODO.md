@@ -4,7 +4,7 @@
 
 ### Project Health
 
-- **Version**: 0.9.0 (beta — stabilisation in progress)
+- **Version**: 1.0.0 (stable)
 - **Tests**: 2,158 passing, 15 skipped
 - **Coverage**: ~78% overall
 - **CI/CD**: All workflows passing on master (all green)
@@ -169,7 +169,7 @@ For detailed strategic planning see `docs/future_roadmap.md`.
 ### Advanced Contributions
 
 - MacPorts integration
-- P3: Lazy config initialisation
+- Coverage push toward 85% (currently ~83.5%)
 
 ---
 
