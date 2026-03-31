@@ -88,3 +88,69 @@ class TestSafeFunctionCall:
     def test_passes_args_and_kwargs(self):
         result = safe_function_call(lambda x, y=0: x + y, 10, y=5)
         assert result == 15
+
+
+# ---------------------------------------------------------------------------
+# warning_filter / WarningFilter — uncovered branches (lines 92-119)
+# ---------------------------------------------------------------------------
+
+
+class TestSuppressConsoleWarningsInternals:
+    """Tests for warning_filter() inner branches via suppress_console_warnings()."""
+
+    def _get_warning_filter(self):
+        """Install suppress_console_warnings and return the attached WarningFilter."""
+        import sys
+        from unittest.mock import MagicMock
+
+        with mock.patch("logging.getLogger") as mock_get_logger, mock.patch("warnings.filterwarnings"):
+            mock_logger = MagicMock()
+            mock_handler = MagicMock()
+            # stream must equal sys.stderr to pass the guard in suppress_console_warnings
+            mock_handler.stream = sys.stderr
+            mock_logger.handlers = [mock_handler]
+            mock_get_logger.return_value = mock_logger
+
+            suppress_console_warnings()
+            return mock_handler.addFilter.call_args[0][0]
+
+    def test_warning_filter_versiontracker_filename_not_suppressed(self):
+        """Warnings from versiontracker source files are always shown (return True)."""
+        import logging
+        from unittest.mock import MagicMock
+
+        added_filter = self._get_warning_filter()
+
+        record = MagicMock()
+        record.levelno = logging.WARNING
+        record.filename = "/path/to/versiontracker/config.py"
+        record.lineno = 1
+        record.getMessage.return_value = "some warning"
+
+        assert added_filter.filter(record) is True
+
+    def test_warning_filter_deprecation_from_external_suppressed(self):
+        """UserWarning from external code is suppressed (return False)."""
+        import logging
+        from unittest.mock import MagicMock
+
+        added_filter = self._get_warning_filter()
+
+        record = MagicMock()
+        record.levelno = logging.WARNING
+        record.filename = "/site-packages/third_party/lib.py"
+        record.lineno = 1
+        record.getMessage.return_value = "deprecated"
+        # WarningFilter.filter() passes UserWarning as category → matches warn_type list → False
+        assert added_filter.filter(record) is False
+
+    def test_warning_filter_non_warning_level_passes_through(self):
+        """Non-WARNING log records always pass through WarningFilter (return True)."""
+        import logging
+        from unittest.mock import MagicMock
+
+        added_filter = self._get_warning_filter()
+
+        record = MagicMock()
+        record.levelno = logging.INFO  # not WARNING
+        assert added_filter.filter(record) is True

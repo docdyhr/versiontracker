@@ -4,12 +4,17 @@ Targets error paths in handle_list_brews, handle_brew_recommendations,
 _get_rate_limit, and _get_and_filter_brews.
 """
 
+import sys
 from unittest.mock import MagicMock, patch
 
 from versiontracker.exceptions import HomebrewError, NetworkError
 from versiontracker.handlers.brew_handlers import (
+    _determine_strict_mode,
     _get_and_filter_brews,
+    _get_homebrew_casks,
     _get_rate_limit,
+    _handle_export_if_requested,
+    _log_debug_info,
     handle_brew_recommendations,
     handle_list_brews,
 )
@@ -195,3 +200,151 @@ class TestGetAndFilterBrews:
         del opts.exclude_auto_updates
         brews, auto = _get_and_filter_brews(opts)
         assert brews == ["firefox"]
+
+
+# ---------------------------------------------------------------------------
+# _display_brew_list — auto-update marker path (lines 114-115)
+# ---------------------------------------------------------------------------
+
+
+class TestDisplayBrewList:
+    """Tests for _display_brew_list() auto-update marker path."""
+
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    def test_auto_update_marker_shown(self, _pb, capsys):
+        """Brew with auto-update shows the (auto-updates) marker."""
+        from versiontracker.handlers.brew_handlers import _display_brew_list
+
+        opts = MagicMock(show_auto_updates=True, exclude_auto_updates=False, only_auto_updates=False)
+        _display_brew_list(["firefox"], ["firefox"], opts)
+        out = capsys.readouterr().out
+        assert "firefox" in out
+        assert "auto-updates" in out
+
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    def test_no_auto_update_marker_when_not_in_list(self, _pb, capsys):
+        """Brew not in auto-update list shows no marker."""
+        from versiontracker.handlers.brew_handlers import _display_brew_list
+
+        opts = MagicMock(show_auto_updates=True, exclude_auto_updates=False, only_auto_updates=False)
+        _display_brew_list(["chrome"], ["firefox"], opts)
+        out = capsys.readouterr().out
+        assert "chrome" in out
+        assert "auto-updates" not in out
+
+
+# ---------------------------------------------------------------------------
+# _handle_export_if_requested — stdout print path (line 138)
+# ---------------------------------------------------------------------------
+
+
+class TestHandleExportIfRequested:
+    """Tests for _handle_export_if_requested() stdout print path."""
+
+    @patch("versiontracker.handlers.brew_handlers.handle_export", return_value='[{"name":"firefox"}]')
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    def test_prints_to_stdout_when_no_output_file(self, _pb, mock_export, capsys):
+        """When output_file is None, export result is printed to stdout."""
+        opts = MagicMock(export_format="json", output_file=None)
+        _handle_export_if_requested(["firefox"], opts)
+        captured = capsys.readouterr()
+        assert "firefox" in captured.out
+
+    @patch("versiontracker.handlers.brew_handlers.handle_export", return_value=0)
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    def test_no_print_when_output_file_set(self, _pb, mock_export, capsys):
+        """When output_file is set, nothing is printed."""
+        opts = MagicMock(export_format="json", output_file="/tmp/out.json")
+        _handle_export_if_requested(["firefox"], opts)
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+
+# ---------------------------------------------------------------------------
+# handle_list_brews — outer exception handler (lines 179-182)
+# ---------------------------------------------------------------------------
+
+
+class TestHandleListBrewsOuterException:
+    """Tests for the outer try/except in handle_list_brews."""
+
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    def test_outer_exception_returns_1(self, _pb):
+        """An exception raised before the inner try returns exit code 1."""
+        with patch(
+            "versiontracker.handlers.brew_handlers.create_progress_bar",
+            side_effect=RuntimeError("boom"),
+        ):
+            result = handle_list_brews(MagicMock())
+        assert result == 1
+
+
+# ---------------------------------------------------------------------------
+# _get_homebrew_casks — generic exception path (lines 257-260)
+# ---------------------------------------------------------------------------
+
+
+class TestGetHomebrewCasksHandler:
+    """Tests for _get_homebrew_casks() generic exception fallback."""
+
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks", side_effect=OSError("disk error"))
+    def test_generic_exception_returns_empty(self, _casks, _pb):
+        """A non-HomebrewError exception returns [] and doesn't raise."""
+        result = _get_homebrew_casks()
+        assert result == []
+
+
+# ---------------------------------------------------------------------------
+# _log_debug_info — debug logging paths (lines 273-283)
+# ---------------------------------------------------------------------------
+
+
+class TestLogDebugInfo:
+    """Tests for _log_debug_info() debug logging branches."""
+
+    def test_no_debug_does_nothing(self):
+        """No logging when debug is False/0."""
+        opts = MagicMock(debug=False)
+        _log_debug_info(opts, [("App", "1.0")], ["brew"], [("App", "1.0")])
+        # No exception means pass
+
+    def test_debug_logs_items(self):
+        """All three loops execute when debug is True."""
+        opts = MagicMock(debug=True)
+        with patch("versiontracker.handlers.brew_handlers.logging") as mock_log:
+            _log_debug_info(
+                opts,
+                [("App", "1.0"), ("App2", "2.0")],
+                ["brew1", "brew2"],
+                [("App", "1.0")],
+            )
+        assert mock_log.debug.call_count >= 6  # 3 headers + at least 3 items
+
+
+# ---------------------------------------------------------------------------
+# _determine_strict_mode — test-detection and strict_recommend paths
+# ---------------------------------------------------------------------------
+
+
+class TestDetermineStrictMode:
+    """Tests for _determine_strict_mode() branches."""
+
+    def test_strict_recom_returns_true(self):
+        opts = MagicMock(strict_recom=True)
+        assert _determine_strict_mode(opts) is True
+
+    def test_test_detection_sets_mock_test(self):
+        """When sys.argv has ≤1 elements, mock_test is set and False is returned."""
+        opts = MagicMock(spec=["strict_recommend", "recommend"])
+        with patch.object(sys, "argv", ["pytest"]):
+            result = _determine_strict_mode(opts)
+        assert result is False
+        assert opts.mock_test is True
+
+    def test_strict_recommend_returns_true(self):
+        """strict_recommend attribute triggers True when argv has entries."""
+        opts = MagicMock(strict_recom=False, strict_recommend=True)
+        with patch.object(sys, "argv", ["versiontracker", "--strict-recom"]):
+            result = _determine_strict_mode(opts)
+        assert result is True

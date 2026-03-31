@@ -485,11 +485,13 @@ class TestIntegration(unittest.TestCase):
         def run_operation(operation_type):
             try:
                 if operation_type == "apps":
-                    with patch("builtins.print"):
-                        handle_list_apps(MagicMock(apps=True, debug=False, blacklist=None))
+                    # Use export_format=None and output_file=None to avoid open(MagicMock())
+                    # Do NOT use patch("builtins.print") inside threads — it's not thread-safe
+                    handle_list_apps(
+                        MagicMock(apps=True, debug=False, blacklist=None, export_format=None, output_file=None)
+                    )
                 elif operation_type == "brews":
-                    with patch("builtins.print"):
-                        handle_list_brews(MagicMock(brews=True, debug=False, export_format=None))
+                    handle_list_brews(MagicMock(brews=True, debug=False, export_format=None, output_file=None))
                 results.append(f"{operation_type}_success")
             except Exception as e:
                 errors.append(f"{operation_type}_error: {e}")
