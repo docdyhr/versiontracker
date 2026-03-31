@@ -49,14 +49,18 @@ cache:
 
 @pytest.fixture(autouse=True)
 def reset_config() -> Generator[None, None, None]:
-    """Reset configuration before each test."""
-    from versiontracker.config import Config
+    """Reset the global config singleton before and after each test.
 
-    if hasattr(Config, "_instance"):
-        Config._instance = None
+    The singleton lives at versiontracker.config._config_instance (module-level,
+    not on the class). Resetting it to None ensures each test starts with a clean
+    state and that lazy initialisation in get_config() triggers fresh.
+    """
+    import versiontracker.config as _cfg_mod
+
+    original = _cfg_mod._config_instance
+    _cfg_mod._config_instance = None
     yield
-    if hasattr(Config, "_instance"):
-        Config._instance = None
+    _cfg_mod._config_instance = original
 
 
 @pytest.fixture
