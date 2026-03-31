@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Homebrew command construction (P0)**: `get_all_homebrew_casks()` now uses
+  `brew info --json=v2 --eval-all --cask` via `run_command_secure()` (argv list,
+  `shell=False`) — eliminates the shell substitution `$()` that produced malformed
+  commands and uses the correct modern Homebrew JSON API
+- **`is_homebrew_available()` now uses the configured brew path** instead of bare
+  `"brew"`, so custom install locations (e.g. `/opt/homebrew/bin/brew`) are honoured
+- **Progress flag config (P1)**: `handle_configure_from_options()` now calls
+  `config.set("no_progress", True)` instead of mutating `_config["ui"]["show_progress"]`
+  (a dead key) — `--no-progress` now actually suppresses progress output at runtime
+- **Lazy config initialisation (P3)**: `Config()` singleton is no longer created at
+  import time; `get_config()` now initialises on first call — eliminates the
+  `brew --version` subprocess that ran on every `import versiontracker.*` statement
+- **Test isolation (P3)**: `conftest.py` `reset_config` fixture now correctly resets
+  the module-level `_config_instance` (was targeting a non-existent class attribute)
+- **Exception narrowing (P4)**: replaced broad `except Exception` / `except OSError`
+  catches in `homebrew.py`, `finder.py`, `outdated_handlers.py`, and `__main__.py`
+  with specific exception types; outermost error boundaries retain broad catches
+  with explicit justification
+
+### Added
+- **`--output-file` CLI flag (P2)**: new `Export Options` argument `--output-file PATH`
+  wires the existing `options.output_file` access in `brew_handlers.py` — previously
+  caused `AttributeError` when `--export` was used
+
+### Changed
+- **README maturity label**: "Production-Ready" → "Beta — Stabilising"; test count and
+  coverage figures updated to match current reality
+
 ## [0.9.0] - 2026-02-25
 
 ### Added

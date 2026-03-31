@@ -103,7 +103,7 @@ def _handle_plugin_actions(options: Any) -> int | None:
             plugin_manager.load_plugin_from_file(plugin_path)
             print(f"Plugin loaded from: {plugin_path}")
             return 0
-        except Exception as e:
+        except (FileNotFoundError, ImportError, ValueError, OSError) as e:
             print(f"Failed to load plugin: {e}")
             return 1
 
@@ -242,7 +242,7 @@ def _initialize_plugins() -> None:
         from versiontracker.plugins import load_plugins
 
         load_plugins()
-    except Exception as e:
+    except (ImportError, FileNotFoundError, OSError) as e:
         logging.debug("Plugin loading skipped: %s", e)
 
 
