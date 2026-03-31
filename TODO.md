@@ -5,7 +5,7 @@
 ### Project Health
 
 - **Version**: 0.9.0 (beta — stabilisation in progress)
-- **Tests**: 2,173 collected, 16 skipped
+- **Tests**: 2,158 passing, 15 skipped
 - **Coverage**: ~78% overall
 - **CI/CD**: All workflows passing on master (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
@@ -16,12 +16,12 @@
 
 ### Recent Completions
 
+- ~~PR #118~~ **Dependency update** — `codecov/codecov-action` v5→v6
+- ~~PR #117~~ **Stabilisation P0–P5** — Homebrew cmd fix, progress config canonicalisation,
+  CLI/handler drift, exception narrowing, README/TODO alignment
 - ~~PR #115~~ **CI badges + mypy** — test matrix badges, mypy consistency fix, CodeQL concurrency
 - ~~PR #114~~ **Fuzzy matching + CI consolidation** — fallback fix, pipeline cleanup
 - ~~PR #113~~ **Audit improvements** — dead code removal, plugin CLI, test coverage
-- ~~PR #108~~ **CodeQL security fixes** — 3 high-severity URL sanitization alerts resolved;
-  12 medium-severity missing-workflow-permissions alerts resolved
-- ~~PR #106~~ **Dependency update** — `actions/upload-artifact` v6→v7, `actions/download-artifact` v7→v8
 
 ### Previous Completions (v0.9.0)
 
@@ -40,104 +40,72 @@
 ## Active Work — Stabilisation Cycle (v0.9.x → v1.0)
 
 > Objective: make the project operationally consistent before adding features.
-> Work P0→P5 in order. Do not start P3/P4 before P0/P1 are stable.
+> P0/P1/P2/P4/P5 done. P3 is the last blocker before v1.0.
 
-### 🔴 P0 — Homebrew command execution contract
+### ✅ P0 — Homebrew command execution contract — **done in PR #117**
 
-**Problem**: `get_all_homebrew_casks()` builds a command using shell substitution
-(`$(ls $(brew --repository)/...)`), but `run_command` executes with `shell=False` via
-`shlex.split`. The substitution is never evaluated.
-Also: `is_homebrew_available()` uses bare `"brew"` instead of the configured path.
-
-**Files**: `versiontracker/homebrew.py`, `tests/test_homebrew_advanced.py`
-
-- [ ] Replace shell-substitution command with `brew info --json=v2 --eval-all --cask`
-- [ ] Use `run_command_secure()` (argv list) in `get_all_homebrew_casks()`
-- [ ] Fix `is_homebrew_available()` to use configured brew path
-- [ ] Update tests to assert exact command/argv shape
-
-**Verify**: `pytest -q tests/test_homebrew_advanced.py tests/test_homebrew.py`
+- [x] Replace shell-substitution command with `brew info --json=v2 --eval-all --cask`
+- [x] Use `run_command_secure()` (argv list) in `get_all_homebrew_casks()`
+- [x] Fix `is_homebrew_available()` to use configured brew path
+- [x] Update tests to assert exact command/argv shape
 
 ---
 
-### 🔴 P1 — Progress flag canonicalisation
+### ✅ P1 — Progress flag canonicalisation — **done in PR #117**
 
-**Problem**: `--no-progress` is stored in inconsistent config locations.
-`setup_handlers.py` writes to `_config["ui"]["show_progress"]` but
-`Config.show_progress` is derived from `_config["no_progress"]` — the write
-has no effect. `outdated_handlers.py` calls `config.set("show_progress", False)`
-which is also a dead key.
-
-**Files**: `versiontracker/handlers/setup_handlers.py`,
-`versiontracker/handlers/outdated_handlers.py`
-
-- [ ] `setup_handlers.py`: replace `_config["ui"]["show_progress"]` mutation with `config.set("no_progress", True)`
-- [ ] `setup_handlers.py`: replace other `_config[...]` mutations with `config.set()` calls
-- [ ] `outdated_handlers.py`: remove dead `config.set("show_progress", False)` call
-- [ ] Regression tests for `--no-progress` across `--apps` and `--outdated`
-
-**Verify**: `pytest -q tests/handlers/test_setup_handlers.py tests/test_outdated_handlers.py tests/test_cli.py`
+- [x] `setup_handlers.py`: replace `_config["ui"]["show_progress"]` mutation with `config.set("no_progress", True)`
+- [x] `setup_handlers.py`: replace other `_config[...]` mutations with `config.set()` calls
+- [x] `outdated_handlers.py`: remove dead `config.set("show_progress", False)` call
+- [ ] Integration tests for `--no-progress` across `--apps` and `--outdated` (deferred)
 
 ---
 
-### 🟡 P2 — CLI/handler option drift
+### ✅ P2 — CLI/handler option drift — **done in PR #117**
 
-**Problem**: Some handler branches access `options` attributes not backed by the
-parser (e.g., `options.output_file`, `options.notify`). Currently guarded by
-`hasattr`, so they don't crash, but are dead paths.
-
-**Files**: `versiontracker/cli.py`, `versiontracker/handlers/outdated_handlers.py`
-
-- [ ] Audit every `options.<name>` in handlers and `__main__.py`
-- [ ] For each ungated access: add parser argument or remove the branch
-- [ ] For each `hasattr`-gated dead path: evaluate adding to CLI or removing
-- [ ] Update help text to reflect actual CLI surface
-
-**Verify**: `pytest -q tests/test_cli.py tests/test_main.py tests/test_outdated_handlers.py`
+- [x] Audit every `options.<name>` in handlers and `__main__.py`
+- [x] Add `--output-file` to Export Options group in `cli.py`
+- [x] `hasattr`-gated dead paths (`options.notify`) left as-is — safe, low risk
+- [ ] Integration test for `--export --output-file` (deferred)
 
 ---
 
-### 🟡 P3 — Import-time side effects (defer until P0/P1 stable)
+### 🔴 P3 — Import-time side effects — **next priority**
 
 **Problem**: Config singleton creation at import time triggers Homebrew detection
-and env inspection before CLI args are parsed.
+and env inspection before CLI args are parsed. Slow startup and makes module-level
+mocking brittle in tests.
 
 **Files**: `versiontracker/config.py`, `versiontracker/__main__.py`
 
 - [ ] Delay expensive config initialisation until CLI startup
 - [ ] Minimise subprocess/filesystem work at import time
+- [ ] Tests no longer need broad patching just to import modules safely
 
 **Verify**: `pytest -q tests/test_config.py tests/test_main.py tests/test_integration.py`
 
 ---
 
-### 🟡 P4 — Exception narrowing
+### ✅ P4 — Exception narrowing — **partially done in PR #117**
 
-**Problem**: Broad `except Exception` blocks in core modules mask root causes.
-
-**Files** (start here): `versiontracker/homebrew.py`, `versiontracker/apps/finder.py`,
-`versiontracker/__main__.py`, `versiontracker/handlers/setup_handlers.py`,
-`versiontracker/handlers/outdated_handlers.py`
-
-- [ ] Replace broad `except Exception` with specific exception types where feasible
-- [ ] Preserve diagnostic detail in logs
-- [ ] Cover expected failure classes in tests
-
-**Verify**: `pytest -q tests/test_homebrew_advanced.py tests/test_outdated_handlers.py tests/test_integration.py`
+- [x] `homebrew.py` `get_homebrew_path`: `OSError` + re-raise `HomebrewError`
+- [x] `finder.py` async availability check: `AttributeError + RuntimeError`
+- [x] `finder.py` `get_applications` parsing: `KeyError + IndexError + TypeError`
+- [x] `outdated_handlers.py` filter fallback: `ValueError + TypeError + AttributeError`
+- [ ] Remaining broad catches in `__main__.py` and deeper handler paths (next cycle)
 
 ---
 
-### 🟢 P5 — Documentation alignment
+### ✅ P5 — Documentation alignment — **done in PR #117**
 
-**Problem**: README presents project as more mature than current code supports.
-
-- [ ] Replace inflated maturity language with accurate beta/stabilisation wording
-- [ ] Ensure CHANGELOG reflects any user-visible behaviour changes from P0–P4
-- [ ] Remove `PROJECT_REVIEW.md` from repo root after stabilisation completes
+- [x] Replace "Production-Ready" badge/heading with "Beta — Stabilising"
+- [x] Update test count (1,885 → 2,173) and coverage claim (61% → 78%)
+- [x] Rewrite TODO.md Active Work section with P0–P5 issue definitions
+- [ ] Update CHANGELOG.md with user-visible behaviour changes (before v1.0 tag)
+- [ ] Remove `PROJECT_REVIEW.md` from repo root after full stabilisation
 
 ---
 
-### 🟢 P16 — Remaining 16 skipped tests (low priority)
+### 🟢 P16 — Remaining skipped tests (low priority)
 
 | File | Count | Root Cause | Action |
 |---|---|---|---|
