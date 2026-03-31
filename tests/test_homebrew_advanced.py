@@ -46,16 +46,21 @@ class TestHomebrewModule(unittest.TestCase):
         # Clear the test cache
         self.test_cache.clear()
 
-    @patch("versiontracker.homebrew.run_command")
-    def test_is_homebrew_available_success(self, mock_run_command):
+    @patch("versiontracker.homebrew.run_command_secure")
+    @patch("versiontracker.homebrew.get_brew_command")
+    def test_is_homebrew_available_success(self, mock_get_brew_command, mock_run_command_secure):
         """Test checking Homebrew availability when it is available."""
-        mock_run_command.return_value = ("Homebrew 3.6.0", 0)
+        mock_get_brew_command.return_value = "/opt/homebrew/bin/brew"
+        mock_run_command_secure.return_value = ("Homebrew 4.0.0", 0)
         self.assertTrue(is_homebrew_available())
+        mock_run_command_secure.assert_called_once_with(["/opt/homebrew/bin/brew", "--version"], timeout=5)
 
-    @patch("versiontracker.homebrew.run_command")
-    def test_is_homebrew_available_failure(self, mock_run_command):
+    @patch("versiontracker.homebrew.run_command_secure")
+    @patch("versiontracker.homebrew.get_brew_command")
+    def test_is_homebrew_available_failure(self, mock_get_brew_command, mock_run_command_secure):
         """Test checking Homebrew availability when it is not available."""
-        mock_run_command.return_value = ("Command not found", 1)
+        mock_get_brew_command.return_value = "/opt/homebrew/bin/brew"
+        mock_run_command_secure.return_value = ("", 1)
         self.assertFalse(is_homebrew_available())
 
     @patch("versiontracker.homebrew.run_command")
@@ -130,24 +135,26 @@ class TestHomebrewModule(unittest.TestCase):
         mock_run_command.assert_not_called()
         mock_get_homebrew_path.assert_not_called()
 
-    @patch("versiontracker.homebrew.get_homebrew_path")
-    @patch("versiontracker.homebrew.run_command")
-    def test_get_all_homebrew_casks_uncached(self, mock_run_command, mock_get_homebrew_path):
+    @patch("versiontracker.homebrew.run_command_secure")
+    @patch("versiontracker.homebrew.get_brew_command")
+    def test_get_all_homebrew_casks_uncached(self, mock_get_brew_command, mock_run_command_secure):
         """Test getting all Homebrew casks when they are not cached."""
-        # Setup mocks
-        mock_get_homebrew_path.return_value = "/usr/local/bin/brew"
+        brew_path = "/usr/local/bin/brew"
+        mock_get_brew_command.return_value = brew_path
         test_casks = [
             {"token": "firefox", "name": "Firefox", "version": "100.0"},
             {"token": "chrome", "name": "Google Chrome", "version": "90.0"},
         ]
-        mock_run_command.return_value = (json.dumps({"casks": test_casks}), 0)
+        mock_run_command_secure.return_value = (json.dumps({"casks": test_casks}), 0)
 
-        # Test function
         result = get_all_homebrew_casks()
 
-        # Verify result
         self.assertEqual(result, test_casks)
-        mock_run_command.assert_called_once()
+        # Assert exact command shape — no shell substitution
+        mock_run_command_secure.assert_called_once_with(
+            [brew_path, "info", "--json=v2", "--eval-all", "--cask"],
+            timeout=120,
+        )
 
         # Verify cache was updated
         cached = self.test_cache.get("homebrew:all_casks")

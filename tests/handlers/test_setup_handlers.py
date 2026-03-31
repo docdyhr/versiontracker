@@ -90,23 +90,16 @@ class TestSetupHandlers:
         mock_options.no_adaptive_rate = True
 
         mock_config = mock.MagicMock()
-        mock_config._config = {
-            "ui": {
-                "use_color": True,
-                "show_progress": True,
-                "adaptive_rate_limiting": True,
-            }
-        }
         mock_get_config.return_value = mock_config
 
         # Execute
         result = handle_configure_from_options(mock_options)
 
-        # Assert
+        # Assert config.set() was called with the canonical keys
         assert result == 0
-        assert mock_config._config["ui"]["use_color"] is False
-        assert mock_config._config["ui"]["show_progress"] is False
-        assert mock_config._config["ui"]["adaptive_rate_limiting"] is False
+        mock_config.set.assert_any_call("ui.use_color", False)
+        mock_config.set.assert_any_call("no_progress", True)
+        mock_config.set.assert_any_call("ui.adaptive_rate_limiting", False)
 
     @mock.patch("versiontracker.handlers.setup_handlers.get_config")
     @mock.patch("versiontracker.handlers.setup_handlers.logging")

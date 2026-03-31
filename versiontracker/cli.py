@@ -168,6 +168,13 @@ For more information, visit: https://github.com/docdyhr/versiontracker
         metavar="FORMAT",
         help="Export results in specified format (json, yaml, csv)",
     )
+    export_group.add_argument(
+        "--output-file",
+        dest="output_file",
+        type=str,
+        metavar="PATH",
+        help="Write export output to file instead of stdout (requires --export)",
+    )
 
     # Filter management
     filter_group = parser.add_argument_group("Filter Management")

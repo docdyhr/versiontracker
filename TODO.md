@@ -4,8 +4,8 @@
 
 ### Project Health
 
-- **Version**: 0.9.0
-- **Tests**: 1,993 collected, 16 skipped
+- **Version**: 0.9.0 (beta — stabilisation in progress)
+- **Tests**: 2,173 collected, 16 skipped
 - **Coverage**: ~78% overall
 - **CI/CD**: All workflows passing on master (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
@@ -16,48 +16,135 @@
 
 ### Recent Completions
 
-- ~~PR #108~~ **CodeQL security fixes** — 3 high-severity URL sanitization
-  alerts resolved in `verify_badges.py` (strict scheme+hostname allowlist);
-  12 medium-severity missing-workflow-permissions alerts resolved across
-  `ci.yml`, `lint.yml`, `performance.yml`, `release.yml`, `security.yml`
-  (job-level `permissions:` blocks added to all jobs)
-- ~~PR #106~~ **Dependency update** — `actions/upload-artifact` v6→v7,
-  `actions/download-artifact` v7→v8 across all workflows
+- ~~PR #115~~ **CI badges + mypy** — test matrix badges, mypy consistency fix, CodeQL concurrency
+- ~~PR #114~~ **Fuzzy matching + CI consolidation** — fallback fix, pipeline cleanup
+- ~~PR #113~~ **Audit improvements** — dead code removal, plugin CLI, test coverage
+- ~~PR #108~~ **CodeQL security fixes** — 3 high-severity URL sanitization alerts resolved;
+  12 medium-severity missing-workflow-permissions alerts resolved
+- ~~PR #106~~ **Dependency update** — `actions/upload-artifact` v6→v7, `actions/download-artifact` v7→v8
 
 ### Previous Completions (v0.9.0)
 
 - ~~P10~~ **Async Homebrew wiring** — `check_brew_install_candidates()` and
   `check_brew_update_candidates()` now route through async Homebrew API by
-  default; deadlock bug in `async_check_brew_update_candidates` fixed;
-  automatic sync fallback on error; `get_casks_with_auto_updates()` deferred
-  to v0.10.x (no async equivalent yet)
+  default; deadlock bug in `async_check_brew_update_candidates` fixed
 - ~~P17~~ **Test coverage push** — 77 new handler/utility tests; coverage
   61% → 78%; non-public modules excluded from metrics
 - ~~P9~~ **Config split** — extracted `ConfigLoader` class with static methods
-  for file I/O, env-var loading, brew detection, save, and
-  generate_default_config; `Config` simplified to data container + accessors
-- ~~P15~~ **Test coverage improvement** — 122 new tests:
-  - `apps/matcher.py`: 54% → 98%
-  - `apps/finder.py`: 68% → 78%
-  - `config.py`: 43% → 68%
+  for file I/O, env-var loading, brew detection, save, and generate_default_config
+- ~~P15~~ **Test coverage improvement** — 122 new tests (matcher 98%, finder 78%, config 68%)
 - ~~P1–P8, P11–P14~~ All completed in v0.8.2 (module migration, dead code removal, security fixes)
 
 ---
 
-## Active Work — Prioritised Fix List
+## Active Work — Stabilisation Cycle (v0.9.x → v1.0)
 
-> Issues are ordered by impact. Work top-to-bottom.
+> Objective: make the project operationally consistent before adding features.
+> Work P0→P5 in order. Do not start P3/P4 before P0/P1 are stable.
 
-### 🟢 P16 — Low: Remaining 16 Skipped Tests
+### 🔴 P0 — Homebrew command execution contract
+
+**Problem**: `get_all_homebrew_casks()` builds a command using shell substitution
+(`$(ls $(brew --repository)/...)`), but `run_command` executes with `shell=False` via
+`shlex.split`. The substitution is never evaluated.
+Also: `is_homebrew_available()` uses bare `"brew"` instead of the configured path.
+
+**Files**: `versiontracker/homebrew.py`, `tests/test_homebrew_advanced.py`
+
+- [ ] Replace shell-substitution command with `brew info --json=v2 --eval-all --cask`
+- [ ] Use `run_command_secure()` (argv list) in `get_all_homebrew_casks()`
+- [ ] Fix `is_homebrew_available()` to use configured brew path
+- [ ] Update tests to assert exact command/argv shape
+
+**Verify**: `pytest -q tests/test_homebrew_advanced.py tests/test_homebrew.py`
+
+---
+
+### 🔴 P1 — Progress flag canonicalisation
+
+**Problem**: `--no-progress` is stored in inconsistent config locations.
+`setup_handlers.py` writes to `_config["ui"]["show_progress"]` but
+`Config.show_progress` is derived from `_config["no_progress"]` — the write
+has no effect. `outdated_handlers.py` calls `config.set("show_progress", False)`
+which is also a dead key.
+
+**Files**: `versiontracker/handlers/setup_handlers.py`,
+`versiontracker/handlers/outdated_handlers.py`
+
+- [ ] `setup_handlers.py`: replace `_config["ui"]["show_progress"]` mutation with `config.set("no_progress", True)`
+- [ ] `setup_handlers.py`: replace other `_config[...]` mutations with `config.set()` calls
+- [ ] `outdated_handlers.py`: remove dead `config.set("show_progress", False)` call
+- [ ] Regression tests for `--no-progress` across `--apps` and `--outdated`
+
+**Verify**: `pytest -q tests/handlers/test_setup_handlers.py tests/test_outdated_handlers.py tests/test_cli.py`
+
+---
+
+### 🟡 P2 — CLI/handler option drift
+
+**Problem**: Some handler branches access `options` attributes not backed by the
+parser (e.g., `options.output_file`, `options.notify`). Currently guarded by
+`hasattr`, so they don't crash, but are dead paths.
+
+**Files**: `versiontracker/cli.py`, `versiontracker/handlers/outdated_handlers.py`
+
+- [ ] Audit every `options.<name>` in handlers and `__main__.py`
+- [ ] For each ungated access: add parser argument or remove the branch
+- [ ] For each `hasattr`-gated dead path: evaluate adding to CLI or removing
+- [ ] Update help text to reflect actual CLI surface
+
+**Verify**: `pytest -q tests/test_cli.py tests/test_main.py tests/test_outdated_handlers.py`
+
+---
+
+### 🟡 P3 — Import-time side effects (defer until P0/P1 stable)
+
+**Problem**: Config singleton creation at import time triggers Homebrew detection
+and env inspection before CLI args are parsed.
+
+**Files**: `versiontracker/config.py`, `versiontracker/__main__.py`
+
+- [ ] Delay expensive config initialisation until CLI startup
+- [ ] Minimise subprocess/filesystem work at import time
+
+**Verify**: `pytest -q tests/test_config.py tests/test_main.py tests/test_integration.py`
+
+---
+
+### 🟡 P4 — Exception narrowing
+
+**Problem**: Broad `except Exception` blocks in core modules mask root causes.
+
+**Files** (start here): `versiontracker/homebrew.py`, `versiontracker/apps/finder.py`,
+`versiontracker/__main__.py`, `versiontracker/handlers/setup_handlers.py`,
+`versiontracker/handlers/outdated_handlers.py`
+
+- [ ] Replace broad `except Exception` with specific exception types where feasible
+- [ ] Preserve diagnostic detail in logs
+- [ ] Cover expected failure classes in tests
+
+**Verify**: `pytest -q tests/test_homebrew_advanced.py tests/test_outdated_handlers.py tests/test_integration.py`
+
+---
+
+### 🟢 P5 — Documentation alignment
+
+**Problem**: README presents project as more mature than current code supports.
+
+- [ ] Replace inflated maturity language with accurate beta/stabilisation wording
+- [ ] Ensure CHANGELOG reflects any user-visible behaviour changes from P0–P4
+- [ ] Remove `PROJECT_REVIEW.md` from repo root after stabilisation completes
+
+---
+
+### 🟢 P16 — Remaining 16 skipped tests (low priority)
 
 | File | Count | Root Cause | Action |
 |---|---|---|---|
 | `test_ui.py` | 12 | Environment-specific terminal/colour | Leave as-is |
-| `test_platform_compatibility.py` | 2 | macOS-only / non-macOS guards | Leave as-is |
-| `test_ui_new.py` | 1 | Environment-specific colour handling | Leave as-is |
+| `test_platform_compatibility.py` | 2 | macOS-only guards | Leave as-is |
+| `test_ui_new.py` | 1 | Environment-specific colour | Leave as-is |
 | `test_apps_extra.py` | 1 | Complex mocking requirements | Consider fixing |
-
-All skips are environment-specific or CI-specific — no action needed for most.
 
 ---
 
@@ -72,7 +159,7 @@ All skips are environment-specific or CI-specific — no action needed for most.
 
 ---
 
-## Future Enhancements
+## Future Enhancements (post-stabilisation)
 
 ### Extended Package Manager Support
 
@@ -102,6 +189,7 @@ All skips are environment-specific or CI-specific — no action needed for most.
 - [ ] Enhance ML-powered recommendations with user feedback loop
 - [ ] Usage pattern analysis for personalised suggestions
 - [ ] Confidence scoring improvements for app-cask matching
+- [ ] Async wiring for `get_casks_with_auto_updates()` (deferred from P10)
 
 ---
 
@@ -121,7 +209,7 @@ For detailed strategic planning see `docs/future_roadmap.md`.
 ### Advanced Contributions
 
 - MacPorts integration
-- Async wiring for `get_casks_with_auto_updates()` (deferred from P10)
+- P3: Lazy config initialisation
 
 ---
 

@@ -33,8 +33,7 @@ class TestUpdateConfigFromOptions:
 
         _update_config_from_options(options)
 
-        mock_config.set.assert_any_call("no_progress", True)
-        mock_config.set.assert_any_call("show_progress", False)
+        mock_config.set.assert_called_once_with("no_progress", True)
 
     @patch("versiontracker.handlers.outdated_handlers.get_config")
     def test_update_config_with_no_progress_false(self, mock_get_config):
@@ -209,7 +208,7 @@ class TestFilterApplications:
         """Test handling error during filtering."""
         apps = [("App1", "1.0"), ("App2", "2.0")]
         brews = ["app1"]
-        mock_filter.side_effect = Exception("Filter error")
+        mock_filter.side_effect = ValueError("Filter error")
         mock_progress.return_value.color.return_value = lambda x: x
 
         result = _filter_applications(apps, brews, include_brews=False)

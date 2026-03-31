@@ -54,7 +54,6 @@ def _update_config_from_options(options: Any) -> None:
         config = get_config()
         if hasattr(config, "set"):
             config.set("no_progress", True)
-            config.set("show_progress", False)
 
 
 def _get_installed_applications() -> list[tuple[str, str]]:
@@ -109,7 +108,7 @@ def _filter_applications(apps: list[tuple[str, str]], brews: list[str], include_
     if not include_brews:
         try:
             return filter_out_brews(apps, brews)
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             print(create_progress_bar().color("yellow")(f"Warning: Error filtering applications: {e}"))
             print(create_progress_bar().color("yellow")("Proceeding with all applications."))
     return apps
