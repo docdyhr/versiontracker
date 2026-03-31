@@ -927,17 +927,21 @@ def check_dependencies() -> bool:
     return True
 
 
-# Global configuration instance - we create a default instance that can be
-# replaced by any module that needs a custom configuration
-_config_instance = Config()
+# Global configuration instance — created lazily on first call to get_config()
+# so that subprocess/filesystem work (brew detection, config file loading) is
+# deferred until runtime rather than triggered at import time.
+_config_instance: "Config | None" = None
 
 
-def get_config() -> Config:
-    """Get the global configuration instance.
+def get_config() -> "Config":
+    """Get the global configuration instance, creating it lazily if needed.
 
     Returns:
         The global configuration instance.
     """
+    global _config_instance
+    if _config_instance is None:
+        _config_instance = Config()
     return _config_instance
 
 
