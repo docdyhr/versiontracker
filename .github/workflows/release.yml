@@ -259,6 +259,8 @@ jobs:
           needs.validate-release.outputs.is_prerelease == 'false' &&
           needs.validate-release.outputs.publish_target == 'pypi'
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
 
       - name: Wait for package availability
         run: |
