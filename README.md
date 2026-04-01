@@ -6,8 +6,8 @@
 
 ## macOS Application Version Manager
 
-[![Project Grade](https://img.shields.io/badge/Grade-B-blue?style=for-the-badge&logo=gradle&logoColor=white)](TODO.md)
-[![Status](https://img.shields.io/badge/Status-Beta%20%E2%80%94%20Stabilising-orange?style=for-the-badge&logo=checkmarx&logoColor=white)](TODO.md)
+[![Project Grade](https://img.shields.io/badge/Grade-A-brightgreen?style=for-the-badge&logo=gradle&logoColor=white)](TODO.md)
+[![Status](https://img.shields.io/badge/Status-Production%2FStable-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](https://github.com/docdyhr/versiontracker/releases/latest)
 
 </div>
 
@@ -36,7 +36,7 @@
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
 [![Test Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-2%2C173%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-2%2C194%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
@@ -71,12 +71,12 @@
 ---
 
 * Name: Versiontracker
-* Version: 0.9.0
+* Version: 1.0.0
 * Programming language: Python 3.12+
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
-* Release date: 21. Feb 2022 (Updated: March 2026)
-* Code Quality: **~78% overall test coverage with 2,173+ passing tests**,
+* Release date: 21. Feb 2022 (Updated: April 2026)
+* Code Quality: **70%+ overall test coverage with 2,194+ passing tests**,
   **all previously identified high & medium complexity issues resolved**
 
 ## Quick Start
@@ -104,9 +104,8 @@ versiontracker --help
 ## Overview
 
 Versiontracker is a command-line tool for macOS that helps you manage applications
-installed outside of the App Store. Currently in active stabilisation (v0.9.x → v1.0):
-core CLI/config/Homebrew paths are being made operationally consistent before the v1.0 release.
-See [TODO.md](TODO.md) for the current stabilisation roadmap.
+installed outside of the App Store. v1.0.0 is the first production-stable release —
+core CLI, config, and Homebrew integration are fully operational.
 
 It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed
 using Homebrew casks, making it easier to keep your applications up to date.
@@ -590,24 +589,22 @@ VersionTracker intentionally uses a heavy mocking approach to:
 
 Current Coverage Profile:
 
-* Reported line coverage: ≈10–11%
-* Effective logical path coverage for core decision branches: substantially higher (most comparison and
-  matching branches exercised)
-* High mock call volume (5,000+ patched interactions) reduces counted executable lines while still validating behavior
+* Reported line coverage: ≈70%+ overall
+* Core modules (matcher, finder, config) have 78–98% coverage
+* High mock call volume for platform/network code paths ensures behavioral correctness without requiring macOS-specific execution
 
-Why Coverage Is Not Higher:
+Why Some Coverage Is Lower:
 
-* Many modules rely on guarded platform / network code paths that are mocked out
-* Async and I/O heavy branches prefer behavioral contract tests instead of executing real subprocess or network calls
-* Legacy compatibility layers (fallback logic) are thin wrappers rarely worth direct line coverage
+* Platform / network code paths are mocked out in CI for portability
+* Async and I/O heavy branches use behavioral contract tests instead of real subprocess/network calls
+* Legacy compatibility adapters are thin wrappers at the CLI/config boundary
 
 Planned Improvements:
 
 * Add end-to-end integration tests for: discovery → recommendation → outdated flow
 * Introduce cold vs warm cache performance validation tests
 * Add semantic regression test matrix for prerelease/build metadata edge cases
-* Incremental async Homebrew operations tests once migration begins
-* Raise coverage target after integration suite (goal: 25–30% meaningful executable coverage with higher branch coverage)
+* Raise coverage to 85%+ across all core modules
 
 Quality Guarantees Beyond Coverage:
 
@@ -645,34 +642,34 @@ be managed through Homebrew.
 
 ## Project Status
 
-VersionTracker has completed major technical debt cleanup and is now production-ready.
-All critical and medium-priority complexity issues have been resolved. Key completed improvements include:
+VersionTracker v1.0.0 is production-stable. All critical technical debt has been resolved
+and the tool is fully operational on macOS. Key highlights:
 
-* **Complete Code Complexity Resolution**: All 10 high & medium-priority complex functions refactored
-* Refactored the codebase to follow the command pattern with dedicated handlers
-* Improved project structure with better module separation
-* Enhanced error handling with custom exceptions and proper type hints
-* Added support for smart progress indicators and adaptive rate limiting
-* Moved handler functions to a dedicated `handlers/` directory
-* **70%+ test coverage** with 950+ passing tests and 0 failing tests
+* **v1.0.0 released** — available on PyPI (`pip install macversiontracker`) and Homebrew
+* **70%+ test coverage** with 2,194+ passing tests and 0 failing tests
 * **Zero high-severity security vulnerabilities**
+* **Complete complexity resolution**: all high & medium-priority complex functions refactored
+* **Async Homebrew API**: install and update candidate checks use async operations by default
+* **Modular architecture**: dedicated `handlers/`, `version/`, and `apps/` subpackages
+* **Lazy config initialisation**: no subprocess on import — fast startup
+* **Signed release artifacts**: distributions signed with Sigstore via GitHub OIDC
 
-## Recent Major Achievements
+## Recent Major Achievements (v1.0.0)
 
-* **Technical Debt Elimination**: Reduced function complexity by 60-90% across 10 critical functions
-* **Type Safety**: All type checking passes with proper None handling and NoReturn annotations
-* Improved test coverage with parameterized tests for version comparison
-* Created a mock server for network operation testing with simulated failures
-* Implemented an advanced caching mechanism for Homebrew queries
-* Added request batching to reduce network calls
-* Enhanced error handling for network operations with focused helper functions
+* **Production release**: first stable PyPI and Homebrew release with Trusted Publisher OIDC signing
+* **Thread-safety fix**: resolved `patch("builtins.print")` race condition in concurrent tests
+  that polluted the full test suite
+* **Async deadlock fix**: `async_to_sync` decorator usage audited; `process_all_async()` used in async contexts
+* **ConfigLoader extraction**: file I/O, env-var loading, and brew detection separated from `Config` data class
+* **Module migration complete**: deleted `version_legacy.py` (−2,110 lines) and `app_finder.py` (−1,579 lines)
+* **CI/CD pipeline hardened**: CodeQL, Sigstore signing, Trusted Publisher PyPI, Homebrew tap formula test
 
 ## Planned Improvements
 
 * Add more package managers support (MacPorts, etc.)
 * Implement automatic update capabilities for Homebrew-manageable applications
-* Explore using `asyncio` for network operations
 * Add GUI interface
+* Raise test coverage to 85%+ across all core modules
 
 ## License
 
