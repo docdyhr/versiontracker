@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-01
+
+### Fixed
+- **CI: sigstore action version** (`@v3` → `@v3.3.0`): the `@v3` tag does not exist in
+  `sigstore/gh-action-sigstore-python`; updated to the latest available tag so the
+  Sign and Attach to GitHub Release job no longer fails (#127)
+- **CI: production PyPI publish step** now includes `skip-existing: true`, matching the
+  TestPyPI step — prevents `400 Bad Request` errors when re-running the Release
+  workflow for a version already on PyPI (#128)
+
+### Security
+- **`black` dev dependency** bumped `>=24.0` → `>=26.3.1` (CVE-2026-32274): Black
+  <26.3.1 writes cache files to attacker-controlled paths when `--python-cell-magics`
+  is passed with untrusted input (#129)
+
 ## [1.0.0] - 2026-03-31
 
 ### Fixed
