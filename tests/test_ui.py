@@ -119,18 +119,14 @@ class TestTerminalOutput:
         "print_func",
         [print_success, print_info, print_warning, print_error, print_debug],
     )
-    @pytest.mark.skip(reason="Environment-specific print behavior varies between local and CI")
-    def test_print_functions_fallback(self, print_func, capsys, monkeypatch):
+    def test_print_functions_fallback(self, print_func, capsys):
         """Test print functions when termcolor is not available."""
         message = "test message"
 
-        # Mock both HAS_TERMCOLOR and replace cprint with regular print
-        monkeypatch.setattr("versiontracker.ui.HAS_TERMCOLOR", False)
-        monkeypatch.setattr("versiontracker.ui.cprint", print)
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
+            print_func(message)
 
-        print_func(message)
         captured = capsys.readouterr()
-        # More specific assertion - should be exact message with newline
         assert captured.out == f"{message}\n"
         assert captured.err == ""
 
@@ -143,59 +139,30 @@ class TestTerminalOutput:
             "x" * 100,  # Long message
         ],
     )
-    @pytest.mark.skip(reason="Edge case terminal output capture varies between Python versions and CI environments")
-    def test_print_functions_edge_cases(self, message, capsys, monkeypatch):
+    def test_print_functions_edge_cases(self, message, capsys):
         """Test print functions with edge case inputs."""
-        # Test with termcolor disabled
-        monkeypatch.setattr("versiontracker.ui.HAS_TERMCOLOR", False)
-        monkeypatch.setattr("versiontracker.ui.cprint", print)
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
+            print_success(message)
 
-        # Test should not raise exceptions
-        print_success(message)
         captured = capsys.readouterr()
-        # When termcolor is not available, should use regular print
         assert message in captured.out
 
-    @pytest.mark.skip(reason="Environment-specific color handling varies between local and CI")
     def test_colored_fallback(self):
-        """Test colored function fallback."""
-        # This test is environment-dependent and can vary between local and CI
+        """Test colored returns a string containing the original text regardless of termcolor availability."""
         import versiontracker.ui as ui
 
+        # Whether termcolor is installed or not, the text must appear in the result
         result = ui.colored("test", "red")
-        # In fallback mode, should return text without color codes
-        assert "test" in result  # More flexible assertion
+        assert "test" in result
 
-    @pytest.mark.skip(reason="Test has intermittent failures due to test state pollution in full suite context")
-    def test_cprint_fallback(self, capsys, monkeypatch):
-        """Test cprint function fallback."""
+    def test_cprint_fallback(self, capsys):
+        """Test cprint outputs text to stdout regardless of termcolor availability."""
         import versiontracker.ui as ui
 
-        # Create a simple fallback that always prints to stdout
-        def test_fallback_cprint(text, color=None, **kwargs):
-            # Always print regardless of color, simulating fallback behavior
-            print(str(text), **kwargs)
-
-        # Set up monkeypatching - force fallback behavior
-        monkeypatch.setattr("versiontracker.ui.HAS_TERMCOLOR", False)
-
-        # Clear any captured output before our test
-        capsys.readouterr()
-
-        # Test the fallback behavior by calling cprint when HAS_TERMCOLOR is False
-        # When HAS_TERMCOLOR is False, the ui module should use its fallback implementation
-        if hasattr(ui, "cprint"):
-            # Call the existing cprint function - it should handle the fallback internally
-            ui.cprint("test", "red")
-        else:
-            # If cprint doesn't exist, use our test fallback
-            test_fallback_cprint("test", "red")
-
-        # Get the captured output
+        # Call cprint directly — termcolor's cprint also writes to stdout via print()
+        ui.cprint("test", "red")
         captured = capsys.readouterr()
-
-        # The output should contain "test" regardless of the exact format
-        assert "test" in captured.out, f"Expected 'test' in output but got {captured.out!r}"
+        assert "test" in captured.out
         assert captured.err == ""
 
     def test_color_constants_values(self):
@@ -222,35 +189,20 @@ class TestTerminalOutput:
                     # If it does raise, that's the current behavior - document it
                     pass
 
-    @pytest.mark.skip(reason="Test has intermittent failures due to test state pollution in full suite context")
-    def test_print_functions_with_file_kwarg(self, capsys, monkeypatch):
-        """Test print functions work with file kwarg."""
+    def test_print_functions_with_file_kwarg(self, capsys):
+        """Test that print functions honour the file= kwarg in fallback mode."""
+
         import versiontracker.ui as ui
 
         string_io = io.StringIO()
 
-        # Force fallback mode - when HAS_TERMCOLOR is False, functions use print()
-        monkeypatch.setattr("versiontracker.ui.HAS_TERMCOLOR", False)
-
-        # Clear any captured output before our test
-        capsys.readouterr()
-
-        # Test print_success with file redirection
-        # When HAS_TERMCOLOR is False, print_success should use built-in print()
-        try:
+        with patch("versiontracker.ui.HAS_TERMCOLOR", False):
             ui.print_success("test", file=string_io)
-        except Exception:
-            # If there's an issue with the UI function, fall back to direct test
-            print("test", file=string_io)
 
-        # Should not appear in stdout since we redirected to StringIO
+        # Output must land in the StringIO, not on stdout
+        assert "test" in string_io.getvalue()
         captured = capsys.readouterr()
-
-        # Should appear in our StringIO
-        result = string_io.getvalue()
-
-        # Validate output using helper method
-        self._assert_test_output_present(result, captured.out)
+        assert captured.out == ""
 
     def _assert_test_output_present(self, result: str, stdout_content: str) -> None:
         """Helper method to validate test output is present in expected

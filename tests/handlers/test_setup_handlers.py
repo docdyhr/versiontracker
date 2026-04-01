@@ -180,3 +180,69 @@ class TestSetupHandlers:
 
         # Assert
         assert mock_logging.basicConfig.call_count >= 1
+
+
+# ---------------------------------------------------------------------------
+# handle_initialize_config — config_file path and OSError fallback (lines 37, 39-41)
+# ---------------------------------------------------------------------------
+
+
+class TestHandleInitializeConfigBranches:
+    """Tests for uncovered branches in handle_initialize_config."""
+
+    @mock.patch("versiontracker.handlers.setup_handlers.Config")
+    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
+    def test_config_file_path_used_when_no_config_attr(self, mock_get_config, mock_Config):
+        """When get_config() has no _config, Config(config_file=...) is called."""
+        mock_cfg = mock.MagicMock(spec=[])  # no _config attribute
+        mock_get_config.return_value = mock_cfg
+        opts = mock.MagicMock()
+        opts.config = "/tmp/my.yaml"
+
+        handle_initialize_config(opts)
+
+        mock_Config.assert_called_once_with(config_file="/tmp/my.yaml")
+
+    @mock.patch("versiontracker.handlers.setup_handlers.Config")
+    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
+    def test_oserror_falls_back_to_default_config(self, mock_get_config, mock_Config):
+        """OSError during Config init triggers fallback Config() with no args."""
+        mock_cfg = mock.MagicMock(spec=[])  # no _config attribute
+        mock_get_config.return_value = mock_cfg
+        # First call raises OSError, second (fallback) succeeds
+        mock_Config.side_effect = [OSError("file not found"), mock.MagicMock()]
+        opts = mock.MagicMock()
+        opts.config = "/bad/path.yaml"
+
+        result = handle_initialize_config(opts)
+
+        assert result == 0
+        assert mock_Config.call_count == 2
+        # Fallback called with no arguments
+        mock_Config.assert_called_with()
+
+
+# ---------------------------------------------------------------------------
+# handle_setup_logging — error recovery path (line 105)
+# ---------------------------------------------------------------------------
+
+
+class TestHandleSetupLoggingErrorRecovery:
+    """Tests for the exception recovery path in handle_setup_logging."""
+
+    @mock.patch("versiontracker.handlers.setup_handlers.logging")
+    def test_logs_error_after_recovery(self, mock_logging):
+        """When basicConfig() raises, recovery succeeds and logs the original error."""
+        mock_logging.WARNING = 30
+        # First basicConfig call raises; second (recovery) succeeds
+        mock_logging.basicConfig.side_effect = [Exception("setup failed"), None]
+
+        opts = mock.MagicMock()
+        opts.debug = 0
+
+        handle_setup_logging(opts)
+
+        # Recovery basicConfig called
+        assert mock_logging.basicConfig.call_count == 2
+        # Error logged after recovery
+        mock_logging.error.assert_called_once()

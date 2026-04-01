@@ -1,5 +1,6 @@
 """Comprehensive tests for outdated_handlers module."""
 
+import unittest
 from unittest.mock import Mock, patch
 
 import pytest
@@ -13,6 +14,7 @@ from versiontracker.handlers.outdated_handlers import (
     _get_homebrew_casks,
     _get_installed_applications,
     _process_outdated_info,
+    _send_notification_if_available,
     _update_config_from_options,
     handle_outdated_check,
 )
@@ -885,3 +887,95 @@ class TestErrorHandling:
         result = handle_outdated_check(options)
 
         assert result == 1
+
+
+# ---------------------------------------------------------------------------
+# _send_notification_if_available — uncovered paths (lines 261-291)
+# ---------------------------------------------------------------------------
+
+
+class TestSendNotificationIfAvailable(unittest.TestCase):
+    """Tests for _send_notification_if_available() platform and availability paths."""
+
+    def _progress_bar_mock(self):
+        pb = Mock()
+        pb.color.return_value = lambda x: x
+        return pb
+
+    @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
+    @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", False)
+    def test_notifications_unavailable_prints_warning(self, mock_pb):
+        """When module not available, prints warning and returns early."""
+
+        mock_pb.return_value = self._progress_bar_mock()
+        with patch("builtins.print") as mock_print:
+            _send_notification_if_available([], {})
+        mock_print.assert_called_once()
+        call_text = str(mock_print.call_args)
+        assert "notification" in call_text.lower() or "available" in call_text.lower()
+
+    @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
+    @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", True)
+    @patch("versiontracker.handlers.outdated_handlers.sys")
+    def test_non_darwin_platform_prints_warning(self, mock_sys, mock_pb):
+        """On non-macOS platform, prints warning and returns early."""
+
+        mock_sys.platform = "linux"
+        mock_pb.return_value = self._progress_bar_mock()
+        with patch("builtins.print") as mock_print:
+            _send_notification_if_available([], {})
+        mock_print.assert_called_once()
+
+    @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
+    @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", True)
+    @patch("versiontracker.handlers.outdated_handlers.sys")
+    @patch("versiontracker.handlers.outdated_handlers.MacOSNotifications")
+    def test_outdated_status_filtered_and_notification_sent(self, mock_notify, mock_sys, mock_pb):
+        """Only 'outdated' status entries are included in the notification."""
+
+        mock_sys.platform = "darwin"
+        mock_pb.return_value = self._progress_bar_mock()
+        mock_notify.notify_outdated_apps.return_value = True
+
+        outdated_info = [
+            ("App1", {"installed": "1.0", "latest": "2.0"}, "outdated"),
+            ("App2", {"installed": "3.0", "latest": "3.0"}, "up-to-date"),
+        ]
+        with patch("builtins.print"):
+            _send_notification_if_available(outdated_info, {"outdated": 1})
+
+        mock_notify.notify_outdated_apps.assert_called_once()
+        sent_apps = mock_notify.notify_outdated_apps.call_args[0][0]
+        assert len(sent_apps) == 1
+        assert sent_apps[0]["name"] == "App1"
+
+    @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
+    @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", True)
+    @patch("versiontracker.handlers.outdated_handlers.sys")
+    @patch("versiontracker.handlers.outdated_handlers.MacOSNotifications")
+    def test_notification_failure_prints_warning(self, mock_notify, mock_sys, mock_pb):
+        """When notify_outdated_apps returns False, a warning is printed."""
+
+        mock_sys.platform = "darwin"
+        mock_pb.return_value = self._progress_bar_mock()
+        mock_notify.notify_outdated_apps.return_value = False
+
+        with patch("builtins.print") as mock_print:
+            _send_notification_if_available([("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")], {})
+        # Warning print should have been called
+        assert mock_print.call_count >= 1
+
+    @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
+    @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", True)
+    @patch("versiontracker.handlers.outdated_handlers.sys")
+    @patch("versiontracker.handlers.outdated_handlers.MacOSNotifications")
+    def test_notification_exception_handled(self, mock_notify, mock_sys, mock_pb):
+        """Exception during notification is caught and logged."""
+
+        mock_sys.platform = "darwin"
+        mock_pb.return_value = self._progress_bar_mock()
+        mock_notify.notify_outdated_apps.side_effect = RuntimeError("notification daemon unavailable")
+
+        with patch("builtins.print"), patch("versiontracker.handlers.outdated_handlers.logger") as mock_log:
+            _send_notification_if_available([("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")], {})
+        mock_log.error.assert_called_once()
