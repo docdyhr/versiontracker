@@ -74,11 +74,13 @@ jobs:
 
       - name: Test formula installation
         run: |
-          cd homebrew-tap
-          brew install --build-from-source "./${FORMULA_PATH}"
+          # Register the local clone as a tap before installing —
+          # Homebrew rejects formulae that aren't referenced via a tap.
+          brew tap docdyhr/homebrew-tap "$(pwd)/homebrew-tap"
+          brew install --build-from-source docdyhr/homebrew-tap/macversiontracker
           versiontracker --help
           versiontracker --version
-          brew uninstall macversiontracker || true
+          brew uninstall docdyhr/homebrew-tap/macversiontracker || true
 
       - name: Push updated formula to tap
         env:
