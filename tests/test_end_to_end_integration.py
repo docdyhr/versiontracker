@@ -28,6 +28,15 @@ pytestmark = pytest.mark.skipif(
 class TestEndToEndIntegration:
     """End-to-end integration tests for complete workflows."""
 
+    @pytest.fixture(autouse=True)
+    def clear_lru_caches(self):
+        """Clear lru_cache state between tests to prevent cross-test contamination."""
+        from versiontracker.apps.finder import clear_homebrew_casks_cache
+
+        clear_homebrew_casks_cache()
+        yield
+        clear_homebrew_casks_cache()
+
     @pytest.fixture
     def temp_config_dir(self):
         """Create temporary configuration directory."""
@@ -170,11 +179,17 @@ class TestEndToEndIntegration:
 
     def test_auto_updates_management_workflow(self, mock_homebrew_casks, mock_homebrew_available):
         """Test auto-updates management workflow."""
-        # Mock has_auto_updates to avoid real brew subprocess calls
+        # Patch get_homebrew_casks at the handler import site to avoid real brew calls
+        # and prevent lru_cache from returning stale data from other tests.
         with (
             mock.patch("builtins.input", return_value="y"),
             mock.patch("sys.argv", ["versiontracker", "--blacklist-auto-updates"]),
+            mock.patch(
+                "versiontracker.handlers.auto_update_handlers.get_homebrew_casks",
+                return_value=["firefox", "google-chrome"],
+            ),
             mock.patch("versiontracker.homebrew.has_auto_updates", return_value=True),
+            mock.patch("versiontracker.homebrew.get_casks_with_auto_updates", return_value=[]),
         ):
             result = versiontracker_main()
 
