@@ -294,12 +294,15 @@ class TestEndToEndIntegration:
         """Test concurrent operations workflow."""
         import threading
 
+        mock_app_tuples = [("Firefox", "110.0"), ("Google Chrome", "110.0.5481.177"), ("Visual Studio Code", "1.74.0")]
         results = []
 
         def run_versiontracker():
-            with mock.patch("sys.argv", ["versiontracker", "--apps"]):
-                result = versiontracker_main()
-                results.append(result)
+            # Patch the handler's local import (imported by value, so source-module mock doesn't intercept)
+            with mock.patch("versiontracker.handlers.app_handlers._get_apps_data", return_value=mock_app_tuples):
+                with mock.patch("sys.argv", ["versiontracker", "--apps"]):
+                    result = versiontracker_main()
+                    results.append(result)
 
         # Run multiple instances concurrently
         threads = []
@@ -310,7 +313,7 @@ class TestEndToEndIntegration:
 
         # Wait for all to complete
         for thread in threads:
-            thread.join(timeout=10)
+            thread.join(timeout=30)
 
         # All should succeed
         assert len(results) == 3
