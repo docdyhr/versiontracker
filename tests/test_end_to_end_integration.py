@@ -197,12 +197,20 @@ class TestEndToEndIntegration:
 
     def test_outdated_applications_workflow(self, mock_applications, mock_homebrew_available):
         """Test outdated applications detection workflow."""
-        # Mock the check_outdated_apps function called inside the handler path
-        # to avoid real subprocess/Homebrew calls that would timeout.
-        mock_outdated = [
-            ("Firefox", "109.0", "110.0"),
-        ]
+        mock_outdated = [("Firefox", "109.0", "110.0")]
+        mock_app_tuples = [("Firefox", "110.0"), ("Visual Studio Code", "1.74.0")]
+        # The handler calls _get_apps_data() and _get_homebrew_casks() before reaching
+        # check_outdated_apps — mock them at the handler's local import level to prevent
+        # real system_profiler / brew subprocess calls regardless of test order.
         with (
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._get_installed_applications",
+                return_value=mock_app_tuples,
+            ),
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._get_homebrew_casks",
+                return_value=["firefox", "visual-studio-code"],
+            ),
             mock.patch(
                 "versiontracker.handlers.outdated_handlers.check_outdated_apps",
                 return_value=mock_outdated,
@@ -298,22 +306,22 @@ class TestEndToEndIntegration:
         results = []
 
         def run_versiontracker():
-            # Patch the handler's local import (imported by value, so source-module mock doesn't intercept)
-            with mock.patch("versiontracker.handlers.app_handlers._get_apps_data", return_value=mock_app_tuples):
-                with mock.patch("sys.argv", ["versiontracker", "--apps"]):
-                    result = versiontracker_main()
-                    results.append(result)
+            with mock.patch("sys.argv", ["versiontracker", "--apps"]):
+                result = versiontracker_main()
+                results.append(result)
 
-        # Run multiple instances concurrently
-        threads = []
-        for _ in range(3):
-            thread = threading.Thread(target=run_versiontracker)
-            threads.append(thread)
-            thread.start()
+        # Patch _get_apps_data once outside threads — mock.patch is not thread-safe;
+        # patching the same attribute from multiple threads simultaneously corrupts the
+        # save/restore chain and leaves the mock live after the test exits.
+        with mock.patch("versiontracker.handlers.app_handlers._get_apps_data", return_value=mock_app_tuples):
+            threads = []
+            for _ in range(3):
+                thread = threading.Thread(target=run_versiontracker)
+                threads.append(thread)
+                thread.start()
 
-        # Wait for all to complete
-        for thread in threads:
-            thread.join(timeout=30)
+            for thread in threads:
+                thread.join(timeout=30)
 
         # All should succeed
         assert len(results) == 3
