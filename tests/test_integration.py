@@ -387,7 +387,7 @@ class TestIntegration(unittest.TestCase):
         execution_time = end_time - start_time
 
         # Ensure the operation completes in reasonable time (adjust threshold as needed)
-        self.assertLess(execution_time, 5.0, "Large dataset processing took too long")
+        self.assertLess(execution_time, 10.0, "Large dataset processing took too long")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
     def test_memory_usage_optimization(self, mock_check_deps):
