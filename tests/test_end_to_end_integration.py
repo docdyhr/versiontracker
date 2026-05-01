@@ -304,16 +304,23 @@ class TestEndToEndIntegration:
 
         mock_app_tuples = [("Firefox", "110.0"), ("Google Chrome", "110.0.5481.177"), ("Visual Studio Code", "1.74.0")]
         results = []
+        errors = []
 
         def run_versiontracker():
-            with mock.patch("sys.argv", ["versiontracker", "--apps"]):
+            try:
                 result = versiontracker_main()
                 results.append(result)
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
 
-        # Patch _get_apps_data once outside threads — mock.patch is not thread-safe;
-        # patching the same attribute from multiple threads simultaneously corrupts the
-        # save/restore chain and leaves the mock live after the test exits.
-        with mock.patch("versiontracker.handlers.app_handlers._get_apps_data", return_value=mock_app_tuples):
+        # Patch sys.argv and _get_apps_data once outside threads — mock.patch is not
+        # thread-safe; patching from multiple threads simultaneously corrupts the
+        # save/restore chain and can expose the real pytest argv to versiontracker_main(),
+        # causing argparse to reject the test arguments as unrecognized.
+        with (
+            mock.patch("sys.argv", ["versiontracker", "--apps"]),
+            mock.patch("versiontracker.handlers.app_handlers._get_apps_data", return_value=mock_app_tuples),
+        ):
             threads = []
             for _ in range(3):
                 thread = threading.Thread(target=run_versiontracker)
@@ -322,8 +329,9 @@ class TestEndToEndIntegration:
 
             for thread in threads:
                 thread.join(timeout=30)
+                assert not thread.is_alive(), "Thread timed out after 30 seconds"
 
-        # All should succeed
+        assert not errors, f"Thread(s) raised exceptions: {errors}"
         assert len(results) == 3
         assert all(result == 0 for result in results)
 
