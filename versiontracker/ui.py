@@ -142,8 +142,8 @@ except ImportError:
     # Fallback implementation if termcolor is not available
     def colored(
         text: object,
-        color: str | None = None,
-        on_color: str | None = None,
+        color: str | tuple[int, int, int] | None = None,
+        on_color: str | tuple[int, int, int] | None = None,
         attrs: Iterable[str] | None = None,
         *,
         no_color: bool | None = None,
@@ -169,8 +169,8 @@ except ImportError:
 
     def cprint(
         text: object,
-        color: str | None = None,
-        on_color: str | None = None,
+        color: str | tuple[int, int, int] | None = None,
+        on_color: str | tuple[int, int, int] | None = None,
         attrs: Iterable[str] | None = None,
         *,
         no_color: bool | None = None,
@@ -359,14 +359,17 @@ def create_progress_bar() -> SmartProgress[Any]:
     return SmartProgress()
 
 
+_T = TypeVar("_T")
+
+
 # Enhanced version of tqdm with smart capabilities
-def smart_progress[T](
-    iterable: Iterable[T] | None = None,
+def smart_progress(  # noqa: UP047 — pydocstyle 6.3.0 cannot parse PEP 695 [T] syntax
+    iterable: Iterable[_T] | None = None,
     desc: str = "",
     total: int | None = None,
     monitor_resources: bool = True,
     **kwargs: Any,
-) -> Iterator[T]:
+) -> Iterator[_T]:
     """Create a smart progress bar.
 
     Args:
