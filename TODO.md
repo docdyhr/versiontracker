@@ -1,12 +1,12 @@
 # VersionTracker TODO
 
-## Current Status (March 2026)
+## Current Status (May 2026)
 
 ### Project Health
 
-- **Version**: 1.0.0 (stable)
-- **Tests**: 2,158 passing, 15 skipped
-- **Coverage**: ~78% overall
+- **Version**: 1.0.1 (stable)
+- **Tests**: 2,338 passing, 16 skipped
+- **Coverage**: ~78% overall (target: 85%)
 - **CI/CD**: All workflows passing on master (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
 - **Security**: 0 dependabot alerts, 0 secret scanning alerts, 0 CodeQL findings
@@ -16,6 +16,8 @@
 
 ### Recent Completions
 
+- ~~PR #145~~ **Dependency hygiene** — declared `termcolor` core dep, synced all
+  requirements files with `pyproject.toml`, fixed mypy type signatures in `ui.py`
 - ~~PR #118~~ **Dependency update** — `codecov/codecov-action` v5→v6
 - ~~PR #117~~ **Stabilisation P0–P5** — Homebrew cmd fix, progress config canonicalisation,
   CLI/handler drift, exception narrowing, README/TODO alignment
@@ -173,5 +175,5 @@ For detailed strategic planning see `docs/future_roadmap.md`.
 
 ---
 
-**Last Updated**: March 2026
+**Last Updated**: May 2026
 **Maintainer**: @docdyhr

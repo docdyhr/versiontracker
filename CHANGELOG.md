@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Declared `termcolor` as a core dependency** (`>=3.3.0`): `versiontracker/ui.py`
+  imported `termcolor` with a graceful fallback but the package was never listed in
+  `pyproject.toml`, so `pip install macversiontracker` would silently skip it and
+  users would always get the colourless fallback (#145)
+- **Fallback `colored`/`cprint` type signatures** now include `tuple[int, int, int]`
+  for `color`/`on_color` parameters, matching termcolor's actual stubs — fixes two
+  mypy `[misc]` errors surfaced once the package gained type-stub resolution (#145)
+- **`smart_progress` generic syntax**: converted from PEP 695 `[T]` to classic
+  `TypeVar` + `# noqa: UP047` — pydocstyle 6.3.0 cannot parse the newer form and
+  raised a spurious D103 missing-docstring warning (#145)
+
+### Changed
+- **`requirements.txt`**: raised `aiohttp` floor from `>=3.9.0` to `>=3.13.4`; added
+  `termcolor>=3.3.0` — now matches `[project.dependencies]` in `pyproject.toml` (#145)
+- **`requirements-dev.txt`**: synced all version floors with `pyproject.toml`
+  (`pytest`, `pytest-asyncio`, `pytest-mock`, `black`, `ruff`, `mypy`, `types-PyYAML`,
+  `bandit`, `pip-audit`, `build`, `wheel`, `twine` were all behind) (#145)
+- **`requirements-py313.txt`**: synced version floors, marked optional deps
+  (`fuzzywuzzy`, `rapidfuzz`) with comments, updated date stamp (#145)
+
 ## [1.0.1] - 2026-04-01
 
 ### Fixed
