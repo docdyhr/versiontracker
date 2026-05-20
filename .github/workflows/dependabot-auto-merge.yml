@@ -1,116 +1,14 @@
-name: Dependabot Auto-merge
-
+name: Claude Dependabot Auto-Merge
+# Migrated from inline blob (dependabot/fetch-metadata@v3) to reusable caller.
+# Claude Code reviews and merges eligible Dependabot PRs on schedule.
 on:
-  pull_request_target:
-    types: [labeled, unlabeled, synchronize, opened, edited, ready_for_review]
-
-permissions:
-  contents: write
-  pull-requests: write
-  checks: read
-
+  schedule:
+    - cron: "0 6 * * 0" # Sunday 06:00 UTC
+  workflow_dispatch:
 jobs:
-  dependabot-auto-merge:
-    runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' }}
-
-    steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v3
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Auto-merge Dependabot PRs
-        if: |
-          (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-           steps.metadata.outputs.update-type == 'version-update:semver-minor') &&
-          (contains(steps.metadata.outputs.dependency-names, 'pytest') ||
-           contains(steps.metadata.outputs.dependency-names, 'black') ||
-           contains(steps.metadata.outputs.dependency-names, 'ruff') ||
-           contains(steps.metadata.outputs.dependency-names, 'mypy') ||
-           contains(steps.metadata.outputs.dependency-names, 'bandit') ||
-           contains(steps.metadata.outputs.dependency-names, 'safety') ||
-           contains(steps.metadata.outputs.dependency-names, 'pip-audit') ||
-           contains(steps.metadata.outputs.dependency-names, 'pre-commit') ||
-           contains(steps.metadata.outputs.dependency-names, 'tqdm') ||
-           contains(steps.metadata.outputs.dependency-names, 'pyyaml') ||
-           contains(steps.metadata.outputs.dependency-names, 'tabulate') ||
-           contains(steps.metadata.outputs.dependency-names, 'psutil') ||
-           contains(steps.metadata.outputs.dependency-names, 'aiohttp') ||
-           contains(steps.metadata.outputs.dependency-names, 'rapidfuzz'))
-        run: |
-          echo "Auto-merging Dependabot PR for safe dependency update"
-          gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  security-auto-merge:
-    runs-on: ubuntu-latest
-    if: |
-      github.actor == 'dependabot[bot]' &&
-      contains(github.event.pull_request.labels.*.name, 'dependencies') &&
-      contains(github.event.pull_request.labels.*.name, 'security')
-
-    steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@v3
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-
-      - name: Wait for CI checks to complete
-        run: |
-          echo "Waiting for required checks to pass..."
-          MAX_ATTEMPTS=60
-          SLEEP_SECONDS=30
-
-          for i in $(seq 1 "$MAX_ATTEMPTS"); do
-            # gh pr checks exits non-zero if any check failed
-            if gh pr checks "$PR_URL" --watch --fail-fast 2>/dev/null; then
-              echo "All checks passed!"
-              break
-            fi
-
-            EXIT_CODE=$?
-            # Exit code 1 = checks failed, don't retry
-            if [ "$EXIT_CODE" -eq 1 ]; then
-              echo "::error::Some checks failed — aborting auto-merge"
-              gh pr checks "$PR_URL" 2>&1 || true
-              exit 1
-            fi
-
-            # Other exit codes (e.g. checks not yet created) — wait and retry
-            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
-              echo "::error::Timed out waiting for checks after $((MAX_ATTEMPTS * SLEEP_SECONDS))s"
-              exit 1
-            fi
-            echo "Checks not yet available (attempt $i/$MAX_ATTEMPTS), retrying in ${SLEEP_SECONDS}s..."
-            sleep "$SLEEP_SECONDS"
-          done
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Auto-merge security updates
-        run: |
-          echo "Auto-merging Dependabot security update after CI passes"
-          gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  notification:
-    runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' && failure() }}
-    needs: [dependabot-auto-merge, security-auto-merge]
-
-    steps:
-      - name: Notify on failure
-        run: |
-          echo "::warning::Dependabot auto-merge failed. Manual review required."
-          gh pr comment "$PR_URL" --body "🤖 Dependabot auto-merge failed. Please review this PR manually." || true
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  call:
+    uses: docdyhr/.github/.github/workflows/claude-dependabot-merge.yml@v1
+    secrets: inherit
+    with:
+      max_budget_usd: "0.30"
+      scope: all
