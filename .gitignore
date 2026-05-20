@@ -416,6 +416,7 @@ CLAUDE.md
 .cursor-tutor
 .aider*
 .anthropic/
+.claude/
 .openai/
 assistant-*
 claude-*
