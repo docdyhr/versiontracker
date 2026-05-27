@@ -3,9 +3,9 @@ name: Code Linting and Formatting
 
 "on":
   push:
-    branches: [master]
+    branches: [main, master]
   pull_request:
-    branches: [master]
+    branches: [main, master]
   workflow_dispatch:
 
 concurrency:
