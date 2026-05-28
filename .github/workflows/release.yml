@@ -26,7 +26,7 @@ name: Release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false  # Never cancel in-progress releases
+  cancel-in-progress: false # Never cancel in-progress releases
 
 permissions:
   contents: read
@@ -313,6 +313,7 @@ jobs:
           gh release upload
           '${{ github.ref_name }}' dist/**
           --repo '${{ github.repository }}'
+          --clobber
 
   # ---------------------------------------------------------------------------
   # Post-release verification (smoke tests from PyPI)
