@@ -35,8 +35,8 @@
 ### 🔒 Security & Quality
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
-[![Test Coverage](https://img.shields.io/badge/Coverage-70%2B%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-2%2C194%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Test Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
+[![Tests Passing](https://img.shields.io/badge/Tests-2%2C385%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
