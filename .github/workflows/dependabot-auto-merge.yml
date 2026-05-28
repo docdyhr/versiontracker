@@ -7,8 +7,11 @@ on:
   workflow_dispatch:
 jobs:
   call:
+    permissions:
+      contents: write
+      pull-requests: write
     uses: docdyhr/.github/.github/workflows/claude-dependabot-merge.yml@v1
-    secrets: inherit
+    secrets: inherit # pragma: allowlist secret
     with:
       max_budget_usd: "0.30"
       scope: all

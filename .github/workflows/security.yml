@@ -3,9 +3,9 @@ name: Security Analysis
 
 "on":
   push:
-    branches: [master]
+    branches: [main, master]
   pull_request:
-    branches: [master]
+    branches: [main, master]
   workflow_dispatch:
   schedule:
     # Run comprehensive security checks daily at 6 AM UTC

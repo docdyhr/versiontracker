@@ -3,9 +3,9 @@ name: CI
 
 "on":
   push:
-    branches: [master, feature/*, hotfix/*]
+    branches: [main, master, feature/*, hotfix/*]
   pull_request:
-    branches: [master]
+    branches: [main, master]
   schedule:
     # Run performance regression tests daily at 2 AM UTC
     - cron: "0 2 * * *"
