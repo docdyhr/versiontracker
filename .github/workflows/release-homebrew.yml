@@ -48,9 +48,9 @@ jobs:
 
       - name: Clone tap repository
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_PAT: ${{ secrets.TAP_PAT }}
         run: |
-          gh repo clone "${TAP_REPO}" homebrew-tap
+          git clone "https://x-access-token:${TAP_PAT}@github.com/${TAP_REPO}.git" homebrew-tap
           cd homebrew-tap
           echo "Current formula:"
           head -10 "${FORMULA_PATH}"
