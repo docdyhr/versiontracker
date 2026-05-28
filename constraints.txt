@@ -24,7 +24,7 @@ packaging>=21.0,<27.0
 
 # Fuzzy matching dependencies
 rapidfuzz>=3.0.0,<4.0.0
-python-Levenshtein>=0.20.0,<1.0.0
+python-Levenshtein>=0.27.3,<1.0.0
 
 # Development dependencies
 pytest>=8.0.0,<10.0.0
