@@ -50,7 +50,7 @@ jobs:
             --cov-report=html \
             --cov-report=term-missing \
             --cov-branch \
-            --cov-fail-under=50 \
+            --cov-fail-under=80 \
             --timeout=$TIMEOUT \
             --timeout-method=thread \
             --maxfail=10 \
@@ -76,7 +76,7 @@ jobs:
                 --cov-report=html \
                 --cov-report=term-missing \
                 --cov-branch \
-                --cov-fail-under=50 \
+                --cov-fail-under=80 \
                 --timeout=$TIMEOUT \
                 --timeout-method=thread \
                 --maxfail=10 \

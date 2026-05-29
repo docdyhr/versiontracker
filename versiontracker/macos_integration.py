@@ -232,14 +232,19 @@ class MacOSNotifications:
             bool: True if notification was sent successfully
         """
         try:
+            # Escape double-quotes so user-controlled values cannot break out of
+            # the AppleScript string literal and inject arbitrary commands.
+            safe_message = message.replace('"', '\\"')
+            safe_title = title.replace('"', '\\"')
             cmd = [
                 "osascript",
                 "-e",
-                f'display notification "{message}" with title "{title}"',
+                f'display notification "{safe_message}" with title "{safe_title}"',
             ]
 
             if subtitle:
-                cmd[-1] += f' subtitle "{subtitle}"'
+                safe_subtitle = subtitle.replace('"', '\\"')
+                cmd[-1] += f' subtitle "{safe_subtitle}"'
 
             # nosec B603 - osascript with controlled arguments
             result = subprocess.run(cmd, capture_output=True, text=True)

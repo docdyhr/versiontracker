@@ -500,6 +500,11 @@ class QueryFilterManager:
             safe_name = name.replace(" ", "-").replace("/", "_").lower()
             filter_path = self.filters_dir / f"{safe_name}.json"
 
+            # Guard against path traversal (e.g. "../../etc/passwd" survives the
+            # replace above because ".." contains no "/" or " ").
+            if not filter_path.resolve().is_relative_to(self.filters_dir.resolve()):
+                raise ValueError(f"Invalid filter name: {name!r}")
+
             # Write the filter data to a JSON file
             with open(filter_path, "w") as f:
                 json.dump(filter_data, f, indent=2)
@@ -525,6 +530,9 @@ class QueryFilterManager:
             # Ensure the name is valid as a filename
             safe_name = name.replace(" ", "-").replace("/", "_").lower()
             filter_path = self.filters_dir / f"{safe_name}.json"
+
+            if not filter_path.resolve().is_relative_to(self.filters_dir.resolve()):
+                raise ValueError(f"Invalid filter name: {name!r}")
 
             # Check if the filter exists
             if not filter_path.exists():
@@ -563,6 +571,9 @@ class QueryFilterManager:
             # Ensure the name is valid as a filename
             safe_name = name.replace(" ", "-").replace("/", "_").lower()
             filter_path = self.filters_dir / f"{safe_name}.json"
+
+            if not filter_path.resolve().is_relative_to(self.filters_dir.resolve()):
+                raise ValueError(f"Invalid filter name: {name!r}")
 
             # Check if the filter exists
             if not filter_path.exists():
