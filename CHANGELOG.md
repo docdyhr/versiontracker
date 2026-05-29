@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **AppleScript injection fix** (`macos_integration.py`): escape `"` → `\"`
+  in `message`, `title`, and `subtitle` before interpolating them into the
+  osascript string literal — previously a double-quote in any value could break
+  out of the AppleScript string and inject arbitrary commands
+- **Path traversal fix** (`ui.py`): `save_filter`, `load_filter`, and
+  `delete_filter` now call `path.resolve().is_relative_to(filters_dir.resolve())`
+  after constructing the filter path — the previous `replace("/", "_")` left
+  `..` sequences intact, allowing names like `../../etc/passwd` to escape the
+  filters directory
+
+### Tests
+- **`tests/test_version_parser.py`**: 92 new tests covering all public and
+  internal functions in `versiontracker/version/parser.py`, bringing parser
+  coverage to 93.45%
+
+### CI
+- **Coverage threshold raised** from 50% to 80% in `coverage.yml` to match
+  actual project coverage (86%) and prevent silent regressions
+
 ## [1.0.1] - 2026-05-28
 
 ### Fixed
