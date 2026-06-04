@@ -4,7 +4,8 @@
 # Python 3.12+ required as per pyproject.toml
 
 # Core dependencies
-aiohttp>=3.8.0,<4.0.0
+# aiohttp: CVE-2026-34993, CVE-2026-47265 - fixed in 3.14.0
+aiohttp>=3.14.0,<4.0.0
 
 # Security-critical indirect dependencies
 # filelock: GHSA-qmgc-5h2g-mvrw (TOCTOU) - fixed in 3.20.3
