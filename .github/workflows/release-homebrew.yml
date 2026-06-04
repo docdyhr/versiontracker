@@ -50,6 +50,10 @@ jobs:
         env:
           TAP_PAT: ${{ secrets.TAP_PAT }}
         run: |
+          if [ -z "${TAP_PAT}" ]; then
+            echo "::error::TAP_PAT secret is not set. Add a GitHub PAT with 'repo' write access to ${TAP_REPO} as the TAP_PAT repository secret."
+            exit 1
+          fi
           git clone "https://x-access-token:${TAP_PAT}@github.com/${TAP_REPO}.git" homebrew-tap
           cd homebrew-tap
           echo "Current formula:"
