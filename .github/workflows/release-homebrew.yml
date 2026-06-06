@@ -88,7 +88,7 @@ jobs:
 
       - name: Push updated formula to tap
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_PAT: ${{ secrets.TAP_PAT }}
         run: |
           cd homebrew-tap
           if git diff --quiet "${FORMULA_PATH}"; then
@@ -97,6 +97,8 @@ jobs:
           fi
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
+          git config --global credential.helper ""
+          git remote set-url origin "https://x-access-token:${TAP_PAT}@github.com/${TAP_REPO}.git"
           git add "${FORMULA_PATH}"
           git commit -m "Update macversiontracker to ${VERSION}"
           git push origin main
