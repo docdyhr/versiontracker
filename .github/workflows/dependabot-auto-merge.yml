@@ -1,9 +1,8 @@
 name: Claude Dependabot Auto-Merge
 # Migrated from inline blob (dependabot/fetch-metadata@v3) to reusable caller.
+# Schedule is owned by the cross-repo orchestrator in docdyhr/.github.
 # Claude Code reviews and merges eligible Dependabot PRs on schedule.
 on:
-  schedule:
-    - cron: "0 6 * * 0" # Sunday 06:00 UTC
   workflow_dispatch:
 jobs:
   call:
