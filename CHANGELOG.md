@@ -23,9 +23,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   internal functions in `versiontracker/version/parser.py`, bringing parser
   coverage to 93.45%
 
+### Added
+- **Integration tests** (`tests/integration/test_cli_workflows.py`): 5 cross-platform
+  CLI workflow tests covering `--apps`, `--apps --export json --output-file`,
+  `--brews`, `--generate-config`, and `--check-outdated`; mock system calls so tests
+  run in any CI environment without macOS or Homebrew
+
+### Fixed
+- **`handle_config_generation`** (`config_handlers.py`): replaced direct
+  `options.config_path` access with `getattr(options, "config_path", None)` — the
+  argparse namespace has no `config_path` attribute when `--config-path` is not
+  passed, causing an AttributeError that silently returned exit code 1
+
 ### CI
-- **Coverage threshold raised** from 50% to 80% in `coverage.yml` to match
-  actual project coverage (86%) and prevent silent regressions
+- **Coverage threshold raised** from 80% to 85% in `coverage.yml` (matches the
+  documented target; project is currently at 86%+)
+- **Performance regression gate**: `scripts/compare_performance.py` now compares
+  `performance_results.json` against a cached baseline (`performance_baseline.json`)
+  and exits non-zero if any metric degrades by >5%; `performance.yml` restores the
+  baseline before benchmarks, fails the job on regression, and caches the new
+  baseline only after a clean run
 
 ## [1.0.1] - 2026-05-28
 

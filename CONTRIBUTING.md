@@ -270,12 +270,29 @@ pytest -v --tb=short
 
 ### Test Coverage Requirements
 
-- **Minimum**: 70% overall coverage
-- **Target**: 85% overall coverage
-- **Critical paths**: 95%+ coverage required
-- **New code**: Must maintain or improve coverage
+- **Minimum**: 85% overall coverage (CI-enforced via `--cov-fail-under=85`)
+- **Achieved**: 86%+ overall as of June 2026
+- **Critical modules** (`versiontracker/version/`, `versiontracker/apps/`, `versiontracker/config.py`): target 88–90%
+- **New code**: Must maintain or improve overall coverage
 
 ## Performance Considerations
+
+### Performance Regression Gate
+
+Full benchmarks run weekly (schedule) and on manual dispatch via `performance.yml`. PRs receive a no-op smoke check only.
+
+A **5% regression threshold** is enforced for scheduled runs:
+
+- `scripts/performance_test.py` produces `performance_results.json`
+- `scripts/compare_performance.py --baseline performance_baseline.json` compares against the
+  cached baseline from the previous passing run
+- If `avg_time` or `avg_memory_mb` degrades by >5% for any benchmark, the workflow fails
+- The baseline is only updated after a passing comparison (preventing a regressed run from poisoning the baseline)
+
+Absolute limits (warning only, non-blocking):
+
+- Single operation time > 30 s
+- Memory peak > 500 MB
 
 ### Asynchronous Programming
 

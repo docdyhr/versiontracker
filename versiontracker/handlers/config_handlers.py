@@ -34,7 +34,7 @@ def handle_config_generation(options: Any) -> int:
     """
     try:
         config_path = None
-        if options.config_path:
+        if getattr(options, "config_path", None):
             config_path = Path(options.config_path)
 
         path = get_config().generate_default_config(config_path)
