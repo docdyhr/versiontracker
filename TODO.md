@@ -1,12 +1,12 @@
 # VersionTracker TODO
 
-## Current Status (May 2026)
+## Current Status (June 2026)
 
 ### Project Health
 
 - **Version**: 1.0.1 (stable)
-- **Tests**: 2,338 passing, 16 skipped
-- **Coverage**: ~78% overall (target: 85%)
+- **Tests**: 2,477 passing, 16 skipped
+- **Coverage**: 86% overall (target: 85%) ✅
 - **CI/CD**: All workflows passing on master (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
 - **Security**: 0 dependabot alerts, 0 secret scanning alerts, 0 CodeQL findings
@@ -103,10 +103,11 @@
 
 | File | Count | Root Cause | Action |
 |---|---|---|---|
-| `test_ui.py` | 12 | Environment-specific terminal/colour | Leave as-is |
-| `test_platform_compatibility.py` | 2 | macOS-only guards | Leave as-is |
-| `test_ui_new.py` | 1 | Environment-specific colour | Leave as-is |
-| `test_apps_extra.py` | 1 | Complex mocking requirements | Consider fixing |
+| `test_ml_module.py` | 13 | ML deps (numpy, scikit-learn) not installed in default venv | Leave as-is; install `macversiontracker[ml]` to run |
+| `test_platform_compatibility.py` | 2 | macOS-only and non-macOS platform guards | Leave as-is |
+| `test_ui_new.py` | 1 | Environment-specific colour handling (non-TTY) | Leave as-is |
+
+All skip decorators already carry a `reason=` string; no additional inline comments needed.
 
 ---
 

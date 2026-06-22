@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Coverage threshold raised** from 50% to 80% in `coverage.yml` to match
   actual project coverage (86%) and prevent silent regressions
 
+### Documentation
+- **README**: reconciled test metrics to match current state (2,477 passing tests, 86% coverage); added "Known Limitations" section covering macOS version constraints, unsupported package managers, Apple Silicon paths, optional ML dependencies, and experimental module stability
+- **TODO**: updated current status to reflect actual test count (2,477), coverage (86%), and correct skipped-test breakdown (13 ML-dep, 2 platform-guard, 1 TTY — all with inline `reason=` strings)
+
 ## [1.0.1] - 2026-05-28
 
 ### Fixed
