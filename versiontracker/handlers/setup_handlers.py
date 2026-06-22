@@ -15,6 +15,7 @@ import sys
 from typing import Any
 
 from versiontracker.config import Config, get_config
+from versiontracker.exceptions import ConfigError
 
 
 def handle_initialize_config(options: Any) -> int:
@@ -41,7 +42,7 @@ def handle_initialize_config(options: Any) -> int:
             Config()
 
         return 0
-    except Exception as e:
+    except (OSError, ValueError, ConfigError) as e:
         logging.error("Failed to initialize configuration: %s", e)
         return 1
 
@@ -71,7 +72,7 @@ def handle_configure_from_options(options: Any) -> int:
             current_config.set("ui.adaptive_rate_limiting", False)
 
         return 0
-    except Exception as e:
+    except (AttributeError, ValueError, ConfigError) as e:
         logging.error("Failed to configure options: %s", e)
         return 1
 
@@ -98,12 +99,12 @@ def handle_setup_logging(options: Any) -> None:
             "Logging setup complete with level: %s",
             logging.getLevelName(logging.getLogger().level),
         )
-    except Exception as e:
+    except (ValueError, TypeError, OSError) as e:
         # If logging setup fails, try a basic configuration and log the error
         try:
             logging.basicConfig(level=logging.WARNING)
             logging.error("Error setting up logging: %s", e)
-        except Exception as basic_error:
+        except (ValueError, OSError) as basic_error:
             # Last resort if even basic logging fails - print to stderr
             print(f"Critical error: Unable to set up logging: {e}", file=sys.stderr)
             print(f"Basic logging also failed: {basic_error}", file=sys.stderr)

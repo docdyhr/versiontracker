@@ -79,13 +79,20 @@
 
 ---
 
-### ✅ P4 — Exception narrowing — **partially done in PR #117**
+### ✅ P4 — Exception narrowing — **done in PR #185 + PR #194**
 
 - [x] `homebrew.py` `get_homebrew_path`: `OSError` + re-raise `HomebrewError`
 - [x] `finder.py` async availability check: `AttributeError + RuntimeError`
 - [x] `finder.py` `get_applications` parsing: `KeyError + IndexError + TypeError`
 - [x] `outdated_handlers.py` filter fallback: `ValueError + TypeError + AttributeError`
-- [ ] Remaining broad catches in `__main__.py` and deeper handler paths (next cycle)
+- [x] `setup_handlers.py`: narrowed to `(OSError, ValueError, ConfigError)`,
+  `(AttributeError, ValueError, ConfigError)`, `(ValueError, TypeError, OSError)`
+- [x] `config_handlers.py`: narrowed to `(OSError, PermissionError, ValueError)`
+- [x] `app_handlers.py`: narrowed to `(OSError, PermissionError, ValueError,
+  ApplicationError, HomebrewError)`
+- [x] `filter_handlers.py`: narrowed to `(OSError, ValueError, AttributeError, KeyError)`
+- [x] `__main__.py` line 313: broad `except Exception` retained as justified
+  top-level CLI boundary (documents all propagated errors to the user)
 
 ---
 

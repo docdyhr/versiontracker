@@ -169,7 +169,7 @@ def handle_save_filter(options: Any, filter_manager: QueryFilterManager) -> int:
                 print(create_progress_bar().color("red")(f"Failed to save filter '{filter_name}'."))
                 return 1
         return 0
-    except Exception as e:
+    except (OSError, ValueError, AttributeError, KeyError) as e:
         logging.error("Error saving filter: %s", str(e))
         print(create_progress_bar().color("red")(f"Error saving filter: {str(e)}"))
         return 1

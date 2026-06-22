@@ -66,7 +66,7 @@ class TestConfigHandlers:
 
         # Set up the exception
         mock_config_instance = mock_get_config.return_value
-        mock_config_instance.generate_default_config.side_effect = Exception("Failed to generate config")
+        mock_config_instance.generate_default_config.side_effect = OSError("Failed to generate config")
 
         # Execute
         result = handle_config_generation(mock_options)
