@@ -32,7 +32,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -113,7 +113,7 @@ jobs:
 
       - name: Check for secrets with TruffleHog
         if: steps.trufflehog_params.outputs.skip_scan != 'true'
-        uses: trufflesecurity/trufflehog@v3.95.3
+        uses: trufflesecurity/trufflehog@v3.95.6
         continue-on-error: true
         with:
           path: ./

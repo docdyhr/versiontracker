@@ -9,13 +9,13 @@ aiohttp>=3.14.0,<4.0.0
 
 # Security-critical indirect dependencies
 # filelock: GHSA-qmgc-5h2g-mvrw (TOCTOU) - fixed in 3.20.3
-filelock>=3.29.1,<4.0.0
+filelock>=3.29.4,<4.0.0
 # virtualenv: GHSA-597g-3phw-6986 (TOCTOU) - fix pending release (>20.36.1)
 # Using latest available until patch is released
-virtualenv>=21.4.2,<22.0.0
+virtualenv>=21.5.0,<22.0.0
 requests>=2.34.2,<3.0.0
 urllib3>=2.7.0,<3.0.0
-anyio>=4.13.0,<5.0.0
+anyio>=4.14.0,<5.0.0
 termcolor>=2.0.1,<4.0.0
 pyyaml>=6.0,<7.0
 tabulate>=0.9.0,<1.0.0
@@ -49,7 +49,7 @@ vulture>=2.16,<3.0.0
 # Type stubs
 types-PyYAML>=6.0.0,<7.0.0
 types-tabulate>=0.10.0.20260508,<1.0.0
-types-tqdm>=4.67.3.20260518,<5.0.0
+types-tqdm>=4.68.0.20260608,<5.0.0
 types-psutil>=7.2.2.20260518,<8.0.0
 types-setuptools>=82.0.0.20260518,<83.0.0
 types-requests>=2.33.0.20260518,<3.0.0
