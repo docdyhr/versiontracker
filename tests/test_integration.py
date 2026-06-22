@@ -163,14 +163,14 @@ class TestIntegration(unittest.TestCase):
         )
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.apps.finder.get_applications")
-    @patch("versiontracker.utils.get_json_data")
-    @patch("versiontracker.ui.create_progress_bar")
+    @patch("versiontracker.handlers.app_handlers.get_applications")
+    @patch("versiontracker.handlers.app_handlers.get_json_data")
+    @patch("versiontracker.handlers.app_handlers.create_progress_bar")
     @patch("versiontracker.__main__.setup_logging")
-    @patch("versiontracker.config.Config")
+    @patch("versiontracker.handlers.app_handlers.get_config")
     def test_main_list_apps_workflow(
         self,
-        MockConfig,
+        mock_get_config,
         mock_setup_logging,
         mock_progress_bar,
         mock_get_json_data,
@@ -178,11 +178,13 @@ class TestIntegration(unittest.TestCase):
         mock_check_deps,
     ):
         """Test the main list apps workflow."""
-        mock_config_instance = MockConfig.return_value
+        mock_config_instance = mock_get_config.return_value
         mock_config_instance.is_blacklisted.return_value = False
+        mock_config_instance.is_blocklisted.return_value = False
         mock_config_instance.get.return_value = 10
         mock_config_instance.rate_limit = 10
         mock_config_instance.debug = False
+        mock_config_instance.system_profiler_cmd = "system_profiler -json SPApplicationsDataType"
 
         # Mock UI components
         mock_progress_bar.return_value = MagicMock(color=MagicMock(return_value=MagicMock(return_value="")))
