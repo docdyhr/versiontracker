@@ -1,8 +1,9 @@
+<!-- markdownlint-disable MD041 -->
 <div align="right">
 
 <a href="https://railway.com?referralCode=QhjuBc">
 
-  <img width="160" src="https://raw.githubusercontent.com/docdyhr/.github/main/assets/railway-corner-v2@2x.png" alt="Deploy on Railway — $20 free credits">
+  <img width="160" src="https://raw.githubusercontent.com/docdyhr/.github/main/assets/railway-corner-v2@2x.png" alt="Deploy on Railway — $20 free credits"> <!-- markdownlint-disable-line MD013 -->
 
 </a>
 
@@ -46,7 +47,7 @@
 
 [![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
 [![Test Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-2%2C385%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Tests Passing](https://img.shields.io/badge/Tests-2%2C477%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
@@ -86,7 +87,7 @@
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
 * Release date: 21. Feb 2022 (Updated: April 2026)
-* Code Quality: **70%+ overall test coverage with 2,194+ passing tests**,
+* Code Quality: **86% overall test coverage with 2,477 passing tests**,
   **all previously identified high & medium complexity issues resolved**
 
 ## Quick Start
@@ -599,7 +600,7 @@ VersionTracker intentionally uses a heavy mocking approach to:
 
 Current Coverage Profile:
 
-* Reported line coverage: ≈70%+ overall
+* Reported line coverage: ≈86% overall
 * Core modules (matcher, finder, config) have 78–98% coverage
 * High mock call volume for platform/network code paths ensures behavioral correctness without requiring macOS-specific execution
 
@@ -656,13 +657,32 @@ VersionTracker v1.0.0 is production-stable. All critical technical debt has been
 and the tool is fully operational on macOS. Key highlights:
 
 * **v1.0.0 released** — available on PyPI (`pip install macversiontracker`) and Homebrew
-* **70%+ test coverage** with 2,194+ passing tests and 0 failing tests
+* **86% test coverage** with 2,477 passing tests and 0 failing tests
 * **Zero high-severity security vulnerabilities**
 * **Complete complexity resolution**: all high & medium-priority complex functions refactored
 * **Async Homebrew API**: install and update candidate checks use async operations by default
 * **Modular architecture**: dedicated `handlers/`, `version/`, and `apps/` subpackages
 * **Lazy config initialisation**: no subprocess on import — fast startup
 * **Signed release artifacts**: distributions signed with Sigstore via GitHub OIDC
+
+## Known Limitations
+
+* **macOS only** — VersionTracker runs on macOS only; Linux and Windows are not supported.
+* **macOS 10.15 Catalina or later** — older releases are not tested. Tested through macOS Sequoia.
+* **Homebrew required for version checks** — `--outdated` and `--recommend` require Homebrew;
+  `--apps` works without it.
+* **Apple Silicon vs Intel** — both paths are detected automatically (`/opt/homebrew/bin/brew`
+  and `/usr/local/bin/brew`). Mixed-architecture Rosetta environments may need a manual
+  `--config-path` with a generated config.
+* **Package managers not yet supported** — MacPorts and Mac App Store (`mas-cli`) integration
+  are on the roadmap. See `TODO.md → Future Enhancements`.
+* **ML features require optional dependencies** — the ML matching engine (`versiontracker.ml`)
+  needs `numpy` and `scikit-learn`. Install with `pip install macversiontracker[ml]`.
+* **Experimental modules are unstable** — `versiontracker.experimental.analytics` and
+  `versiontracker.experimental.benchmarks` are not wired to any CLI command and their APIs
+  may change without notice between minor versions.
+* **16 tests skipped in default runs** — 13 ML-dep tests skip without the `[ml]` extras;
+  2 platform-guard tests skip on macOS; 1 colour test skips in non-TTY environments. All expected.
 
 ## Recent Major Achievements (v1.0.0)
 
@@ -679,7 +699,6 @@ and the tool is fully operational on macOS. Key highlights:
 * Add more package managers support (MacPorts, etc.)
 * Implement automatic update capabilities for Homebrew-manageable applications
 * Add GUI interface
-* Raise test coverage to 85%+ across all core modules
 
 ## License
 
