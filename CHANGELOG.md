@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **P4 exception narrowing complete** — remaining broad `except Exception` blocks
+  in core CLI handlers narrowed to specific types:
+  `setup_handlers.py` → `(OSError, ValueError, ConfigError)` / `(AttributeError, ValueError, ConfigError)` /
+  `(ValueError, TypeError, OSError)`; `config_handlers.py` → `(OSError, PermissionError, ValueError)`;
+  `app_handlers.py` → `(OSError, PermissionError, ValueError, ApplicationError, HomebrewError)`;
+  `filter_handlers.py` → `(OSError, ValueError, AttributeError, KeyError)`.
+  The outermost CLI boundary in `__main__.py` retains a broad catch with justification.
+  Corresponding test mocks updated from bare `Exception` to specific types.
+
+### Documentation
+- **Advanced Features section** added to README documenting the optional ML engine
+  (`versiontracker.ml`: `MLRecommendationEngine`, `MatchingConfidenceModel`,
+  `UsageAnalyzer`) and the two experimental modules
+  (`versiontracker.experimental.analytics`, `versiontracker.experimental.benchmarks`)
+  with install instructions, usage examples, and stability notes.
+
 ### Security
 - **AppleScript injection fix** (`macos_integration.py`): escape `"` → `\"`
   in `message`, `title`, and `subtitle` before interpolating them into the

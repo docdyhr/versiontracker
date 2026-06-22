@@ -41,6 +41,6 @@ def handle_config_generation(options: Any) -> int:
         print(f"Configuration file generated: {path}")
         print("You can now edit this file to customize VersionTracker's behavior.")
         return 0
-    except Exception as e:
+    except (OSError, PermissionError, ValueError) as e:
         logging.error("Failed to generate configuration file: %s", e)
         return 1

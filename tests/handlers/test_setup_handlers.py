@@ -69,8 +69,8 @@ class TestSetupHandlers:
         """Test error handling during config initialization."""
         # Setup
         mock_options = mock.MagicMock()
-        mock_get_config.side_effect = Exception("Test error")
-        mock_config_class.side_effect = Exception("Another error")
+        mock_get_config.side_effect = OSError("Test error")
+        mock_config_class.side_effect = OSError("Another error")
 
         # Execute
         result = handle_initialize_config(mock_options)
@@ -107,7 +107,7 @@ class TestSetupHandlers:
         """Test error handling during configuration from options."""
         # Setup
         mock_options = mock.MagicMock()
-        mock_get_config.side_effect = Exception("Test error")
+        mock_get_config.side_effect = ValueError("Test error")
 
         # Execute
         result = handle_configure_from_options(mock_options)
@@ -173,7 +173,7 @@ class TestSetupHandlers:
         # Setup
         mock_options = mock.MagicMock()
         # Only mock the first call to raise exception
-        mock_logging.basicConfig.side_effect = Exception("First error")
+        mock_logging.basicConfig.side_effect = ValueError("First error")
 
         # Execute — should not raise, errors are handled internally
         handle_setup_logging(mock_options)
@@ -235,7 +235,7 @@ class TestHandleSetupLoggingErrorRecovery:
         """When basicConfig() raises, recovery succeeds and logs the original error."""
         mock_logging.WARNING = 30
         # First basicConfig call raises; second (recovery) succeeds
-        mock_logging.basicConfig.side_effect = [Exception("setup failed"), None]
+        mock_logging.basicConfig.side_effect = [ValueError("setup failed"), None]
 
         opts = mock.MagicMock()
         opts.debug = 0

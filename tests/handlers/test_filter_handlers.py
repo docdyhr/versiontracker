@@ -263,7 +263,7 @@ class TestFilterHandlers:
 
         # Setup mock filter manager to raise exception
         mock_filter_manager = mock.MagicMock()
-        mock_filter_manager.save_filter.side_effect = Exception("Test error")
+        mock_filter_manager.save_filter.side_effect = OSError("Test error")
 
         mock_color = mock_progress_bar.return_value.color
         mock_color.return_value.return_value = "Color message"

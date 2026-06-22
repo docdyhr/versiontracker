@@ -185,7 +185,7 @@ class TestAppHandlers(unittest.TestCase):
 
     @patch(
         "versiontracker.handlers.app_handlers.get_json_data",
-        side_effect=Exception("Test error"),
+        side_effect=OSError("Test error"),
     )
     @patch("versiontracker.handlers.app_handlers.get_config")
     @patch("sys.stdout", new_callable=StringIO)

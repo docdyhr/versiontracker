@@ -22,6 +22,7 @@ from versiontracker.apps import (
     get_homebrew_casks,
 )
 from versiontracker.config import Config, get_config
+from versiontracker.exceptions import ApplicationError, HomebrewError
 from versiontracker.handlers.export_handlers import handle_export
 from versiontracker.ui import create_progress_bar
 from versiontracker.utils import get_json_data
@@ -165,7 +166,7 @@ def handle_list_apps(options: Any) -> int:
                 print(export_result)
 
         return 0
-    except Exception as e:
+    except (OSError, PermissionError, ValueError, ApplicationError, HomebrewError) as e:
         logging.error("Error listing applications: %s", e)
         traceback.print_exc()
         return 1

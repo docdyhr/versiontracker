@@ -1,8 +1,9 @@
+<!-- markdownlint-disable MD041 -->
 <div align="right">
 
 <a href="https://railway.com?referralCode=QhjuBc">
 
-  <img width="160" src="https://raw.githubusercontent.com/docdyhr/.github/main/assets/railway-corner-v2@2x.png" alt="Deploy on Railway — $20 free credits">
+  <img width="160" src="https://raw.githubusercontent.com/docdyhr/.github/main/assets/railway-corner-v2@2x.png" alt="Deploy on Railway — $20 free credits"> <!-- markdownlint-disable-line MD013 -->
 
 </a>
 
@@ -143,6 +144,81 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * Adaptive rate limiting based on CPU and memory usage
 * Support for saving and loading query filters
 * **Auto-updates detection** for Homebrew casks with filtering options
+
+## Advanced Features
+
+### ML-Powered App Matching (optional)
+
+VersionTracker includes an optional machine-learning engine that improves
+app-to-cask matching accuracy using TF-IDF embeddings and a logistic regression
+confidence model.
+
+**Install the ML extras:**
+
+```bash
+pip install macversiontracker[ml]
+# or via Homebrew tap (installs core only; add ML extras via pip after)
+```
+
+**What it provides** (`versiontracker.ml`):
+
+* `MLRecommendationEngine` — semantic similarity matching between installed apps
+  and Homebrew casks using TF-IDF + cosine similarity
+* `MatchingConfidenceModel` — scikit-learn classifier that scores each candidate
+  match; trained model is cached under `~/.config/versiontracker/ml_models/`
+* `UsageAnalyzer` — records user accept/reject feedback to personalise the
+  confidence threshold over time
+* `is_ml_available()` — runtime check; returns `False` gracefully when
+  `numpy`/`scikit-learn` are absent
+
+```python
+from versiontracker.ml import is_ml_available, MLRecommendationEngine
+
+if is_ml_available():
+    engine = MLRecommendationEngine()
+    engine.initialize(apps, casks)
+    recommendations = engine.get_recommendations(apps, casks)
+```
+
+Without the ML extras the standard fuzzy-matching engine is used automatically
+— there is no degraded behaviour or error.
+
+### Experimental Modules
+
+The `versiontracker.experimental` package contains two modules that are
+implemented but not yet wired to a CLI command. Their APIs may change between
+minor versions.
+
+**`versiontracker.experimental.analytics`** — SQLite-backed session analytics:
+
+```python
+from versiontracker.experimental.analytics import AnalyticsEngine
+
+engine = AnalyticsEngine()
+with engine.session():
+    engine.record_event("app_scan_started", {"app_count": 42})
+```
+
+Tracks: session durations, per-command event counts, performance metrics,
+and usage patterns. Data is stored in
+`~/.config/versiontracker/analytics.db`.
+
+**`versiontracker.experimental.benchmarks`** — function-level performance
+benchmarking with statistical analysis:
+
+```python
+from versiontracker.experimental.benchmarks import BenchmarkRunner
+
+runner = BenchmarkRunner()
+runner.run_all()
+runner.print_report()
+```
+
+Tracks: min/mean/max execution time, memory usage, CPU load per operation.
+Useful for regression detection during development.
+
+To promote either module to stable status: wire it to a CLI entry point,
+add ≥ 60% test coverage, and move it out of `experimental/`.
 
 ## Requirements
 
