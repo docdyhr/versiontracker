@@ -85,6 +85,15 @@ jobs:
         run: |
           chmod +x scripts/performance_test.py scripts/compare_performance.py
 
+      - name: Restore performance baseline
+        id: restore-baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: performance_baseline.json
+          key: perf-baseline-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            perf-baseline-${{ runner.os }}-
+
       - name: Run performance benchmarks
         env:
           BENCHMARK_TARGET: ${{ github.event.inputs.benchmark_target || 'all' }}
@@ -98,9 +107,20 @@ jobs:
           path: performance_results.json
           retention-days: 30
 
-      - name: Compare with previous results (if available)
+      - name: Compare with baseline (fail on >5% regression)
         run: |
-          python scripts/compare_performance.py
+          python scripts/compare_performance.py --baseline performance_baseline.json
+
+      - name: Save new baseline
+        if: success()
+        run: cp performance_results.json performance_baseline.json
+
+      - name: Cache updated baseline for next run
+        uses: actions/cache/save@v4
+        if: success()
+        with:
+          path: performance_baseline.json
+          key: perf-baseline-${{ runner.os }}-${{ github.run_id }}
 
       - name: Create performance summary
         run: |
