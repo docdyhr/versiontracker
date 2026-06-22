@@ -53,10 +53,16 @@ class TestCLIWorkflows:
     def test_apps_export_to_file(self, tmp_path):
         """--apps --export json --output-file writes valid JSON to the target path."""
         output_file = tmp_path / "apps_export.json"
+        mock_cfg = mock.MagicMock()
+        mock_cfg.is_blocklisted.return_value = False
         with (
             mock.patch(
                 "versiontracker.handlers.app_handlers._get_apps_data",
                 return_value=_FAKE_APPS,
+            ),
+            mock.patch(
+                "versiontracker.handlers.app_handlers.get_config",
+                return_value=mock_cfg,
             ),
             mock.patch(
                 "sys.argv",
