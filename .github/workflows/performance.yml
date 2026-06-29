@@ -87,7 +87,7 @@ jobs:
 
       - name: Restore performance baseline
         id: restore-baseline
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: performance_baseline.json
           key: perf-baseline-${{ runner.os }}-${{ github.run_id }}
@@ -116,7 +116,7 @@ jobs:
         run: cp performance_results.json performance_baseline.json
 
       - name: Cache updated baseline for next run
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         if: success()
         with:
           path: performance_baseline.json
