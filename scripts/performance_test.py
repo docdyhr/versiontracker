@@ -6,13 +6,13 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from versiontracker.__main__ import versiontracker_main as cli_main
 from versiontracker.profiling import disable_profiling, enable_profiling, generate_report, get_profiler
 
 
-def run_benchmark(command: str, iterations: int = 3) -> Dict[str, Any]:
+def run_benchmark(command: str, iterations: int = 3) -> dict[str, Any]:
     """Run a benchmark for a specific command."""
     print(f"Benchmarking: {command}")
 
@@ -77,7 +77,7 @@ def run_benchmark(command: str, iterations: int = 3) -> Dict[str, Any]:
     }
 
 
-def main():
+def main() -> None:
     """Main performance testing function."""
     target = os.environ.get("BENCHMARK_TARGET", "all")
 
@@ -86,7 +86,7 @@ def main():
         "apps": "--apps --no-progress",
         "brews": "--brews --no-progress",
         "recommend": "--recommend --no-progress",
-        "outdated": "--outdated --no-progress",
+        "outdated": "--check-outdated --no-progress",
     }
 
     if target != "all":

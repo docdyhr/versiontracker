@@ -13,6 +13,8 @@ from pathlib import Path
 REGRESSION_THRESHOLD = 0.05  # 5%
 TIME_ABSOLUTE_LIMIT = 30.0  # seconds
 MEMORY_ABSOLUTE_LIMIT = 500.0  # MB
+MIN_BASELINE_TIME = 0.05  # seconds; below this, relative deltas are just timing noise
+MIN_BASELINE_MEMORY = 1.0  # MB; ditto for memory
 
 
 def _load_json(path: Path) -> "dict | None":
@@ -36,10 +38,11 @@ def _check_absolute_limits(name: str, result: dict) -> list[str]:
 
 def _check_regression(name: str, current: dict, baseline: dict) -> list[str]:
     failures = []
+    min_baseline = {"avg_time": MIN_BASELINE_TIME, "avg_memory_mb": MIN_BASELINE_MEMORY}
     for metric, label in [("avg_time", "time"), ("avg_memory_mb", "memory")]:
         cur = current.get(metric, 0)
         base = baseline.get(metric, 0)
-        if base <= 0:
+        if base < min_baseline[metric]:
             continue
         delta = (cur - base) / base
         if delta > REGRESSION_THRESHOLD:
