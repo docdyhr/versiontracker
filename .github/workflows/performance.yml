@@ -112,12 +112,17 @@ jobs:
           python scripts/compare_performance.py --baseline performance_baseline.json
 
       - name: Save new baseline
-        if: always()
+        # Only promote to baseline for full ("all") runs — a single-target
+        # workflow_dispatch would otherwise overwrite the baseline with
+        # results for just that one benchmark, silently disabling
+        # regression checks for the other benchmarks until the next
+        # full run happens to succeed.
+        if: always() && (github.event.inputs.benchmark_target == 'all' || github.event.inputs.benchmark_target == '')
         run: cp performance_results.json performance_baseline.json
 
       - name: Cache updated baseline for next run
         uses: actions/cache/save@v6
-        if: always()
+        if: always() && (github.event.inputs.benchmark_target == 'all' || github.event.inputs.benchmark_target == '')
         with:
           path: performance_baseline.json
           key: perf-baseline-${{ runner.os }}-${{ github.run_id }}
