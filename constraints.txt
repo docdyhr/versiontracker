@@ -51,7 +51,7 @@ types-PyYAML>=6.0.0,<7.0.0
 types-tabulate>=0.10.0.20260508,<1.0.0
 types-tqdm>=4.68.0.20260608,<5.0.0
 types-psutil>=7.2.2.20260518,<8.0.0
-types-setuptools>=83.0.0.20260706,<84.0.0
+types-setuptools>=83.0.0.20260716,<84.0.0
 types-requests>=2.33.0.20260712,<3.0.0
 
 # Build and distribution
