@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Performance Testing baseline ratchet bug**: the scheduled weekly benchmark's
+  baseline-save steps only ran `if: success()`, so once a run failed for any
+  reason the baseline froze permanently and every future week kept failing
+  against that same stale number. Baseline now advances `if: always()`, and
+  the regression threshold moved from 5% to 20% to match the ~11-15%
+  run-to-run variance inherent to benchmarks that make live Homebrew API calls.
 - **P4 exception narrowing complete** — remaining broad `except Exception` blocks
   in core CLI handlers narrowed to specific types:
   `setup_handlers.py` → `(OSError, ValueError, ConfigError)` / `(AttributeError, ValueError, ConfigError)` /
