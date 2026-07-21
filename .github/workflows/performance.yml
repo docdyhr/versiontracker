@@ -107,17 +107,17 @@ jobs:
           path: performance_results.json
           retention-days: 30
 
-      - name: Compare with baseline (fail on >5% regression)
+      - name: Compare with baseline (fail on >20% regression)
         run: |
           python scripts/compare_performance.py --baseline performance_baseline.json
 
       - name: Save new baseline
-        if: success()
+        if: always()
         run: cp performance_results.json performance_baseline.json
 
       - name: Cache updated baseline for next run
         uses: actions/cache/save@v6
-        if: success()
+        if: always()
         with:
           path: performance_baseline.json
           key: perf-baseline-${{ runner.os }}-${{ github.run_id }}

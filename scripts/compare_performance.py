@@ -10,7 +10,7 @@ import json
 import sys
 from pathlib import Path
 
-REGRESSION_THRESHOLD = 0.05  # 5%
+REGRESSION_THRESHOLD = 0.20  # 20%; benchmarks hit live Homebrew API calls, which vary run to run
 TIME_ABSOLUTE_LIMIT = 30.0  # seconds
 MEMORY_ABSOLUTE_LIMIT = 500.0  # MB
 MIN_BASELINE_TIME = 0.05  # seconds; below this, relative deltas are just timing noise
