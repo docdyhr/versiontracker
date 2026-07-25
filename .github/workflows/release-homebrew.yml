@@ -81,10 +81,14 @@ jobs:
           # Register the local clone as a tap before installing —
           # Homebrew rejects formulae that aren't referenced via a tap.
           brew tap docdyhr/homebrew-tap "$(pwd)/homebrew-tap"
-          brew install --build-from-source docdyhr/homebrew-tap/macversiontracker
+          # Homebrew's tap-trust check matches formula references literally against argv,
+          # and normalises "homebrew-tap" to "tap" internally — so the install/uninstall
+          # targets must use the stripped "docdyhr/tap" form or a fresh CI runner (with no
+          # ~/.homebrew/trust.json) refuses to load the formula as "untrusted".
+          brew install --build-from-source docdyhr/tap/macversiontracker
           versiontracker --help
           versiontracker --version
-          brew uninstall docdyhr/homebrew-tap/macversiontracker || true
+          brew uninstall docdyhr/tap/macversiontracker || true
 
       - name: Push updated formula to tap
         env:
