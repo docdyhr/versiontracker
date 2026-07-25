@@ -18,6 +18,9 @@ env:
   HOMEBREW_NO_AUTO_UPDATE: 1
   TAP_REPO: docdyhr/homebrew-tap
   FORMULA_PATH: Formula/macversiontracker.rb
+  # Homebrew strips the "homebrew-" prefix from tap repo names, so the installable
+  # reference is "docdyhr/tap", not "docdyhr/homebrew-tap" (TAP_REPO above).
+  TAP_FORMULA: docdyhr/tap/macversiontracker
 
 jobs:
   update-homebrew:
@@ -81,14 +84,12 @@ jobs:
           # Register the local clone as a tap before installing —
           # Homebrew rejects formulae that aren't referenced via a tap.
           brew tap docdyhr/homebrew-tap "$(pwd)/homebrew-tap"
-          # Homebrew's tap-trust check matches formula references literally against argv,
-          # and normalises "homebrew-tap" to "tap" internally — so the install/uninstall
-          # targets must use the stripped "docdyhr/tap" form or a fresh CI runner (with no
-          # ~/.homebrew/trust.json) refuses to load the formula as "untrusted".
-          brew install --build-from-source docdyhr/tap/macversiontracker
+          # Must use the stripped "docdyhr/tap" form (TAP_FORMULA) — Homebrew's
+          # tap-trust check requires it to match the installed tap's name literally.
+          brew install --build-from-source "${TAP_FORMULA}"
           versiontracker --help
           versiontracker --version
-          brew uninstall docdyhr/tap/macversiontracker || true
+          brew uninstall "${TAP_FORMULA}" || true
 
       - name: Push updated formula to tap
         env:
