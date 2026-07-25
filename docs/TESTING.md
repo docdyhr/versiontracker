@@ -97,7 +97,7 @@ Test various network conditions:
 # Timeout simulation
 mock_server.set_timeout(True)
 
-# Delay simulation  
+# Delay simulation
 mock_server.set_delay(2.0)
 
 # Error simulation
@@ -128,6 +128,7 @@ Monitor memory usage for operations processing large datasets:
 def test_memory_usage_large_app_list():
     """Verify memory efficiency with large app collections."""
     import psutil
+
     process = psutil.Process()
 
     initial_memory = process.memory_info().rss
@@ -159,11 +160,14 @@ def sample_app_data():
 Use parameterization to test multiple scenarios efficiently:
 
 ```python
-@pytest.mark.parametrize("version_string,expected", [
-    ("1.2.3", (1, 2, 3)),
-    ("v2.0.0", (2, 0, 0)),
-    ("1.0.0-beta", (1, 0, 0, "beta")),
-])
+@pytest.mark.parametrize(
+    "version_string,expected",
+    [
+        ("1.2.3", (1, 2, 3)),
+        ("v2.0.0", (2, 0, 0)),
+        ("1.0.0-beta", (1, 0, 0, "beta")),
+    ],
+)
 def test_version_parsing(version_string, expected):
     """Test version parsing with various formats."""
     assert parse_version(version_string) == expected
@@ -191,15 +195,13 @@ Async operations should have explicit timeouts:
 ```python
 import asyncio
 
+
 @pytest.mark.asyncio
 @pytest.mark.timeout(30)
 async def test_async_with_timeout():
     """Test async operation with timeout protection."""
     try:
-        result = await asyncio.wait_for(
-            slow_async_operation(),
-            timeout=10.0
-        )
+        result = await asyncio.wait_for(slow_async_operation(), timeout=10.0)
         assert result is not None
     except asyncio.TimeoutError:
         pytest.fail("Operation timed out")

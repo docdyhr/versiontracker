@@ -29,13 +29,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
+
 class MLMatcher:
     def __init__(self):
-        self.vectorizer = TfidfVectorizer(
-            ngram_range=(1, 3),
-            stop_words='english',
-            lowercase=True
-        )
+        self.vectorizer = TfidfVectorizer(ngram_range=(1, 3), stop_words="english", lowercase=True)
         self.trained = False
 
     def train_on_user_data(self, historical_matches):
@@ -184,7 +181,7 @@ class AppManager: ObservableObject {
 ```python
 # Cloud sync service architecture
 class CloudSyncService:
-    def __init__(self, provider='cloudkit'):
+    def __init__(self, provider="cloudkit"):
         self.provider = provider
         self.encryption = AES256Encryption()
 
@@ -259,10 +256,12 @@ class PlatformManager(ABC):
     def get_package_managers(self) -> List[PackageManager]:
         pass
 
+
 class MacOSManager(PlatformManager):
     def discover_applications(self):
         # Existing macOS implementation
         pass
+
 
 class LinuxManager(PlatformManager):
     def discover_applications(self):
@@ -295,7 +294,7 @@ class LinuxManager(PlatformManager):
    ```python
    class UpdateScheduler:
        def __init__(self):
-           self.ml_model = load_model('update_preference_model')
+           self.ml_model = load_model("update_preference_model")
 
        def predict_optimal_time(self, app: Application) -> datetime:
            """Predict best time to update based on usage patterns"""
@@ -323,7 +322,7 @@ class LinuxManager(PlatformManager):
 # Example NLP integration
 class NLPInterface:
     def __init__(self):
-        self.nlp = spacy.load('en_core_web_sm')
+        self.nlp = spacy.load("en_core_web_sm")
 
     def process_command(self, text: str) -> Command:
         """Convert natural language to commands"""
