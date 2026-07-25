@@ -148,11 +148,7 @@ versiontracker/
 
 ```python
 # Good: Clear, typed function with docstring
-async def fetch_cask_info(
-    cask_name: str,
-    timeout: int = DEFAULT_TIMEOUT,
-    use_cache: bool = True
-) -> Dict[str, Any]:
+async def fetch_cask_info(cask_name: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> Dict[str, Any]:
     """Fetch information about a Homebrew cask asynchronously.
 
     Args:
@@ -225,6 +221,7 @@ tests/
 import pytest
 from unittest.mock import patch, MagicMock
 
+
 class TestHomebrewIntegration:
     """Test cases for Homebrew integration."""
 
@@ -235,7 +232,7 @@ class TestHomebrewIntegration:
         expected_data = {"name": "test-app", "version": "1.0.0"}
 
         # Act
-        with patch('aiohttp.ClientSession.get') as mock_get:
+        with patch("aiohttp.ClientSession.get") as mock_get:
             mock_get.return_value.__aenter__.return_value.json.return_value = expected_data
             result = await fetch_cask_info("test-app")
 

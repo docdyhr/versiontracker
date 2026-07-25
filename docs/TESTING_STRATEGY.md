@@ -65,6 +65,7 @@ Due to the modularized architecture, some tests require special handling:
 ```python
 # Pattern for testing dynamically loaded modules
 import versiontracker.apps
+
 apps_module = versiontracker.apps._apps_main
 
 with patch.object(apps_module, "function_name", return_value=mock_value):

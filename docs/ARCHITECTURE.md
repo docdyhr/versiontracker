@@ -191,10 +191,7 @@ class AppDiscoveryHandler:
 
     def handle(self, args: Namespace) -> List[Dict[str, Any]]:
         """Handle app discovery command."""
-        return get_apps_not_in_app_store(
-            blacklist=self.config.blacklist,
-            additional_dirs=self.config.additional_dirs
-        )
+        return get_apps_not_in_app_store(blacklist=self.config.blacklist, additional_dirs=self.config.additional_dirs)
 ```
 
 ### Strategy Pattern
@@ -208,8 +205,13 @@ class CacheStrategy(ABC):
     @abstractmethod
     def set(self, key: str, value: Any, ttl: int) -> None: ...
 
+
 class MemoryCache(CacheStrategy): ...
+
+
 class DiskCache(CacheStrategy): ...
+
+
 class CompressedCache(CacheStrategy): ...
 ```
 
@@ -304,14 +306,11 @@ VersionTrackerError (base)
 import logging
 
 # Configure structured logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # Performance logging
-performance_logger = logging.getLogger('versiontracker.performance')
-network_logger = logging.getLogger('versiontracker.network')
+performance_logger = logging.getLogger("versiontracker.performance")
+network_logger = logging.getLogger("versiontracker.network")
 ```
 
 ## Testing Architecture
@@ -339,8 +338,8 @@ tests/
 
 ```python
 # Mock external dependencies
-@patch('versiontracker.homebrew.subprocess.run')
-@patch('versiontracker.async_network.aiohttp.ClientSession')
+@patch("versiontracker.homebrew.subprocess.run")
+@patch("versiontracker.async_network.aiohttp.ClientSession")
 async def test_cask_lookup(mock_session, mock_subprocess):
     # Test implementation
     pass

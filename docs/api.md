@@ -287,9 +287,11 @@ config.save()  # Persist changes
 import asyncio
 from versiontracker.async_homebrew import async_get_homebrew_casks
 
+
 async def main():
     casks = await async_get_homebrew_casks()
     print(f"Found {len(casks)} casks asynchronously")
+
 
 asyncio.run(main())
 ```

@@ -65,10 +65,10 @@ Python 3.13 brings improved type hint support. VersionTracker is ready to levera
 ```python
 # Modern Python 3.9+ syntax (fully supported)
 def process_apps(
-    apps: list[str],                    # Instead of List[str]
-    config: dict[str, Any],             # Instead of Dict[str, Any]
-    exclude: set[str] | None = None,    # Union with | operator
-) -> dict[str, list[str]]:              # Modern return type
+    apps: list[str],  # Instead of List[str]
+    config: dict[str, Any],  # Instead of Dict[str, Any]
+    exclude: set[str] | None = None,  # Union with | operator
+) -> dict[str, list[str]]:  # Modern return type
     """Process applications with modern type hints."""
     pass
 ```
@@ -78,6 +78,7 @@ Python 3.13's async improvements are fully utilized:
 
 ```python
 import asyncio
+
 
 async def check_updates_async():
     """Async update checking with Python 3.13 optimizations."""
