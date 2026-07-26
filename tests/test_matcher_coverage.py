@@ -223,12 +223,23 @@ class TestFilterOutBrews:
         assert result == []
 
     @patch("versiontracker.apps.matcher.partial_ratio", return_value=90)
-    def test_strict_mode_skips_matched(self, _ratio):
+    def test_strict_mode_has_no_observable_effect_on_return_value(self, _ratio):
+        """Regression, not aspiration: filter_out_brews's `candidates` list is
+        built but never returned or used, and both the strict_mode=True and
+        strict_mode=False branches `break` identically on a match -- so
+        strict_mode currently cannot change search_list's contents. This
+        pins that (undesirable but real) current behavior; the previous
+        version of this test mocked partial_ratio to always match, which
+        made every app match under both modes and so could never have
+        actually observed a strict_mode-specific difference even if one
+        existed. See TODO.md for the tracked, separate follow-up (the
+        `--strict-recommend` CLI flag is non-functional as documented)."""
         apps = [("Firefox", "1.0"), ("SomeUnique", "2.0")]
-        result = filter_out_brews(apps, ["firefox", "someunique"], strict_mode=True)
-        # strict mode: matched apps are skipped (break without adding to candidates)
-        # All match in strict mode → all skipped → empty search_list
-        assert result == []
+
+        result_strict = filter_out_brews(apps, ["firefox", "someunique"], strict_mode=True)
+        result_lenient = filter_out_brews(apps, ["firefox", "someunique"], strict_mode=False)
+
+        assert result_strict == result_lenient == []
 
     @patch("versiontracker.apps.matcher.partial_ratio", return_value=80)
     def test_partial_fuzzy_match(self, _ratio):
