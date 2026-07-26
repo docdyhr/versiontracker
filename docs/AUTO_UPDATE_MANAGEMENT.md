@@ -157,7 +157,7 @@ versiontracker --brews --only-auto-updates --export json --output-file auto-upda
 
 ### Check for outdated apps, excluding those with auto-updates:
 ```bash
-versiontracker --outdated --exclude-auto-updates
+versiontracker --check-outdated --exclude-auto-updates
 ```
 
 ### Save filter for auto-update apps:
