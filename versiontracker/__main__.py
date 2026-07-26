@@ -9,6 +9,7 @@ from versiontracker import __version__
 from versiontracker.cli import get_arguments
 from versiontracker.deprecation import warn_deprecated_flag
 from versiontracker.handlers import (
+    handle_audit,
     handle_blacklist_auto_updates,
     handle_brew_recommendations,
     handle_config_generation,
@@ -161,6 +162,8 @@ def _get_basic_action_result(options: Any) -> int | None:
         return handle_brew_recommendations(options)
     elif options.check_outdated:
         return handle_outdated_check(options)
+    elif options.audit:
+        return handle_audit(options)
     return None
 
 
@@ -221,18 +224,28 @@ def handle_main_actions(options: Any) -> int:
 
 
 def _emit_deprecation_warnings(options: Any) -> None:
-    """Emit deprecation warnings for legacy CLI flags."""
+    """Emit deprecation warnings for legacy CLI flags.
+
+    Suppresses the printed console hint (but not the underlying
+    logging.warning(), which always fires) when the caller requested
+    machine-readable export -- otherwise `--export json` output could have
+    a "[DEPRECATION]" line ahead of it on stdout, breaking parseability for
+    any command, not just --audit.
+    """
+    emit_console_hint = not bool(getattr(options, "export_format", None))
     if options.blacklist:
         warn_deprecated_flag(
             "--blacklist",
             replacement="--blocklist",
             removal_version="1.0.0",
+            emit_console_hint=emit_console_hint,
         )
     if options.blacklist_auto_updates:
         warn_deprecated_flag(
             "--blacklist-auto-updates",
             replacement="--blocklist-auto-updates",
             removal_version="1.0.0",
+            emit_console_hint=emit_console_hint,
         )
 
 

@@ -144,6 +144,46 @@ versiontracker --recommend --similarity 60
 
 A higher threshold will reduce false positives but might miss some matches.
 
+### Auditing Unmanaged Applications
+
+`--audit` answers a narrower, more specific question than `--apps`: which
+user-facing applications are not managed by the App Store, not owned by
+Homebrew, have no confirmed local auto-update mechanism, and aren't
+blocklisted? Each application's result carries evidence -- status, reason,
+confidence, and source -- for all four signals, not just a yes/no. A signal
+that can't be resolved (e.g. a failed Homebrew lookup) is reported as
+`unknown`, never silently treated as a negative.
+
+```bash
+# Default view: only applications needing attention or with incomplete evidence
+versiontracker --audit
+
+# Show every audited application, including already-managed ones
+versiontracker --audit --all
+
+# Show full evidence per application instead of a compact table
+versiontracker --audit --explain
+
+# Show only one audit status
+versiontracker --audit --status attention
+versiontracker --audit --status unknown
+versiontracker --audit --status managed
+```
+
+Results can be exported with full evidence in any of the three supported
+formats, each carrying a versioned schema:
+
+```bash
+versiontracker --audit --export json
+versiontracker --audit --export yaml
+versiontracker --audit --export csv --output-file audit.csv
+```
+
+`--all` and `--status` are mutually exclusive (choosing a single status
+already implies not showing everything). `--additional-dirs` and
+`--blocklist`/`--blacklist` behave as documented above and merge with any
+configured `additional_app_dirs`/blocklist entries rather than replacing them.
+
 ## Examples
 
 ### Daily Usage

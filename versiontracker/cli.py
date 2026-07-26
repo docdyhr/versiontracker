@@ -25,6 +25,9 @@ Examples:
   versiontracker --brews             List Homebrew casks
   versiontracker --recom             Recommend Homebrew casks for installed apps
   versiontracker --check-outdated    Check for outdated applications
+  versiontracker --audit             Audit apps not managed by App Store/Homebrew/auto-updater
+  versiontracker --audit --all --explain --export json
+                                      Full audit evidence as machine-readable JSON
 
 For more information, visit: https://github.com/docdyhr/versiontracker
         """,
@@ -75,6 +78,11 @@ For more information, visit: https://github.com/docdyhr/versiontracker
         action="store_true",
         help="Check for outdated applications",
     )
+    action_group.add_argument(
+        "--audit",
+        action="store_true",
+        help="Audit applications not managed by the App Store, Homebrew, or a local auto-updater",
+    )
 
     # Auto-update management (mutually exclusive)
     auto_update_group = parser.add_mutually_exclusive_group()
@@ -109,6 +117,25 @@ For more information, visit: https://github.com/docdyhr/versiontracker
         dest="only_auto_updates",
         action="store_true",
         help="Only show applications that have auto-updates enabled",
+    )
+
+    # Audit view options (used with --audit)
+    audit_view_group = parser.add_mutually_exclusive_group()
+    audit_view_group.add_argument(
+        "--all",
+        action="store_true",
+        help="Show every audited application, not just those needing attention (with --audit)",
+    )
+    audit_view_group.add_argument(
+        "--status",
+        choices=["attention", "unknown", "managed"],
+        metavar="STATUS",
+        help="Show only applications in this audit status (with --audit)",
+    )
+    parser.add_argument(
+        "--explain",
+        action="store_true",
+        help="Show full evidence per application instead of a compact table (with --audit)",
     )
 
     # Service management options

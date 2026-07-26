@@ -53,7 +53,7 @@ class TestHandleInstallService:
     @patch("sys.platform", "darwin")
     def test_custom_interval(self, mock_install, _pb):
         handle_install_service(Namespace(service_interval=12))
-        mock_install.assert_called_once_with(12, ["--outdated", "--no-progress"])
+        mock_install.assert_called_once_with(12, ["--check-outdated", "--no-progress"])
 
     @patch("versiontracker.handlers.macos_handlers.create_progress_bar", return_value=_mock_progress_bar())
     @patch(

@@ -108,6 +108,9 @@ versiontracker --recommend
 # Check for outdated applications
 versiontracker --check-outdated
 
+# Audit apps not managed by the App Store, Homebrew, or a local auto-updater
+versiontracker --audit
+
 # Show help
 versiontracker --help
 ```
@@ -144,6 +147,9 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * Adaptive rate limiting based on CPU and memory usage
 * Support for saving and loading query filters
 * **Auto-updates detection** for Homebrew casks with filtering options
+* **Unmanaged application audit** (`--audit`): identifies apps with no App
+  Store, Homebrew, or local auto-update coverage, with full per-signal
+  evidence and JSON/YAML/CSV export
 
 ## Advanced Features
 
@@ -319,6 +325,12 @@ Export options:
   --output-file OUTPUT_FILE
                         Specify the output file for export (default: print to stdout)
 
+Audit options (used with --audit):
+  --all                 Show every audited application, not just those needing attention
+  --status {attention,unknown,managed}
+                        Show only applications in this audit status
+  --explain             Show full evidence per application instead of a compact table
+
 Configuration options:
   --generate-config     Generate a default configuration file at ~/.config/versiontracker/config.yaml
   --config-path CONFIG_PATH
@@ -329,7 +341,8 @@ Configuration options:
   -a, --apps            return Apps in Applications/ that is not updated by App Store
   -b, --brews           return installable brews
   -r, --recommend       return recommendations for brew
-  -o, --outdated        check for outdated applications compared to Homebrew versions
+  -o, --check-outdated  check for outdated applications compared to Homebrew versions
+  --audit               audit apps not managed by the App Store, Homebrew, or a local auto-updater
   -V, --version         show program's version number and exit
 ```
 
@@ -362,13 +375,36 @@ python3 versiontracker-cli.py --recommend
 ### Check for outdated applications
 
 ```shell
-python3 versiontracker-cli.py --outdated
+python3 versiontracker-cli.py --check-outdated
 ```
 
 Or if installed:
 
 ```shell
-versiontracker --outdated
+versiontracker --check-outdated
+```
+
+### Audit unmanaged applications
+
+Identify user-facing applications that aren't App Store-managed, aren't
+Homebrew-owned, have no confirmed local auto-update path, and aren't
+blocklisted — with full per-signal evidence rather than a bare yes/no.
+
+```shell
+# Default view: applications needing attention or with incomplete evidence
+versiontracker --audit
+
+# Show every audited application, including already-managed ones
+versiontracker --audit --all
+
+# Show full evidence per application instead of a compact table
+versiontracker --audit --explain
+
+# Show only one audit status
+versiontracker --audit --status unknown
+
+# Export full evidence as versioned JSON
+versiontracker --audit --export json --output-file audit.json
 ```
 
 ### Handle applications with auto-updates
@@ -450,8 +486,8 @@ python -m versiontracker --install-service
 # Check service status
 python -m versiontracker --service-status
 
-# Send notification with outdated app results
-python -m versiontracker --outdated --notify
+# Check for outdated applications
+python -m versiontracker --check-outdated
 
 # Launch menubar application for quick access
 python -m versiontracker --menubar
@@ -744,7 +780,7 @@ and the tool is fully operational on macOS. Key highlights:
 
 * **macOS only** — VersionTracker runs on macOS only; Linux and Windows are not supported.
 * **macOS 10.15 Catalina or later** — older releases are not tested. Tested through macOS Sequoia.
-* **Homebrew required for version checks** — `--outdated` and `--recommend` require Homebrew;
+* **Homebrew required for version checks** — `--check-outdated` and `--recommend` require Homebrew;
   `--apps` works without it.
 * **Apple Silicon vs Intel** — both paths are detected automatically (`/opt/homebrew/bin/brew`
   and `/usr/local/bin/brew`). Mixed-architecture Rosetta environments may need a manual

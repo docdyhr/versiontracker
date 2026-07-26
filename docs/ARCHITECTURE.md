@@ -23,12 +23,12 @@ VersionTracker follows a modular, layered architecture designed for maintainabil
 ├─────────────────────────────────────────────────────────────┤
 │  CLI Interface (cli.py) │ UI Components (ui.py)             │
 └─────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────┐
-│                     Business Logic Layer                    │
-├─────────────────────────────────────────────────────────────┤
-│ App Discovery │ Version Analysis │ Recommendations │ Export │
-│   (apps.py)   │   (utils.py)     │   (handlers/)    │(export)│
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                          Business Logic Layer                         │
+├───────────────────────────────────────────────────────────────────────┤
+│ App Discovery │ Version Analysis │ Recommendations │ Export │  Audit  │
+│   (apps.py)   │    (utils.py)    │   (handlers/)    │(export)│(audit/)│
+└───────────────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────┐
 │                    Service Layer                           │
 ├─────────────────────────────────────────────────────────────┤
@@ -86,6 +86,32 @@ VersionTracker follows a modular, layered architecture designed for maintainabil
   - `get_installed_casks()`: List installed casks
   - `fetch_cask_info()`: Get cask metadata from API
   - `check_cask_versions()`: Version comparison
+
+#### `audit/` - Unmanaged Application Audit
+- **Purpose**: Answer "which user-facing applications are not managed by
+  the App Store, not owned by Homebrew, have no confirmed local auto-update
+  mechanism, and aren't blocklisted?" (`versiontracker --audit`), with full
+  evidence per signal rather than a bare yes/no. A failed lookup is always
+  reported as `unknown`, never silently treated as a negative.
+- **Submodules**:
+  - `models.py`: Frozen dataclasses for identity-preserving application
+    records and per-signal evidence (status, reason, confidence, source)
+  - `discovery.py`: Filesystem-walk-based bundle discovery and App Store
+    evidence (`Info.plist` + `_MASReceipt/receipt`, optional
+    `system_profiler` enrichment)
+  - `homebrew.py`: Exact Homebrew ownership via installed-cask artifact
+    target paths -- no fuzzy matching
+  - `blocklist.py`: Structured identity matching (canonical path, bundle
+    ID, Homebrew cask token, display name)
+  - `auto_update.py`: Local auto-update capability detection (Sparkle,
+    Squirrel, electron-updater, Mozilla updater, vendor LaunchAgents)
+  - `service.py`: Orchestrates the resolvers in dependency order and
+    classifies each record into attention/unknown/managed
+  - `rendering.py`: Pure terminal/JSON/YAML/CSV renderers -- never print;
+    printing is exclusively `handlers/audit_handlers.py`'s job
+- **Key Functions**:
+  - `run_audit()`: Discover once, resolve every evidence axis, classify
+  - `filter_result()`: Select attention/unknown/managed/all for display
 
 ### Infrastructure Modules
 

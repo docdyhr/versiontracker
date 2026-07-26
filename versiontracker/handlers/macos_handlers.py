@@ -39,7 +39,7 @@ def handle_install_service(options: Namespace) -> int:
         interval_hours = getattr(options, "service_interval", 24)
 
         # Prepare command arguments
-        command_args = ["--outdated", "--no-progress"]
+        command_args = ["--check-outdated", "--no-progress"]
 
         # Install the service
         success = install_scheduled_checker(interval_hours, command_args)

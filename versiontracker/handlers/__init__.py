@@ -8,6 +8,7 @@ design principle for better separation of concerns.
 
 # Import handlers from submodules for easier access
 from versiontracker.handlers.app_handlers import handle_list_apps
+from versiontracker.handlers.audit_handlers import handle_audit
 from versiontracker.handlers.auto_update_handlers import (
     handle_blacklist_auto_updates,
     handle_list_auto_updates,
@@ -47,6 +48,7 @@ except ImportError:
     _MACOS_HANDLERS_AVAILABLE = False
 
 __all__ = [
+    "handle_audit",
     "handle_list_apps",
     "handle_list_brews",
     "handle_brew_recommendations",

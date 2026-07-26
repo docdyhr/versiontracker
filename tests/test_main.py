@@ -3,8 +3,11 @@
 import logging
 import sys
 import unittest
+from io import StringIO
 from unittest.mock import MagicMock, patch
 
+from versiontracker.__main__ import _emit_deprecation_warnings
+from versiontracker.deprecation import reset_deprecation_registry
 from versiontracker.handlers.export_handlers import handle_export
 from versiontracker.handlers.setup_handlers import handle_setup_logging
 from versiontracker.handlers.ui_handlers import get_status_color, get_status_icon
@@ -133,6 +136,57 @@ class TestMain(unittest.TestCase):
 
         # Verify that a filter was added to the StreamHandler
         mock_handler.addFilter.assert_called_once()
+
+
+class TestEmitDeprecationWarnings(unittest.TestCase):
+    """Tests for _emit_deprecation_warnings's export-aware console-hint suppression.
+
+    warn_deprecated_flag only emits once per process (see deprecation.py's
+    own registry) so the registry must be reset around each test to keep
+    them independent, per that module's own documented testing guidance.
+    """
+
+    def setUp(self):
+        reset_deprecation_registry()
+
+    def tearDown(self):
+        reset_deprecation_registry()
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_blacklist_without_export_prints_deprecation_hint(self, mock_stdout):
+        """Without --export, the console hint still prints (unchanged behavior)."""
+        options = MagicMock()
+        options.blacklist = "Firefox"
+        options.blacklist_auto_updates = False
+        options.export_format = None
+
+        _emit_deprecation_warnings(options)
+
+        self.assertIn("[DEPRECATION]", mock_stdout.getvalue())
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_blacklist_with_export_suppresses_deprecation_hint(self, mock_stdout):
+        """With --export, no stray text may precede machine-readable output."""
+        options = MagicMock()
+        options.blacklist = "Firefox"
+        options.blacklist_auto_updates = False
+        options.export_format = "json"
+
+        _emit_deprecation_warnings(options)
+
+        self.assertNotIn("[DEPRECATION]", mock_stdout.getvalue())
+        self.assertEqual(mock_stdout.getvalue(), "")
+
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_no_deprecated_flags_prints_nothing(self, mock_stdout):
+        options = MagicMock()
+        options.blacklist = None
+        options.blacklist_auto_updates = False
+        options.export_format = None
+
+        _emit_deprecation_warnings(options)
+
+        self.assertEqual(mock_stdout.getvalue(), "")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`versiontracker --audit`**: identifies user-facing applications that
+  aren't App Store-managed, aren't Homebrew-owned, have no confirmed local
+  auto-update path, and aren't blocklisted — with full per-signal evidence
+  (status, reason, confidence, source) rather than a bare yes/no. Evidence
+  that can't be resolved (e.g. a failed Homebrew CLI call) always surfaces
+  as `unknown` rather than silently becoming a false negative or positive.
+  New flags: `--audit`, `--all` (show every application, not just those
+  needing attention), `--status {attention,unknown,managed}` (filter to one
+  bucket), `--explain` (full evidence instead of a compact table); reuses
+  the existing `--export {json,yaml,csv}`/`--output-file`/
+  `--additional-dirs`/`--blocklist` flags. JSON/YAML exports carry a
+  versioned `schema_version` envelope with complete evidence for every
+  application, independent of `--explain`.
+
 ### Fixed
 - **Performance Testing baseline ratchet bug**: the scheduled weekly benchmark's
   baseline-save steps only ran `if: success()`, so once a run failed for any
