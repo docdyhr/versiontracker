@@ -6,11 +6,29 @@ Unlike the macOS-only end-to-end tests, these run in any CI environment.
 """
 
 import json
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
 from versiontracker.__main__ import versiontracker_main
+from versiontracker.audit import AuditResult
+from versiontracker.audit.models import (
+    ApplicationRecord,
+    AppStoreEvidence,
+    AppStoreStatus,
+    AuditBucket,
+    AuditClassification,
+    AutoUpdateEvidence,
+    AutoUpdateStatus,
+    BlocklistEvidence,
+    BlocklistStatus,
+    ClassifiedApplication,
+    EvidenceSource,
+    HomebrewEvidence,
+    HomebrewStatus,
+)
+from versiontracker.deprecation import reset_deprecation_registry
 
 _FAKE_APPS = [
     ("Firefox", "110.0"),
@@ -19,6 +37,41 @@ _FAKE_APPS = [
 ]
 
 _FAKE_BREWS = ["firefox", "google-chrome", "visual-studio-code"]
+
+
+def _classified_app(name: str, bucket: AuditBucket) -> ClassifiedApplication:
+    path = Path(f"/Applications/{name}.app")
+    record = ApplicationRecord(
+        name=name,
+        version="1.0",
+        path=path,
+        canonical_path=path,
+        bundle_id=f"com.example.{name.lower()}",
+        obtained_from=None,
+        parent_bundle_path=None,
+        app_store=AppStoreEvidence(
+            status=AppStoreStatus.NOT_APP_STORE, reason="test", source=EvidenceSource.FILESYSTEM
+        ),
+        homebrew=HomebrewEvidence(
+            status=HomebrewStatus.NOT_AVAILABLE, reason="test", source=EvidenceSource.HOMEBREW_CLI
+        ),
+        auto_update=AutoUpdateEvidence(
+            status=AutoUpdateStatus.NONE_DETECTED, reason="test", source=EvidenceSource.FILESYSTEM
+        ),
+        blocklist=BlocklistEvidence(status=BlocklistStatus.NOT_BLOCKED, reason="test", source=EvidenceSource.CONFIG),
+    )
+    return ClassifiedApplication(record=record, classification=AuditClassification(bucket=bucket, why=f"{name} why"))
+
+
+def _three_bucket_audit_result() -> AuditResult:
+    """One app per bucket -- lets a single fixed AuditResult drive every
+    --all/--status/--explain/--export observable-output test below."""
+    applications = (
+        _classified_app("AttentionApp", AuditBucket.ATTENTION),
+        _classified_app("UnknownApp", AuditBucket.UNKNOWN),
+        _classified_app("ManagedApp", AuditBucket.MANAGED),
+    )
+    return AuditResult(applications=applications, summary={"total": 3, "attention": 1, "unknown": 1, "managed": 1})
 
 
 @pytest.fixture(autouse=True)
@@ -141,3 +194,89 @@ class TestCLIWorkflows:
         # Handler may return 0 (up-to-date) or non-zero based on display logic;
         # the important thing is it completes without raising an unhandled exception.
         assert result in (0, 1)
+
+    def test_audit_export_json_produces_clean_parseable_stdout(self, capsys):
+        """--audit --export json must print *only* the JSON, even when combined
+        with a deprecated flag -- this is the only test level that would catch a
+        regression in __main__._emit_deprecation_warnings's emit_console_hint
+        wiring, since handler-level unit tests mock straight past it."""
+        reset_deprecation_registry()
+        fake_result = AuditResult(applications=(), summary={"total": 0, "attention": 0, "unknown": 0, "managed": 0})
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=fake_result),
+            mock.patch(
+                "sys.argv",
+                ["versiontracker", "--audit", "--export", "json", "--blacklist", "Firefox"],
+            ),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        captured = capsys.readouterr()
+        parsed = json.loads(captured.out)  # raises if a stray [DEPRECATION] line snuck in
+        assert parsed["schema_version"] == 1
+        assert parsed["applications"] == []
+
+    def test_audit_default_view_hides_managed_app(self, capsys):
+        """Default --audit shows attention/unknown, hides the managed app --
+        the CLI-level proof that --all changes observable output at all."""
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=_three_bucket_audit_result()),
+            mock.patch("sys.argv", ["versiontracker", "--audit"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "AttentionApp" in captured.out
+        assert "UnknownApp" in captured.out
+        assert "ManagedApp" not in captured.out
+
+    def test_audit_all_flag_reveals_managed_app(self, capsys):
+        """--all is the one flag whose whole purpose is revealing the
+        otherwise-hidden managed app -- directly observable in stdout."""
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=_three_bucket_audit_result()),
+            mock.patch("sys.argv", ["versiontracker", "--audit", "--all"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "ManagedApp" in captured.out
+
+    def test_audit_status_flag_shows_only_that_bucket(self, capsys):
+        """--status managed shows only the managed app, not the other two --
+        proves --status actually filters, not just accepts the argument."""
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=_three_bucket_audit_result()),
+            mock.patch("sys.argv", ["versiontracker", "--audit", "--status", "managed"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "ManagedApp" in captured.out
+        assert "AttentionApp" not in captured.out
+        assert "UnknownApp" not in captured.out
+
+    def test_audit_explain_flag_shows_full_evidence(self, capsys):
+        """--explain's whole purpose is exposing per-axis evidence
+        (confidence=/source=) that the default compact table never prints."""
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=_three_bucket_audit_result()),
+            mock.patch("sys.argv", ["versiontracker", "--audit", "--all"]),
+        ):
+            versiontracker_main()
+        compact_out = capsys.readouterr().out
+
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=_three_bucket_audit_result()),
+            mock.patch("sys.argv", ["versiontracker", "--audit", "--all", "--explain"]),
+        ):
+            result = versiontracker_main()
+        explain_out = capsys.readouterr().out
+
+        assert result == 0
+        assert "confidence=" not in compact_out
+        assert "confidence=" in explain_out

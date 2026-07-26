@@ -1,6 +1,7 @@
 """Tests for the CLI module."""
 
 import unittest
+from io import StringIO
 from unittest.mock import patch
 
 from versiontracker.cli import get_arguments
@@ -131,6 +132,55 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(args.additional_dirs, "/path1:/path2")
             self.assertEqual(args.similarity, 80)
             self.assertTrue(args.no_progress)
+
+    def test_audit_flag(self):
+        """Test --audit flag."""
+        with patch("sys.argv", ["versiontracker", "--audit"]):
+            args = get_arguments()
+            self.assertTrue(args.audit)
+            self.assertFalse(args.apps)
+            self.assertFalse(args.all)
+            self.assertIsNone(args.status)
+            self.assertFalse(args.explain)
+
+    def test_audit_all_flag(self):
+        """Test --audit --all flag."""
+        with patch("sys.argv", ["versiontracker", "--audit", "--all"]):
+            args = get_arguments()
+            self.assertTrue(args.audit)
+            self.assertTrue(args.all)
+            self.assertIsNone(args.status)
+
+    def test_audit_explain_flag(self):
+        """Test --audit --explain flag."""
+        with patch("sys.argv", ["versiontracker", "--audit", "--explain"]):
+            args = get_arguments()
+            self.assertTrue(args.audit)
+            self.assertTrue(args.explain)
+
+    def test_audit_status_choices(self):
+        """Test --audit --status accepts only its defined choices."""
+        for status in ("attention", "unknown", "managed"):
+            with self.subTest(status=status):
+                with patch("sys.argv", ["versiontracker", "--audit", "--status", status]):
+                    args = get_arguments()
+                    self.assertEqual(args.status, status)
+
+        with patch("sys.argv", ["versiontracker", "--audit", "--status", "bogus"]):
+            with self.assertRaises(SystemExit), patch("sys.stderr", new_callable=StringIO):
+                get_arguments()
+
+    def test_audit_all_and_status_mutually_exclusive(self):
+        """Test --all and --status cannot be combined."""
+        with patch("sys.argv", ["versiontracker", "--audit", "--all", "--status", "attention"]):
+            with self.assertRaises(SystemExit), patch("sys.stderr", new_callable=StringIO):
+                get_arguments()
+
+    def test_audit_mutually_exclusive_with_apps(self):
+        """Test --audit cannot be combined with other main action flags."""
+        with patch("sys.argv", ["versiontracker", "--audit", "--apps"]):
+            with self.assertRaises(SystemExit), patch("sys.stderr", new_callable=StringIO):
+                get_arguments()
 
 
 if __name__ == "__main__":

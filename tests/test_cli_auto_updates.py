@@ -116,6 +116,7 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         mock_args.recom = False
         mock_args.strict_recom = False
         mock_args.check_outdated = False
+        mock_args.audit = False
         mock_args.uninstall_auto_updates = False
         mock_args.install_service = False
         mock_args.uninstall_service = False
@@ -154,6 +155,7 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         mock_args.recom = False
         mock_args.strict_recom = False
         mock_args.check_outdated = False
+        mock_args.audit = False
         mock_args.blacklist_auto_updates = False
         mock_args.blocklist_auto_updates = False
         mock_args.install_service = False
@@ -265,6 +267,7 @@ class TestAutoUpdatesEndToEnd(unittest.TestCase):
             mock_args.recom = False
             mock_args.strict_recom = False
             mock_args.check_outdated = False
+            mock_args.audit = False
             mock_args.uninstall_auto_updates = False
             mock_args.install_service = False
             mock_args.uninstall_service = False
