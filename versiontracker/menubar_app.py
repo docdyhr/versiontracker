@@ -80,8 +80,8 @@ class MenubarApp:
 
         # Map menu choices to versiontracker commands
         commands = {
-            "Check for Updates": ["--outdated", "--notify"],
-            "Show Outdated Apps": ["--outdated"],
+            "Check for Updates": ["--check-outdated"],
+            "Show Outdated Apps": ["--check-outdated"],
             "Show All Apps": ["--apps"],
             "Show Homebrew Casks": ["--brews"],
             "Install Service": ["--install-service"],
