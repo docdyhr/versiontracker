@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-29
+
 ### Added
 - **`versiontracker --audit`**: identifies user-facing applications that
   aren't App Store-managed, aren't Homebrew-owned, have no confirmed local
@@ -21,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--additional-dirs`/`--blocklist` flags. JSON/YAML exports carry a
   versioned `schema_version` envelope with complete evidence for every
   application, independent of `--explain`.
+- **Integration tests** (`tests/integration/test_cli_workflows.py`): 5 cross-platform
+  CLI workflow tests covering `--apps`, `--apps --export json --output-file`,
+  `--brews`, `--generate-config`, and `--check-outdated`; mock system calls so tests
+  run in any CI environment without macOS or Homebrew
 
 ### Fixed
 - **Performance Testing baseline ratchet bug**: the scheduled weekly benchmark's
@@ -37,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `filter_handlers.py` → `(OSError, ValueError, AttributeError, KeyError)`.
   The outermost CLI boundary in `__main__.py` retains a broad catch with justification.
   Corresponding test mocks updated from bare `Exception` to specific types.
+- **`handle_config_generation`** (`config_handlers.py`): replaced direct
+  `options.config_path` access with `getattr(options, "config_path", None)` — the
+  argparse namespace has no `config_path` attribute when `--config-path` is not
+  passed, causing an AttributeError that silently returned exit code 1
 
 ### Documentation
 - **Advanced Features section** added to README documenting the optional ML engine
@@ -44,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `UsageAnalyzer`) and the two experimental modules
   (`versiontracker.experimental.analytics`, `versiontracker.experimental.benchmarks`)
   with install instructions, usage examples, and stability notes.
+- **README**: reconciled test metrics to match current state (2,477 passing tests, 86% coverage); added "Known Limitations" section covering macOS version constraints, unsupported package managers, Apple Silicon paths, optional ML dependencies, and experimental module stability
+- **TODO**: updated current status to reflect actual test count (2,477), coverage (86%), and correct skipped-test breakdown (13 ML-dep, 2 platform-guard, 1 TTY — all with inline `reason=` strings)
 
 ### Security
 - **AppleScript injection fix** (`macos_integration.py`): escape `"` → `\"`
@@ -61,18 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   internal functions in `versiontracker/version/parser.py`, bringing parser
   coverage to 93.45%
 
-### Added
-- **Integration tests** (`tests/integration/test_cli_workflows.py`): 5 cross-platform
-  CLI workflow tests covering `--apps`, `--apps --export json --output-file`,
-  `--brews`, `--generate-config`, and `--check-outdated`; mock system calls so tests
-  run in any CI environment without macOS or Homebrew
-
-### Fixed
-- **`handle_config_generation`** (`config_handlers.py`): replaced direct
-  `options.config_path` access with `getattr(options, "config_path", None)` — the
-  argparse namespace has no `config_path` attribute when `--config-path` is not
-  passed, causing an AttributeError that silently returned exit code 1
-
 ### CI
 - **Coverage threshold raised** from 80% to 85% in `coverage.yml` (matches the
   documented target; project is currently at 86%+)
@@ -81,10 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and exits non-zero if any metric degrades by >5%; `performance.yml` restores the
   baseline before benchmarks, fails the job on regression, and caches the new
   baseline only after a clean run
-
-### Documentation
-- **README**: reconciled test metrics to match current state (2,477 passing tests, 86% coverage); added "Known Limitations" section covering macOS version constraints, unsupported package managers, Apple Silicon paths, optional ML dependencies, and experimental module stability
-- **TODO**: updated current status to reflect actual test count (2,477), coverage (86%), and correct skipped-test breakdown (13 ML-dep, 2 platform-guard, 1 TTY — all with inline `reason=` strings)
 
 ## [1.0.1] - 2026-05-28
 
@@ -676,6 +672,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code quality checks with ruff and mypy
 - Multi-platform testing (Ubuntu, macOS)
 
-[Unreleased]: https://github.com/docdyhr/versiontracker/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/docdyhr/versiontracker/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/docdyhr/versiontracker/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/docdyhr/versiontracker/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/docdyhr/versiontracker/compare/v0.9.0...v1.0.0
