@@ -236,13 +236,13 @@ class TestIntegration(unittest.TestCase):
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
-    @patch("versiontracker.apps.finder.get_applications")
+    @patch("versiontracker.handlers.app_handlers.get_applications")
     @patch("versiontracker.apps.finder.get_homebrew_casks")
     @patch("versiontracker.apps.matcher.filter_out_brews")
     @patch("versiontracker.apps.finder.check_brew_install_candidates")
     @patch("versiontracker.handlers.brew_handlers.check_brew_install_candidates")
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
-    @patch("versiontracker.utils.get_json_data")
+    @patch("versiontracker.handlers.app_handlers.get_json_data")
     def test_end_to_end_workflow_integration(
         self,
         mock_json_data,
@@ -319,6 +319,7 @@ class TestIntegration(unittest.TestCase):
             print(f"Warning: List brews workflow had issue: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.handlers.app_handlers.get_json_data", new=MagicMock(return_value={}))
     @patch("versiontracker.handlers.app_handlers.get_applications")
     def test_error_handling_integration(self, mock_get_apps, mock_check_deps):
         """Test error handling across different components."""
@@ -371,6 +372,7 @@ class TestIntegration(unittest.TestCase):
             self.fail(f"Configuration validation failed: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.handlers.app_handlers.get_json_data", new=MagicMock(return_value={}))
     @patch("versiontracker.handlers.app_handlers.get_applications")
     def test_performance_with_large_dataset(self, mock_get_apps, mock_check_deps):
         """Test performance with a large number of applications."""
@@ -401,7 +403,10 @@ class TestIntegration(unittest.TestCase):
         initial_objects = len(gc.get_objects())
 
         # Simulate memory-intensive operation
-        with patch("versiontracker.handlers.app_handlers.get_applications") as mock_get_apps:
+        with (
+            patch("versiontracker.handlers.app_handlers.get_applications") as mock_get_apps,
+            patch("versiontracker.handlers.app_handlers.get_json_data", return_value={}),
+        ):
             mock_get_apps.return_value = [(f"App{i}", f"{i}.0.0") for i in range(500)]
 
             with patch("builtins.print"):
@@ -450,6 +455,7 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(test_passed, "Rate limiting integration test should complete")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.handlers.app_handlers.get_json_data", new=MagicMock(return_value={}))
     @patch("versiontracker.handlers.app_handlers.get_applications")
     def test_unicode_application_names(self, mock_get_apps, mock_check_deps):
         """Test handling of applications with Unicode names."""
@@ -471,7 +477,8 @@ class TestIntegration(unittest.TestCase):
                 self.fail(f"Unicode handling failed: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
-    @patch("versiontracker.handlers.brew_handlers.get_applications")
+    @patch("versiontracker.handlers.app_handlers.get_json_data", new=MagicMock(return_value={}))
+    @patch("versiontracker.handlers.app_handlers.get_applications")
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
     def test_concurrent_operations(self, mock_get_casks, mock_get_apps, mock_check_deps):
         """Test that concurrent operations work correctly."""
@@ -547,6 +554,7 @@ class TestIntegration(unittest.TestCase):
                     self.fail(f"Configuration failed with {config_vars}: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
+    @patch("versiontracker.handlers.app_handlers.get_json_data", new=MagicMock(return_value={}))
     @patch("versiontracker.handlers.app_handlers.get_applications")
     def test_malformed_version_handling(self, mock_get_apps, mock_check_deps):
         """Test handling of applications with malformed version strings."""
@@ -610,10 +618,10 @@ class TestIntegration(unittest.TestCase):
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
-    @patch("versiontracker.apps.finder.get_applications")
+    @patch("versiontracker.handlers.app_handlers.get_applications")
     @patch("versiontracker.apps.finder.get_homebrew_casks")
     @patch("versiontracker.apps.matcher.filter_out_brews")
-    @patch("versiontracker.utils.get_json_data")
+    @patch("versiontracker.handlers.app_handlers.get_json_data")
     @patch("versiontracker.ui.create_progress_bar")
     @patch("versiontracker.config.get_config")
     def test_blacklist_functionality(
@@ -673,18 +681,19 @@ class TestIntegration(unittest.TestCase):
         for operation in operations:
             with patch("versiontracker.handlers.app_handlers.get_applications") as mock_get_apps:
                 with patch("versiontracker.handlers.brew_handlers.get_homebrew_casks") as mock_get_casks:
-                    mock_get_apps.return_value = [("TestApp", "1.0.0")]
-                    mock_get_casks.return_value = ["test-app"]
+                    with patch("versiontracker.handlers.app_handlers.get_json_data", return_value={}):
+                        mock_get_apps.return_value = [("TestApp", "1.0.0")]
+                        mock_get_casks.return_value = ["test-app"]
 
-                    with patch("builtins.print"):
-                        with patch("logging.basicConfig"):
-                            try:
-                                operation()
-                                # Debug mode should configure logging
-                                # Note: actual logging config might be done elsewhere
-                            except Exception as e:
-                                # Debug mode shouldn't break functionality
-                                self.fail(f"Debug mode caused failure: {e}")
+                        with patch("builtins.print"):
+                            with patch("logging.basicConfig"):
+                                try:
+                                    operation()
+                                    # Debug mode should configure logging
+                                    # Note: actual logging config might be done elsewhere
+                                except Exception as e:
+                                    # Debug mode shouldn't break functionality
+                                    self.fail(f"Debug mode caused failure: {e}")
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
     def test_timeout_handling(self, mock_check_deps):
