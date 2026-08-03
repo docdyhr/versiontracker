@@ -32,4 +32,4 @@ wheel>=0.46.2
 twine>=6.0.0
 
 # Pre-commit
-pre-commit>=4.6.0
+pre-commit>=4.6.1
