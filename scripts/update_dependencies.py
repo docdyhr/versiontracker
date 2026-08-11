@@ -2,14 +2,12 @@
 """Script to update and manage dependency lock files."""
 
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
 
 
-def run_command(cmd: List[str], cwd: Optional[Path] = None) -> tuple[str, int]:
+def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[str, int]:
     """Run a command and return output and return code."""
     try:
         result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
@@ -148,7 +146,7 @@ def validate_lock_files(project_root: Path) -> bool:
         return False
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Manage dependency lock files")
     parser.add_argument(

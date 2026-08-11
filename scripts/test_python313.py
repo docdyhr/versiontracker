@@ -6,21 +6,18 @@ checking for any issues with dependencies, type hints, and core functionality.
 """
 
 import importlib
-import subprocess
 import sys
-import traceback
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 
 class Python313CompatibilityTester:
     """Test Python 3.13 compatibility."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the compatibility tester."""
-        self.results: Dict[str, bool] = {}
-        self.errors: Dict[str, str] = {}
-        self.warnings: List[str] = []
+        self.results: dict[str, bool] = {}
+        self.errors: dict[str, str] = {}
+        self.warnings: list[str] = []
 
     def run_all_tests(self) -> bool:
         """Run all compatibility tests."""
@@ -134,21 +131,19 @@ class Python313CompatibilityTester:
         """Test type hint compatibility."""
         try:
             # Test modern type hints that might cause issues
-            from pathlib import Path
-            from typing import Any, Dict, List, Optional, Tuple, Union
 
             # Test Python 3.9+ generics
             try:
-                test_dict: dict[str, int] = {"test": 1}
-                test_list: list[str] = ["test"]
+                _test_dict: dict[str, int] = {"test": 1}
+                _test_list: list[str] = ["test"]
                 # These should work in Python 3.13
             except TypeError:
                 # Fallback for older Python versions
                 pass
 
             # Test Union syntax (should still work)
-            test_union: Union[str, int] = "test"
-            test_optional: Optional[str] = None
+            _test_union: str | int = "test"
+            _test_optional: str | None = None
 
             return True
         except Exception as e:
@@ -172,10 +167,10 @@ class Python313CompatibilityTester:
 
             # Test f-string improvements (should work across versions)
             name = "test"
-            debug_string = f"{name=}"  # Python 3.8+
+            _debug_string = f"{name=}"  # Python 3.8+
 
             # Test walrus operator (Python 3.8+)
-            if (n := len(name)) > 0:
+            if (_n := len(name)) > 0:
                 pass
 
             return True
@@ -188,7 +183,7 @@ class Python313CompatibilityTester:
         try:
             import asyncio
 
-            async def test_async():
+            async def test_async() -> bool:
                 await asyncio.sleep(0.001)
                 return True
 
@@ -274,7 +269,7 @@ class Python313CompatibilityTester:
 
         if sys.version_info >= (3, 13):
             print("🎉 Running on Python 3.13!")
-        elif sys.version_info >= (3, 10):
+        elif sys.version_info >= (3, 10):  # noqa: UP036
             print("ℹ️  Running on supported Python version")
         else:
             print("⚠️  Running on unsupported Python version")
@@ -366,7 +361,7 @@ pre-commit>=3.5.0
     print(f"✅ Created {output_file}")
 
 
-def main():
+def main() -> None:
     """Main function."""
     if len(sys.argv) > 1 and sys.argv[1] == "--create-requirements":
         create_python313_requirements()
