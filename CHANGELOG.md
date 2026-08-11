@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Pre-commit hooks**: `pre-commit-hooks` v5.0.0→v6.0.0, `ruff-pre-commit`
+  v0.12.0→v0.16.2, `mirrors-mypy` v1.16.1→v2.3.0, `bandit` 1.8.5→1.9.4,
+  `shellcheck-py` v0.10.0.1→v0.11.0.1, `markdownlint-cli` v0.45.0→v0.49.1
+- **`scripts/test_python313.py`, `scripts/update_dependencies.py`**: ruff 0.16.2
+  auto-fixes (dead imports, `Dict`/`List`/`Optional`/`Union` → builtin generics)
+  plus manual fixes for 7 newly surfaced lint errors in the compatibility-test
+  script (unused variables prefixed with `_`; one `# noqa: UP036` for an
+  intentional runtime Python-version check)
+
 ## [1.1.0] - 2026-07-29
 
 ### Added
