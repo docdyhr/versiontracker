@@ -87,3 +87,54 @@ class TestHandleAsk:
         result = handle_ask(_make_options(ask="help me"))
         assert result == 0
         assert "--audit" in capsys.readouterr().out
+
+    def test_interpreter_error_result_prints_message_not_crash(self, capsys):
+        # CommandInterpreter.interpret_command() itself catches exceptions
+        # and returns {"command": "error", ...} -- handle_ask must degrade
+        # gracefully rather than propagate or crash on that shape.
+        fake_interpreter = Mock()
+        fake_interpreter.interpret_command.return_value = {
+            "command": "error",
+            "error": "boom",
+            "natural_language": "x",
+            "confidence": 0.0,
+        }
+        with patch("versiontracker.handlers.ai_handlers.CommandInterpreter", return_value=fake_interpreter):
+            result = handle_ask(_make_options(ask="x"))
+        assert result == 1
+        assert "couldn't understand" in capsys.readouterr().out.lower()
+
+    def test_action_with_no_dispatch_entry_prints_message_not_crash(self, capsys):
+        # Defensive branch: a future NLP intent added to CommandInterpreter's
+        # command_mapping without a matching _DISPATCH/_NOT_SUPPORTED entry
+        # must degrade gracefully, not raise or silently no-op.
+        fake_interpreter = Mock()
+        fake_interpreter.interpret_command.return_value = {
+            "command": {"action": "mystery_action", "flags": [], "description": "mystery"},
+            "confidence": 0.9,
+            "natural_language": "x",
+        }
+        with patch("versiontracker.handlers.ai_handlers.CommandInterpreter", return_value=fake_interpreter):
+            result = handle_ask(_make_options(ask="x"))
+        assert result == 1
+        assert "does not support" in capsys.readouterr().out.lower()
+
+    def test_moderate_confidence_shows_best_guess_without_executing(self, capsys):
+        # Above the clarify floor but below the act threshold: a real,
+        # dispatchable action must be described, not silently executed.
+        fake_interpreter = Mock()
+        fake_interpreter.interpret_command.return_value = {
+            "command": {"action": "list_apps", "flags": ["--apps"], "description": "Scan and list applications"},
+            "confidence": 0.5,
+            "natural_language": "x",
+        }
+        with (
+            patch("versiontracker.handlers.ai_handlers.CommandInterpreter", return_value=fake_interpreter),
+            patch("versiontracker.handlers.ai_handlers.handle_list_apps") as mocked,
+        ):
+            result = handle_ask(_make_options(ask="x"))
+        assert result == 1
+        mocked.assert_not_called()
+        out = capsys.readouterr().out.lower()
+        assert "i think you mean" in out
+        assert "--apps" in out
