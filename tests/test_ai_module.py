@@ -89,6 +89,25 @@ class TestNLPProcessor:
         assert intent.action == "check_updates"
         assert intent.confidence > 0.5
 
+    def test_process_audit_apps_manual_updates(self):
+        intent = self.processor.process_command("which apps need manual updates")
+        assert intent.action == "audit_apps"
+        assert intent.confidence > 0.5
+
+    def test_process_audit_apps_attention(self):
+        intent = self.processor.process_command("what needs my attention")
+        assert intent.action == "audit_apps"
+
+    def test_process_audit_apps_not_managed(self):
+        intent = self.processor.process_command("which apps aren't managed")
+        assert intent.action == "audit_apps"
+
+    def test_process_check_updates_still_distinct_from_audit(self):
+        # Regression guard: adding audit_apps must not steal check_updates'
+        # own phrasing.
+        intent = self.processor.process_command("check for outdated applications")
+        assert intent.action == "check_updates"
+
     def test_process_export(self):
         intent = self.processor.process_command("export results to json")
         assert intent.action == "export_data"
@@ -165,6 +184,11 @@ class TestCommandInterpreter:
     def test_interpret_outdated_command(self):
         result = self.interpreter.interpret_command("check outdated applications")
         assert result["command"]["action"] == "check_outdated"
+
+    def test_interpret_audit_apps_command(self):
+        result = self.interpreter.interpret_command("which apps need manual updates")
+        assert result["command"]["action"] == "audit"
+        assert "--audit" in result["command"]["flags"]
 
     def test_interpret_help_command(self):
         result = self.interpreter.interpret_command("help me")

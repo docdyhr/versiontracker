@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`versiontracker --ask "<query>"`**: routes a natural-language question to
+  the matching action (`--audit`, `--apps`, `--recom`, `--check-outdated`)
+  instead of requiring the exact flag. Adds a new `audit_apps` intent to
+  `versiontracker.ai`'s existing (previously unwired) NLP engine, distinct
+  from `check_updates` since they cover materially different evidence (audit's
+  "no confirmed auto-update path" vs. Homebrew's known-outdated casks). The
+  router only recognizes intent and dispatches to the already-shipped handler
+  functions — it never reimplements any audit/classification logic itself.
+  Low-confidence or out-of-scope queries (e.g. "install firefox", which has
+  no standalone CLI equivalent) always print a clear message rather than
+  guessing or crashing. `--ask` lives in the same mutually-exclusive action
+  group as `--audit`/`--apps`/etc., but combines freely with modifier flags
+  (`--export`, `--all`, `--status`, `--explain`) since those are separate
+  argparse groups — the interpreted query reuses the same parsed `options`
+  object, so e.g. `--ask "..." --export json` exports exactly as `--audit
+  --export json` would.
+
 ### Changed
 - **Pre-commit hooks**: `pre-commit-hooks` v5.0.0→v6.0.0, `ruff-pre-commit`
   v0.12.0→v0.16.2, `mirrors-mypy` v1.16.1→v2.3.0, `bandit` 1.8.5→1.9.4,

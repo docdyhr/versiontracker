@@ -184,6 +184,38 @@ already implies not showing everything). `--additional-dirs` and
 `--blocklist`/`--blacklist` behave as documented above and merge with any
 configured `additional_app_dirs`/blocklist entries rather than replacing them.
 
+### Natural-Language Queries (--ask)
+
+`--ask "<query>"` recognizes a handful of plain-English phrasings and routes
+them to the same handler the equivalent literal flag would use -- it never
+reimplements any classification logic itself, so the underlying semantics
+(e.g. what counts as "needing attention") are exactly `--audit`'s, described
+above.
+
+```bash
+# Routed to --audit
+versiontracker --ask "which apps need manual updates"
+versiontracker --ask "what needs my attention"
+versiontracker --ask "which apps aren't managed"
+
+# Routed to --apps / --recom / --check-outdated
+versiontracker --ask "list my applications"
+versiontracker --ask "recommend homebrew casks"
+versiontracker --ask "check for outdated applications"
+```
+
+`--ask` sits in the same mutually-exclusive action group as `--audit`/`--apps`/
+etc. (so combining it with a literal action flag is rejected), but combines
+freely with modifier flags since those live in separate argparse groups:
+
+```bash
+versiontracker --ask "which apps need manual updates" --export json
+```
+
+A query that doesn't match a recognized phrasing, or matches an action with
+no standalone CLI equivalent (e.g. "install firefox"), always prints a clear
+message explaining why -- it never guesses or silently does nothing.
+
 ## Examples
 
 ### Daily Usage

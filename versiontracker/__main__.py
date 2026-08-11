@@ -9,6 +9,7 @@ from versiontracker import __version__
 from versiontracker.cli import get_arguments
 from versiontracker.deprecation import warn_deprecated_flag
 from versiontracker.handlers import (
+    handle_ask,
     handle_audit,
     handle_blacklist_auto_updates,
     handle_brew_recommendations,
@@ -164,6 +165,8 @@ def _get_basic_action_result(options: Any) -> int | None:
         return handle_outdated_check(options)
     elif options.audit:
         return handle_audit(options)
+    elif options.ask:
+        return handle_ask(options)
     return None
 
 

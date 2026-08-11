@@ -113,6 +113,30 @@ VersionTracker follows a modular, layered architecture designed for maintainabil
   - `run_audit()`: Discover once, resolve every evidence axis, classify
   - `filter_result()`: Select attention/unknown/managed/all for display
 
+#### `ai/` - Natural-Language Command Routing
+- **Purpose**: Recognize a plain-English query (`versiontracker --ask
+  "<query>"`) and route it to the same handler function the equivalent
+  literal CLI flag would use.
+- **Architectural boundary (important)**: this module must never contain
+  audit, classification, or Homebrew logic itself -- only intent recognition
+  and routing. `handlers/ai_handlers.py` never imports from `versiontracker.audit`
+  directly, only from other `handlers/*` modules, structurally enforcing that
+  a query result can never diverge from what the real flag would have
+  produced.
+- **Key Classes**:
+  - `NLPProcessor`: Regex-based intent recognition (`intent_patterns`) and
+    entity/parameter extraction
+  - `CommandInterpreter`: Maps a recognized intent to a `{action, flags,
+    description}` command structure -- describes what should run, does not
+    execute it
+- **Key Function**:
+  - `handlers/ai_handlers.py::handle_ask()`: the only place a query actually
+    dispatches to a real handler (`handle_audit`, `handle_list_apps`,
+    `handle_brew_recommendations`, `handle_outdated_check`), reusing the same
+    parsed `options` Namespace the CLI invocation already produced. Confidence
+    below a threshold, or an intent with no standalone CLI equivalent, always
+    prints an explicit message rather than guessing.
+
 ### Infrastructure Modules
 
 #### `cache.py` / `advanced_cache.py` - Caching System

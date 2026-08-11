@@ -120,6 +120,16 @@ class NLPProcessor:
                 ],
                 "confidence_base": 0.8,
             },
+            "audit_apps": {
+                "patterns": [
+                    r".*apps?.*need.*manual.*updat.*",
+                    r".*(?:apps?|applications?).*(?:aren'?t|isn'?t|are\s+not|is\s+not).*managed.*",
+                    r".*unmanaged.*(?:apps?|applications?).*",
+                    r".*needs?.*(?:my\s+)?attention.*",
+                    r".*audit.*(?:my\s+)?(?:apps?|applications?).*",
+                ],
+                "confidence_base": 0.85,
+            },
             "install_app": {
                 "patterns": [r".*install.*", r".*brew.*install.*", r".*add.*application.*", r".*get.*app.*"],
                 "confidence_base": 0.7,
@@ -317,6 +327,11 @@ class CommandInterpreter:
                 "action": "check_outdated",
                 "flags": ["--check-outdated"],
                 "description": "Check for outdated applications",
+            },
+            "audit_apps": {
+                "action": "audit",
+                "flags": ["--audit"],
+                "description": "Audit applications not managed by the App Store, Homebrew, or a local auto-updater",
             },
             "install_app": {"action": "install", "flags": [], "description": "Install application via Homebrew"},
             "remove_app": {"action": "uninstall", "flags": [], "description": "Uninstall application"},
