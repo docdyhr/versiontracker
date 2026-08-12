@@ -12,14 +12,15 @@ Returns:
 
 import logging
 import sys
+from pathlib import Path
 from typing import Any
 
-from versiontracker.config import Config, get_config
+from versiontracker.config import Config, get_config, set_global_config
 from versiontracker.exceptions import ConfigError
 
 
 def handle_initialize_config(options: Any) -> int:
-    """Initialize or update the configuration.
+    """Initialize the global configuration, honoring --config PATH if given.
 
     Args:
         options: Command line options
@@ -27,20 +28,24 @@ def handle_initialize_config(options: Any) -> int:
     Returns:
         int: Exit code (0 for success, non-zero for failure)
     """
-    try:
-        # Initialize config with provided config file if any
-        config_file = options.config if hasattr(options, "config") else None
+    config_file = getattr(options, "config", None)
 
-        # Check if config needs initialization (avoid if mocked in tests)
+    if config_file:
+        config_path = Path(config_file)
+        if not config_path.exists():
+            logging.error("Configuration file not found: %s", config_path)
+            return 1
         try:
-            if not hasattr(get_config(), "_config"):
-                # Create a new Config instance if needed
-                Config(config_file=config_file)
-        except (OSError, ValueError) as e:
-            logging.debug("Config initialization error: %s", e)
-            # Create a new Config instance with defaults
-            Config()
+            new_config = Config(config_file=config_file)
+        except ConfigError as e:
+            logging.error("Failed to load configuration file %s: %s", config_path, e)
+            return 1
+        set_global_config(new_config)
+        logging.debug("Loaded configuration from %s", config_path)
+        return 0
 
+    try:
+        get_config()
         return 0
     except (OSError, ValueError, ConfigError) as e:
         logging.error("Failed to initialize configuration: %s", e)

@@ -34,7 +34,7 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     @patch("versiontracker.__main__.handle_setup_logging")
-    @patch("versiontracker.__main__.handle_initialize_config")
+    @patch("versiontracker.__main__.handle_initialize_config", return_value=0)
     @patch("versiontracker.__main__.handle_configure_from_options")
     @patch("versiontracker.__main__.handle_filter_management")
     @patch("versiontracker.__main__.handle_save_filter")
@@ -88,7 +88,7 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
         mock_config.save.assert_called_once()
 
     @patch("versiontracker.__main__.handle_setup_logging")
-    @patch("versiontracker.__main__.handle_initialize_config")
+    @patch("versiontracker.__main__.handle_initialize_config", return_value=0)
     @patch("versiontracker.__main__.handle_configure_from_options")
     @patch("versiontracker.__main__.handle_filter_management")
     @patch("versiontracker.__main__.handle_save_filter")
@@ -130,7 +130,7 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
         mock_config.save.assert_not_called()
 
     @patch("versiontracker.__main__.handle_setup_logging")
-    @patch("versiontracker.__main__.handle_initialize_config")
+    @patch("versiontracker.__main__.handle_initialize_config", return_value=0)
     @patch("versiontracker.__main__.handle_configure_from_options")
     @patch("versiontracker.__main__.handle_filter_management")
     @patch("versiontracker.__main__.handle_save_filter")
@@ -178,7 +178,7 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
         mock_run_command.assert_has_calls(expected_calls, any_order=False)
 
     @patch("versiontracker.__main__.handle_setup_logging")
-    @patch("versiontracker.__main__.handle_initialize_config")
+    @patch("versiontracker.__main__.handle_initialize_config", return_value=0)
     @patch("versiontracker.__main__.handle_configure_from_options")
     @patch("versiontracker.__main__.handle_filter_management")
     @patch("versiontracker.__main__.handle_save_filter")
@@ -220,7 +220,7 @@ class TestAutoUpdateIntegrationFlows(unittest.TestCase):
         mock_run_command.assert_not_called()
 
     @patch("versiontracker.__main__.handle_setup_logging")
-    @patch("versiontracker.__main__.handle_initialize_config")
+    @patch("versiontracker.__main__.handle_initialize_config", return_value=0)
     @patch("versiontracker.__main__.handle_configure_from_options")
     @patch("versiontracker.__main__.handle_filter_management")
     @patch("versiontracker.__main__.handle_save_filter")
