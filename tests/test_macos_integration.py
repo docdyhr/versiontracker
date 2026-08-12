@@ -141,9 +141,12 @@ class TestMacOSNotifications(unittest.TestCase):
         success = MacOSNotifications.notify_outdated_apps([])
 
         self.assertTrue(success)
-        # Should send "all up to date" message
+        # Should send "all up to date" message, passed as argv data, never
+        # embedded in the (static) AppleScript source text.
         args = mock_run.call_args[0][0]
-        self.assertIn("All applications are up to date", args[2])
+        script = args[2]
+        self.assertNotIn("All applications are up to date", script)
+        self.assertIn("All applications are up to date! ✅", args[3:])
 
     @patch("subprocess.run")
     def test_notify_outdated_apps_with_apps(self, mock_run):
@@ -159,7 +162,9 @@ class TestMacOSNotifications(unittest.TestCase):
 
         self.assertTrue(success)
         args = mock_run.call_args[0][0]
-        self.assertIn("App1, App2", args[2])
+        script = args[2]
+        self.assertNotIn("App1, App2", script)
+        self.assertTrue(any("App1, App2" in item for item in args[3:]))
 
     @patch("subprocess.run")
     def test_notify_service_status(self, mock_run):
@@ -170,7 +175,67 @@ class TestMacOSNotifications(unittest.TestCase):
 
         self.assertTrue(success)
         args = mock_run.call_args[0][0]
-        self.assertIn("installed successfully", args[2])
+        script = args[2]
+        self.assertNotIn("installed successfully", script)
+        self.assertTrue(any("installed successfully" in item for item in args[3:]))
+
+
+# Adversarial strings covering the classes of input that could previously break
+# out of the naive `"` -> `\"` AppleScript string-literal escaping: double
+# quotes, single quotes, bare backslashes, a trailing backslash-then-quote
+# (the specific break-out sequence), newlines/tabs, AppleScript operators and
+# comment markers, unicode text, and CLI-output-shaped hostile text. These are
+# purely structural assertions (no command is ever actually executed).
+HOSTILE_STRINGS = [
+    'has "double quotes"',
+    "has 'single quotes'",
+    "has a \\ backslash",
+    'ends with a backslash then quote \\"',
+    "has\nnewline\tand\ttab",
+    'operators & -- comment "quote" ¬ continuation',
+    "Café México 日本語 应用 App",
+    'display dialog "pwned" -- do shell script "touch /tmp/pwned"',
+]
+
+
+class TestAppleScriptInjectionSafety(unittest.TestCase):
+    """Regression coverage: hostile input must stay data, never script structure."""
+
+    @patch("subprocess.run")
+    def test_send_notification_hostile_input_stays_data(self, mock_run):
+        """Hostile title/message/subtitle never alter the AppleScript source."""
+        mock_run.return_value.returncode = 0
+
+        for hostile in HOSTILE_STRINGS:
+            with self.subTest(hostile=hostile):
+                mock_run.reset_mock()
+                MacOSNotifications.send_notification(hostile, hostile, hostile)
+
+                args = mock_run.call_args[0][0]
+                script = args[2]
+
+                # The AppleScript source is always the same static handler,
+                # regardless of what the hostile input contains.
+                self.assertNotIn(hostile, script)
+                self.assertIn("on run argv", script)
+                self.assertIn(MacOSNotifications._NOTIFICATION_HANDLER, script)
+
+                # The hostile value reaches osascript unchanged, as separate
+                # argv items -- proving it is treated as opaque data.
+                self.assertEqual(args[3:], [hostile, hostile, hostile])
+
+    @patch("subprocess.run")
+    def test_notification_script_is_constant_across_calls(self, mock_run):
+        """The generated script text never changes, no matter the input."""
+        mock_run.return_value.returncode = 0
+
+        MacOSNotifications.send_notification("Title A", "Message A")
+        script_a = mock_run.call_args[0][0][2]
+
+        MacOSNotifications.send_notification('Title "B"', "Message\nB", subtitle="Sub\\B")
+        script_b = mock_run.call_args[0][0][2]
+
+        self.assertEqual(script_a, script_b)
 
 
 class TestGlobalFunctions(unittest.TestCase):

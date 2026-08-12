@@ -12,6 +12,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from versiontracker.utils import run_applescript
+
 logger = logging.getLogger(__name__)
 
 # macOS paths and constants
@@ -219,6 +221,17 @@ class LaunchdService:
 class MacOSNotifications:
     """Handle macOS native notifications for VersionTracker."""
 
+    _NOTIFICATION_HANDLER = """
+    set theTitle to item 1 of argv
+    set theMessage to item 2 of argv
+    if (count of argv) > 2 then
+        set theSubtitle to item 3 of argv
+        display notification theMessage with title theTitle subtitle theSubtitle
+    else
+        display notification theMessage with title theTitle
+    end if
+    """
+
     @staticmethod
     def send_notification(title: str, message: str, subtitle: str = "") -> bool:
         """Send a native macOS notification.
@@ -232,22 +245,8 @@ class MacOSNotifications:
             bool: True if notification was sent successfully
         """
         try:
-            # Escape double-quotes so user-controlled values cannot break out of
-            # the AppleScript string literal and inject arbitrary commands.
-            safe_message = message.replace('"', '\\"')
-            safe_title = title.replace('"', '\\"')
-            cmd = [
-                "osascript",
-                "-e",
-                f'display notification "{safe_message}" with title "{safe_title}"',
-            ]
-
-            if subtitle:
-                safe_subtitle = subtitle.replace('"', '\\"')
-                cmd[-1] += f' subtitle "{safe_subtitle}"'
-
-            # nosec B603 - osascript with controlled arguments
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            argv = [title, message] + ([subtitle] if subtitle else [])
+            result = run_applescript(MacOSNotifications._NOTIFICATION_HANDLER, argv)
 
             if result.returncode == 0:
                 logger.debug("Sent notification: %s", title)

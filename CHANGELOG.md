@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **AppleScript injection in notifications and menubar dialogs**: `MacOSNotifications.send_notification()`
+  and `MenubarApp.show_result_dialog()` built AppleScript source via f-string interpolation, escaping only
+  `"` → `\"`. Because pre-existing backslashes weren't escaped first, a value ending in `\"` could close the
+  string early and inject arbitrary AppleScript. Real dynamic data reached these paths — installed
+  app/cask names, exception text, and (most directly) unsanitized stdout/stderr of a `versiontracker`
+  subprocess invocation. Fixed by adding `versiontracker.utils.run_applescript()`, which runs a static
+  `on run argv` AppleScript handler and passes all dynamic values as separate `osascript` process
+  arguments (`item N of argv`), so they are always treated as data and can never alter script structure.
+  Also applied to `MenubarApp.show_menu()` for consistency, even though its menu items were not
+  externally reachable. No behavior change for callers.
+
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to
   the matching action (`--audit`, `--apps`, `--recom`, `--check-outdated`)

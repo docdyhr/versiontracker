@@ -835,6 +835,29 @@ def run_command_subprocess(
         raise TimeoutError(f"Command timed out after {timeout}s: {' '.join(command)}") from e
 
 
+def run_applescript(
+    handler_body: str, argv: list[str], *, timeout: float | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run a static `on run argv` AppleScript handler; dynamic values are passed only as argv.
+
+    `handler_body` must be a static, literal AppleScript source string (never built from
+    untrusted data) that reads its inputs via `item N of argv`. Values in `argv` are passed as
+    separate osascript process arguments, so they are always treated as data and can never
+    alter script structure, regardless of quotes, backslashes, or AppleScript syntax they contain.
+
+    Args:
+        handler_body: Static AppleScript statements to run inside `on run argv ... end run`.
+        argv: Dynamic values passed as osascript arguments, available as `item N of argv`.
+        timeout: Optional timeout in seconds for the osascript process.
+
+    Returns:
+        CompletedProcess instance with the result.
+    """
+    script = f"on run argv\n{handler_body}\nend run"
+    cmd = ["osascript", "-e", script, *argv]
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)  # nosec B603 B607
+
+
 def ensure_directory(path: Path) -> None:
     """Ensure a directory exists, creating it if necessary.
 
