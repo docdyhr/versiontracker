@@ -28,6 +28,7 @@ from versiontracker.audit.models import (
     HomebrewEvidence,
     HomebrewStatus,
 )
+from versiontracker.cli import get_arguments
 from versiontracker.deprecation import reset_deprecation_registry
 
 _FAKE_APPS = [
@@ -280,3 +281,59 @@ class TestCLIWorkflows:
         assert result == 0
         assert "confidence=" not in compact_out
         assert "confidence=" in explain_out
+
+    def test_ask_audit_query_routes_through_to_audit_output(self, capsys):
+        """--ask with an audit-style query must produce the same observable
+        output as the equivalent literal --audit flag."""
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=_three_bucket_audit_result()),
+            mock.patch("sys.argv", ["versiontracker", "--ask", "which apps need manual updates"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "AttentionApp" in captured.out
+        assert "UnknownApp" in captured.out
+        assert "ManagedApp" not in captured.out  # default view, same as bare --audit
+
+    def test_ask_audit_query_combined_with_export_json(self, capsys):
+        """--ask + --export json: proves --ask can be combined with modifier
+        flags because they live in a separate argparse mutex group from
+        action_group."""
+        fake_result = AuditResult(applications=(), summary={"total": 0, "attention": 0, "unknown": 0, "managed": 0})
+        with (
+            mock.patch("versiontracker.handlers.audit_handlers.run_audit", return_value=fake_result),
+            mock.patch(
+                "sys.argv",
+                ["versiontracker", "--ask", "which apps need manual updates", "--export", "json"],
+            ),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        parsed = json.loads(capsys.readouterr().out)
+        assert parsed["schema_version"] == 1
+
+    def test_ask_out_of_scope_query_no_crash(self, capsys):
+        with mock.patch("sys.argv", ["versiontracker", "--ask", "install app named firefox"]):
+            result = versiontracker_main()
+
+        assert result == 1
+        assert "not supported" in capsys.readouterr().out.lower()
+
+    def test_ask_gibberish_query_asks_clarification_not_crash(self, capsys):
+        with mock.patch("sys.argv", ["versiontracker", "--ask", "xyzzy plugh nonsense"]):
+            result = versiontracker_main()
+
+        assert result == 1
+        assert "not sure" in capsys.readouterr().out.lower()
+
+    def test_ask_mutually_exclusive_with_audit_flag(self):
+        """--ask and --audit both live in action_group; argparse must reject
+        combining them, proving the mutex placement actually took effect."""
+        with (
+            mock.patch("sys.argv", ["versiontracker", "--ask", "x", "--audit"]),
+            pytest.raises(SystemExit),
+        ):
+            get_arguments()

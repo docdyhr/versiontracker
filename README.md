@@ -111,6 +111,9 @@ versiontracker --check-outdated
 # Audit apps not managed by the App Store, Homebrew, or a local auto-updater
 versiontracker --audit
 
+# Ask a natural-language question, routed to a supported action
+versiontracker --ask "which apps need manual updates"
+
 # Show help
 versiontracker --help
 ```
@@ -150,6 +153,10 @@ using Homebrew casks, making it easier to keep your applications up to date.
 * **Unmanaged application audit** (`--audit`): identifies apps with no App
   Store, Homebrew, or local auto-update coverage, with full per-signal
   evidence and JSON/YAML/CSV export
+* **Natural-language queries** (`--ask`): ask plain-English questions like
+  "which apps need manual updates" and get routed to the matching command;
+  unsupported or unclear queries always print a clear message instead of
+  guessing
 
 ## Advanced Features
 
@@ -343,6 +350,7 @@ Configuration options:
   -r, --recommend       return recommendations for brew
   -o, --check-outdated  check for outdated applications compared to Homebrew versions
   --audit               audit apps not managed by the App Store, Homebrew, or a local auto-updater
+  --ask QUERY           ask a natural-language question, routed to a supported action
   -V, --version         show program's version number and exit
 ```
 
@@ -405,6 +413,25 @@ versiontracker --audit --status unknown
 
 # Export full evidence as versioned JSON
 versiontracker --audit --export json --output-file audit.json
+```
+
+### Ask a natural-language question
+
+Route a plain-English query to a supported action instead of remembering the
+exact flag. Recognizes a handful of phrasings for auditing, listing apps,
+Homebrew recommendations, and checking for outdated apps; anything it doesn't
+recognize (or isn't confident about) prints a clear message instead of
+guessing.
+
+```shell
+# Routed to --audit
+versiontracker --ask "which apps need manual updates"
+
+# Combines with modifier flags exactly like the literal flag would
+versiontracker --ask "which apps need manual updates" --export json
+
+# Routed to --apps
+versiontracker --ask "list my applications"
 ```
 
 ### Handle applications with auto-updates

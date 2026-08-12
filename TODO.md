@@ -245,7 +245,21 @@ All skip decorators already carry a `reason=` string; no additional inline comme
   `docs/AUTO_UPDATE_MANAGEMENT.md`, and added the missing audit-feature
   documentation to `docs/USAGE.md` and `docs/ARCHITECTURE.md` (Phase 4 only
   updated README/CHANGELOG/TODO).
-- [ ] Phase 6 — NLP (`versiontracker ask`) + Swift GUI consumers
+- [x] Phase 6 (NLP portion) — `versiontracker --ask "<query>"` wires
+  `versiontracker.ai`'s previously-unused `CommandInterpreter` into a real CLI
+  command (`versiontracker/handlers/ai_handlers.py::handle_ask()`), routing
+  recognized intents to the existing `handle_audit`/`handle_list_apps`/
+  `handle_brew_recommendations`/`handle_outdated_check` handlers -- never
+  reimplementing classification logic itself, per the spec's guardrail. Added
+  a new `audit_apps` NLP intent distinct from `check_updates` (materially
+  different evidence: no-confirmed-auto-update-path vs. Homebrew-known-outdated).
+  Out-of-scope/low-confidence queries always print a clear message rather than
+  guessing. 20 new tests (`tests/test_ai_module.py`, new
+  `tests/handlers/test_ai_handlers.py`, `tests/integration/test_cli_workflows.py`);
+  full suite 2727→2747 passed, 16 skipped.
+- [ ] Phase 6 (Swift GUI portion) — Swift bridge consumes versioned JSON,
+  "Needs attention" view, menubar/service command updates (deferred; no
+  Xcode project exists yet in this repo, see "GUI / Web Interface" below)
 
 ### Known, confirmed, separate bugs found during audit-feature work (not fixed — out of scope)
 

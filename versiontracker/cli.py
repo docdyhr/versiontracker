@@ -28,6 +28,8 @@ Examples:
   versiontracker --audit             Audit apps not managed by App Store/Homebrew/auto-updater
   versiontracker --audit --all --explain --export json
                                       Full audit evidence as machine-readable JSON
+  versiontracker --ask "which apps need manual updates"
+                                      Natural-language query, routed to a supported action
 
 For more information, visit: https://github.com/docdyhr/versiontracker
         """,
@@ -82,6 +84,15 @@ For more information, visit: https://github.com/docdyhr/versiontracker
         "--audit",
         action="store_true",
         help="Audit applications not managed by the App Store, Homebrew, or a local auto-updater",
+    )
+    action_group.add_argument(
+        "--ask",
+        type=str,
+        metavar="QUERY",
+        help=(
+            'Ask a natural-language question, e.g. --ask "which apps need manual '
+            'updates" (routed to a supported action; run --help for the full list)'
+        ),
     )
 
     # Auto-update management (mutually exclusive)
