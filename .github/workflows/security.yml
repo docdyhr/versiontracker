@@ -54,18 +54,29 @@ jobs:
 
       - name: Run Bandit security linter
         run: |
+          set -e
           echo "::group::Bandit Security Analysis"
+          # Report generation always succeeds -- its job is to produce the
+          # artifact, not to gate. The plain-text check below is the real
+          # gate: bandit -ll exits non-zero on Medium+ severity findings,
+          # and set -e lets that failure actually stop the job.
           bandit -c .bandit -r versiontracker/ \
             -f json -o bandit-report.json || true
-          bandit -c .bandit -r versiontracker/ -ll || true
+          bandit -c .bandit -r versiontracker/ -ll
           echo "::endgroup::"
 
       - name: Run Safety to check dependencies
+        if: always()
         run: |
+          set -e
           echo "::group::Safety Dependency Check"
+          # The `if` condition itself is exempt from set -e (POSIX), so the
+          # "not installed" fallback below still works. The real gate is the
+          # bare `safety check`: it exits non-zero on a real finding, and
+          # set -e lets that failure actually stop the job.
           if command -v safety >/dev/null 2>&1; then
             safety check --json > safety-report.json || true
-            safety check || true
+            safety check
           else
             echo "::warning::Safety not available, skipping dependency safety check"
             echo "{\"vulnerabilities\": []}" > safety-report.json
@@ -73,16 +84,20 @@ jobs:
           echo "::endgroup::"
 
       - name: Run pip-audit for dependency vulnerabilities
+        if: always()
         run: |
+          set -e
           echo "::group::Pip-Audit Vulnerability Check"
           pip-audit --format=json --output=pip-audit-report.json || true
-          # Run pip-audit but don't fail on setuptools vulnerabilities (system dependency)
-          pip-audit || \
-            echo "Pip-audit found vulnerabilities in system dependencies"
+          # The real gate: pip-audit exits non-zero on any known CVE in an
+          # installed package, and set -e lets that failure actually stop
+          # the job, instead of being reported as a message and ignored.
+          pip-audit
           echo "::endgroup::"
 
       - name: Set up TruffleHog scan parameters
         id: trufflehog_params
+        if: always()
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             # For PRs, use the actual base and head commits
@@ -112,9 +127,8 @@ jobs:
           fi
 
       - name: Check for secrets with TruffleHog
-        if: steps.trufflehog_params.outputs.skip_scan != 'true'
+        if: always() && steps.trufflehog_params.outputs.skip_scan != 'true'
         uses: trufflesecurity/trufflehog@v3.96.0
-        continue-on-error: true
         with:
           path: ./
           base: ${{ steps.trufflehog_params.outputs.base }}
@@ -134,6 +148,7 @@ jobs:
           retention-days: 30
 
       - name: Create comprehensive security report
+        if: always()
         run: |
           echo "# Security Analysis Report" > security-summary.md
           echo "**Generated**: $(date -u)" >> security-summary.md
@@ -194,7 +209,7 @@ jobs:
               >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR (if applicable)
-        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+        if: always() && github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
         uses: actions/github-script@v9
         continue-on-error: true
         with:
@@ -214,15 +229,3 @@ jobs:
                 // Don't fail the workflow if we can't comment
               }
             }
-
-      - name: Fail on critical vulnerabilities
-        run: |
-          if [ -f security-summary.md ]; then
-            if grep -q "CRITICAL\|HIGH" security-summary.md; then
-              echo "❌ Critical or high severity vulnerabilities found!"
-              echo "Please review the security report and update dependencies."
-              exit 1
-            else
-              echo "✅ No critical vulnerabilities found."
-            fi
-          fi
