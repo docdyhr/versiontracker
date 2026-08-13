@@ -52,6 +52,7 @@ jobs:
         run: |
           echo "::group::MyPy Type Checking"
           mypy versiontracker \
+            --config-file=pyproject.toml \
             --ignore-missing-imports \
             --junit-xml=mypy-report.xml
           echo "::endgroup::"

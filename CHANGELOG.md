@@ -119,6 +119,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (permission denied, timeouts, Homebrew not found, etc.) are unaffected —
   those still always print, since they indicate something went wrong
   regardless of export mode.
+- **Local mypy runs silently diverged from CI's real, passing results**: a
+  root `mypy.ini` has zero git history and was never tracked (excluded via a
+  personal, machine-level gitignore rule, not anything in this repo's own
+  `.gitignore`) — CI has only ever seen `pyproject.toml`'s `[tool.mypy]`
+  section, which is the actively-maintained config, and it has genuinely
+  been clean (`Success: no issues found in 64 source files`, confirmed
+  directly against a real CI run's logs). Locally, mypy's documented
+  `mypy.ini` > `pyproject.toml` precedence meant the stray file quietly
+  won instead, and it referenced module paths that no longer exist
+  (`versiontracker.analytics`/`versiontracker.benchmarks`, superseded by
+  `versiontracker.experimental.*`), so a local run reported dozens of
+  errors CI never saw. The stray file was deleted (untracked, so this isn't
+  a tracked change — nothing to diff), and every real invocation (both CI
+  workflows, the pre-commit hook) now passes `--config-file=pyproject.toml`
+  explicitly, so this class of divergence can't silently recur for any
+  future contributor's machine either.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to

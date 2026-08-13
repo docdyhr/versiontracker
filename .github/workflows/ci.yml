@@ -100,7 +100,7 @@ jobs:
         run: ruff format --check .
 
       - name: Run MyPy type checking
-        run: mypy versiontracker --ignore-missing-imports
+        run: mypy versiontracker --config-file=pyproject.toml --ignore-missing-imports
 
       - name: Check import sorting (via Ruff)
         run: ruff check --select I --diff .

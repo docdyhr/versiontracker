@@ -147,6 +147,12 @@ unfixable = []
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 
+# This is the single source of truth for mypy configuration. Every real
+# invocation (CI's lint.yml/ci.yml, the pre-commit mypy hook) passes
+# --config-file=pyproject.toml explicitly so this can't be silently shadowed.
+# Do not add a root mypy.ini -- mypy.ini takes precedence over pyproject.toml
+# by default, so a stray one (even untracked/gitignored) would locally
+# override every setting below without CI ever seeing the difference.
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
