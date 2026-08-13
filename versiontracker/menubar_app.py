@@ -10,7 +10,21 @@ import sys
 import threading
 import time
 
+from versiontracker.utils import run_applescript
+
 logger = logging.getLogger(__name__)
+
+_SHOW_MENU_HANDLER = """
+set menuItems to argv
+set selectedItem to (choose from list menuItems with title "VersionTracker" \\
+    with prompt "Choose an action:" default items {"Check for Updates"})
+
+if selectedItem is not false then
+    return item 1 of selectedItem
+else
+    return "cancelled"
+end if
+"""
 
 
 class MenubarApp:
@@ -25,7 +39,6 @@ class MenubarApp:
     def show_menu(self) -> None:
         """Show the menubar menu using osascript."""
         try:
-            # Create menu items
             menu_items = [
                 "VersionTracker",
                 "─────────────────",
@@ -41,23 +54,7 @@ class MenubarApp:
                 "Quit",
             ]
 
-            # Create AppleScript for menu
-            script = f'''
-            set menuItems to {{"{'", "'.join(menu_items)}"}}
-            set selectedItem to (choose from list menuItems with title "VersionTracker" \\
-                with prompt "Choose an action:" default items {{"Check for Updates"}})
-
-            if selectedItem is not false then
-                return item 1 of selectedItem
-            else
-                return "cancelled"
-            end if
-            '''
-
-            # osascript is a system command, using list of args is safe
-            result = subprocess.run(  # nosec B603 B607
-                ["osascript", "-e", script], capture_output=True, text=True
-            )
+            result = run_applescript(_SHOW_MENU_HANDLER, menu_items)
 
             if result.returncode == 0:
                 choice = result.stdout.strip()
@@ -127,6 +124,12 @@ class MenubarApp:
         thread = threading.Thread(target=run_command, daemon=True)
         thread.start()
 
+    _SHOW_RESULT_DIALOG_HANDLER = """
+    set theTitle to item 1 of argv
+    set theMessage to item 2 of argv
+    display dialog theMessage with title theTitle buttons {"OK"} default button "OK"
+    """
+
     def show_result_dialog(self, title: str, message: str) -> None:
         """Show a result dialog.
 
@@ -139,17 +142,7 @@ class MenubarApp:
             if len(message) > 1000:
                 message = message[:1000] + "\\n\\n... (truncated)"
 
-            # Escape quotes in message
-            message = message.replace('"', '\\"').replace("'", "\\'")
-
-            script = f'''
-            display dialog "{message}" with title "{title}" buttons {{"OK"}} default button "OK"
-            '''
-
-            # osascript is a system command, using list of args is safe
-            subprocess.run(  # nosec B603 B607
-                ["osascript", "-e", script], capture_output=True, text=True
-            )
+            run_applescript(self._SHOW_RESULT_DIALOG_HANDLER, [title, message])
 
         except Exception as e:
             logger.error("Error showing result dialog: %s", e)
