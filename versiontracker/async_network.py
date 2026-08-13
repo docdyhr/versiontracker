@@ -130,10 +130,13 @@ async def batch_fetch_json(
     if not cache_keys:
         cache_keys = [f"url_{url.replace('/', '_')}" for url in urls]
 
-    # Determine concurrency limit
+    # Determine concurrency limit. Deliberately reads max_workers, not
+    # api_rate_limit -- concurrency and request interval are separate
+    # settings (see the rate-limiting semantics fix elsewhere in this
+    # codebase for the same distinction).
     config = get_config()
     if max_concurrency is None:
-        max_concurrency = getattr(config, "api_rate_limit", 10)
+        max_concurrency = config.get("max_workers", 10)
 
     # Create semaphore to limit concurrency
     semaphore = asyncio.Semaphore(max_concurrency)

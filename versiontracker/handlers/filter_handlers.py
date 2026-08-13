@@ -17,6 +17,12 @@ from typing import Any
 from versiontracker.config import get_config
 from versiontracker.ui import QueryFilterManager, create_progress_bar
 
+# The saved filter snapshot's "rate_limit" field maps to the real
+# "api_rate_limit" config key -- the config schema has no separate
+# "rate_limit" key. Shared between the save and restore paths below.
+_FILTER_CONFIG_KEY_MAPPING = {"rate_limit": "api_rate_limit"}
+_MISSING = object()
+
 
 def _handle_list_filters(filter_manager: QueryFilterManager) -> int:
     """Handle listing available filters.
@@ -75,8 +81,9 @@ def _apply_filter_to_config(filter_data: dict[str, Any]) -> None:
     if "config" in filter_data:
         config = get_config()
         for key, value in filter_data["config"].items():
-            if key in config._config:
-                config._config[key] = value
+            real_key = _FILTER_CONFIG_KEY_MAPPING[key] if key in _FILTER_CONFIG_KEY_MAPPING else key
+            if config.get(real_key, _MISSING) is not _MISSING:
+                config.set(real_key, value)
 
 
 def _handle_load_filter(filter_name: str, filter_manager: QueryFilterManager, options: Any) -> int | None:
@@ -154,11 +161,15 @@ def handle_save_filter(options: Any, filter_manager: QueryFilterManager) -> int:
                     continue
                 filter_data[opt] = getattr(options, opt)
 
-            # Add relevant config settings
+            # Add relevant config settings. The saved snapshot's "rate_limit"
+            # key is a fixed, documented filter-file field name -- it reads
+            # from the real "api_rate_limit" config key (the "rate_limit"
+            # config key doesn't exist).
+            config = get_config()
             filter_data["config"] = {
-                "ui": get_config()._config.get("ui", {}),
-                "rate_limit": get_config()._config.get("rate_limit", 3),
-                "max_workers": get_config()._config.get("max_workers", 10),
+                "ui": config.get("ui", {}),
+                "rate_limit": config.get("api_rate_limit", 3),
+                "max_workers": config.get("max_workers", 10),
             }
 
             # Save the filter

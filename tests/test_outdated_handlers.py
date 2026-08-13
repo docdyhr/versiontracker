@@ -64,18 +64,6 @@ class TestUpdateConfigFromOptions:
 
         mock_config.set.assert_not_called()
 
-    @patch("versiontracker.handlers.outdated_handlers.get_config")
-    def test_update_config_without_set_method(self, mock_get_config):
-        """Test updating config when config doesn't have set method."""
-        mock_config = Mock(spec=[])  # No set method
-        mock_get_config.return_value = mock_config
-
-        options = Mock()
-        options.no_progress = True
-
-        # Should not raise an exception
-        _update_config_from_options(options)
-
 
 class TestGetInstalledApplications:
     """Test _get_installed_applications function."""
@@ -226,7 +214,7 @@ class TestCheckOutdatedApps:
     @patch("versiontracker.handlers.outdated_handlers.get_config")
     def test_check_outdated_apps_success(self, mock_config, mock_check):
         """Test successful outdated check."""
-        mock_config.return_value.batch_size = 50
+        mock_config.return_value.get.return_value = 50
         apps = [("App1", "1.0"), ("App2", "2.0")]
         expected = [("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")]
         mock_check.return_value = expected
@@ -241,7 +229,9 @@ class TestCheckOutdatedApps:
     def test_check_outdated_apps_default_batch_size(self, mock_config, mock_check):
         """Test with default batch size when not configured."""
         mock_config_obj = Mock()
-        del mock_config_obj.batch_size  # Remove attribute
+        # Simulate an unconfigured key: Config.get(key, default) falls
+        # through to whatever default the caller passes.
+        mock_config_obj.get.side_effect = lambda key, default=None: default
         mock_config.return_value = mock_config_obj
         apps = [("App1", "1.0")]
         expected = [("App1", {"installed": "1.0", "latest": "1.0"}, "uptodate")]

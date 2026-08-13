@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import versiontracker.apps.finder as finder_mod
+from versiontracker.apps.cache import SimpleRateLimiter, _AdaptiveRateLimiter
 from versiontracker.apps.finder import (
     MAX_ERRORS,
     _create_rate_limiter,
@@ -132,8 +133,8 @@ class TestGetApplicationsFromSystemProfiler:
     def test_skip_apple_apps(self, mock_cfg):
         """Lines 242-244: obtained_from=apple apps are skipped when skip_system_apps=True."""
         cfg = MagicMock()
-        cfg.skip_system_apps = True
-        cfg.skip_system_paths = False
+        settings = {"skip_system_apps": True, "skip_system_paths": False}
+        cfg.get.side_effect = lambda key, default=None: settings.get(key, default)
         mock_cfg.return_value = cfg
 
         data = {
@@ -151,8 +152,8 @@ class TestGetApplicationsFromSystemProfiler:
     def test_skip_system_paths(self, mock_cfg):
         """Lines 247-250: apps under /System/ are skipped when skip_system_paths=True."""
         cfg = MagicMock()
-        cfg.skip_system_apps = False
-        cfg.skip_system_paths = True
+        settings = {"skip_system_apps": False, "skip_system_paths": True}
+        cfg.get.side_effect = lambda key, default=None: settings.get(key, default)
         mock_cfg.return_value = cfg
 
         data = {
@@ -186,8 +187,8 @@ class TestGetApplicationsFromSystemProfiler:
         from versiontracker.exceptions import DataParsingError
 
         cfg = MagicMock()
-        cfg.skip_system_apps = False
-        cfg.skip_system_paths = False
+        settings = {"skip_system_apps": False, "skip_system_paths": False}
+        cfg.get.side_effect = lambda key, default=None: settings.get(key, default)
         mock_cfg.return_value = cfg
 
         # Integer is not iterable → TypeError inside the try block → DataParsingError
@@ -376,6 +377,25 @@ class TestCreateRateLimiter:
 
         limiter = _create_rate_limiter(BadObj())
         assert limiter is not None
+
+    def test_adaptive_rate_limiting_default_true_returns_adaptive_limiter(self):
+        """Regression: ui.adaptive_rate_limiting defaults to True in the
+        config schema, but the old hasattr/getattr bug meant it was never
+        actually read -- SimpleRateLimiter was always returned regardless.
+        A real, unmocked Config() should now yield an adaptive limiter by
+        default, matching the schema's documented default."""
+        limiter = _create_rate_limiter(2)
+        assert isinstance(limiter, _AdaptiveRateLimiter)
+
+    @patch("versiontracker.apps.finder.get_config")
+    def test_adaptive_rate_limiting_disabled_returns_simple_limiter(self, mock_cfg):
+        cfg = MagicMock()
+        cfg.get.side_effect = lambda key, default=None: False if key == "ui.adaptive_rate_limiting" else default
+        mock_cfg.return_value = cfg
+
+        limiter = _create_rate_limiter(2)
+        assert isinstance(limiter, SimpleRateLimiter)
+        assert not isinstance(limiter, _AdaptiveRateLimiter)
 
 
 # ---------------------------------------------------------------------------

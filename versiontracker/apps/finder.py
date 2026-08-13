@@ -77,9 +77,7 @@ def _is_async_homebrew_available() -> bool:
     try:
         # Check config setting
         config = get_config()
-        async_config = getattr(config, "async_homebrew", None)
-        if async_config is None:
-            async_config = config._config.get("async_homebrew", {})
+        async_config = config.get("async_homebrew", {})
 
         enabled = async_config.get("enabled", True) if isinstance(async_config, dict) else True
 
@@ -135,7 +133,7 @@ def get_homebrew_casks() -> list[str]:
     """
     try:
         # Get the brew path from config or use default
-        brew_path = getattr(get_config(), "brew_path", BREW_PATH)
+        brew_path = get_config().get("brew_path", BREW_PATH)
 
         # Run brew list to get installed casks
         cmd = f"{brew_path} list --cask"
@@ -239,12 +237,12 @@ def get_applications_from_system_profiler(
             version = app.get("version", "")
 
             # Skip system applications if configured
-            if getattr(get_config(), "skip_system_apps", True):
+            if get_config().get("skip_system_apps", True):
                 if app.get("obtained_from", "").lower() == "apple":
                     continue
 
             # Skip applications in system paths if configured
-            if getattr(get_config(), "skip_system_paths", True):
+            if get_config().get("skip_system_paths", True):
                 app_path = app.get("path", "")
                 if app_path.startswith("/System/"):
                     continue
@@ -325,10 +323,10 @@ def is_homebrew_available() -> bool:
             return False
 
         config = get_config()
-        if hasattr(config, "_config") and config._config.get("brew_path"):
+        cached_brew_path = config.get("brew_path")
+        if cached_brew_path:
             try:
-                config = get_config()
-                cmd = f"{config._config.get('brew_path')} --version"
+                cmd = f"{cached_brew_path} --version"
                 output, returncode = run_command(cmd, timeout=2)
                 if returncode == 0:
                     return True
@@ -349,8 +347,7 @@ def is_homebrew_available() -> bool:
                 cmd = f"{path} --version"
                 output, returncode = run_command(cmd, timeout=2)
                 if returncode == 0:
-                    if hasattr(get_config(), "set"):
-                        get_config().set("brew_path", path)
+                    get_config().set("brew_path", path)
                     global BREW_PATH
                     BREW_PATH = path
                     return True
@@ -402,7 +399,7 @@ def _check_cache_for_cask(cask_name: str, cache_data: dict | None) -> bool | Non
 
 def _execute_brew_search(cask_name: str) -> tuple[str, int]:
     """Execute brew search command and return output and return code."""
-    brew_command = getattr(get_config(), "brew_path", "brew")
+    brew_command = get_config().get("brew_path", "brew")
     cmd = f'{brew_command} search --cask "{cask_name}"'
     return run_command(cmd, timeout=30)
 
@@ -643,7 +640,7 @@ def _create_rate_limiter(rate_limit: int | Any) -> RateLimiterProtocol:
     except (AttributeError, ValueError, TypeError):
         logging.debug("Using default rate limit: %d second(s)", rate_limit_seconds)
 
-    if hasattr(get_config(), "ui") and getattr(get_config(), "ui", {}).get("adaptive_rate_limiting", False):
+    if get_config().get("ui.adaptive_rate_limiting", False):
         return _AdaptiveRateLimiter(
             base_rate_limit_sec=float(rate_limit_seconds),
             min_rate_limit_sec=max(0.1, float(rate_limit_seconds) * 0.5),

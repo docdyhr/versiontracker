@@ -37,7 +37,7 @@ def search_brew_cask(search_term: str) -> list[str]:
             return []
 
         # Get brew path from config or use default
-        brew_path = getattr(get_config(), "brew_path", BREW_PATH)
+        brew_path = get_config().get("brew_path", BREW_PATH)
 
         # Escape search term for shell safety
         search_term_escaped = search_term.replace('"', '\\"').replace("'", "\\'")
@@ -86,7 +86,7 @@ def _process_brew_search(app: tuple[str, str], rate_limiter: RateLimiterProtocol
             return None
 
         # Get brew path and run search
-        brew_path = getattr(get_config(), "brew_path", BREW_PATH)
+        brew_path = get_config().get("brew_path", BREW_PATH)
         search_term_escaped = search_term.replace('"', '\\"')
         brew_search = f'{brew_path} search --casks "{search_term_escaped}"'
 
@@ -263,7 +263,7 @@ def _find_matching_cask(search_results: list[str], app_name: str) -> str | None:
 
         # Use fuzzy matching for less strict matches
         similarity = partial_ratio(app_name_normalized, result)
-        if similarity >= 80:
+        if similarity >= get_config().get("similarity_threshold", 80):
             return search_results[i]
 
     return None

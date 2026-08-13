@@ -64,8 +64,7 @@ class TestIsAsyncHomebrewAvailable:
     @patch("versiontracker.apps.finder.get_config")
     def test_config_disabled(self, mock_cfg):
         mock_config = MagicMock()
-        mock_config.async_homebrew = None
-        mock_config._config = {"async_homebrew": {"enabled": False}}
+        mock_config.get.return_value = {"enabled": False}
         mock_cfg.return_value = mock_config
 
         assert finder_mod._is_async_homebrew_available() is False
@@ -75,8 +74,7 @@ class TestIsAsyncHomebrewAvailable:
     @patch("versiontracker.apps.finder.get_config")
     def test_env_var_disabled(self, mock_cfg):
         mock_config = MagicMock()
-        mock_config.async_homebrew = None
-        mock_config._config = {"async_homebrew": {"enabled": True}}
+        mock_config.get.return_value = {"enabled": True}
         mock_cfg.return_value = mock_config
 
         assert finder_mod._is_async_homebrew_available() is False
@@ -85,8 +83,7 @@ class TestIsAsyncHomebrewAvailable:
     def test_import_error(self, mock_cfg):
         """When the async_homebrew module can't be imported."""
         mock_config = MagicMock()
-        mock_config.async_homebrew = None
-        mock_config._config = {"async_homebrew": {"enabled": True}}
+        mock_config.get.return_value = {"enabled": True}
         mock_cfg.return_value = mock_config
 
         with patch.dict(os.environ, {}, clear=False):
@@ -160,7 +157,7 @@ class TestIsHomebrewAvailable:
     def test_cached_brew_path_works(self, mock_cfg, mock_platform, _run):
         mock_platform.system.return_value = "Darwin"
         mock_config = MagicMock()
-        mock_config._config = {"brew_path": "/opt/homebrew/bin/brew"}
+        mock_config.get.return_value = "/opt/homebrew/bin/brew"
         mock_cfg.return_value = mock_config
 
         assert is_homebrew_available() is True
@@ -172,7 +169,7 @@ class TestIsHomebrewAvailable:
         mock_platform.system.return_value = "Darwin"
         mock_platform.machine.return_value = "arm64"
         mock_config = MagicMock()
-        mock_config._config = {"brew_path": "/bad/path"}
+        mock_config.get.return_value = "/bad/path"
         mock_config.set = MagicMock()
         mock_cfg.return_value = mock_config
 
@@ -190,14 +187,14 @@ class TestIsHomebrewAvailable:
         mock_platform.system.return_value = "Darwin"
         mock_platform.machine.return_value = "x86_64"
         mock_config = MagicMock()
-        mock_config._config = {}
+        mock_config.get.return_value = None
         mock_config.set = MagicMock()
         mock_cfg.return_value = mock_config
 
         # First call (cached path check) fails, then first path in list succeeds
         mock_run.side_effect = [("Homebrew 4.0", 0)]
-        # _config has no brew_path → hasattr returns True but _config.get('brew_path') is falsy
-        # so it goes to the path loop
+        # No brew_path configured → config.get('brew_path') is falsy, so it
+        # goes to the path loop
 
         result = is_homebrew_available()
         assert result is True

@@ -31,7 +31,7 @@ class TestHomebrew(unittest.TestCase):
 
         # Set up the mocks
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        mock_config.get.return_value = "/usr/local/bin/brew"
         mock_get_config.return_value = mock_config
 
         # Mock run_command to return a list of casks
@@ -54,7 +54,7 @@ class TestHomebrew(unittest.TestCase):
 
         # Set up the mocks
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        mock_config.get.return_value = "/usr/local/bin/brew"
         mock_get_config.return_value = mock_config
 
         # Mock run_command to return empty output
@@ -74,7 +74,7 @@ class TestHomebrew(unittest.TestCase):
 
         # Set up the mocks
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        mock_config.get.return_value = "/usr/local/bin/brew"
         mock_get_config.return_value = mock_config
 
         # Mock run_command to return an error
@@ -92,7 +92,7 @@ class TestHomebrew(unittest.TestCase):
 
         # Set up the mocks
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        mock_config.get.return_value = "/usr/local/bin/brew"
         mock_get_config.return_value = mock_config
 
         # Mock run_command to raise NetworkError
@@ -110,7 +110,7 @@ class TestHomebrew(unittest.TestCase):
 
         # Set up the mocks
         mock_config = MagicMock()
-        mock_config.brew_path = "/usr/local/bin/brew"
+        mock_config.get.return_value = "/usr/local/bin/brew"
         mock_get_config.return_value = mock_config
 
         # Mock run_command to raise BrewTimeoutError

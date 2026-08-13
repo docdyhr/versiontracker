@@ -232,8 +232,9 @@ class TestFilterOutBrews:
         version of this test mocked partial_ratio to always match, which
         made every app match under both modes and so could never have
         actually observed a strict_mode-specific difference even if one
-        existed. See TODO.md for the tracked, separate follow-up (the
-        `--strict-recommend` CLI flag is non-functional as documented)."""
+        existed. See the project roadmap doc for the tracked, separate
+        follow-up (the `--strict-recommend` CLI flag is non-functional as
+        documented)."""
         apps = [("Firefox", "1.0"), ("SomeUnique", "2.0")]
 
         result_strict = filter_out_brews(apps, ["firefox", "someunique"], strict_mode=True)
@@ -330,6 +331,20 @@ class TestFindMatchingCask:
         """Ensure results that normalize to empty strings are skipped."""
         result = _find_matching_cask(["", "firefox"], "Firefox")
         assert result == "firefox"
+
+    @patch("versiontracker.apps.matcher.get_config")
+    def test_honors_configured_similarity_threshold(self, mock_get_config):
+        """Regression: the fuzzy-match threshold was hardcoded (80),
+        ignoring the real, documented similarity_threshold config key. A
+        looser configured threshold should accept a match the hardcoded
+        default would have rejected (same input pair as test_no_match,
+        which fails to match at the default threshold)."""
+        mock_config = MagicMock()
+        mock_config.get.return_value = 0  # accept anything
+        mock_get_config.return_value = mock_config
+
+        result = _find_matching_cask(["completely-different"], "Firefox")
+        assert result == "completely-different"
 
 
 # ---------------------------------------------------------------------------

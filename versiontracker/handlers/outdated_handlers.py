@@ -51,9 +51,7 @@ def _update_config_from_options(options: Any) -> None:
     """
     # Update config with no_progress option if specified
     if hasattr(options, "no_progress") and options.no_progress:
-        config = get_config()
-        if hasattr(config, "set"):
-            config.set("no_progress", True)
+        get_config().set("no_progress", True)
 
 
 def _get_installed_applications() -> list[tuple[str, str]]:
@@ -131,7 +129,7 @@ def _check_outdated_apps(
         NetworkError: If there are connectivity issues
         Exception: For other unexpected errors
     """
-    batch_size = getattr(get_config(), "batch_size", 50)
+    batch_size = get_config().get("batch_size", 50)
     # Use cast to handle the return type properly
     return cast(
         list[tuple[str, dict[str, str], Any]],

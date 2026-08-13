@@ -288,3 +288,24 @@ class TestGetConfigSettings:
         assert len(result) == 2
         assert isinstance(result[0], bool)
         assert isinstance(result[1], int)
+
+    def test_max_workers_reflects_real_config_value(self):
+        """Regression: previously read config._config.get("performance", {}),
+        a section that doesn't exist in the schema, so max_workers was
+        always the hardcoded fallback 4 regardless of configuration. The
+        real key is the flat "max_workers" (schema default 10)."""
+        _, max_workers = _get_config_settings()
+        assert max_workers == 10
+
+    @patch("versiontracker.config.get_config")
+    def test_max_workers_honors_explicit_config(self, mock_get_config):
+        cfg = MagicMock()
+        cfg.get.side_effect = lambda key, default=None: {
+            "show_progress": True,
+            "max_workers": 42,
+        }.get(key, default)
+        mock_get_config.return_value = cfg
+
+        show_progress, max_workers = _get_config_settings()
+        assert show_progress is True
+        assert max_workers == 42

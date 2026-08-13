@@ -127,9 +127,11 @@ class TestFilterHandlers:
         mock_options.delete_filter = None
         mock_options.load_filter = "test-filter"
 
-        # Setup mock config
+        # Setup mock config -- "test_key" must already be a recognized
+        # setting (config.get(...) must not return the "missing" sentinel)
+        # for _apply_filter_to_config to restore it via config.set(...).
         mock_config = mock.MagicMock()
-        mock_config._config = {"test_key": "test_value"}
+        mock_config.get.return_value = "test_value"
         mock_get_config.return_value = mock_config
 
         # Create test filter
@@ -154,9 +156,38 @@ class TestFilterHandlers:
         assert result is None
         assert mock_options.option1 == "value1"
         assert mock_options.option2 == "value2"
-        assert mock_config._config["test_key"] == "new_value"
+        mock_config.set.assert_called_once_with("test_key", "new_value")
         mock_color.assert_called_with("green")
         mock_color.return_value.assert_called_with("Loaded filter: test-filter")
+
+    @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
+    @mock.patch("versiontracker.handlers.filter_handlers.get_config")
+    def test_load_filter_maps_saved_rate_limit_key_to_api_rate_limit(self, mock_get_config, mock_progress_bar):
+        """Regression: the saved filter snapshot's "rate_limit" field has no
+        matching "rate_limit" config key (only "api_rate_limit" is real) --
+        restoring it must write through to the real key, not silently
+        no-op."""
+        mock_options = mock.MagicMock()
+        mock_options.list_filters = False
+        mock_options.delete_filter = None
+        mock_options.load_filter = "rate-limit-filter"
+
+        mock_config = mock.MagicMock()
+        mock_config.get.return_value = 3  # api_rate_limit's schema default
+        mock_get_config.return_value = mock_config
+
+        filter_dir = Path(self.temp_dir.name) / "filters"
+        filter_dir.mkdir(exist_ok=True)
+        filter_content = {"config": {"rate_limit": 7}}
+        with open(filter_dir / "rate-limit-filter.json", "w") as f:
+            json.dump(filter_content, f)
+
+        mock_progress_bar.return_value.color.return_value.return_value = "Color message"
+
+        result = handle_filter_management(mock_options, self.filter_manager)
+
+        assert result is None
+        mock_config.set.assert_any_call("api_rate_limit", 7)
 
     @mock.patch("versiontracker.handlers.filter_handlers.create_progress_bar")
     def test_handle_filter_management_load_filter_not_found(self, mock_progress_bar):

@@ -479,7 +479,6 @@ def load_plugins() -> None:
     if user_plugins_dir.exists():
         plugin_manager.load_plugins_from_directory(user_plugins_dir)
 
-    # Load from system plugin directory if configured
-    if hasattr(config, "plugin_directories"):
-        for plugin_dir in config.plugin_directories:
-            plugin_manager.load_plugins_from_directory(Path(plugin_dir))
+    # Load from system plugin directories if configured
+    for plugin_dir in config.get("plugin_directories", []):
+        plugin_manager.load_plugins_from_directory(Path(plugin_dir))

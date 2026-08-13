@@ -59,8 +59,7 @@ class TestFeatureFlag:
     def test_config_disabled(self, mock_config):
         """Config async_homebrew.enabled=False should disable async."""
         mock_cfg = MagicMock()
-        mock_cfg._config = {"async_homebrew": {"enabled": False}}
-        mock_cfg.async_homebrew = {"enabled": False}
+        mock_cfg.get.return_value = {"enabled": False}
         mock_config.return_value = mock_cfg
         # Remove any env override
         os.environ.pop("VERSIONTRACKER_ASYNC_BREW", None)
