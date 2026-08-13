@@ -8,6 +8,7 @@ dealing with multiple Homebrew API calls or other network operations.
 import asyncio
 import builtins
 import logging
+import math
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
@@ -236,7 +237,19 @@ class AsyncBatchProcessor[T, R]:
             batch_size: Number of items per batch
             max_concurrency: Maximum number of concurrent tasks
             rate_limit: Minimum time between requests in seconds
+
+        Raises:
+            ValueError: If max_concurrency isn't positive, or rate_limit is
+                negative or non-finite.
         """
+        if max_concurrency <= 0:
+            # asyncio.Semaphore(0) doesn't raise -- it silently constructs a
+            # semaphore that deadlocks the first time anything awaits it, and
+            # Semaphore(negative) raises a less specific ValueError than this.
+            raise ValueError(f"max_concurrency must be a positive integer (got {max_concurrency!r})")
+        if rate_limit < 0 or not math.isfinite(rate_limit):
+            raise ValueError(f"rate_limit must be a non-negative, finite number of seconds (got {rate_limit!r})")
+
         self.batch_size = batch_size
         self.max_concurrency = max_concurrency
         self.rate_limit = rate_limit

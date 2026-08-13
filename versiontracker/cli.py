@@ -5,9 +5,33 @@ The actual entry point is in __main__.py which uses get_arguments() from here.
 """
 
 import argparse
+import math
 from typing import Any
 
 from versiontracker import __version__
+
+
+def _positive_finite_seconds(value: str) -> float:
+    """Parse and validate a `--rate-limit` value.
+
+    Args:
+        value: Raw CLI argument string.
+
+    Returns:
+        float: The validated rate limit, in seconds.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value isn't a positive, finite number.
+    """
+    try:
+        parsed = float(value)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"invalid float value: {value!r}") from e
+
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise argparse.ArgumentTypeError(f"--rate-limit must be a positive, finite number of seconds (got {value!r})")
+
+    return parsed
 
 
 def get_arguments() -> Any:
@@ -306,9 +330,9 @@ For more information, visit: https://github.com/docdyhr/versiontracker
     perf_group.add_argument(
         "--rate-limit",
         dest="rate_limit",
-        type=float,
+        type=_positive_finite_seconds,
         metavar="SECONDS",
-        help="Rate limit for network requests (seconds)",
+        help="Minimum seconds between network requests (must be a positive, finite number)",
     )
     perf_group.add_argument(
         "--no-progress",

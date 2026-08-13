@@ -245,6 +245,31 @@ def test_async_check_brew_install_candidates():
             assert results == [("Firefox", "100.0", True)]
 
 
+def test_async_check_brew_install_candidates_zero_rate_limit_does_not_crash():
+    """Regression: max_concurrency=int(10/rate_limit) raised ZeroDivisionError
+    for rate_limit=0.0. Concurrency no longer derives from rate_limit at all."""
+    with patch("versiontracker.async_homebrew.is_homebrew_available", return_value=True):
+        with patch.object(HomebrewBatchProcessor, "process_all_async", new=AsyncMock(return_value=[])):
+            results = async_check_brew_install_candidates([("Firefox", "100.0")], rate_limit=0.0)
+            assert results == []
+
+
+def test_async_check_brew_install_candidates_concurrency_independent_of_rate_limit():
+    """Regression: a rate_limit large enough that int(10/rate_limit) == 0
+    silently constructed asyncio.Semaphore(0), which deadlocks forever on
+    first use -- worse than a crash. Concurrency must stay > 0 regardless."""
+    with patch("versiontracker.async_homebrew.is_homebrew_available", return_value=True):
+        with patch("versiontracker.async_homebrew.HomebrewBatchProcessor") as mock_processor_class:
+            mock_processor_class.return_value.process_all_async = AsyncMock(return_value=[])
+
+            for rate_limit in (0.01, 1.0, 100.0):
+                mock_processor_class.reset_mock()
+                mock_processor_class.return_value.process_all_async = AsyncMock(return_value=[])
+                async_check_brew_install_candidates([("Firefox", "100.0")], rate_limit=rate_limit)
+                _, kwargs = mock_processor_class.call_args
+                assert kwargs["max_concurrency"] > 0
+
+
 def test_async_check_brew_install_candidates_no_homebrew():
     """Test checking brew install candidates when Homebrew is not available."""
     with patch("versiontracker.async_homebrew.is_homebrew_available", return_value=False):

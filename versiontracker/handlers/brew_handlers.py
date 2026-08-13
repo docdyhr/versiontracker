@@ -28,7 +28,7 @@ from versiontracker.exceptions import HomebrewError, NetworkError
 from versiontracker.handlers.export_handlers import handle_export
 from versiontracker.homebrew import get_casks_with_auto_updates
 from versiontracker.ui import create_progress_bar
-from versiontracker.utils import get_json_data
+from versiontracker.utils import get_json_data, positive_finite
 
 
 class BrewOptions(TypedDict, total=False):
@@ -283,29 +283,37 @@ def _log_debug_info(
         logging.debug("\tcandidate: %s", candidate)
 
 
-def _get_rate_limit(options: Any) -> int:
-    """Get rate limit from options or config."""
-    rate_limit_int: int = 10  # Default value
-
+def _get_rate_limit(options: Any) -> float:
+    """Get the rate limit (minimum seconds between requests) from options or config."""
     if hasattr(options, "rate_limit") and options.rate_limit is not None:
-        rate_limit_int = int(options.rate_limit)
-    elif hasattr(get_config(), "get"):
-        try:
-            rate_limit_int = int(get_config().get("rate_limit", 10))
-        except (ValueError, TypeError, AttributeError):
-            rate_limit_int = 10
+        validated = positive_finite(options.rate_limit)
+        if validated is None:
+            raise ValueError(
+                f"Invalid --rate-limit value: {options.rate_limit!r} (must be a positive, finite number of seconds)"
+            )
+        return validated
 
-    return rate_limit_int
+    default = 10.0
+    try:
+        configured = get_config().get("api_rate_limit", default)
+    except (ValueError, TypeError, AttributeError):
+        return default
+
+    validated = positive_finite(configured)
+    if validated is None:
+        logging.warning("Ignoring invalid configured api_rate_limit %r; using default %s", configured, default)
+        return default
+    return validated
 
 
-def _search_brew_candidates(search_list: list[tuple[str, str]], rate_limit_int: int, strict_mode: bool) -> list[str]:
+def _search_brew_candidates(search_list: list[tuple[str, str]], rate_limit: float, strict_mode: bool) -> list[str]:
     """Search for Homebrew installation candidates."""
     print(
         create_progress_bar().color("green")(
             f"\nSearching for {len(search_list)} applications in Homebrew repository..."
         )
     )
-    print(create_progress_bar().color("green")(f"Using rate limit of {rate_limit_int} seconds between API calls"))
+    print(create_progress_bar().color("green")(f"Using rate limit of {rate_limit} seconds between API calls"))
     print(create_progress_bar().color("green")("This process may take some time, please be patient..."))
 
     # Special case for testing - detect if we're in a test environment
@@ -318,7 +326,7 @@ def _search_brew_candidates(search_list: list[tuple[str, str]], rate_limit_int: 
         # This is a non-critical operation for test detection
         logging.debug("Unable to inspect stack for unittest detection: %s", e)
 
-    brew_candidates = check_brew_install_candidates(search_list, rate_limit_int, strict_mode)
+    brew_candidates = check_brew_install_candidates(search_list, rate_limit, strict_mode)
 
     # Extract installable app names from the results
     installables = [app for app, _, installable in brew_candidates if installable]
@@ -422,14 +430,14 @@ def handle_brew_recommendations(options: Any) -> int:
         _log_debug_info(options, filtered_apps, apps_homebrew, search_list)
 
         # Get rate limit
-        rate_limit_int = _get_rate_limit(options)
+        rate_limit = _get_rate_limit(options)
 
         # Start timing
         start_time = time.time()
 
         try:
             # Search for brew candidates
-            installables = _search_brew_candidates(search_list, rate_limit_int, strict_mode)
+            installables = _search_brew_candidates(search_list, rate_limit, strict_mode)
 
             # Filter out any casks that are already installed (handles stale cache)
             # Normalize both collections consistently for accurate comparison
