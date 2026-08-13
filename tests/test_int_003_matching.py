@@ -68,8 +68,8 @@ def test_int_003_matching_enhanced_enabled(monkeypatch, capsys):
     brew_casks = ["alphaapp"]  # Simulate one native brew cask
 
     # Patch internal data acquisition
-    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
-    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
+    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda quiet=False: apps)
+    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda quiet=False: brew_casks)
 
     # Track internal calls
     call_log: list[Any] = []
@@ -143,8 +143,8 @@ def test_int_003_matching_enhanced_disabled(monkeypatch, capsys):
     apps = _build_base_apps()
     brew_casks = ["alphaapp"]
 
-    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
-    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
+    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda quiet=False: apps)
+    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda quiet=False: brew_casks)
 
     call_log: list[Any] = []
 

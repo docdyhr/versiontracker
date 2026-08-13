@@ -88,6 +88,7 @@ class TestSetupHandlers:
         mock_options.no_color = True
         mock_options.no_progress = True
         mock_options.no_adaptive_rate = True
+        mock_options.max_workers = None
 
         mock_config = mock.MagicMock()
         mock_get_config.return_value = mock_config
@@ -100,6 +101,47 @@ class TestSetupHandlers:
         mock_config.set.assert_any_call("ui.use_color", False)
         mock_config.set.assert_any_call("no_progress", True)
         mock_config.set.assert_any_call("ui.adaptive_rate_limiting", False)
+
+    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
+    @mock.patch("versiontracker.handlers.setup_handlers.logging")
+    def test_handle_configure_from_options_wires_max_workers(self, mock_logging, mock_get_config):
+        """Regression: --max-workers was previously parsed but never wired
+        into Config anywhere -- every real consumer (async_homebrew.py,
+        async_network.py, apps/finder.py, version/batch.py) reads
+        max_workers exclusively from Config, so the CLI flag had zero
+        effect."""
+        mock_options = mock.MagicMock()
+        mock_options.no_color = False
+        mock_options.no_progress = False
+        mock_options.no_adaptive_rate = False
+        mock_options.max_workers = 16
+
+        mock_config = mock.MagicMock()
+        mock_get_config.return_value = mock_config
+
+        result = handle_configure_from_options(mock_options)
+
+        assert result == 0
+        mock_config.set.assert_any_call("max_workers", 16)
+
+    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
+    @mock.patch("versiontracker.handlers.setup_handlers.logging")
+    def test_handle_configure_from_options_no_max_workers_not_wired(self, mock_logging, mock_get_config):
+        """When --max-workers isn't passed, Config.set('max_workers', ...) is never called."""
+        mock_options = mock.MagicMock()
+        mock_options.no_color = False
+        mock_options.no_progress = False
+        mock_options.no_adaptive_rate = False
+        mock_options.max_workers = None
+
+        mock_config = mock.MagicMock()
+        mock_get_config.return_value = mock_config
+
+        result = handle_configure_from_options(mock_options)
+
+        assert result == 0
+        for call in mock_config.set.call_args_list:
+            assert call.args[0] != "max_workers"
 
     @mock.patch("versiontracker.handlers.setup_handlers.get_config")
     @mock.patch("versiontracker.handlers.setup_handlers.logging")

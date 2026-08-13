@@ -54,8 +54,12 @@ def _update_config_from_options(options: Any) -> None:
         get_config().set("no_progress", True)
 
 
-def _get_installed_applications() -> list[tuple[str, str]]:
+def _get_installed_applications(quiet: bool = False) -> list[tuple[str, str]]:
     """Get installed applications from the system.
+
+    Args:
+        quiet: Suppress the informational progress print (used when exporting,
+            so stdout carries only the exported data).
 
     Returns:
         List of (app_name, version) tuples
@@ -65,7 +69,8 @@ def _get_installed_applications() -> list[tuple[str, str]]:
         TimeoutError: If operations time out
         Exception: For other unexpected errors
     """
-    print(create_progress_bar().color("green")("Getting Apps from Applications/..."))
+    if not quiet:
+        print(create_progress_bar().color("green")("Getting Apps from Applications/..."))
 
     apps_data = get_json_data(
         getattr(
@@ -77,8 +82,11 @@ def _get_installed_applications() -> list[tuple[str, str]]:
     return get_applications(apps_data)
 
 
-def _get_homebrew_casks() -> list[str]:
+def _get_homebrew_casks(quiet: bool = False) -> list[str]:
     """Get installed Homebrew casks.
+
+    Args:
+        quiet: Suppress the informational progress print (used when exporting).
 
     Returns:
         List of installed brew cask names
@@ -88,7 +96,8 @@ def _get_homebrew_casks() -> list[str]:
         PermissionError: If there's a permission issue
         Exception: For other unexpected errors
     """
-    print(create_progress_bar().color("green")("Getting installable casks from Homebrew..."))
+    if not quiet:
+        print(create_progress_bar().color("green")("Getting installable casks from Homebrew..."))
     return get_homebrew_casks()
 
 
@@ -195,6 +204,7 @@ def _display_results(
     status_counts: dict[str, int],
     app_count: int,
     elapsed_time: float,
+    export_format: str | None = None,
 ) -> None:
     """Display results table and summary.
 
@@ -203,7 +213,12 @@ def _display_results(
         status_counts: Dictionary of status counts
         app_count: Total number of applications checked
         elapsed_time: Time taken to check for updates
+        export_format: When set, skip display entirely so stdout carries
+            only the exported data (matches audit_handlers.py's pattern).
     """
+    if export_format:
+        return
+
     if not table:
         print(create_progress_bar().color("yellow")("No applications found."))
         return
@@ -315,14 +330,17 @@ def _export_data(outdated_info: list[tuple[str, dict[str, str], str]], options: 
     return 0
 
 
-def _get_applications_with_error_handling() -> tuple[list[tuple[str, str]] | None, int]:
+def _get_applications_with_error_handling(quiet: bool = False) -> tuple[list[tuple[str, str]] | None, int]:
     """Get installed applications with proper error handling.
+
+    Args:
+        quiet: Suppress informational progress prints (used when exporting).
 
     Returns:
         Tuple of (applications_list, exit_code). If exit_code > 0, applications_list is None.
     """
     try:
-        apps = _get_installed_applications()
+        apps = _get_installed_applications(quiet=quiet)
         return apps, 0
     except PermissionError:
         print(create_progress_bar().color("red")("Error: Permission denied when reading application data."))
@@ -339,14 +357,17 @@ def _get_applications_with_error_handling() -> tuple[list[tuple[str, str]] | Non
         return None, 1
 
 
-def _get_homebrew_casks_with_error_handling() -> tuple[list[str] | None, int]:
+def _get_homebrew_casks_with_error_handling(quiet: bool = False) -> tuple[list[str] | None, int]:
     """Get Homebrew casks with proper error handling.
+
+    Args:
+        quiet: Suppress informational progress prints (used when exporting).
 
     Returns:
         Tuple of (casks_list, exit_code). If exit_code > 0, casks_list is None.
     """
     try:
-        brews = _get_homebrew_casks()
+        brews = _get_homebrew_casks(quiet=quiet)
         return brews, 0
     except FileNotFoundError:
         print(create_progress_bar().color("red")("Error: Homebrew executable not found."))
@@ -475,13 +496,16 @@ def handle_outdated_check(options: Any) -> int:
         # Update configuration from options
         _update_config_from_options(options)
 
+        export_format = getattr(options, "export_format", None)
+        quiet = bool(export_format)
+
         # Get installed applications with error handling
-        apps, exit_code = _get_applications_with_error_handling()
+        apps, exit_code = _get_applications_with_error_handling(quiet=quiet)
         if exit_code != 0:
             return exit_code
 
         # Get installed Homebrew casks with error handling
-        brews, exit_code = _get_homebrew_casks_with_error_handling()
+        brews, exit_code = _get_homebrew_casks_with_error_handling(quiet=quiet)
         if exit_code != 0:
             return exit_code
 
@@ -493,7 +517,8 @@ def handle_outdated_check(options: Any) -> int:
         apps = _filter_applications(apps, brews, include_brews)
 
         # Print status update and prepare for checking outdated apps
-        print(create_progress_bar().color("green")(f"Checking {len(apps)} applications for updates..."))
+        if not quiet:
+            print(create_progress_bar().color("green")(f"Checking {len(apps)} applications for updates..."))
         start_time = time.time()
 
         # Check outdated status with error handling
@@ -504,13 +529,15 @@ def handle_outdated_check(options: Any) -> int:
         # Calculate elapsed time
         elapsed_time = time.time() - start_time
 
-        # Process results and display
+        # Process results and display -- skipped when exporting so stdout
+        # carries only the exported data, matching audit_handlers.py's
+        # pattern.
         # Type assertion: outdated_info cannot be None here due to exit_code check
         assert outdated_info is not None
         # Type cast: outdated_info cannot be None here due to exit_code check above
         outdated_info_typed = cast(list[tuple[str, dict[str, str], Any]], outdated_info)
         table, status_counts = _process_outdated_info(outdated_info_typed)
-        _display_results(table, status_counts, len(apps), elapsed_time)
+        _display_results(table, status_counts, len(apps), elapsed_time, export_format=export_format)
 
         # Handle optional operations
         _handle_notification_if_requested(outdated_info_typed, status_counts, options)

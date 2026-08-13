@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+import yaml
 
 from versiontracker.__main__ import versiontracker_main
 from versiontracker.audit import AuditResult
@@ -195,6 +196,137 @@ class TestCLIWorkflows:
         # Handler may return 0 (up-to-date) or non-zero based on display logic;
         # the important thing is it completes without raising an unhandled exception.
         assert result in (0, 1)
+
+    def test_apps_export_json_produces_clean_parseable_stdout(self, capsys):
+        """--apps --export json (to stdout, no --output-file) must print
+        only the JSON. Regression: app_handlers.py previously printed the
+        "Getting application data..." preamble and the full results table
+        unconditionally, before the export string, corrupting stdout."""
+        mock_cfg = mock.MagicMock()
+        mock_cfg.is_blocklisted.return_value = False
+        with (
+            mock.patch(
+                "versiontracker.handlers.app_handlers._get_apps_data",
+                return_value=_FAKE_APPS,
+            ),
+            mock.patch(
+                "versiontracker.handlers.app_handlers.get_config",
+                return_value=mock_cfg,
+            ),
+            mock.patch("sys.argv", ["versiontracker", "--apps", "--export", "json"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        parsed = json.loads(capsys.readouterr().out)
+        assert len(parsed) == len(_FAKE_APPS)
+
+    def test_brews_export_json_produces_clean_parseable_stdout(self, capsys):
+        """--brews --export json must print only the JSON. Regression:
+        brew_handlers.py::handle_list_brews previously printed a preamble
+        and the full brew list table unconditionally before exporting."""
+        with (
+            mock.patch(
+                "versiontracker.handlers.brew_handlers.get_homebrew_casks",
+                return_value=_FAKE_BREWS,
+            ),
+            mock.patch("sys.argv", ["versiontracker", "--brews", "--export", "json"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        parsed = json.loads(capsys.readouterr().out)
+        assert len(parsed) == len(_FAKE_BREWS)
+
+    def test_check_outdated_export_json_produces_clean_parseable_stdout(self, capsys):
+        """--check-outdated --export json must print only the JSON.
+        Regression: _display_results() had no export-format awareness at
+        all, so the full status summary + table always printed first."""
+        outdated_info = [("Firefox", {"installed": "1.0", "latest": "2.0"}, "outdated")]
+        with (
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._get_applications_with_error_handling",
+                return_value=(_FAKE_APPS, 0),
+            ),
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._get_homebrew_casks_with_error_handling",
+                return_value=([], 0),
+            ),
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._check_outdated_with_error_handling",
+                return_value=(outdated_info, 0),
+            ),
+            # filter_out_brews() itself has an unconditional print() --
+            # apps/matcher.py:189, unrelated to this phase's handler-level
+            # fix -- unmocked it would corrupt stdout regardless of the fix
+            # under test here.
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers.filter_out_brews",
+                side_effect=lambda apps, brews: apps,
+            ),
+            mock.patch("sys.argv", ["versiontracker", "--check-outdated", "--export", "json"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        parsed = json.loads(capsys.readouterr().out)
+        assert isinstance(parsed, list | dict)
+
+    def test_recom_export_json_produces_clean_parseable_stdout(self, capsys):
+        """--recom --export json must print only the JSON. Regression: the
+        final summary was already gated, but ~5 preamble/status lines
+        (application data, homebrew casks, search progress, rate limit,
+        auto-update filtering) printed unconditionally before it."""
+        with (
+            mock.patch(
+                "versiontracker.handlers.brew_handlers._get_application_data",
+                return_value=_FAKE_APPS,
+            ),
+            mock.patch(
+                "versiontracker.handlers.brew_handlers._get_homebrew_casks",
+                return_value=[],
+            ),
+            mock.patch(
+                "versiontracker.handlers.brew_handlers.check_brew_install_candidates",
+                return_value=[(name, name.lower(), True) for name, _ in _FAKE_APPS],
+            ),
+            # filter_out_brews() itself has an unconditional print() --
+            # apps/matcher.py:189, unrelated to this phase's handler-level
+            # fix -- unmocked it would corrupt stdout regardless of the fix
+            # under test here.
+            mock.patch(
+                "versiontracker.handlers.brew_handlers.filter_out_brews",
+                side_effect=lambda apps, brews, strict_mode=False: apps,
+            ),
+            mock.patch("sys.argv", ["versiontracker", "--recom", "--export", "json"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        parsed = json.loads(capsys.readouterr().out)
+        assert isinstance(parsed, list | dict)
+
+    def test_brews_export_yaml_succeeds(self, capsys):
+        """--brews --export yaml previously always failed outside --audit
+        (export.py's FORMAT_OPTIONS only supported json/csv), printing an
+        "Unsupported export format" error to stdout instead of data."""
+        with (
+            mock.patch(
+                "versiontracker.handlers.brew_handlers.get_homebrew_casks",
+                return_value=_FAKE_BREWS,
+            ),
+            mock.patch("sys.argv", ["versiontracker", "--brews", "--export", "yaml"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        out = capsys.readouterr().out
+        assert "Unsupported export format" not in out
+        # A list of dicts (not tuples) passes through _normalize_export_data
+        # unchanged, unlike the app-tuple case which gets an "applications"
+        # wrapper -- same shape export_to_json produces for this input.
+        parsed = yaml.safe_load(out)
+        assert len(parsed) == len(_FAKE_BREWS)
 
     def test_audit_export_json_produces_clean_parseable_stdout(self, capsys):
         """--audit --export json must print *only* the JSON, even when combined

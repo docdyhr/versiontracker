@@ -32,6 +32,7 @@ class TestAppHandlers(unittest.TestCase):
         options.blacklist = None
         options.brew_filter = False
         options.export_format = None
+        options.additional_dirs = None
 
         # Call the function
         result = handle_list_apps(options)
@@ -84,6 +85,7 @@ class TestAppHandlers(unittest.TestCase):
         options.brew_filter = True
         options.include_brews = False
         options.export_format = None
+        options.additional_dirs = None
 
         # Call the function
         result = handle_list_apps(options)
@@ -128,6 +130,7 @@ class TestAppHandlers(unittest.TestCase):
         options.blacklist = "BlacklistedApp"
         options.brew_filter = False
         options.export_format = None
+        options.additional_dirs = None
 
         # Call the function
         result = handle_list_apps(options)
@@ -137,6 +140,50 @@ class TestAppHandlers(unittest.TestCase):
         output = mock_stdout.getvalue()
         self.assertIn("Found 2 applications", output)
         self.assertNotIn("BlacklistedApp", output)
+
+    @patch("versiontracker.handlers.app_handlers.get_json_data")
+    @patch("versiontracker.handlers.app_handlers.get_applications")
+    @patch("versiontracker.handlers.app_handlers.get_config")
+    @patch("sys.stderr", new_callable=StringIO)
+    @patch("sys.stdout", new_callable=StringIO)
+    def test_handle_list_apps_additional_dirs_warns_and_is_ignored(
+        self,
+        mock_stdout,
+        mock_stderr,
+        mock_get_config,
+        mock_get_applications,
+        mock_get_json_data,
+    ):
+        """Regression: --additional-dirs previously computed a comma-split
+        of the value and discarded the result -- a silent no-op, and the
+        wrong separator vs. the flag's own "colon-separated" help text.
+        Now it's removed entirely and replaced with a clear warning (to
+        stderr, since it's diagnostic, not data) instead of a silent
+        no-op; --apps discovery is otherwise unaffected."""
+        mock_get_json_data.return_value = {"items": []}
+        mock_get_applications.return_value = [("App1", "1.0.0")]
+
+        mock_config = Mock()
+        mock_config.is_blacklisted.return_value = False
+        mock_get_config.return_value = mock_config
+
+        options = Mock()
+        options.debug = False
+        options.blacklist = None
+        options.brew_filter = False
+        options.export_format = None
+        options.additional_dirs = "/extra/one:/extra/two"
+
+        result = handle_list_apps(options)
+
+        self.assertEqual(result, 0)
+        stderr_output = mock_stderr.getvalue()
+        self.assertIn("--additional-dirs", stderr_output)
+        self.assertIn("not supported", stderr_output)
+        self.assertIn("--audit", stderr_output)
+        # The warning is diagnostic, not data -- it must not appear on stdout.
+        self.assertNotIn("--additional-dirs", mock_stdout.getvalue())
+        self.assertIn("App1", mock_stdout.getvalue())
 
     @patch("versiontracker.handlers.app_handlers.get_json_data")
     @patch("versiontracker.handlers.app_handlers.handle_export")
@@ -169,6 +216,7 @@ class TestAppHandlers(unittest.TestCase):
         options.brew_filter = False
         options.export_format = "json"
         options.output_file = None
+        options.additional_dirs = None
 
         # Call the function
         result = handle_list_apps(options)
@@ -182,6 +230,12 @@ class TestAppHandlers(unittest.TestCase):
         ]
         self.assertEqual(mock_handle_export.call_args[0][0], expected_data)
         self.assertEqual(mock_handle_export.call_args[0][1], "json")
+
+        # Regression: exporting must not also print the human-readable
+        # preamble/table -- stdout should carry only the export string.
+        output = mock_stdout.getvalue()
+        self.assertNotIn("Getting application data", output)
+        self.assertNotIn("Found 2 applications", output)
 
     @patch(
         "versiontracker.handlers.app_handlers.get_json_data",

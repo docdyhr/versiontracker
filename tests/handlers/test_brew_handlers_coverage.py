@@ -310,8 +310,72 @@ class TestHandleListBrewsOuterException:
             "versiontracker.handlers.brew_handlers.create_progress_bar",
             side_effect=RuntimeError("boom"),
         ):
-            result = handle_list_brews(MagicMock())
+            # export_format must be explicitly falsy: a bare MagicMock()'s
+            # auto-vivified .export_format is truthy, which would make
+            # quiet=True and skip the very preamble print this test
+            # exercises, never reaching the create_progress_bar() call at all.
+            result = handle_list_brews(MagicMock(export_format=None))
         assert result == 1
+
+
+# ---------------------------------------------------------------------------
+# Export-stdout corruption regression: exporting must suppress every
+# human-readable preamble/table print, not just the final summary.
+# ---------------------------------------------------------------------------
+
+
+class TestExportSuppressesDisplay:
+    """handle_list_brews / handle_brew_recommendations: --export must produce
+    stdout containing only the exported payload, matching audit_handlers.py's
+    pattern. Regression: previously only the final summary in
+    handle_brew_recommendations was gated; the preamble status lines in both
+    handlers, and the whole display in handle_list_brews, printed
+    unconditionally."""
+
+    @patch("versiontracker.handlers.brew_handlers.handle_export", return_value='{"ok":true}')
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks", return_value=["firefox"])
+    def test_handle_list_brews_export_suppresses_preamble_and_table(self, _casks, _pb, _export, capsys):
+        opts = MagicMock(export_format="json", output_file=None, spec=[])
+        result = handle_list_brews(opts)
+        assert result == 0
+        out = capsys.readouterr().out
+        assert "Getting Homebrew packages" not in out
+        assert "Found 1 Homebrew" not in out
+
+    @patch("versiontracker.handlers.brew_handlers.create_progress_bar", return_value=_mock_progress_bar())
+    @patch("versiontracker.handlers.brew_handlers.filter_out_brews", return_value=[("App1", "1.0")])
+    @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks", return_value=[])
+    @patch("versiontracker.handlers.brew_handlers.get_applications", return_value=[("App1", "1.0")])
+    @patch("versiontracker.handlers.brew_handlers.get_json_data", return_value={})
+    @patch("versiontracker.handlers.brew_handlers.get_config")
+    @patch(
+        "versiontracker.handlers.brew_handlers.check_brew_install_candidates",
+        return_value=[("App1", "app1", True)],
+    )
+    @patch("versiontracker.handlers.brew_handlers.handle_export", return_value='{"ok":true}')
+    def test_handle_brew_recommendations_export_suppresses_preambles(
+        self, _export, _candidates, _config, _json, _apps, _casks, _filter, _pb, capsys
+    ):
+        opts = MagicMock(
+            recommend=True,
+            strict_recommend=False,
+            strict_recom=False,
+            debug=False,
+            rate_limit=1,
+            export_format="json",
+            output_file=None,
+            exclude_auto_updates=False,
+            only_auto_updates=False,
+        )
+        result = handle_brew_recommendations(opts)
+        assert result == 0
+        out = capsys.readouterr().out
+        assert "Getting application data" not in out
+        assert "Getting installed Homebrew casks" not in out
+        assert "Searching for" not in out
+        assert "Using rate limit" not in out
+        assert "Processed" not in out  # _display_results's final summary
 
 
 # ---------------------------------------------------------------------------

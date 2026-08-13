@@ -76,6 +76,9 @@ def handle_configure_from_options(options: Any) -> int:
         if hasattr(options, "no_adaptive_rate") and options.no_adaptive_rate:
             current_config.set("ui.adaptive_rate_limiting", False)
 
+        if hasattr(options, "max_workers") and options.max_workers:
+            current_config.set("max_workers", options.max_workers)
+
         return 0
     except (AttributeError, ValueError, ConfigError) as e:
         logging.error("Failed to configure options: %s", e)

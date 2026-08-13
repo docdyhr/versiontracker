@@ -84,6 +84,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of these keys have no live caller or no schema default yet, so fixing them
   has no effect on current default behavior — it makes the key genuinely
   configurable going forward.
+- **`--max-workers` was fully dead**: parsed into `options.max_workers` but
+  never referenced anywhere outside the argument parser — every real
+  consumer (`async_homebrew.py`, `async_network.py`, `version/batch.py`,
+  `apps/finder.py`, `handlers/filter_handlers.py`) reads `max_workers`
+  exclusively from `Config`, and nothing ever called
+  `config.set("max_workers", ...)` from the CLI. Wired into
+  `handle_configure_from_options()`, and `--max-workers` is now validated as
+  a positive integer at the CLI boundary (matching the existing
+  `--rate-limit` pattern) instead of silently accepting `0`/negative values
+  that were simply ignored.
+- **`--additional-dirs` was dead for every command except `--audit`**:
+  `--apps` computed a comma-split (also the wrong separator — the flag's own
+  help text says colon-separated) of the value and discarded the result;
+  `--brews`/`--recom`/`--check-outdated` never referenced it at all. Those
+  commands discover installed applications via `system_profiler`, which has
+  no directory-scan step to plug extra directories into — genuinely wiring
+  it up would be a new feature, not a bug fix, so the dead code is removed
+  and replaced with a clear stderr warning when the flag is passed to a
+  command that doesn't support it, instead of a silent no-op.
+- **Export-to-stdout corruption for every command except `--audit`**:
+  `--apps`, `--brews`, and `--check-outdated` printed the full
+  human-readable preamble and results table unconditionally, then
+  separately printed the exported data — so `--export json` (or `csv`)
+  without `--output-file` produced stdout containing both a status table
+  and the export payload, not valid parseable output on its own.
+  `--recom`/`--strict-recom` had the same issue for ~5 preamble/status
+  lines, even though the final summary was already correctly gated.
+  `handlers/outdated_handlers.py::_display_results()` had no
+  export-format awareness at all (unlike the same-named function in
+  `brew_handlers.py`). All four now follow `audit_handlers.py`'s existing
+  correct pattern: when exporting, every human-readable print is skipped
+  and stdout carries only the exported data. Error-path messages
+  (permission denied, timeouts, Homebrew not found, etc.) are unaffected —
+  those still always print, since they indicate something went wrong
+  regardless of export mode.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to
@@ -102,6 +137,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   argparse groups — the interpreted query reuses the same parsed `options`
   object, so e.g. `--ask "..." --export json` exports exactly as `--audit
   --export json` would.
+- **`--export yaml` now works for every command, not just `--audit`**:
+  `export.py`'s `FORMAT_OPTIONS` only ever supported `json`/`csv`, even
+  though the CLI has always advertised `yaml` as a valid `--export` choice —
+  `--apps`/`--brews`/`--recom`/`--check-outdated --export yaml` always
+  failed with an "Unsupported export format" error printed to stdout. Added
+  `export_to_yaml()`/`_export_to_yaml()` (same `yaml.safe_dump` call
+  `audit/rendering.py::render_yaml()` already used) sharing the existing
+  JSON normalization logic via a new `_normalize_export_data()` helper;
+  `pyyaml` was already a core dependency. `handle_export()`'s error message
+  is now derived from `FORMAT_OPTIONS` instead of a hardcoded string, so it
+  can't go stale again.
 
 ### Changed
 - **Pre-commit hooks**: `pre-commit-hooks` v5.0.0→v6.0.0, `ruff-pre-commit`

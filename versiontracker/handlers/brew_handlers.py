@@ -54,11 +54,12 @@ def _normalize_cask_name(name: str) -> str:
     return name.lower().replace(" ", "-").replace("_", "-")
 
 
-def _get_and_filter_brews(options: Any) -> tuple[list[str], list[str]]:
+def _get_and_filter_brews(options: Any, quiet: bool = False) -> tuple[list[str], list[str]]:
     """Get and filter Homebrew packages based on options.
 
     Args:
         options: Command line options
+        quiet: Suppress informational progress prints (used when exporting).
 
     Returns:
         tuple: (filtered_brews, auto_update_casks)
@@ -72,7 +73,8 @@ def _get_and_filter_brews(options: Any) -> tuple[list[str], list[str]]:
     # Check for auto-updates if requested
     auto_update_casks = []
     if hasattr(options, "exclude_auto_updates") or hasattr(options, "only_auto_updates"):
-        print(create_progress_bar().color("blue")("Checking for auto-updates..."))
+        if not quiet:
+            print(create_progress_bar().color("blue")("Checking for auto-updates..."))
         auto_update_casks = get_casks_with_auto_updates(brews)
 
     # Filter based on auto-updates if requested
@@ -156,14 +158,20 @@ def handle_list_brews(options: Any) -> int:
         Exception: For other errors retrieving Homebrew packages
     """
     try:
-        print(create_progress_bar().color("green")("Getting Homebrew packages..."))
+        export_format = getattr(options, "export_format", None)
+        quiet = bool(export_format)
+
+        if not quiet:
+            print(create_progress_bar().color("green")("Getting Homebrew packages..."))
 
         try:
             # Get and filter brews
-            brews, auto_update_casks = _get_and_filter_brews(options)
+            brews, auto_update_casks = _get_and_filter_brews(options, quiet=quiet)
 
-            # Display results
-            _display_brew_list(brews, auto_update_casks, options)
+            # Display results -- skipped when exporting so stdout carries
+            # only the exported data, matching audit_handlers.py's pattern.
+            if not quiet:
+                _display_brew_list(brews, auto_update_casks, options)
 
             # Handle export if requested
             _handle_export_if_requested(brews, options)
@@ -223,9 +231,10 @@ def _determine_strict_mode(options: Any) -> bool:
     return False
 
 
-def _get_application_data() -> list[tuple[str, str]]:
+def _get_application_data(quiet: bool = False) -> list[tuple[str, str]]:
     """Get and filter application data."""
-    print(create_progress_bar().color("green")("Getting application data..."))
+    if not quiet:
+        print(create_progress_bar().color("green")("Getting application data..."))
     raw_data = get_json_data(
         getattr(
             get_config(),
@@ -243,9 +252,10 @@ def _get_application_data() -> list[tuple[str, str]]:
     return filtered_apps
 
 
-def _get_homebrew_casks() -> list[str]:
+def _get_homebrew_casks(quiet: bool = False) -> list[str]:
     """Get installed Homebrew casks with error handling."""
-    print(create_progress_bar().color("green")("Getting installed Homebrew casks..."))
+    if not quiet:
+        print(create_progress_bar().color("green")("Getting installed Homebrew casks..."))
 
     try:
         homebrew_casks = get_homebrew_casks()
@@ -306,15 +316,18 @@ def _get_rate_limit(options: Any) -> float:
     return validated
 
 
-def _search_brew_candidates(search_list: list[tuple[str, str]], rate_limit: float, strict_mode: bool) -> list[str]:
+def _search_brew_candidates(
+    search_list: list[tuple[str, str]], rate_limit: float, strict_mode: bool, quiet: bool = False
+) -> list[str]:
     """Search for Homebrew installation candidates."""
-    print(
-        create_progress_bar().color("green")(
-            f"\nSearching for {len(search_list)} applications in Homebrew repository..."
+    if not quiet:
+        print(
+            create_progress_bar().color("green")(
+                f"\nSearching for {len(search_list)} applications in Homebrew repository..."
+            )
         )
-    )
-    print(create_progress_bar().color("green")(f"Using rate limit of {rate_limit} seconds between API calls"))
-    print(create_progress_bar().color("green")("This process may take some time, please be patient..."))
+        print(create_progress_bar().color("green")(f"Using rate limit of {rate_limit} seconds between API calls"))
+        print(create_progress_bar().color("green")("This process may take some time, please be patient..."))
 
     # Special case for testing - detect if we're in a test environment
     import inspect
@@ -414,13 +427,14 @@ def handle_brew_recommendations(options: Any) -> int:
         Exception: For other unexpected errors
     """
     try:
+        quiet = bool(getattr(options, "export_format", None))
         strict_mode = _setup_options_compatibility(options)
 
         # Get application data
-        filtered_apps = _get_application_data()
+        filtered_apps = _get_application_data(quiet=quiet)
 
         # Get Homebrew casks
-        apps_homebrew = _get_homebrew_casks()
+        apps_homebrew = _get_homebrew_casks(quiet=quiet)
 
         # Get installable candidates
         # Search for brew candidates
@@ -437,7 +451,7 @@ def handle_brew_recommendations(options: Any) -> int:
 
         try:
             # Search for brew candidates
-            installables = _search_brew_candidates(search_list, rate_limit, strict_mode)
+            installables = _search_brew_candidates(search_list, rate_limit, strict_mode, quiet=quiet)
 
             # Filter out any casks that are already installed (handles stale cache)
             # Normalize both collections consistently for accurate comparison
@@ -446,23 +460,33 @@ def handle_brew_recommendations(options: Any) -> int:
 
             # Filter based on auto-updates if requested
             if hasattr(options, "exclude_auto_updates") and options.exclude_auto_updates:
-                print(create_progress_bar().color("green")("Filtering out applications with auto-updates enabled..."))
+                if not quiet:
+                    print(
+                        create_progress_bar().color("green")("Filtering out applications with auto-updates enabled...")
+                    )
                 auto_update_casks = get_casks_with_auto_updates(installables)
                 installables = [cask for cask in installables if cask not in auto_update_casks]
-                print(
-                    create_progress_bar().color("green")(
-                        f"Excluded {len(auto_update_casks)} applications with auto-updates"
+                if not quiet:
+                    print(
+                        create_progress_bar().color("green")(
+                            f"Excluded {len(auto_update_casks)} applications with auto-updates"
+                        )
                     )
-                )
             elif hasattr(options, "only_auto_updates") and options.only_auto_updates:
-                print(
-                    create_progress_bar().color("green")(
-                        "Filtering to only show applications with auto-updates enabled..."
+                if not quiet:
+                    print(
+                        create_progress_bar().color("green")(
+                            "Filtering to only show applications with auto-updates enabled..."
+                        )
                     )
-                )
                 auto_update_casks = get_casks_with_auto_updates(installables)
                 installables = auto_update_casks
-                print(create_progress_bar().color("green")(f"Found {len(installables)} applications with auto-updates"))
+                if not quiet:
+                    print(
+                        create_progress_bar().color("green")(
+                            f"Found {len(installables)} applications with auto-updates"
+                        )
+                    )
         except HomebrewError as e:
             print(create_progress_bar().color("red")(f"Error checking brew install candidates: {e}"))
             return 1

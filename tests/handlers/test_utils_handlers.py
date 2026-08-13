@@ -8,39 +8,12 @@ from unittest import mock
 
 from versiontracker.handlers.utils_handlers import (
     safe_function_call,
-    setup_logging,
     suppress_console_warnings,
 )
 
 
 class TestUtilsHandlers:
     """Tests for the utility handlers."""
-
-    @mock.patch("versiontracker.handlers.utils_handlers.logging")
-    def test_setup_logging_basic(self, mock_logging):
-        """Test basic setup of logging."""
-        # Call the function with minimal arguments
-        setup_logging(level=20)  # INFO level
-
-        # Verify logging was configured
-        mock_root_logger = mock_logging.getLogger.return_value
-        mock_root_logger.setLevel.assert_called_once_with(20)
-
-        # Verify formatter was created
-        assert mock_logging.Formatter.call_count == 1
-
-    @mock.patch("versiontracker.handlers.utils_handlers.logging")
-    def test_setup_logging_with_files(self, mock_logging):
-        """Test setup of logging with file handlers."""
-        # Call the function with file handlers
-        setup_logging(level=10, log_file="test.log", warnings_file="warnings.log")
-
-        # Verify file handlers were created
-        assert mock_logging.FileHandler.call_count >= 2
-
-        # Verify handlers were added to logger
-        mock_root_logger = mock_logging.getLogger.return_value
-        assert mock_root_logger.addHandler.call_count >= 2
 
     @mock.patch("warnings.filterwarnings")
     def test_suppress_console_warnings(self, mock_filter_warnings):

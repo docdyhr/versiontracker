@@ -11,6 +11,7 @@ Returns:
 """
 
 import logging
+import sys
 import traceback
 from typing import Any
 
@@ -28,13 +29,18 @@ from versiontracker.ui import create_progress_bar
 from versiontracker.utils import get_json_data
 
 
-def _get_apps_data() -> list[tuple[str, str]]:
+def _get_apps_data(quiet: bool = False) -> list[tuple[str, str]]:
     """Get application data from system profiler.
+
+    Args:
+        quiet: Suppress the informational progress print (used when exporting,
+            so stdout carries only the exported data).
 
     Returns:
         List of (app_name, version) tuples
     """
-    print(create_progress_bar().color("green")("Getting application data..."))
+    if not quiet:
+        print(create_progress_bar().color("green")("Getting application data..."))
     apps_data = get_json_data(
         getattr(
             get_config(),
@@ -77,23 +83,25 @@ def _apply_blocklist_filtering(apps: list[tuple[str, str]], options: Any) -> lis
         return [(app, ver) for app, ver in apps if not get_config().is_blocklisted(app)]
 
 
-def _apply_homebrew_filtering(apps: list[tuple[str, str]], options: Any) -> list[tuple[str, str]]:
+def _apply_homebrew_filtering(apps: list[tuple[str, str]], options: Any, quiet: bool = False) -> list[tuple[str, str]]:
     """Apply Homebrew filtering to applications.
 
     Args:
         apps: List of (app_name, version) tuples
         options: Command line options
+        quiet: Suppress informational progress prints (used when exporting).
 
     Returns:
         Filtered list of (app_name, version) tuples
     """
     if hasattr(options, "brew_filter") and options.brew_filter:
-        print(create_progress_bar().color("green")("Getting Homebrew casks for filtering..."))
+        if not quiet:
+            print(create_progress_bar().color("green")("Getting Homebrew casks for filtering..."))
         brews = get_homebrew_casks()
         include_brews = getattr(options, "include_brews", False)
         if not include_brews:
             return filter_out_brews(apps, brews)
-        else:
+        elif not quiet:
             print(
                 create_progress_bar().color("yellow")("Showing all applications (including those managed by Homebrew)")
             )
@@ -141,25 +149,38 @@ def handle_list_apps(options: Any) -> int:
     try:
         logging.info("Starting VersionTracker list command")
 
-        # Get application data
-        apps = _get_apps_data()
+        export_format = getattr(options, "export_format", None)
+        quiet = bool(export_format)
 
-        # Get additional paths if specified (currently unused)
+        # Get application data
+        apps = _get_apps_data(quiet=quiet)
+
+        # --additional-dirs only has an effect for --audit (directory-scan
+        # discovery); --apps discovers installed applications via
+        # system_profiler, which has no directory-scan step to plug into.
+        # This is a diagnostic warning, not data, so it always goes to
+        # stderr regardless of export mode.
         if getattr(options, "additional_dirs", None):
-            options.additional_dirs.split(",")
+            print(
+                "--additional-dirs is not supported by --apps; it will be ignored. "
+                "Use --audit for directory-scan-based discovery with --additional-dirs support.",
+                file=sys.stderr,
+            )
 
         # Apply filtering
         filtered_apps = _apply_blocklist_filtering(apps, options)
-        filtered_apps = _apply_homebrew_filtering(filtered_apps, options)
+        filtered_apps = _apply_homebrew_filtering(filtered_apps, options, quiet=quiet)
 
-        # Display results
-        _display_results_table(filtered_apps)
+        # Display results -- skipped when exporting so stdout carries only
+        # the exported data, matching audit_handlers.py's pattern.
+        if not export_format:
+            _display_results_table(filtered_apps)
 
         # Export if requested
-        if hasattr(options, "export_format") and options.export_format:
+        if export_format:
             export_result = handle_export(
                 [{"name": app, "version": ver} for app, ver in filtered_apps],
-                options.export_format,
+                export_format,
                 getattr(options, "output_file", None),
             )
             if isinstance(export_result, str):

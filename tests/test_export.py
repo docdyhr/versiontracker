@@ -7,8 +7,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import yaml
+
 from versiontracker.exceptions import ExportError
-from versiontracker.export import export_data, export_to_csv, export_to_json
+from versiontracker.export import export_data, export_to_csv, export_to_json, export_to_yaml
 from versiontracker.version import VersionStatus
 
 
@@ -80,6 +82,53 @@ class TestExport(unittest.TestCase):
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
 
+    def test_export_to_yaml_string(self):
+        """Test exporting to YAML string.
+
+        Regression: --export yaml previously always failed outside --audit --
+        export.py's FORMAT_OPTIONS only supported ('json', 'csv')."""
+        yaml_str = export_to_yaml(self.test_data)
+        parsed = yaml.safe_load(yaml_str)
+        self.assertEqual(len(parsed["applications"]), 3)
+        self.assertEqual(len(parsed["homebrew_casks"]), 2)
+        self.assertEqual(len(parsed["recommendations"]), 1)
+
+    def test_export_to_yaml_file(self):
+        """Test exporting to a YAML file."""
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as temp_file:
+            temp_path = temp_file.name
+
+        try:
+            result_path = export_to_yaml(self.test_data, temp_path)
+            self.assertTrue(os.path.exists(result_path))
+            with open(result_path) as f:
+                data = yaml.safe_load(f)
+                self.assertEqual(len(data["applications"]), 3)
+        finally:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+    def test_export_to_yaml_with_version_status(self):
+        """Test exporting data with version status to YAML -- same
+        normalization as JSON via the shared _normalize_export_data()."""
+        result = export_to_yaml(self.version_data)
+        parsed = yaml.safe_load(result)
+        self.assertEqual(len(parsed["applications"]), 3)
+        self.assertEqual(parsed["applications"][0]["name"], "Firefox")
+        self.assertEqual(parsed["applications"][0]["status"], "outdated")
+
+    def test_export_to_yaml_file_error(self):
+        """Test error handling when exporting to a YAML file."""
+        with patch("builtins.open", side_effect=Exception("Error")):
+            with self.assertRaises(ExportError):
+                export_to_yaml(self.test_data, "test.yaml")
+
+    def test_export_to_yaml_error(self):
+        """Test error handling during YAML export."""
+        with patch("yaml.safe_dump", side_effect=Exception("YAML error")):
+            with self.assertRaises(ExportError):
+                export_to_yaml(self.test_data)
+
     def test_export_to_csv_string(self):
         """Test exporting to CSV string."""
         csv_str = export_to_csv(self.test_data)
@@ -122,6 +171,14 @@ class TestExport(unittest.TestCase):
 
         # Verify it's valid JSON
         parsed = json.loads(result)
+        self.assertEqual(len(parsed["applications"]), 3)
+
+    def test_export_data_yaml(self):
+        """Test the export_data function with YAML format."""
+        result = export_data(self.test_data, "yaml")
+        self.assertTrue(isinstance(result, str))
+
+        parsed = yaml.safe_load(result)
         self.assertEqual(len(parsed["applications"]), 3)
 
     def test_export_data_csv(self):

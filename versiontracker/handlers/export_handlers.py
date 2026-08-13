@@ -17,7 +17,7 @@ from typing import Any
 
 from versiontracker.config import get_config
 from versiontracker.exceptions import ExportError
-from versiontracker.export import export_data
+from versiontracker.export import FORMAT_OPTIONS, export_data
 from versiontracker.ui import create_progress_bar
 
 
@@ -28,11 +28,11 @@ def handle_export(
 ) -> int | str:
     """Handle exporting data in the specified format.
 
-    Exports data to JSON or CSV format, either to a file or as a string.
+    Exports data to JSON, CSV, or YAML format, either to a file or as a string.
 
     Args:
         data: The data to export (can be dictionary, list, or other serializable type)
-        format_type: The format to export to ('json' or 'csv')
+        format_type: The format to export to ('json', 'csv', or 'yaml')
         filename: Optional filename to write to
 
     Returns:
@@ -57,7 +57,7 @@ def handle_export(
         return result
     except ValueError as e:
         print(create_progress_bar().color("red")(f"Export Error: {e}"))
-        print(create_progress_bar().color("yellow")("Supported formats are 'json' and 'csv'"))
+        print(create_progress_bar().color("yellow")(f"Supported formats are: {', '.join(FORMAT_OPTIONS)}"))
         return 1
     except PermissionError as e:
         print(create_progress_bar().color("red")(f"Permission Error: {e}"))
