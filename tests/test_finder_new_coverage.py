@@ -311,18 +311,31 @@ class TestCheckBrewInstallCandidates:
 
         with patch.dict(sys.modules, {"versiontracker.async_homebrew": fake_async}):
             with patch("versiontracker.apps.finder._process_brew_batch", return_value=[("App1", "1.0", True)]):
-                result = check_brew_install_candidates([("App1", "1.0")], rate_limit=0)
+                result = check_brew_install_candidates([("App1", "1.0")], rate_limit=1)
         assert isinstance(result, list)
+
+    def test_zero_rate_limit_raises(self):
+        """rate_limit=0 is rejected before ever reaching the async/sync branches."""
+        with pytest.raises(ValueError, match="rate_limit"):
+            check_brew_install_candidates([("App1", "1.0")], rate_limit=0)
 
     def test_rate_limit_attribute_extracted(self):
         """Lines 582-583: rate_limit with .api_rate_limit attribute is unwrapped."""
         mock_rl = MagicMock()
-        mock_rl.api_rate_limit = 0
+        mock_rl.api_rate_limit = 5
         # Just check it doesn't error; actual brew calls are mocked
         with patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False):
             with patch("versiontracker.apps.finder._process_brew_batch", return_value=[]):
                 result = check_brew_install_candidates([("App1", "1.0")], rate_limit=mock_rl)
         assert isinstance(result, list)
+
+    def test_invalid_rate_limit_attribute_raises(self):
+        """An unwrapped .api_rate_limit of 0 is rejected, not silently accepted."""
+        mock_rl = MagicMock()
+        mock_rl.api_rate_limit = 0
+        with patch("versiontracker.apps.finder._is_async_homebrew_available", return_value=False):
+            with pytest.raises(ValueError, match="rate_limit"):
+                check_brew_install_candidates([("App1", "1.0")], rate_limit=mock_rl)
 
 
 # ---------------------------------------------------------------------------
@@ -363,6 +376,36 @@ class TestCreateRateLimiter:
 
         limiter = _create_rate_limiter(BadObj())
         assert limiter is not None
+
+
+# ---------------------------------------------------------------------------
+# _process_brew_batch — concurrency is independent of the interval
+# ---------------------------------------------------------------------------
+
+
+class TestProcessBrewBatchConcurrency:
+    """Regression coverage: ThreadPoolExecutor(max_workers=rate_limit) used to
+    reuse the "seconds between calls" value as the worker count, reversing
+    the intended meaning of both and crashing for any rate_limit <= 0.
+    Concurrency must come from config's max_workers, independent of
+    whatever rate_limit is."""
+
+    @pytest.mark.parametrize("rate_limit", [0.1, 1.0, 50.0])
+    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    @patch("versiontracker.apps.finder.is_brew_cask_installable", return_value=True)
+    @patch("versiontracker.apps.finder.ThreadPoolExecutor")
+    @patch("versiontracker.apps.finder.as_completed", return_value=[])
+    @patch("versiontracker.apps.finder.get_config")
+    def test_max_workers_reflects_config_not_rate_limit(
+        self, mock_get_config, _mock_as_completed, mock_executor_class, _mock_installable, _mock_avail, rate_limit
+    ):
+        mock_get_config.return_value.get.return_value = 7
+        mock_executor_class.return_value.__enter__.return_value = MagicMock()
+
+        from versiontracker.apps.finder import _process_brew_batch
+
+        _process_brew_batch([("Firefox", "100.0")], rate_limit, True)
+        mock_executor_class.assert_called_once_with(max_workers=7)
 
 
 # ---------------------------------------------------------------------------

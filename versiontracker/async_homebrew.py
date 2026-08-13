@@ -14,6 +14,7 @@ from aiohttp import ClientError, ClientResponseError, ClientTimeout
 
 from versiontracker.async_network import AsyncBatchProcessor, async_to_sync, fetch_json
 from versiontracker.cache import read_cache, write_cache
+from versiontracker.config import get_config
 from versiontracker.exceptions import (
     HomebrewError,
     NetworkError,
@@ -22,13 +23,26 @@ from versiontracker.exceptions import (
 from versiontracker.homebrew import (
     is_homebrew_available,
 )
-from versiontracker.utils import get_user_agent
+from versiontracker.utils import get_user_agent, positive_finite
 
 # Constants
 HOMEBREW_API_BASE = "https://formulae.brew.sh/api/cask"
 HOMEBREW_SEARCH_BASE = "https://formulae.brew.sh/api/search"
 DEFAULT_TIMEOUT = 10  # seconds
 CACHE_EXPIRY = 86400  # 1 day in seconds
+
+
+def _resolve_max_concurrency(default: int) -> int:
+    """Resolve the batch processor concurrency, independent of rate_limit.
+
+    Concurrency must never be derived from the request interval -- e.g.
+    `int(N / rate_limit)` crashes with ZeroDivisionError for rate_limit=0.0
+    and silently constructs a permanently-blocked `asyncio.Semaphore(0)`
+    (deadlock, not a crash) for any rate_limit large enough that the
+    division truncates to 0.
+    """
+    configured = positive_finite(get_config().get("max_workers", default))
+    return int(configured) if configured is not None else default
 
 
 async def fetch_cask_info(cask_name: str, timeout: int = DEFAULT_TIMEOUT, use_cache: bool = True) -> dict[str, Any]:
@@ -276,7 +290,7 @@ async def async_check_brew_install_candidates(
     # Use async batch processor
     processor = HomebrewBatchProcessor(
         batch_size=50,
-        max_concurrency=int(10 / rate_limit),  # Adjust concurrency based on rate limit
+        max_concurrency=_resolve_max_concurrency(default=10),
         rate_limit=rate_limit,
         strict_match=strict_match,
     )
@@ -395,7 +409,7 @@ async def async_check_brew_update_candidates(
     # Use async batch processor
     processor = HomebrewVersionChecker(
         batch_size=10,
-        max_concurrency=int(5 / rate_limit),  # Adjust concurrency based on rate limit
+        max_concurrency=_resolve_max_concurrency(default=5),
         rate_limit=rate_limit,
     )
 
@@ -476,7 +490,7 @@ async def async_get_casks_with_auto_updates(cask_names: list[str], rate_limit: f
 
     processor = CaskAutoUpdateChecker(
         batch_size=10,
-        max_concurrency=int(5 / rate_limit),
+        max_concurrency=_resolve_max_concurrency(default=5),
         rate_limit=rate_limit,
     )
 

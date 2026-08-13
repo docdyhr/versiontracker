@@ -7,6 +7,7 @@ import builtins
 import functools
 import json
 import logging
+import math
 import os
 import platform
 import re
@@ -111,6 +112,25 @@ def normalise_name(name: str) -> str:
     if not name.isprintable():  # remove non printables
         name = "".join(c for c in name if c.isprintable())
     return name
+
+
+def positive_finite(value: Any) -> float | None:
+    """Coerce `value` to a positive, finite float, or None if it isn't one.
+
+    Args:
+        value: Value to validate (e.g. a rate limit or concurrency setting).
+
+    Returns:
+        float | None: The validated value, or None if it isn't a positive,
+        finite number.
+    """
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(parsed) or parsed <= 0:
+        return None
+    return parsed
 
 
 def _ensure_cache_dir() -> None:

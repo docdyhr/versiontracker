@@ -45,6 +45,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   migrating) pre-fix cache directories cleanly via a `format_version` marker, since cache contents are always
   safely recomputable. No consumer-facing API change — the only production consumer
   (`versiontracker/homebrew.py`) already went through the public `get`/`put`/`clear` API.
+- **Rate-limiting semantics were broken across the sync and async Homebrew check paths**: `--rate-limit` accepted
+  a float but the handler truncated it to an integer (`0.5` → `0`); the sync path (`_process_brew_batch`)
+  constructed a rate limiter and discarded it, then reused the same "seconds between calls" value as
+  `ThreadPoolExecutor(max_workers=...)` — reversing the intended meaning of both, and crashing for any value
+  `<= 0`. The async path computed concurrency as `int(N / rate_limit)`, raising `ZeroDivisionError` for
+  `rate_limit == 0.0` and — undocumented by the original audit — **silently constructing
+  `asyncio.Semaphore(0)` and deadlocking forever** for any `rate_limit` large enough that the division truncated
+  to zero (e.g. `--rate-limit 15`). `_get_rate_limit`'s config fallback also queried a `"rate_limit"` key that
+  doesn't exist in `Config`'s defaults, so it silently always returned the hardcoded default regardless of what
+  was actually configured.
+
+  Fixed by: validating `--rate-limit` as a positive, finite float at the CLI boundary; having `_process_brew_batch`
+  actually use the rate limiter it constructs (mirroring the already-correct pattern in `apps/matcher.py`); and
+  decoupling concurrency from the interval entirely — both the sync `ThreadPoolExecutor` and the three async
+  batch processors in `async_homebrew.py` now read a fixed `max_workers` config setting instead of deriving
+  concurrency from `rate_limit` via division. `AsyncBatchProcessor` (the shared async base class) now validates
+  `max_concurrency`/`rate_limit` at construction as a defense-in-depth backstop. Also corrected `_get_rate_limit`'s
+  dead config-key lookup (`rate_limit` → `api_rate_limit`).
+
+  Note: the audit's file:line references for this item were stale — the affected sync-path functions
+  (`_create_rate_limiter`, `_process_brew_batch`) actually live in `versiontracker/apps/finder.py`, not
+  `versiontracker/handlers/brew_handlers.py`.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to

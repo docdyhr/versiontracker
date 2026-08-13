@@ -205,8 +205,17 @@ class TestBrewCandidates(unittest.TestCase):
             expected = [("Firefox", "100.0", True)]
             self.assertEqual(result, expected)
 
-            # Verify is_brew_cask_installable was called with the normalized name
-            mock_executor.submit.assert_called_once_with(mock_is_installable, "firefox", True)
+            # submit() now receives a rate-limiter-wrapped closure (proving the
+            # limiter is actually used, not discarded) rather than
+            # is_brew_cask_installable directly -- verify the (name, use_cache)
+            # arguments, then invoke the closure to confirm it still calls
+            # through to is_brew_cask_installable correctly.
+            mock_executor.submit.assert_called_once()
+            submitted_fn, submitted_name, submitted_use_cache = mock_executor.submit.call_args[0]
+            self.assertEqual(submitted_name, "firefox")
+            self.assertTrue(submitted_use_cache)
+            submitted_fn(submitted_name, submitted_use_cache)
+            mock_is_installable.assert_called_once_with("firefox", True)
 
     @patch("versiontracker.apps.matcher.run_command")
     def test_process_brew_search_match_found(self, mock_run_command):

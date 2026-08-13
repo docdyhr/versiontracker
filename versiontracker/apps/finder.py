@@ -22,7 +22,7 @@ from versiontracker.exceptions import (
     HomebrewError,
     NetworkError,
 )
-from versiontracker.utils import normalise_name, run_command
+from versiontracker.utils import normalise_name, positive_finite, run_command
 
 from .cache import (
     RateLimiterProtocol,
@@ -582,6 +582,10 @@ def check_brew_install_candidates(
     if hasattr(rate_limit, "api_rate_limit") and not isinstance(rate_limit, int):
         rate_limit = rate_limit.api_rate_limit
 
+    validated_rate_limit = positive_finite(rate_limit)
+    if validated_rate_limit is None:
+        raise ValueError(f"Invalid rate_limit value: {rate_limit!r} (must be a positive, finite number of seconds)")
+
     # Use async implementation if available
     if _is_async_homebrew_available():
         try:
@@ -590,7 +594,7 @@ def check_brew_install_candidates(
             logging.debug("Using async Homebrew for install candidate check (%d apps)", len(data))
             async_result: list[tuple[str, str, bool]] = async_check_brew_install_candidates(
                 data,
-                rate_limit=float(rate_limit) if isinstance(rate_limit, int) else 1.0,
+                rate_limit=validated_rate_limit,
                 strict_match=False,
             )
             return async_result
@@ -605,7 +609,7 @@ def check_brew_install_candidates(
 
     for batch in smart_progress(batches, desc="Checking Homebrew installability", monitor_resources=True):
         try:
-            batch_results = _process_brew_batch(batch, rate_limit, use_cache)
+            batch_results = _process_brew_batch(batch, validated_rate_limit, use_cache)
             results.extend(batch_results)
             error_count = 0
         except Exception as e:
@@ -700,10 +704,25 @@ def _validate_batch_preconditions(batch: list[tuple[str, str]]) -> bool:
     return True
 
 
-def _create_future_submissions(batch: list[tuple[str, str]], executor: ThreadPoolExecutor, use_cache: bool) -> dict:
-    """Create future submissions for batch processing."""
+def _create_future_submissions(
+    batch: list[tuple[str, str]],
+    executor: ThreadPoolExecutor,
+    use_cache: bool,
+    rate_limiter: RateLimiterProtocol,
+) -> dict:
+    """Create future submissions for batch processing.
+
+    Each submitted task waits on `rate_limiter` before making its request, so
+    the configured interval is enforced regardless of how many worker
+    threads are running concurrently.
+    """
+
+    def _rate_limited_check(name: str, use_cache: bool) -> bool:
+        rate_limiter.wait()
+        return is_brew_cask_installable(name, use_cache)
+
     return {
-        executor.submit(is_brew_cask_installable, name.lower().replace(" ", "-"), use_cache): (name, version)
+        executor.submit(_rate_limited_check, name.lower().replace(" ", "-"), use_cache): (name, version)
         for name, version in batch
         if name
     }
@@ -746,12 +765,14 @@ def _process_completed_futures(future_to_app: dict) -> list[tuple[str, str, bool
     return batch_results
 
 
-def _process_brew_batch(batch: list[tuple[str, str]], rate_limit: int, use_cache: bool) -> list[tuple[str, str, bool]]:
+def _process_brew_batch(
+    batch: list[tuple[str, str]], rate_limit: float, use_cache: bool
+) -> list[tuple[str, str, bool]]:
     """Process a batch of applications to check if they can be installed with Homebrew.
 
     Args:
         batch: Batch of applications to check
-        rate_limit: Number of seconds between API calls
+        rate_limit: Minimum number of seconds between API calls
         use_cache: Whether to use cached results
 
     Returns:
@@ -766,10 +787,15 @@ def _process_brew_batch(batch: list[tuple[str, str]], rate_limit: int, use_cache
         return [(name, version, False) for name, version in batch] if batch else []
 
     try:
-        _create_rate_limiter(rate_limit)
+        rate_limiter = _create_rate_limiter(rate_limit)
 
-        with ThreadPoolExecutor(max_workers=rate_limit) as executor:
-            future_to_app = _create_future_submissions(batch, executor, use_cache)
+        # Concurrency is a separate setting from the interval above -- it
+        # must never be derived from rate_limit (a "seconds between calls"
+        # value used directly as a worker count would crash for any
+        # rate_limit <= 0, and reverses the intended meaning of both).
+        max_workers = positive_finite(get_config().get("max_workers", 10)) or 10
+        with ThreadPoolExecutor(max_workers=int(max_workers)) as executor:
+            future_to_app = _create_future_submissions(batch, executor, use_cache, rate_limiter)
             return _process_completed_futures(future_to_app)
 
     except BrewTimeoutError as e:

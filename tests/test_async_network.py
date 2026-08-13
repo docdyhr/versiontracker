@@ -178,6 +178,31 @@ class TestAsyncBatchProcessor:
             """Handle errors by returning -1."""
             return -1
 
+    def test_zero_max_concurrency_raises(self):
+        """Regression: asyncio.Semaphore(0) doesn't raise at construction --
+        it silently deadlocks the first time anything awaits it. This must
+        be rejected explicitly instead."""
+        with pytest.raises(ValueError, match="max_concurrency"):
+            self.SimpleProcessor(max_concurrency=0)
+
+    def test_negative_max_concurrency_raises(self):
+        with pytest.raises(ValueError, match="max_concurrency"):
+            self.SimpleProcessor(max_concurrency=-1)
+
+    def test_negative_rate_limit_raises(self):
+        with pytest.raises(ValueError, match="rate_limit"):
+            self.SimpleProcessor(rate_limit=-1.0)
+
+    def test_non_finite_rate_limit_raises(self):
+        with pytest.raises(ValueError, match="rate_limit"):
+            self.SimpleProcessor(rate_limit=float("inf"))
+
+    def test_zero_rate_limit_is_accepted(self):
+        """Unlike the CLI boundary, rate_limit=0 (no throttling) is a
+        reasonable value at this internal layer."""
+        processor = self.SimpleProcessor(rate_limit=0.0)
+        assert processor.rate_limit == 0.0
+
     def test_create_batches(self):
         """Test batch creation."""
         processor = self.SimpleProcessor(batch_size=2)

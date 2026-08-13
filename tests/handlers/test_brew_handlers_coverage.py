@@ -162,11 +162,46 @@ class TestGetRateLimit:
         opts = MagicMock(rate_limit=5)
         assert _get_rate_limit(opts) == 5
 
+    def test_from_options_preserves_fractional_value(self):
+        """Regression: previously truncated to int (0.5 -> 0)."""
+        opts = MagicMock(rate_limit=0.5)
+        assert _get_rate_limit(opts) == 0.5
+
+    def test_from_options_rejects_zero(self):
+        import pytest
+
+        opts = MagicMock(rate_limit=0)
+        with pytest.raises(ValueError, match="positive"):
+            _get_rate_limit(opts)
+
+    def test_from_options_rejects_negative(self):
+        import pytest
+
+        opts = MagicMock(rate_limit=-1)
+        with pytest.raises(ValueError, match="positive"):
+            _get_rate_limit(opts)
+
     @patch("versiontracker.handlers.brew_handlers.get_config")
     def test_from_config(self, mock_config):
         mock_config.return_value.get.return_value = 7
         opts = MagicMock(spec=[])
         assert _get_rate_limit(opts) == 7
+
+    @patch("versiontracker.handlers.brew_handlers.get_config")
+    def test_from_config_queries_api_rate_limit_key(self, mock_config):
+        """Regression: previously queried a nonexistent "rate_limit" key,
+        which always silently fell through to the hardcoded default."""
+        opts = MagicMock(spec=[])
+        _get_rate_limit(opts)
+        mock_config.return_value.get.assert_called_once_with("api_rate_limit", 10.0)
+
+    @patch("versiontracker.handlers.brew_handlers.get_config")
+    def test_from_config_invalid_value_falls_back_to_default(self, mock_config):
+        """An invalid configured value (e.g. 0) degrades to the default
+        rather than propagating a value that would later crash."""
+        mock_config.return_value.get.return_value = 0
+        opts = MagicMock(spec=[])
+        assert _get_rate_limit(opts) == 10.0
 
     @patch("versiontracker.handlers.brew_handlers.get_config")
     def test_default(self, mock_config):

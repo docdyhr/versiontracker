@@ -183,5 +183,41 @@ class TestCLI(unittest.TestCase):
                 get_arguments()
 
 
+class TestRateLimitValidation(unittest.TestCase):
+    """--rate-limit must be a positive, finite number of seconds.
+
+    Regression coverage: the CLI previously accepted any float, which a
+    downstream handler then truncated to int (0.5 -> 0), and a value of 0
+    or a negative number would eventually crash deep inside
+    ThreadPoolExecutor/asyncio with a confusing, unrelated error.
+    """
+
+    def _assert_rejected(self, raw_value: str) -> None:
+        with patch("sys.argv", ["versiontracker", "--apps", "--rate-limit", raw_value]):
+            with self.assertRaises(SystemExit), patch("sys.stderr", new_callable=StringIO):
+                get_arguments()
+
+    def test_rejects_zero(self):
+        self._assert_rejected("0")
+
+    def test_rejects_negative(self):
+        self._assert_rejected("-1")
+
+    def test_rejects_nan(self):
+        self._assert_rejected("nan")
+
+    def test_rejects_infinite(self):
+        self._assert_rejected("inf")
+
+    def test_rejects_non_numeric(self):
+        self._assert_rejected("fast")
+
+    def test_accepts_fractional_value(self):
+        """A fractional --rate-limit is preserved exactly, not truncated."""
+        with patch("sys.argv", ["versiontracker", "--apps", "--rate-limit", "0.5"]):
+            args = get_arguments()
+            self.assertEqual(args.rate_limit, 0.5)
+
+
 if __name__ == "__main__":
     unittest.main()
