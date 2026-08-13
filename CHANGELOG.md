@@ -31,6 +31,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requested file is missing or malformed — previously a missing explicit file was silently ignored and a
   malformed one's error was swallowed by unreachable code. `versiontracker_main()` now also propagates
   `handle_initialize_config()`'s exit code instead of discarding it. No-`--config` startup behavior is unchanged.
+- **`AdvancedCache` disk tier was unreliable across restarts and had a real key-collision bug**
+  (`advanced_cache.py`): `put()` updated metadata in memory but never persisted it, so a fresh cache instance
+  loaded empty/stale metadata and treated every real on-disk entry as expired, deleting it on first access
+  after any restart. `_get_cache_path()` sanitized keys lossily (`"".join(c if c.isalnum() else "_" ...)`), so
+  distinct keys collided onto the same file — confirmed in production Homebrew cache keys (`openjdk@17`,
+  `openjdk-17`, and `openjdk.17` all sanitized to the identical filename; multi-word search queries with
+  slashes/spaces collided too). Eviction also read stale disk-size stats computed before the write that
+  triggered it, so disk-limit enforcement never accounted for the write that just happened. Fixed by: switching
+  `_get_cache_path()` to a SHA-256 digest of the key (collision-free); persisting metadata atomically
+  (temp-file + `os.replace`) after every mutating operation (`put`/`delete`/`clear`/eviction), not just on
+  request; reordering `put()` so disk-size stats refresh before the eviction check runs; and invalidating (not
+  migrating) pre-fix cache directories cleanly via a `format_version` marker, since cache contents are always
+  safely recomputable. No consumer-facing API change — the only production consumer
+  (`versiontracker/homebrew.py`) already went through the public `get`/`put`/`clear` API.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to

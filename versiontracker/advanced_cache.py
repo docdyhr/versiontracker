@@ -15,11 +15,13 @@ better user experience when working with Homebrew data.
 """
 
 import gzip
+import hashlib
 import json
 import logging
 import os
 import threading
 import time
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -76,6 +78,13 @@ class CacheStats:
 class AdvancedCache:
     """Advanced caching system with tiered storage and expiry policies."""
 
+    # Bumped whenever the on-disk metadata/filename scheme changes in a way
+    # that makes previously-written cache files unreadable by this version
+    # (e.g. switching cache filenames from a sanitized key to a key digest).
+    # A mismatch means the disk cache is invalidated cleanly on load rather
+    # than risking stale key->file mappings from an older scheme.
+    _METADATA_FORMAT_VERSION = 2
+
     def __init__(
         self,
         cache_dir: str = DEFAULT_CACHE_DIR,
@@ -123,6 +132,9 @@ class AdvancedCache:
             # Create cache directory if it doesn't exist
             self._cache_dir.mkdir(parents=True, exist_ok=True)
 
+            # Remove any temp files left behind by an interrupted atomic write
+            self._cleanup_stray_temp_files()
+
             # Load metadata for existing cache files
             self._load_metadata()
 
@@ -132,40 +144,89 @@ class AdvancedCache:
             logging.error("Failed to initialize cache: %s", e)
             raise CacheError(f"Cache initialization failed: {e}") from e
 
+    def _cleanup_stray_temp_files(self) -> None:
+        """Remove temp files left behind by an interrupted atomic write."""
+        for tmp_path in self._cache_dir.glob("*.tmp-*"):
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+
+    def _atomic_write_bytes(self, path: Path, data: bytes) -> None:
+        """Write bytes to `path` atomically via a temp file + os.replace.
+
+        A reader can never observe a partial/corrupt file at `path`: an
+        interrupted write leaves at most a stray temp file (swept up on the
+        next `_initialize_cache()`), never a truncated file at the real path.
+        """
+        tmp_path = path.with_name(f"{path.name}.tmp-{uuid.uuid4().hex[:8]}")
+        try:
+            with open(tmp_path, "wb") as f:
+                f.write(data)
+            os.replace(tmp_path, path)
+        except BaseException:
+            tmp_path.unlink(missing_ok=True)
+            raise
+
     def _load_metadata(self) -> None:
         """Load metadata for existing cache files.
 
-        This loads metadata for all files in the cache directory.
+        This loads metadata for all files in the cache directory. A missing
+        or mismatched `format_version` marker means the directory was
+        written by an older, incompatible on-disk scheme -- rather than risk
+        stale key->file mappings, the legacy disk cache is invalidated
+        cleanly (contents are always safely recomputable).
         """
         metadata_file = self._cache_dir / "metadata.json"
-        if metadata_file.exists():
-            try:
-                with open(metadata_file, encoding="utf-8") as f:
-                    metadata_dict = json.load(f)
+        if not metadata_file.exists():
+            return
 
-                # Convert the dictionary back to CacheMetadata objects
-                for key, meta in metadata_dict.items():
-                    self._metadata[key] = CacheMetadata(
-                        created_at=meta["created_at"],
-                        last_accessed=meta["last_accessed"],
-                        access_count=meta["access_count"],
-                        priority=CachePriority(meta["priority"]),
-                        size_bytes=meta["size_bytes"],
-                        source=meta["source"],
-                    )
-            except (KeyError, ValueError, OSError, json.JSONDecodeError) as e:
-                logging.warning("Failed to load cache metadata: %s", e)
-                # Continue without metadata, it will be rebuilt as items are
-                # accessed
+        try:
+            with open(metadata_file, encoding="utf-8") as f:
+                payload = json.load(f)
+
+            if not isinstance(payload, dict) or payload.get("format_version") != self._METADATA_FORMAT_VERSION:
+                self._invalidate_legacy_disk_cache()
+                return
+
+            entries = payload.get("entries", {})
+            for key, meta in entries.items():
+                self._metadata[key] = CacheMetadata(
+                    created_at=meta["created_at"],
+                    last_accessed=meta["last_accessed"],
+                    access_count=meta["access_count"],
+                    priority=CachePriority(meta["priority"]),
+                    size_bytes=meta["size_bytes"],
+                    source=meta["source"],
+                )
+        except (KeyError, ValueError, OSError, json.JSONDecodeError) as e:
+            logging.warning("Failed to load cache metadata: %s", e)
+            # Continue without metadata, it will be rebuilt as items are
+            # accessed
+
+    def _invalidate_legacy_disk_cache(self) -> None:
+        """Remove cache files written before the current on-disk format.
+
+        Filenames changed from a sanitized raw key (lossy -- distinct keys
+        could collide) to a stable SHA-256 digest of the key, so files from
+        an older format version are unreachable garbage under the new
+        scheme.
+        """
+        logging.info("Cache format changed; clearing legacy disk cache at %s", self._cache_dir)
+        for cache_path in self._cache_dir.glob("*.cache"):
+            try:
+                cache_path.unlink()
+            except OSError:
+                pass
 
     def _save_metadata(self) -> None:
         """Save metadata for cache files."""
         metadata_file = self._cache_dir / "metadata.json"
         try:
             # Convert CacheMetadata objects to dictionaries
-            metadata_dict = {}
+            entries = {}
             for key, meta in self._metadata.items():
-                metadata_dict[key] = {
+                entries[key] = {
                     "created_at": meta.created_at,
                     "last_accessed": meta.last_accessed,
                     "access_count": meta.access_count,
@@ -174,8 +235,9 @@ class AdvancedCache:
                     "source": meta.source,
                 }
 
-            with open(metadata_file, "w", encoding="utf-8") as f:
-                json.dump(metadata_dict, f)
+            payload = {"format_version": self._METADATA_FORMAT_VERSION, "entries": entries}
+            data = json.dumps(payload).encode("utf-8")
+            self._atomic_write_bytes(metadata_file, data)
         except OSError as e:
             logging.warning("Failed to save cache metadata: %s", e)
 
@@ -199,15 +261,19 @@ class AdvancedCache:
     def _get_cache_path(self, key: str) -> Path:
         """Get the path for a cache file.
 
+        Uses a SHA-256 digest of the key rather than a sanitized version of
+        the raw key, so distinct keys can never collide onto the same file
+        (e.g. sanitizing punctuation to `_` previously mapped both "a/b" and
+        "a?b" to the identical "a_b.cache").
+
         Args:
             key: Cache key
 
         Returns:
             Path: Path to the cache file
         """
-        # Sanitize key for use as a filename
-        safe_key = "".join(c if c.isalnum() else "_" for c in key)
-        return self._cache_dir / f"{safe_key}.cache"
+        digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
+        return self._cache_dir / f"{digest}.cache"
 
     def _compress_data(self, data: bytes) -> bytes:
         """Compress data using gzip.
@@ -288,18 +354,21 @@ class AdvancedCache:
     def _evict_from_disk(self, count: int) -> None:
         """Evict items from disk cache.
 
+        Cache filenames are opaque key digests, so eviction candidates are
+        sourced from tracked metadata keys (filtered to those with an
+        existing file) rather than parsed back out of `*.cache` filenames.
+
         Args:
             count: Number of items to evict
         """
-        # Get all cache files
-        cache_files = list(self._cache_dir.glob("*.cache"))
-        if not cache_files:
+        candidates = [key for key in self._metadata if self._get_cache_path(key).exists()]
+        if not candidates:
             return
 
         # Sort by priority and last accessed time
         default_meta = CacheMetadata(0, 0, 0, CachePriority.LOW, 0, "")
         items_to_evict = sorted(
-            [f.stem for f in cache_files],
+            candidates,
             key=lambda k: (
                 self._metadata.get(k, default_meta).priority.value,
                 self._metadata.get(k, default_meta).last_accessed,
@@ -307,6 +376,7 @@ class AdvancedCache:
         )
 
         # Evict the specified number of items
+        evicted_any = False
         for key in items_to_evict[:count]:
             cache_path = self._get_cache_path(key)
             try:
@@ -316,8 +386,12 @@ class AdvancedCache:
                         del self._metadata[key]
                     if self._stats_enabled:
                         self._stats.evictions += 1
+                    evicted_any = True
             except (FileNotFoundError, PermissionError) as e:
                 logging.warning("Failed to evict cache item %s: %s", key, e)
+
+        if evicted_any:
+            self._save_metadata()
 
     def _is_expired(self, key: str, ttl: int) -> bool:
         """Check if a cache item is expired.
@@ -550,18 +624,26 @@ class AdvancedCache:
                 # Store on disk if requested
                 if level in (CacheLevel.DISK, CacheLevel.ALL):
                     cache_path = self._get_cache_path(key)
-                    with open(cache_path, "wb") as f:
-                        f.write(data)
+                    self._atomic_write_bytes(cache_path, data)
 
-                # Update metadata
+                # Update and durably persist metadata so entries survive a
+                # restart -- previously only kept in memory, so a fresh
+                # instance had no record of this entry and would treat the
+                # (still-present) disk file as expired on first access.
                 self._update_metadata(key, data_size, source, priority)
+                self._save_metadata()
+
+                # Refresh size stats before evicting so the eviction check
+                # accounts for the write that just happened, not the
+                # previous one.
+                if self._stats_enabled:
+                    self._update_cache_size()
 
                 # Evict items if cache is full
                 self._evict_if_needed()
 
                 if self._stats_enabled:
                     self._stats.writes += 1
-                    self._update_cache_size()
 
                 return True
             except Exception as e:
@@ -597,6 +679,7 @@ class AdvancedCache:
                 # Remove metadata
                 if key in self._metadata:
                     del self._metadata[key]
+                    self._save_metadata()
 
                 if self._stats_enabled:
                     self._update_cache_size()
@@ -644,6 +727,7 @@ class AdvancedCache:
 
                     # Clear metadata
                     self._metadata.clear()
+                    self._save_metadata()
 
                 if self._stats_enabled:
                     self._update_cache_size()

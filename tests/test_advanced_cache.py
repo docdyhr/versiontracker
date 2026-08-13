@@ -1,5 +1,6 @@
 """Tests for advanced_cache module."""
 
+import json
 import os
 import tempfile
 import time
@@ -372,16 +373,20 @@ class TestAdvancedCache:
                     assert cache.get(key) == value
 
     def test_metadata_persistence(self):
-        """Test metadata persistence across cache instances."""
+        """put() durably saves metadata -- no explicit save required.
+
+        Regression test for the bug where put() only updated metadata in
+        memory: a second instance on the same directory used to treat the
+        (still-present) disk file as expired on first access and delete it,
+        since it had no persisted record the entry existed.
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create cache and add items
             cache1 = AdvancedCache(cache_dir=tmpdir)
             cache1.put("persistent_key", "persistent_value", priority=CachePriority.HIGH)
 
-            # Save metadata explicitly since it's not auto-saved on put
-            cache1._save_metadata()
-
-            # Create new cache instance with same directory
+            # Create new cache instance with same directory -- no manual
+            # _save_metadata() call in between.
             cache2 = AdvancedCache(cache_dir=tmpdir)
 
             # Item should still be accessible
@@ -389,8 +394,130 @@ class TestAdvancedCache:
 
             # Metadata should be preserved
             metadata = cache2._metadata.get("persistent_key")
-            if metadata:
-                assert metadata.priority == CachePriority.HIGH
+            assert metadata is not None
+            assert metadata.priority == CachePriority.HIGH
+
+    def test_colliding_looking_keys_stay_independent(self):
+        """Distinct keys that sanitize to the same string get independent files.
+
+        Regression test for the old lossy filename sanitizer, which mapped
+        both "a/b" and "a?b" (and real Homebrew cask tokens like
+        "openjdk@17"/"openjdk-17"/"openjdk.17") to the identical filename.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache = AdvancedCache(cache_dir=tmpdir)
+
+            colliding_keys = [
+                "a/b",
+                "a?b",
+                "a-b",
+                "a_b",
+                "openjdk@17",
+                "openjdk-17",
+                "openjdk.17",
+            ]
+            for key in colliding_keys:
+                cache.put(key, f"value-for-{key}")
+
+            # Every key maps to a distinct file on disk.
+            paths = {cache._get_cache_path(key) for key in colliding_keys}
+            assert len(paths) == len(colliding_keys)
+
+            # And every key round-trips its own independent value.
+            for key in colliding_keys:
+                assert cache.get(key) == f"value-for-{key}"
+
+    def test_expired_entries_disappear_after_restart(self):
+        """Expiration is based on durably-persisted created_at, so it survives a restart."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache1 = AdvancedCache(cache_dir=tmpdir)
+            cache1.put("stale_key", "stale_value")
+
+            # Backdate the persisted metadata so the entry is already
+            # expired, without needing a real sleep.
+            cache1._metadata["stale_key"].created_at = time.time() - 1000
+            cache1._save_metadata()
+
+            cache2 = AdvancedCache(cache_dir=tmpdir)
+            assert cache2.get("stale_key", ttl=1) is None
+            # The stale file was cleaned up as part of expiring it.
+            assert not cache2._get_cache_path("stale_key").exists()
+
+    def test_corrupt_metadata_file_fails_safely(self):
+        """A corrupt metadata.json doesn't crash construction -- cache starts empty."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            metadata_file = Path(tmpdir) / "metadata.json"
+            metadata_file.write_text("{not valid json")
+
+            cache = AdvancedCache(cache_dir=tmpdir)
+
+            assert cache.get_keys() == []
+            # Cache remains usable.
+            cache.put("key", "value")
+            assert cache.get("key") == "value"
+
+    def test_corrupt_value_file_fails_safely(self):
+        """A corrupt .cache value file is treated as a miss, not an exception."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache = AdvancedCache(cache_dir=tmpdir)
+            # Disk-only so the (still-valid) memory copy can't mask the
+            # corruption when reading back.
+            cache.put("key", "value", level=CacheLevel.DISK)
+
+            # Corrupt the underlying value file in place.
+            cache_path = cache._get_cache_path("key")
+            cache_path.write_bytes(b"not valid json or gzip data")
+
+            assert cache.get("key", level=CacheLevel.DISK) is None
+
+    def test_disk_limit_enforced_after_write(self):
+        """Eviction accounts for the write that just happened, not the previous one.
+
+        Regression test for the ordering bug where _evict_if_needed() read
+        stale disk-size stats computed before the current write. Compression
+        is disabled so on-disk size is deterministic (a highly repetitive
+        string would otherwise gzip away to near nothing).
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache = AdvancedCache(cache_dir=tmpdir, disk_cache_size_mb=1, compression_threshold=10_000_000)
+
+            large_value = "x" * (600 * 1024)  # ~600KB per entry, uncompressed
+            cache.put("first", large_value, priority=CachePriority.LOW)
+            cache.put("second", large_value, priority=CachePriority.LOW)
+            # This write pushes total disk usage over the 1MB limit.
+            cache.put("third", large_value, priority=CachePriority.LOW)
+
+            stats = cache.get_stats()
+            assert stats.evictions > 0
+
+    def test_legacy_format_metadata_is_invalidated_cleanly(self):
+        """A pre-fix (flat, unversioned) metadata.json triggers a clean wipe, not a crash."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            # Old flat-dict shape: no format_version wrapper.
+            legacy_metadata = {
+                "legacy_key": {
+                    "created_at": time.time(),
+                    "last_accessed": time.time(),
+                    "access_count": 1,
+                    "priority": CachePriority.NORMAL.value,
+                    "size_bytes": 5,
+                    "source": "",
+                }
+            }
+            (cache_dir / "metadata.json").write_text(json.dumps(legacy_metadata))
+            # A leftover file from the old sanitized-filename scheme.
+            (cache_dir / "legacy_key.cache").write_bytes(b'"old value"')
+
+            cache = AdvancedCache(cache_dir=tmpdir)
+
+            # Legacy metadata was not adopted, and the orphaned legacy file was removed.
+            assert cache.get_keys() == []
+            assert not (cache_dir / "legacy_key.cache").exists()
+
+            # Cache remains fully usable afterward.
+            cache.put("new_key", "new_value")
+            assert cache.get("new_key") == "new_value"
 
     def test_default_cache_dir(self):
         """Test default cache directory usage."""
