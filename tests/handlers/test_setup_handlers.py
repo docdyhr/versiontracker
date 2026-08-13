@@ -7,6 +7,7 @@ in the versiontracker.handlers.setup_handlers module.
 import logging
 from unittest import mock
 
+from versiontracker.config import get_config
 from versiontracker.handlers.setup_handlers import (
     handle_configure_from_options,
     handle_initialize_config,
@@ -23,59 +24,58 @@ class TestSetupHandlers:
         logging.root.handlers = []
         logging.root.setLevel(logging.WARNING)
 
-    @mock.patch("versiontracker.handlers.setup_handlers.Config")
-    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
-    @mock.patch("versiontracker.handlers.setup_handlers.logging")
-    def test_handle_initialize_config_success(self, mock_logging, mock_get_config, mock_config_class):
-        """Test successful config initialization."""
-        # Setup
+    def test_handle_initialize_config_no_config_file(self):
+        """No --config: the default configuration loads successfully."""
         mock_options = mock.MagicMock()
-        mock_options.config = "test_config.yaml"
-
-        # Mock the Config constructor to do nothing
-        mock_config_class.side_effect = None
-
-        # Execute
-        result = handle_initialize_config(mock_options)
-
-        # Assert
-        assert result == 0
-        # We're just checking the success case, not the specific calls
-
-    @mock.patch("versiontracker.handlers.setup_handlers.Config")
-    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
-    @mock.patch("versiontracker.handlers.setup_handlers.logging")
-    def test_handle_initialize_config_no_config_file(self, mock_logging, mock_get_config, mock_config_class):
-        """Test config initialization without a config file."""
-        # Setup
-        mock_options = mock.MagicMock()
-        # Ensure config attribute doesn't exist
         mock_options.config = None
 
-        # Mock the Config constructor to do nothing
-        mock_config_class.side_effect = None
-
-        # Execute
         result = handle_initialize_config(mock_options)
 
-        # Assert
         assert result == 0
-        # We're just checking the success case, not the specific calls
 
-    @mock.patch("versiontracker.handlers.setup_handlers.Config")
+    def test_handle_initialize_config_explicit_valid_file(self, tmp_path):
+        """--config PATH: the requested file is loaded and installed globally."""
+        config_path = tmp_path / "custom.yaml"
+        config_path.write_text("max_workers: 5\n")
+        mock_options = mock.MagicMock()
+        mock_options.config = str(config_path)
+
+        result = handle_initialize_config(mock_options)
+
+        assert result == 0
+        assert get_config().get("max_workers") == 5
+        assert str(get_config().get("config_file")) == str(config_path)
+
+    def test_handle_initialize_config_missing_explicit_file(self):
+        """--config PATH pointing at a nonexistent file fails clearly, no fallback."""
+        mock_options = mock.MagicMock()
+        mock_options.config = "/nonexistent/versiontracker-test-config.yaml"
+
+        result = handle_initialize_config(mock_options)
+
+        assert result == 1
+
+    def test_handle_initialize_config_malformed_explicit_file(self, tmp_path):
+        """--config PATH pointing at malformed YAML fails clearly, no fallback."""
+        config_path = tmp_path / "bad.yaml"
+        config_path.write_text("not: valid: yaml: [unterminated\n")
+        mock_options = mock.MagicMock()
+        mock_options.config = str(config_path)
+
+        result = handle_initialize_config(mock_options)
+
+        assert result == 1
+
     @mock.patch("versiontracker.handlers.setup_handlers.get_config")
     @mock.patch("versiontracker.handlers.setup_handlers.logging")
-    def test_handle_initialize_config_error(self, mock_logging, mock_get_config, mock_config_class):
-        """Test error handling during config initialization."""
-        # Setup
+    def test_handle_initialize_config_error(self, mock_logging, mock_get_config):
+        """Default (no --config) initialization failure is reported, not swallowed."""
         mock_options = mock.MagicMock()
+        mock_options.config = None
         mock_get_config.side_effect = OSError("Test error")
-        mock_config_class.side_effect = OSError("Another error")
 
-        # Execute
         result = handle_initialize_config(mock_options)
 
-        # Assert
         assert result == 1
         mock_logging.error.assert_called_once()
 
@@ -183,44 +183,12 @@ class TestSetupHandlers:
 
 
 # ---------------------------------------------------------------------------
-# handle_initialize_config — config_file path and OSError fallback (lines 37, 39-41)
+# handle_initialize_config's --config PATH resolution (valid/missing/malformed
+# explicit files, no-config default) is covered directly in TestSetupHandlers
+# above via real tmp_path files -- the old dead-code-encoding branch tests
+# (asserting the discarded `Config(config_file=...)` call and an OSError ->
+# bare-`Config()` fallback that must no longer happen) were removed.
 # ---------------------------------------------------------------------------
-
-
-class TestHandleInitializeConfigBranches:
-    """Tests for uncovered branches in handle_initialize_config."""
-
-    @mock.patch("versiontracker.handlers.setup_handlers.Config")
-    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
-    def test_config_file_path_used_when_no_config_attr(self, mock_get_config, mock_Config):
-        """When get_config() has no _config, Config(config_file=...) is called."""
-        mock_cfg = mock.MagicMock(spec=[])  # no _config attribute
-        mock_get_config.return_value = mock_cfg
-        opts = mock.MagicMock()
-        opts.config = "/tmp/my.yaml"
-
-        handle_initialize_config(opts)
-
-        mock_Config.assert_called_once_with(config_file="/tmp/my.yaml")
-
-    @mock.patch("versiontracker.handlers.setup_handlers.Config")
-    @mock.patch("versiontracker.handlers.setup_handlers.get_config")
-    def test_oserror_falls_back_to_default_config(self, mock_get_config, mock_Config):
-        """OSError during Config init triggers fallback Config() with no args."""
-        mock_cfg = mock.MagicMock(spec=[])  # no _config attribute
-        mock_get_config.return_value = mock_cfg
-        # First call raises OSError, second (fallback) succeeds
-        mock_Config.side_effect = [OSError("file not found"), mock.MagicMock()]
-        opts = mock.MagicMock()
-        opts.config = "/bad/path.yaml"
-
-        result = handle_initialize_config(opts)
-
-        assert result == 0
-        assert mock_Config.call_count == 2
-        # Fallback called with no arguments
-        mock_Config.assert_called_with()
-
 
 # ---------------------------------------------------------------------------
 # handle_setup_logging — error recovery path (line 105)

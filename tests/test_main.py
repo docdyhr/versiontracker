@@ -6,7 +6,7 @@ import unittest
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
-from versiontracker.__main__ import _emit_deprecation_warnings
+from versiontracker.__main__ import _emit_deprecation_warnings, versiontracker_main
 from versiontracker.deprecation import reset_deprecation_registry
 from versiontracker.handlers.export_handlers import handle_export
 from versiontracker.handlers.setup_handlers import handle_setup_logging
@@ -187,6 +187,61 @@ class TestEmitDeprecationWarnings(unittest.TestCase):
         _emit_deprecation_warnings(options)
 
         self.assertEqual(mock_stdout.getvalue(), "")
+
+
+class TestVersiontrackerMainConfigPropagation(unittest.TestCase):
+    """versiontracker_main must propagate handle_initialize_config failures.
+
+    Previously its return value was discarded entirely, so a broken
+    --config PATH (missing/malformed file) never affected the process exit
+    code -- the CLI would report success even though the requested
+    configuration was silently ignored.
+    """
+
+    def setUp(self):
+        self.original_argv = sys.argv.copy()
+
+    def tearDown(self):
+        sys.argv = self.original_argv
+
+    @patch("versiontracker.__main__.handle_setup_logging")
+    @patch("versiontracker.__main__.handle_initialize_config")
+    @patch("versiontracker.__main__.handle_configure_from_options")
+    def test_config_init_failure_short_circuits_and_propagates(
+        self, mock_configure, mock_init_config, mock_setup_logging
+    ):
+        """A nonzero handle_initialize_config result becomes the exit code."""
+        mock_init_config.return_value = 1
+
+        sys.argv = ["versiontracker", "--apps"]
+        result = versiontracker_main()
+
+        self.assertEqual(result, 1)
+        mock_configure.assert_not_called()
+
+    @patch("versiontracker.__main__.handle_setup_logging")
+    @patch("versiontracker.__main__.handle_initialize_config")
+    @patch("versiontracker.__main__.handle_configure_from_options")
+    @patch("versiontracker.__main__.handle_filter_management", return_value=None)
+    @patch("versiontracker.__main__.handle_list_apps", return_value=0)
+    def test_config_init_success_continues_normally(
+        self,
+        mock_list_apps,
+        mock_filter_mgmt,
+        mock_configure,
+        mock_init_config,
+        mock_setup_logging,
+    ):
+        """A zero handle_initialize_config result lets execution continue."""
+        mock_init_config.return_value = 0
+        mock_configure.return_value = 0
+
+        sys.argv = ["versiontracker", "--apps"]
+        result = versiontracker_main()
+
+        self.assertEqual(result, 0)
+        mock_configure.assert_called_once()
+        mock_list_apps.assert_called_once()
 
 
 if __name__ == "__main__":

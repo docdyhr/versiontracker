@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Also applied to `MenubarApp.show_menu()` for consistency, even though its menu items were not
   externally reachable. No behavior change for callers.
 
+### Fixed
+- **`--config PATH` had zero effect**: `handle_initialize_config()` called `get_config()` inside a
+  `hasattr(get_config(), "_config")` check to decide whether to build a config-file-aware `Config` — but that
+  `get_config()` call itself lazily creates and caches the *default* (path-less) singleton on first use, and
+  `Config.__init__` sets `self._config` as its very first statement. So the check was always `True` after that
+  first call, making the config-file-aware branch dead code; even when reachable (only via mocks in tests), the
+  constructed instance was discarded, never installed through `set_global_config()`. Rewrote
+  `handle_initialize_config()` to resolve `--config` before any `get_config()` call, construct and install the
+  requested configuration via `set_global_config()`, and fail clearly (nonzero exit, no silent fallback) when the
+  requested file is missing or malformed — previously a missing explicit file was silently ignored and a
+  malformed one's error was swallowed by unreachable code. `versiontracker_main()` now also propagates
+  `handle_initialize_config()`'s exit code instead of discarding it. No-`--config` startup behavior is unchanged.
+
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to
   the matching action (`--audit`, `--apps`, `--recom`, `--check-outdated`)

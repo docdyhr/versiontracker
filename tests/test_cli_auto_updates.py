@@ -132,7 +132,7 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         mock_handle_blacklist.return_value = 0
 
         with patch("versiontracker.__main__.handle_setup_logging"):
-            with patch("versiontracker.__main__.handle_initialize_config"):
+            with patch("versiontracker.__main__.handle_initialize_config", return_value=0):
                 with patch("versiontracker.__main__.handle_configure_from_options"):
                     with patch("versiontracker.__main__.handle_filter_management", return_value=None):
                         with patch("versiontracker.__main__.handle_save_filter"):
@@ -172,7 +172,7 @@ class TestMainAutoUpdatesIntegration(unittest.TestCase):
         mock_get_args.return_value = mock_args
 
         with patch("versiontracker.__main__.handle_setup_logging"):
-            with patch("versiontracker.__main__.handle_initialize_config"):
+            with patch("versiontracker.__main__.handle_initialize_config", return_value=0):
                 with patch("versiontracker.__main__.handle_configure_from_options"):
                     with patch("versiontracker.__main__.handle_filter_management", return_value=None):
                         with patch("versiontracker.__main__.handle_save_filter"):
@@ -284,7 +284,7 @@ class TestAutoUpdatesEndToEnd(unittest.TestCase):
             mock_get_args.return_value = mock_args
 
             with patch("versiontracker.__main__.handle_setup_logging"):
-                with patch("versiontracker.__main__.handle_initialize_config"):
+                with patch("versiontracker.__main__.handle_initialize_config", return_value=0):
                     with patch("versiontracker.__main__.handle_configure_from_options"):
                         with patch("versiontracker.__main__.handle_filter_management", return_value=None):
                             with patch("versiontracker.__main__.handle_blacklist_auto_updates") as mock_handle:

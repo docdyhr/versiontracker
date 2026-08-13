@@ -292,7 +292,9 @@ def versiontracker_main() -> int:
         _check_ml_availability()
 
     # Initialize configuration
-    handle_initialize_config(options)
+    config_init_result = handle_initialize_config(options)
+    if config_init_result != 0:
+        return config_init_result
 
     # Configure settings from command-line options
     handle_configure_from_options(options)
