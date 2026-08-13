@@ -857,11 +857,11 @@ def load_ai_config() -> dict[str, Any]:
     """Load AI-specific configuration."""
     config = get_config()
     return {
-        "nlp_enabled": getattr(config, "ai_nlp_enabled", True),
-        "insights_enabled": getattr(config, "ai_insights_enabled", True),
-        "conversation_enabled": getattr(config, "ai_conversation_enabled", True),
-        "confidence_threshold": getattr(config, "ai_confidence_threshold", 0.7),
-        "max_conversation_history": getattr(config, "ai_max_conversation_history", 20),
+        "nlp_enabled": config.get("ai_nlp_enabled", True),
+        "insights_enabled": config.get("ai_insights_enabled", True),
+        "conversation_enabled": config.get("ai_conversation_enabled", True),
+        "confidence_threshold": config.get("ai_confidence_threshold", 0.7),
+        "max_conversation_history": config.get("ai_max_conversation_history", 20),
     }
 
 

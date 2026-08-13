@@ -99,7 +99,7 @@ def get_brew_command() -> str:
     """
     # Try config first
     config = get_config()
-    brew_path = getattr(config, "brew_path", None)
+    brew_path = config.get("brew_path", None)
     if isinstance(brew_path, str) and os.path.exists(brew_path):
         return str(brew_path)
     # Fallback to detection logic
@@ -415,7 +415,7 @@ def _apply_rate_limiting(config: Any, current_batch_index: int, total_casks: int
         total_casks: Total number of casks being processed
         batch_size: Size of each batch
     """
-    rate_limit = getattr(config, "api_rate_limit", 0.5)
+    rate_limit = config.get("api_rate_limit", 0.5)
     if rate_limit > 0 and current_batch_index + batch_size < total_casks:
         time.sleep(rate_limit)
 
@@ -444,7 +444,7 @@ def batch_get_cask_info(cask_names: list[str]) -> dict[str, dict[str, Any]]:
 
     # Process remaining casks in batches
     config = get_config()
-    batch_size = getattr(config, "homebrew_batch_size", DEFAULT_BATCH_SIZE)
+    batch_size = config.get("homebrew_batch_size", DEFAULT_BATCH_SIZE)
     progress_bar = create_progress_bar()
 
     print(progress_bar.color("blue")(f"Fetching info for {len(casks_to_fetch)} casks..."))

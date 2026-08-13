@@ -67,6 +67,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Note: the audit's file:line references for this item were stale — the affected sync-path functions
   (`_create_rate_limiter`, `_process_brew_batch`) actually live in `versiontracker/apps/finder.py`, not
   `versiontracker/handlers/brew_handlers.py`.
+- **`getattr`/`hasattr` on `Config` instances never read configured values**:
+  `versiontracker.config.Config` stores settings in an internal dict
+  (`Config.get(key, default)`), not as object attributes — only `log_dir`,
+  `debug`, `no_progress`, and `show_progress` are real `@property` accessors.
+  15 other call sites using `getattr(config, key, default)` or
+  `hasattr(config, key)` therefore always silently returned the hardcoded
+  default no matter what was configured. Fixed across `async_network.py`,
+  `homebrew.py` (`get_brew_command`, `_apply_rate_limiting`,
+  `batch_get_cask_info`), `plugins/__init__.py` (`load_plugins`),
+  `apps/finder.py` (8 sites, including `brew_path` lookups and
+  `is_homebrew_available`), `ai/__init__.py` (`load_ai_config`),
+  `apps/matcher.py` (`brew_path` lookups and `similarity_threshold`,
+  previously hardcoded to `80` instead of reading the schema's documented
+  default of `75`), and `handlers/outdated_handlers.py` (`batch_size`). Most
+  of these keys have no live caller or no schema default yet, so fixing them
+  has no effect on current default behavior — it makes the key genuinely
+  configurable going forward.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to
@@ -95,6 +112,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plus manual fixes for 7 newly surfaced lint errors in the compatibility-test
   script (unused variables prefixed with `_`; one `# noqa: UP036` for an
   intentional runtime Python-version check)
+- **Configuration accessor standardization (behavior changes)**: 3 of the 18
+  sites fixed below change what value actually flows through, since the
+  config key was live-reachable with a real schema default that
+  `getattr`/`hasattr` could never see:
+  - `apps/finder.py::_create_rate_limiter` now honors `ui.adaptive_rate_limiting`
+    (schema default `true`), so `check_brew_install_candidates` (the
+    Homebrew-recommendation path) defaults to `_AdaptiveRateLimiter` instead
+    of always constructing `SimpleRateLimiter`.
+  - `version/batch.py::_get_config_settings` (feeds `--check-outdated`) now
+    reads the real `max_workers` (schema default `10`, was a hardcoded `4`)
+    and the correct flat `show_progress` key (was reading a nonexistent
+    nested `ui.show_progress`, always falling back to its default).
+  - `handlers/filter_handlers.py` saved-filter snapshots now save and restore
+    the rate limit under its real key `api_rate_limit` (previously used a
+    nonexistent `rate_limit` key, so a restored filter never actually
+    changed the rate limit).
 
 ## [1.1.0] - 2026-07-29
 

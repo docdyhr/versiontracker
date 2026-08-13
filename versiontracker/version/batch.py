@@ -57,11 +57,11 @@ def _get_config_settings() -> tuple[bool, int]:
         from versiontracker.config import get_config
 
         config = get_config()
-        # Access config settings via _config dict
-        ui_settings = config._config.get("ui", {})
-        show_progress = ui_settings.get("show_progress", True)
-        perf_settings = config._config.get("performance", {})
-        max_workers = perf_settings.get("max_workers", 4)
+        # show_progress and max_workers are both flat top-level keys, not
+        # nested under "ui"/"performance" (neither of those nestings match
+        # the real config schema).
+        show_progress = config.get("show_progress", True)
+        max_workers = config.get("max_workers", 4)
         return show_progress, max_workers
     except Exception:
         return True, 4

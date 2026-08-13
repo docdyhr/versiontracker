@@ -6,7 +6,7 @@ enhanced Homebrew querying capabilities with advanced caching.
 
 import json
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -19,6 +19,7 @@ from versiontracker.homebrew import (
     batch_get_cask_info,
     clear_homebrew_cache,
     get_all_homebrew_casks,
+    get_brew_command,
     get_cask_info,
     get_cask_version,
     get_homebrew_path,
@@ -27,6 +28,73 @@ from versiontracker.homebrew import (
     is_homebrew_available,
     search_casks,
 )
+
+
+class TestGetBrewCommand(unittest.TestCase):
+    """Tests for get_brew_command().
+
+    Regression coverage: previously used getattr(config, "brew_path", None),
+    which always returned None (Config has no such attribute), so an
+    explicitly-configured custom brew_path was silently ignored and the
+    function always fell through to live auto-detection.
+    """
+
+    @patch("versiontracker.homebrew.get_config")
+    @patch("versiontracker.homebrew.os.path.exists", return_value=True)
+    def test_honors_configured_brew_path_when_it_exists(self, _mock_exists, mock_get_config):
+        mock_config = MagicMock()
+        mock_config.get.return_value = "/custom/path/to/brew"
+        mock_get_config.return_value = mock_config
+
+        result = get_brew_command()
+
+        self.assertEqual(result, "/custom/path/to/brew")
+
+    @patch("versiontracker.homebrew.get_homebrew_path", return_value="/detected/brew")
+    @patch("versiontracker.homebrew.get_config")
+    @patch("versiontracker.homebrew.os.path.exists", return_value=False)
+    def test_falls_back_to_detection_when_configured_path_does_not_exist(
+        self, _mock_exists, mock_get_config, mock_detect
+    ):
+        mock_config = MagicMock()
+        mock_config.get.return_value = "/nonexistent/brew"
+        mock_get_config.return_value = mock_config
+
+        result = get_brew_command()
+
+        self.assertEqual(result, "/detected/brew")
+        mock_detect.assert_called_once()
+
+
+class TestApplyRateLimiting(unittest.TestCase):
+    """Tests for _apply_rate_limiting().
+
+    Regression coverage: previously used getattr(config, "api_rate_limit",
+    0.5), which always returned the hardcoded 0.5 default -- the real,
+    configured rate limit was silently ignored.
+    """
+
+    @patch("versiontracker.homebrew.time.sleep")
+    def test_honors_configured_rate_limit(self, mock_sleep):
+        from versiontracker.homebrew import _apply_rate_limiting
+
+        config = MagicMock()
+        config.get.return_value = 5
+
+        _apply_rate_limiting(config, current_batch_index=0, total_casks=10, batch_size=5)
+
+        mock_sleep.assert_called_once_with(5)
+
+    @patch("versiontracker.homebrew.time.sleep")
+    def test_does_not_sleep_on_final_batch(self, mock_sleep):
+        from versiontracker.homebrew import _apply_rate_limiting
+
+        config = MagicMock()
+        config.get.return_value = 5
+
+        _apply_rate_limiting(config, current_batch_index=5, total_casks=10, batch_size=5)
+
+        mock_sleep.assert_not_called()
 
 
 class TestHomebrewModule(unittest.TestCase):
