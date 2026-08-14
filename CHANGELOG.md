@@ -174,6 +174,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   plus manual fixes for 7 newly surfaced lint errors in the compatibility-test
   script (unused variables prefixed with `_`; one `# noqa: UP036` for an
   intentional runtime Python-version check)
+- **`.github/workflows/security.yml`: the "Security Analysis" required check
+  now genuinely enforces its findings.** All four security tools it runs had
+  their real, meaningful exit codes discarded (`|| true` / `|| echo` /
+  `continue-on-error: true`), and the intended backstop — a final step
+  grepping a hand-assembled summary for `"CRITICAL\|HIGH"` — was itself
+  broken (bandit's real text output is Title-case `"High"`, never `"HIGH"`;
+  pip-audit's columns format has no severity field at all), so this required,
+  branch-protection-enforced check could not fail on anything any of the
+  tools found — confirmed directly against real CI logs, which printed
+  "✅ No critical vulnerabilities found." unconditionally. Fixed by letting
+  each tool's native exit code propagate (bandit's `-ll`, a bare `safety
+  check`, a bare `pip-audit`, each via `set -e`; report-generation-only
+  invocations keep `|| true`, since producing an artifact isn't itself a gate)
+  and removing `continue-on-error` from the TruffleHog secret-scanning step;
+  removed the now-redundant, previously-broken final grep step entirely.
+  Each checking step also now runs via `if: always()` so all four tools'
+  findings surface together in one run instead of stopping at the first
+  failure. **Real change**: this check will now genuinely fail PRs/pushes on
+  a future Medium+ bandit finding, any pip-audit/safety CVE hit, or any
+  verified TruffleHog secret — confirmed safe to enable today (bandit has
+  exactly one known Low-severity false positive that doesn't trip the
+  Medium+ threshold; pip-audit and safety both report zero findings in CI's
+  real environment).
 - **Configuration accessor standardization (behavior changes)**: 3 of the 18
   sites fixed below change what value actually flows through, since the
   config key was live-reachable with a real schema default that
