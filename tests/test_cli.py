@@ -248,5 +248,25 @@ class TestMaxWorkersValidation(unittest.TestCase):
         self._assert_rejected("2.5")
 
 
+class TestNotifyFlag(unittest.TestCase):
+    """--notify must be a real, parseable flag.
+
+    Regression coverage: --notify previously did not exist in the argparse
+    setup at all, even though handlers/outdated_handlers.py already fully
+    implemented notification delivery gated on `options.notify` -- making
+    that code permanently unreachable through the CLI.
+    """
+
+    def test_notify_defaults_false(self):
+        with patch("sys.argv", ["versiontracker", "--check-outdated"]):
+            args = get_arguments()
+            self.assertFalse(args.notify)
+
+    def test_notify_parses_true(self):
+        with patch("sys.argv", ["versiontracker", "--check-outdated", "--notify"]):
+            args = get_arguments()
+            self.assertTrue(args.notify)
+
+
 if __name__ == "__main__":
     unittest.main()

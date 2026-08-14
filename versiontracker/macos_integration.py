@@ -8,9 +8,9 @@ This module provides macOS-specific integration features including:
 
 import logging
 import os
+import plistlib
 import subprocess
 from pathlib import Path
-from typing import Any
 
 from versiontracker.utils import run_applescript
 
@@ -45,7 +45,7 @@ class LaunchdService:
             Dict: The plist configuration
         """
         if command_args is None:
-            command_args = ["--outdated", "--no-progress"]
+            command_args = ["--check-outdated", "--no-progress", "--notify"]
 
         # Ensure log directory exists
         self.log_dir.mkdir(parents=True, exist_ok=True)
@@ -55,6 +55,9 @@ class LaunchdService:
         python_path = subprocess.check_output(  # nosec B603 B607
             ["which", "python3"], text=True
         ).strip()
+
+        if not python_path or not Path(python_path).exists():
+            raise RuntimeError(f"Could not resolve a valid python3 executable path (got: {python_path!r})")
 
         plist_config = {
             "Label": "com.versiontracker.updater",
@@ -185,37 +188,17 @@ class LaunchdService:
     def _dict_to_plist_xml(self, data: dict) -> str:
         """Convert a dictionary to plist XML format.
 
+        Uses the stdlib plistlib module rather than manual string interpolation, so
+        values containing XML-significant characters (&, <, >) are always escaped
+        correctly.
+
         Args:
             data: Dictionary to convert
 
         Returns:
             str: XML plist content
         """
-
-        def _convert_value(value: Any) -> str:
-            if isinstance(value, bool):
-                return "<true/>" if value else "<false/>"
-            elif isinstance(value, int):
-                return f"<integer>{value}</integer>"
-            elif isinstance(value, str):
-                return f"<string>{value}</string>"
-            elif isinstance(value, list):
-                items = "".join(_convert_value(item) for item in value)
-                return f"<array>{items}</array>"
-            elif isinstance(value, dict):
-                items = "".join(f"<key>{k}</key>{_convert_value(v)}" for k, v in value.items())
-                return f"<dict>{items}</dict>"
-            else:
-                return f"<string>{str(value)}</string>"
-
-        xml_content = _convert_value(data)
-
-        return f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-{xml_content}
-</plist>
-"""
+        return plistlib.dumps(data, fmt=plistlib.FMT_XML).decode("utf-8")
 
 
 class MacOSNotifications:
@@ -345,46 +328,3 @@ def get_service_status() -> dict[str, str | bool]:
     status = dict(service.get_status())  # Create a new dict to allow mixed types
     status["installed"] = service.is_installed()  # type: ignore
     return status  # type: ignore
-
-
-def check_and_notify() -> None:
-    """Check for outdated applications and send notifications.
-
-    This is the main function called by the scheduled service.
-    """
-    try:
-        from versiontracker.apps import get_applications
-        from versiontracker.version import check_outdated_apps
-
-        logger.info("Starting scheduled application check")
-
-        # Get applications not in App Store
-        apps = get_applications({})  # Pass empty dict for options
-
-        if not apps:
-            logger.info("No applications found to check")
-            return
-
-        # Check for outdated apps
-        outdated_data = check_outdated_apps(apps)
-
-        # Convert to format expected by notifications
-        outdated_apps = []
-        for app_name, version_info, status in outdated_data:
-            if str(status) == "outdated":
-                outdated_apps.append(
-                    {
-                        "name": app_name,
-                        "installed": version_info.get("installed", "Unknown"),
-                        "latest": version_info.get("latest", "Unknown"),
-                    }
-                )
-
-        # Send notification
-        MacOSNotifications.notify_outdated_apps(outdated_apps)
-
-        logger.info("Checked %s applications, found %s outdated", len(apps), len(outdated_apps))
-
-    except Exception as e:
-        logger.error("Error during scheduled check: %s", e)
-        MacOSNotifications.send_notification("VersionTracker", f"Error during scheduled check: {str(e)}")

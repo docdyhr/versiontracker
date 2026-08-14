@@ -272,6 +272,45 @@ class TestCLIWorkflows:
         parsed = json.loads(capsys.readouterr().out)
         assert isinstance(parsed, list | dict)
 
+    def test_check_outdated_notify_export_json_produces_clean_parseable_stdout(self, capsys):
+        """--check-outdated --notify --export json must print only the JSON.
+        Regression: once --notify becomes CLI-reachable (Phase 10),
+        _send_notification_if_available()'s status prints must not leak
+        onto stdout ahead of the exported data, the same class of bug
+        fixed for the results table in Phase 6."""
+        outdated_info = [("Firefox", {"installed": "1.0", "latest": "2.0"}, "outdated")]
+        with (
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._get_applications_with_error_handling",
+                return_value=(_FAKE_APPS, 0),
+            ),
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._get_homebrew_casks_with_error_handling",
+                return_value=([], 0),
+            ),
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers._check_outdated_with_error_handling",
+                return_value=(outdated_info, 0),
+            ),
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers.filter_out_brews",
+                side_effect=lambda apps, brews: apps,
+            ),
+            # Avoid a real system notification (osascript subprocess call)
+            # while still exercising _send_notification_if_available()'s
+            # real stderr-only diagnostic prints.
+            mock.patch(
+                "versiontracker.handlers.outdated_handlers.MacOSNotifications.notify_outdated_apps",
+                return_value=True,
+            ),
+            mock.patch("sys.argv", ["versiontracker", "--check-outdated", "--notify", "--export", "json"]),
+        ):
+            result = versiontracker_main()
+
+        assert result == 0
+        parsed = json.loads(capsys.readouterr().out)
+        assert isinstance(parsed, list | dict)
+
     def test_recom_export_json_produces_clean_parseable_stdout(self, capsys):
         """--recom --export json must print only the JSON. Regression: the
         final summary was already gated, but ~5 preamble/status lines

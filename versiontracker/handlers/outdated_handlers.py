@@ -271,11 +271,14 @@ def _send_notification_if_available(
         status_counts: Dictionary with counts of different status types
     """
     if not _MACOS_NOTIFICATIONS_AVAILABLE:
-        print(create_progress_bar().color("yellow")("macOS notifications not available on this platform"))
+        print(
+            create_progress_bar().color("yellow")("macOS notifications not available on this platform"),
+            file=sys.stderr,
+        )
         return
 
     if sys.platform != "darwin":
-        print(create_progress_bar().color("yellow")("macOS notifications only available on macOS"))
+        print(create_progress_bar().color("yellow")("macOS notifications only available on macOS"), file=sys.stderr)
         return
 
     try:
@@ -295,13 +298,13 @@ def _send_notification_if_available(
         success = MacOSNotifications.notify_outdated_apps(outdated_apps)
 
         if success:
-            print(create_progress_bar().color("green")("✅ Notification sent successfully"))
+            print(create_progress_bar().color("green")("✅ Notification sent successfully"), file=sys.stderr)
         else:
-            print(create_progress_bar().color("yellow")("⚠️  Failed to send notification"))
+            print(create_progress_bar().color("yellow")("⚠️  Failed to send notification"), file=sys.stderr)
 
     except Exception as e:
         logger.error("Error sending notification: %s", e)
-        print(create_progress_bar().color("yellow")(f"Warning: Failed to send notification: {e}"))
+        print(create_progress_bar().color("yellow")(f"Warning: Failed to send notification: {e}"), file=sys.stderr)
 
 
 def _export_data(outdated_info: list[tuple[str, dict[str, str], str]], options: Any) -> int:

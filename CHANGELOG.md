@@ -155,6 +155,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `3.14.3`) and `requirements-dev.lock` (83 packages, matching `requirements-dev.txt`'s real closure). Also
   removed `requirements.lock`, a byte-for-byte duplicate of `requirements-dev.lock` that Dependabot tracked as
   an independent file.
+- **macOS launchd scheduled checks could never send notifications, and defaulted to a nonexistent CLI flag**:
+  `LaunchdService.create_plist()`'s default `command_args` was `["--outdated", "--no-progress"]` — `--outdated`
+  has never been a registered CLI flag (only `--check-outdated` is), so any plist generated from this default
+  failed on every scheduled run. Separately, no `--notify` flag existed anywhere in the CLI, even though
+  `outdated_handlers.py` already fully implemented notification delivery gated on `options.notify` — real,
+  working code that could never be reached. `handle_install_service()` told users "the service will check for
+  outdated applications and send notifications," but the scheduled command it installed could never make that
+  true. Fixed by adding a real `--notify` flag (`cli.py`'s "macOS Service Options" group) and having
+  `handle_install_service()`/`LaunchdService.create_plist()`'s default both pass
+  `["--check-outdated", "--no-progress", "--notify"]`. Deleted `check_and_notify()`, a dead, disconnected, and
+  independently broken parallel implementation (never imported by the CLI or any handler; called
+  `get_applications({})` with an empty dict, which always raises `KeyError` since `get_applications()` requires
+  real `system_profiler` data — masked in its own unit test by mocking `get_applications` away entirely) that's
+  now fully superseded by the real `--check-outdated` pipeline. Enabling `--notify` made a latent stdout-corruption
+  bug reachable: `_send_notification_if_available()`'s status prints were unconditional, so
+  `--check-outdated --notify --export json` would have mixed notification-status text into export stdout — the
+  same class of bug fixed for the results table previously; its prints now go to stderr.
+- **launchd plist XML was built via unescaped string interpolation**: `LaunchdService._dict_to_plist_xml()` hand
+  -rolled XML with no escaping of `&`/`<`/`>` in string values or dict keys, so any environment variable,
+  executable path, or argument containing them (confirmed directly, e.g. `&` in a `HOME` path) would produce
+  invalid or semantically-wrong plist XML. Replaced with `plistlib.dumps(..., fmt=plistlib.FMT_XML)` (Python
+  stdlib, already used elsewhere in this codebase for reading plists), which escapes correctly by construction.
+  Also added validation that `which python3`'s resolved path is non-empty and exists on disk before it's used as
+  the plist's executable, failing clearly instead of silently producing a broken plist.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to
