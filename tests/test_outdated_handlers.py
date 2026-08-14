@@ -454,6 +454,23 @@ class TestDisplayResults:
 
         # Should print "Found X outdated applications" message
 
+    @patch("versiontracker.handlers.outdated_handlers.tabulate")
+    @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
+    def test_display_results_export_format_skips_display(self, mock_progress, mock_tabulate, capsys):
+        """Regression: _display_results previously had no export-format
+        awareness at all (unlike the same-named function in
+        brew_handlers.py), so --check-outdated --export always printed
+        the full status summary + table before the exported data."""
+        mock_progress.return_value.color.return_value = lambda x: x
+
+        table = [["icon", "App1", "1.0", "2.0"]]
+        status_counts = {"outdated": 1, "uptodate": 0, "not_found": 0, "error": 0, "unknown": 0}
+
+        _display_results(table, status_counts, 1, 3.0, export_format="json")
+
+        assert capsys.readouterr().out == ""
+        mock_tabulate.assert_not_called()
+
 
 class TestExportData:
     """Test _export_data function."""

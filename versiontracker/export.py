@@ -7,12 +7,14 @@ import logging
 # File export/import functionality
 from typing import Any, cast
 
+import yaml
+
 from versiontracker.exceptions import ExportError
 from versiontracker.version import VersionStatus
 
 # Default export format
 DEFAULT_FORMAT = "json"
-FORMAT_OPTIONS = ("json", "csv")
+FORMAT_OPTIONS = ("json", "csv", "yaml")
 
 
 def export_data(
@@ -27,7 +29,7 @@ def export_data(
 
     Args:
         data: The data to export
-        format_type: The format to export to ('json' or 'csv')
+        format_type: The format to export to ('json', 'csv', or 'yaml')
         filename: Optional filename to write to
 
     Returns:
@@ -49,6 +51,8 @@ def export_data(
         content = export_to_json(data)
     elif format_type == "csv":
         content = export_to_csv(data)
+    elif format_type == "yaml":
+        content = export_to_yaml(data)
     else:
         raise ValueError(f"Unsupported export format: {format_type}")
 
@@ -67,6 +71,54 @@ def export_data(
         return content
 
 
+def _normalize_export_data(
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
+) -> dict[str, Any]:
+    """Normalize app-version-info data into a plain, serialization-ready dict.
+
+    Shared by JSON and YAML export -- both formats want the identical shape,
+    just serialized differently.
+
+    Args:
+        data: The data to export
+
+    Returns:
+        dict: JSON/YAML-friendly data
+    """
+    # For app version info list, convert to a more JSON-friendly format
+    if isinstance(data, list) and data and isinstance(data[0], tuple):
+        apps_list = []
+
+        for app in data:
+            if isinstance(app, tuple) and len(app) > 2:
+                app_data = {
+                    "name": str(app[0]),
+                    "installed_version": (app[1].get("installed", "") if isinstance(app[1], dict) else ""),
+                    "latest_version": (app[1].get("latest", "Unknown") if isinstance(app[1], dict) else "Unknown"),
+                    "status": app[2].name if hasattr(app[2], "name") else str(app[2]),
+                }
+            else:
+                if isinstance(app, tuple) and len(app) > 0:
+                    app_name = str(app[0])
+                else:
+                    app_name = str(app) if app else ""
+                app_data = {
+                    "name": app_name,
+                    "installed_version": "",
+                    "latest_version": "Unknown",
+                    "status": "",
+                }
+            apps_list.append(app_data)
+
+        return {"applications": apps_list}
+    else:
+        # Use cast to ensure type compatibility
+        return cast(dict[str, Any], data)
+
+
 def _export_to_json(
     data: dict[str, Any]
     | list[tuple[str, dict[str, str], VersionStatus]]
@@ -82,40 +134,33 @@ def _export_to_json(
         str: The exported data as a JSON string
     """
     try:
-        # For app version info list, convert to a more JSON-friendly format
-        if isinstance(data, list) and data and isinstance(data[0], tuple):
-            apps_list = []
-
-            for app in data:
-                if isinstance(app, tuple) and len(app) > 2:
-                    app_data = {
-                        "name": str(app[0]),
-                        "installed_version": (app[1].get("installed", "") if isinstance(app[1], dict) else ""),
-                        "latest_version": (app[1].get("latest", "Unknown") if isinstance(app[1], dict) else "Unknown"),
-                        "status": app[2].name if hasattr(app[2], "name") else str(app[2]),
-                    }
-                else:
-                    if isinstance(app, tuple) and len(app) > 0:
-                        app_name = str(app[0])
-                    else:
-                        app_name = str(app) if app else ""
-                    app_data = {
-                        "name": app_name,
-                        "installed_version": "",
-                        "latest_version": "Unknown",
-                        "status": "",
-                    }
-                apps_list.append(app_data)
-
-            output_data = {"applications": apps_list}
-        else:
-            # Use cast to ensure type compatibility
-            output_data = cast(dict[str, Any], data)
-
+        output_data = _normalize_export_data(data)
         return json.dumps(output_data, indent=2)
     except Exception as e:
         logging.error("Error exporting to JSON: %s", e)
         raise ExportError(f"Failed to export to JSON: {e}") from e
+
+
+def _export_to_yaml(
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
+) -> str:
+    """Export data to YAML format.
+
+    Args:
+        data: The data to export
+
+    Returns:
+        str: The exported data as a YAML string
+    """
+    try:
+        output_data = _normalize_export_data(data)
+        return yaml.safe_dump(output_data, sort_keys=False, default_flow_style=False)
+    except Exception as e:
+        logging.error("Error exporting to YAML: %s", e)
+        raise ExportError(f"Failed to export to YAML: {e}") from e
 
 
 def _process_applications_dict(writer: Any, applications: list) -> None:
@@ -218,6 +263,36 @@ def export_to_json(
         str: The exported data as a JSON string or filename
     """
     content = _export_to_json(data)
+
+    if filename:
+        try:
+            with open(filename, "w") as f:
+                f.write(content)
+            return filename
+        except Exception as e:
+            logging.error("Error writing to %s: %s", filename, e)
+            raise ExportError(f"Failed to write to {filename}: {e}") from e
+
+    return content
+
+
+def export_to_yaml(
+    data: dict[str, Any]
+    | list[tuple[str, dict[str, str], VersionStatus]]
+    | list[tuple[str, dict[str, str], str]]
+    | list[dict[str, str]],
+    filename: str | None = None,
+) -> str:
+    """Export data to YAML format.
+
+    Args:
+        data: The data to export
+        filename: Optional filename to write to
+
+    Returns:
+        str: The exported data as a YAML string or filename
+    """
+    content = _export_to_yaml(data)
 
     if filename:
         try:

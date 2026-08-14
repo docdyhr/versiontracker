@@ -69,8 +69,8 @@ def test_int_004_async_parity(monkeypatch, capsys):
 
     # Shared monkeypatches
     def apply_shared_patches():
-        monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
-        monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
+        monkeypatch.setattr(brew_handlers, "_get_application_data", lambda quiet=False: apps)
+        monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda quiet=False: brew_casks)
         monkeypatch.setattr(brew_handlers, "filter_out_brews", mock_filter_out_brews)
         monkeypatch.setattr(
             brew_handlers,

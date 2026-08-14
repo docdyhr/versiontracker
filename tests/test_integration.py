@@ -731,6 +731,7 @@ class TestIntegration(unittest.TestCase):
         options.no_adaptive_rate = False
         options.rate_limit = None
         options.timeout = None
+        options.max_workers = None
 
         handle_configure_from_options(options)
 

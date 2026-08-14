@@ -219,5 +219,34 @@ class TestRateLimitValidation(unittest.TestCase):
             self.assertEqual(args.rate_limit, 0.5)
 
 
+class TestMaxWorkersValidation(unittest.TestCase):
+    """--max-workers must be a positive integer.
+
+    Regression coverage: --max-workers was previously fully dead (parsed,
+    never read by any downstream code), so an invalid value like 0 or a
+    negative number was silently accepted by argparse and simply ignored.
+    Now that it's wired into Config (and Config.set() itself would reject
+    a non-positive value), reject bad input at the CLI boundary too, with
+    a clear argparse error instead of a downstream ConfigError.
+    """
+
+    def _assert_rejected(self, raw_value: str) -> None:
+        with patch("sys.argv", ["versiontracker", "--apps", "--max-workers", raw_value]):
+            with self.assertRaises(SystemExit), patch("sys.stderr", new_callable=StringIO):
+                get_arguments()
+
+    def test_rejects_zero(self):
+        self._assert_rejected("0")
+
+    def test_rejects_negative(self):
+        self._assert_rejected("-1")
+
+    def test_rejects_non_numeric(self):
+        self._assert_rejected("fast")
+
+    def test_rejects_fractional(self):
+        self._assert_rejected("2.5")
+
+
 if __name__ == "__main__":
     unittest.main()

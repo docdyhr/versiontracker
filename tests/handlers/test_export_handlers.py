@@ -23,6 +23,17 @@ class TestHandleExportErrors:
     def test_value_error(self, _export, _pb):
         assert handle_export({"data": 1}, "invalid") == 1
 
+    @patch("versiontracker.handlers.export_handlers.export_data", side_effect=ValueError("bad format"))
+    def test_value_error_message_lists_all_supported_formats(self, _export, capsys):
+        """Regression: the error message hardcoded "'json' and 'csv'" and
+        would have gone stale the moment yaml support was added -- it's now
+        derived from FORMAT_OPTIONS so it can't drift again."""
+        handle_export({"data": 1}, "invalid")
+        out = capsys.readouterr().out
+        assert "json" in out
+        assert "csv" in out
+        assert "yaml" in out
+
     @patch("versiontracker.handlers.export_handlers.create_progress_bar", return_value=_mock_progress_bar())
     @patch("versiontracker.handlers.export_handlers.export_data", side_effect=PermissionError("denied"))
     def test_permission_error(self, _export, _pb):

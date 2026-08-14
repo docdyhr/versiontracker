@@ -61,10 +61,15 @@ def _get_config_settings() -> tuple[bool, int]:
         # nested under "ui"/"performance" (neither of those nestings match
         # the real config schema).
         show_progress = config.get("show_progress", True)
-        max_workers = config.get("max_workers", 4)
+        # 10 matches Config's own DEFAULT_CONFIG value and every other
+        # max_workers read site (async_homebrew.py, async_network.py,
+        # apps/finder.py, handlers/filter_handlers.py) -- this fallback is
+        # unreachable in practice since Config always populates the key,
+        # but kept consistent rather than a stray divergent literal.
+        max_workers = config.get("max_workers", 10)
         return show_progress, max_workers
     except Exception:
-        return True, 4
+        return True, 10
 
 
 def process_single_app(

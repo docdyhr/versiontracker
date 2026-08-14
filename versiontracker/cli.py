@@ -34,6 +34,29 @@ def _positive_finite_seconds(value: str) -> float:
     return parsed
 
 
+def _positive_int(value: str) -> int:
+    """Parse and validate a `--max-workers` value.
+
+    Args:
+        value: Raw CLI argument string.
+
+    Returns:
+        int: The validated worker count.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value isn't a positive integer.
+    """
+    try:
+        parsed = int(value)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"invalid int value: {value!r}") from e
+
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError(f"--max-workers must be a positive integer (got {value!r})")
+
+    return parsed
+
+
 def get_arguments() -> Any:
     """Parse command line arguments.
 
@@ -323,9 +346,9 @@ For more information, visit: https://github.com/docdyhr/versiontracker
     perf_group.add_argument(
         "--max-workers",
         dest="max_workers",
-        type=int,
+        type=_positive_int,
         metavar="N",
-        help="Maximum number of worker threads",
+        help="Maximum number of worker threads (must be a positive integer)",
     )
     perf_group.add_argument(
         "--rate-limit",

@@ -17,49 +17,6 @@ from collections.abc import Callable
 from typing import Any
 
 
-def setup_logging(level: int, log_file: str | None = None, warnings_file: str | None = None) -> None:
-    """Configure logging for the application.
-
-    Sets up root logger, formatters, and handlers for console and file logging.
-
-    Args:
-        level: The logging level to use (e.g. logging.DEBUG)
-        log_file: Optional path to a file for storing logs
-        warnings_file: Optional path to a file for storing warnings
-
-    Returns:
-        None
-    """
-    # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(level)
-
-    # Create formatter
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-    # Setup console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-    console_handler.setFormatter(formatter)
-    root_logger.addHandler(console_handler)
-
-    # Setup file handler if specified
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(level)
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
-
-    # Setup warnings file handler if specified
-    if warnings_file:
-        warnings_handler = logging.FileHandler(warnings_file)
-        warnings_handler.setLevel(logging.WARNING)
-        warnings_handler.setFormatter(formatter)
-        root_logger.addHandler(warnings_handler)
-
-    logging.debug("Logging setup complete")
-
-
 def suppress_console_warnings() -> None:
     """Suppress specific warnings from being printed to the console.
 

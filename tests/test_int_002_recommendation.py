@@ -51,8 +51,8 @@ def test_int_002_recommendation_basic(monkeypatch, capsys):
     brew_casks = ["alphaapp"]  # Suppose one app has a brew cask already
 
     # Patch filtered application data retrieval
-    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
-    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
+    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda quiet=False: apps)
+    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda quiet=False: brew_casks)
 
     # Track calls to validate strict flag propagation
     calls: list[Any] = []
@@ -132,8 +132,8 @@ def test_int_002_recommendation_strict(monkeypatch, capsys):
     ]
     brew_casks = ["alphaapp"]
 
-    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda: apps)
-    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda: brew_casks)
+    monkeypatch.setattr(brew_handlers, "_get_application_data", lambda quiet=False: apps)
+    monkeypatch.setattr(brew_handlers, "_get_homebrew_casks", lambda quiet=False: brew_casks)
 
     calls: list[Any] = []
 
