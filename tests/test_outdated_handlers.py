@@ -1,5 +1,6 @@
 """Comprehensive tests for outdated_handlers module."""
 
+import sys
 import unittest
 from unittest.mock import Mock, patch
 
@@ -621,6 +622,7 @@ class TestHandleOutdatedCheck:
         options.include_brews = True
         options.export_format = "json"
         options.output_file = "output.json"
+        options.notify = False
 
         result = handle_outdated_check(options)
 
@@ -920,6 +922,9 @@ class TestSendNotificationIfAvailable(unittest.TestCase):
         mock_print.assert_called_once()
         call_text = str(mock_print.call_args)
         assert "notification" in call_text.lower() or "available" in call_text.lower()
+        # Diagnostic output must go to stderr, not stdout, so it can never
+        # corrupt --export output once --notify becomes CLI-reachable.
+        assert mock_print.call_args.kwargs.get("file") is sys.stderr
 
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
     @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", True)
@@ -932,6 +937,7 @@ class TestSendNotificationIfAvailable(unittest.TestCase):
         with patch("builtins.print") as mock_print:
             _send_notification_if_available([], {})
         mock_print.assert_called_once()
+        assert mock_print.call_args.kwargs.get("file") is mock_sys.stderr
 
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
     @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", True)
@@ -969,8 +975,9 @@ class TestSendNotificationIfAvailable(unittest.TestCase):
 
         with patch("builtins.print") as mock_print:
             _send_notification_if_available([("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")], {})
-        # Warning print should have been called
+        # Warning print should have been called, and go to stderr
         assert mock_print.call_count >= 1
+        assert mock_print.call_args.kwargs.get("file") is mock_sys.stderr
 
     @patch("versiontracker.handlers.outdated_handlers.create_progress_bar")
     @patch("versiontracker.handlers.outdated_handlers._MACOS_NOTIFICATIONS_AVAILABLE", True)

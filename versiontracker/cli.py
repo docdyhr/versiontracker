@@ -223,6 +223,12 @@ For more information, visit: https://github.com/docdyhr/versiontracker
         help="Test macOS notification",
     )
     service_group.add_argument(
+        "--notify",
+        dest="notify",
+        action="store_true",
+        help="Send a macOS notification with results (used with --check-outdated)",
+    )
+    service_group.add_argument(
         "--menubar",
         action="store_true",
         help="Launch menubar application",

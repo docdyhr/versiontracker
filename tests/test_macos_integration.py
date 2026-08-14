@@ -1,5 +1,6 @@
 """Tests for macOS integration functionality."""
 
+import plistlib
 import sys
 import tempfile
 import unittest
@@ -16,7 +17,6 @@ if sys.platform == "darwin":
     from versiontracker.macos_integration import (
         LaunchdService,
         MacOSNotifications,
-        check_and_notify,
         get_service_status,
         install_scheduled_checker,
         uninstall_scheduled_checker,
@@ -57,6 +57,37 @@ class TestLaunchdService(unittest.TestCase):
         self.assertEqual(plist_config["StartInterval"], 12 * 3600)  # 12 hours in seconds
         self.assertFalse(plist_config["RunAtLoad"])
 
+    def test_create_plist_default_command_args(self):
+        """Default command_args must be real, valid CLI options.
+
+        Regression coverage: the default used to be ["--outdated", "--no-progress"],
+        and --outdated has never been a registered CLI flag (only --check-outdated
+        is) -- every plist generated from the default would have failed on every
+        scheduled run.
+        """
+        plist_config = self.service.create_plist()
+
+        program_args = plist_config["ProgramArguments"]
+        self.assertIn("--check-outdated", program_args)
+        self.assertIn("--notify", program_args)
+        self.assertNotIn("--outdated", program_args)
+
+    @patch("subprocess.check_output")
+    def test_create_plist_rejects_empty_python_path(self, mock_check_output):
+        """An empty `which python3` result must fail clearly, not silently."""
+        mock_check_output.return_value = "\n"
+
+        with self.assertRaises(RuntimeError):
+            self.service.create_plist(["--test"])
+
+    @patch("subprocess.check_output")
+    def test_create_plist_rejects_nonexistent_python_path(self, mock_check_output):
+        """A `which python3` result that doesn't exist on disk must fail clearly."""
+        mock_check_output.return_value = "/nonexistent/path/to/python3\n"
+
+        with self.assertRaises(RuntimeError):
+            self.service.create_plist(["--test"])
+
     def test_dict_to_plist_xml(self):
         """Test dictionary to plist XML conversion."""
         test_dict = {
@@ -74,6 +105,35 @@ class TestLaunchdService(unittest.TestCase):
         self.assertIn("<integer>3600</integer>", xml)
         self.assertIn("<true/>", xml)
         self.assertIn("<array>", xml)
+
+    def test_dict_to_plist_xml_escapes_special_characters_and_round_trips(self):
+        """XML-significant characters, quotes, spaces, and Unicode must survive intact.
+
+        Regression coverage: the previous hand-rolled XML builder never escaped
+        &, <, or > in string values or dict keys, so any environment variable,
+        path, or argument containing them would produce invalid or
+        semantically-wrong plist XML.
+        """
+        test_dict = {
+            "Label": "com.versiontracker.updater",
+            "StandardOutPath": "/tmp/A & B <weird> \"quoted\" 'path'/versiontracker.log",
+            "EnvironmentVariables": {
+                "HOME": "/Users/O'Brien & Cañón",
+                "PATH": "/usr/bin:/bin",
+            },
+            "ProgramArguments": ["/usr/bin/python3", "-m", "versiontracker", "--check-outdated & --notify"],
+        }
+
+        xml = self.service._dict_to_plist_xml(test_dict)
+
+        # Raw special characters must never appear unescaped in XML text content.
+        self.assertNotIn("<weird>", xml)
+        self.assertIn("&amp;", xml)
+        self.assertIn("&lt;weird&gt;", xml)
+
+        # The XML must be well-formed and round-trip back to the exact original dict.
+        round_tripped = plistlib.loads(xml.encode("utf-8"))
+        self.assertEqual(round_tripped, test_dict)
 
     def test_is_installed(self):
         """Test service installation check."""
@@ -283,22 +343,6 @@ class TestGlobalFunctions(unittest.TestCase):
 
         self.assertEqual(status["status"], "loaded")
         self.assertTrue(status["installed"])
-
-    @patch("versiontracker.apps.get_applications")
-    @patch("versiontracker.version.check_outdated_apps")
-    @patch("versiontracker.macos_integration.MacOSNotifications")
-    def test_check_and_notify(self, mock_notifications, mock_check_apps, mock_get_apps):
-        """Test check and notify function."""
-        mock_get_apps.return_value = [("App1", "1.0")]
-        mock_check_apps.return_value = [("App1", {"installed": "1.0", "latest": "2.0"}, "outdated")]
-        mock_notifications.notify_outdated_apps.return_value = True
-
-        # Should not raise an exception
-        check_and_notify()
-
-        mock_get_apps.assert_called_once()
-        mock_check_apps.assert_called_once()
-        mock_notifications.notify_outdated_apps.assert_called_once()
 
 
 if __name__ == "__main__":
