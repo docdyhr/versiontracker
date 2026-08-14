@@ -135,6 +135,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflows, the pre-commit hook) now passes `--config-file=pyproject.toml`
   explicitly, so this class of divergence can't silently recur for any
   future contributor's machine either.
+- **Production dependency lock file was contaminated with dev/security tooling and carried 86 known
+  vulnerabilities**: `scripts/update_dependencies.py` generated `requirements-prod.lock` (and
+  `requirements-dev.lock`) by running `pip freeze` against whatever environment `sys.executable` happened to
+  point to — in practice, a developer's already-`requirements-dev.txt`-installed environment — then filtering
+  the result through a 5-name hardcoded blocklist (`pytest`, `mypy`, `ruff`, `bandit`, `coverage`). The
+  blocklist missed almost everything with a different install name than its base package (`pytest-asyncio`,
+  `pytest-cov`, etc. still pulled in base `pytest`) and had no awareness of `pip-audit`/`safety`'s transitive
+  dependency trees at all (`cyclonedx-python-lib`, `authlib`, `cryptography`, `marshmallow`, `requests`, ...).
+  `pip-audit -r requirements-prod.lock` reported 86 known vulnerabilities across 14 packages, of which only
+  one (`aiohttp`, itself stale at `3.12.14`) was an actual runtime dependency of this project. Fixed by
+  replacing the ambient-environment freeze with a fresh, isolated `venv` per lock file
+  (`_generate_lock_file()`): only the target requirements file (`requirements.txt` or `requirements-dev.txt`)
+  is installed into a throwaway virtual environment before freezing, so the result is structurally incapable
+  of containing anything beyond what that file actually declares — no blocklist needed.
+  `check_security_vulnerabilities()` now runs `pip-audit -r` directly against the generated lock files instead
+  of `safety check` against the ambient environment, so the script's own self-check verifies the artifact it
+  just produced. Regenerated `requirements-prod.lock` (14 packages, 0 known vulnerabilities, `aiohttp` now at
+  `3.14.3`) and `requirements-dev.lock` (83 packages, matching `requirements-dev.txt`'s real closure). Also
+  removed `requirements.lock`, a byte-for-byte duplicate of `requirements-dev.lock` that Dependabot tracked as
+  an independent file.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to
