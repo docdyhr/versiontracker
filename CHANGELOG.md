@@ -179,6 +179,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stdlib, already used elsewhere in this codebase for reading plists), which escapes correctly by construction.
   Also added validation that `which python3`'s resolved path is non-empty and exists on disk before it's used as
   the plist's executable, failing clearly instead of silently producing a broken plist.
+- **Documentation and release metadata had drifted from reality, including two real code bugs**:
+  - `pip install homebrew-versiontracker[ml]` was shown to real users in `__main__.py` and `versiontracker.ml`'s
+    docstring/error message — `homebrew-versiontracker` is the Homebrew tap *repository* name, not a PyPI
+    package; running that command verbatim fails. Corrected to the real distribution name, `macversiontracker`.
+  - Every blacklist backup file was permanently stamped `"version": "0.6.5"` (`handlers/backup_handlers.py`),
+    regardless of the real running version — now uses `versiontracker.__version__`, the same pattern already
+    used in `__main__.py`/`cli.py`/`utils.py`.
+  - `.github/workflows/coverage.yml`'s push/pull_request triggers were `branches: [master]` only — unlike its 5
+    sibling workflows, which all already include `main` — so its automatic runs have been silently dead since
+    the branch rename (only manual `workflow_dispatch` still worked). Added `main` to match.
+  - The `--blacklist`/`--blacklist-auto-updates` deprecation warnings' informational `removal_version="1.0.0"`
+    referenced an already-passed release (current version is `1.1.0`) without the flags having been removed;
+    bumped to `2.0.0`. No functional/removal change — this is display text only.
+  - Widespread stale `master` branch references (this repo's real branch is `main`) across README badges/links,
+    `pyproject.toml`'s Changelog URL, `PUBLISHING.md`, `CONTRIBUTING.md`, `TODO.md`, and `.github/CI_CD_GUIDE.md`
+    (which also referenced the `mypy.ini` file deleted in an earlier change).
+  - README claimed "Version: 1.0.0" and "v1.0.0 is production-stable" in present tense (real version is
+    `1.1.0`); reworded to not pin a specific version number in current-state prose. The historical
+    "Recent Major Achievements (v1.0.0)" section is left as-is — it's an accurate past-tense record, not a
+    live-state claim.
+  - Removed two static, hand-maintained README badges (`Coverage-86%`, `Tests-2,477 Passing`) that duplicated
+    already-present dynamic Codecov/CI-status badges and could only ever drift further with every commit;
+    reworded the equivalent stale-exact-number prose ("86% test coverage with 2,477 passing tests", "16 tests
+    skipped") to durable wording that doesn't require perpetual manual updates.
+  - `PUBLISHING.md`'s footer (`Last Updated: 2026-01-09`, `Current Version: 0.8.1`,
+    `Status: Ready for first publication`) pre-dated the project's first real PyPI release; removed.
+  - `SECURITY.md`'s vulnerability-reporting contact was an unverifiable email plus a literal placeholder PGP key
+    block (`mQINBF/... (PGP key fingerprint here)`); replaced with GitHub's private vulnerability reporting,
+    which needs no unverifiable external infrastructure. Also removed a "Supported Versions" example
+    referencing a nonexistent "2.x" release.
 
 ### Added
 - **`versiontracker --ask "<query>"`**: routes a natural-language question to

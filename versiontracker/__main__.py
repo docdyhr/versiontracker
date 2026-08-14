@@ -122,9 +122,9 @@ def _check_ml_availability() -> None:
         from versiontracker.ml import is_ml_available
 
         if not is_ml_available():
-            logging.info("ML features are not available. Install with: pip install homebrew-versiontracker[ml]")
+            logging.info("ML features are not available. Install with: pip install macversiontracker[ml]")
     except ImportError:
-        logging.info("ML features are not available. Install with: pip install homebrew-versiontracker[ml]")
+        logging.info("ML features are not available. Install with: pip install macversiontracker[ml]")
 
 
 def _handle_macos_service_action(options: Any, action_name: str) -> int:
@@ -240,14 +240,14 @@ def _emit_deprecation_warnings(options: Any) -> None:
         warn_deprecated_flag(
             "--blacklist",
             replacement="--blocklist",
-            removal_version="1.0.0",
+            removal_version="2.0.0",
             emit_console_hint=emit_console_hint,
         )
     if options.blacklist_auto_updates:
         warn_deprecated_flag(
             "--blacklist-auto-updates",
             replacement="--blocklist-auto-updates",
-            removal_version="1.0.0",
+            removal_version="2.0.0",
             emit_console_hint=emit_console_hint,
         )
 

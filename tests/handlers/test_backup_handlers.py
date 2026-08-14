@@ -4,9 +4,11 @@ Targets BackupManager methods: create_blacklist_backup, restore_blacklist_from_b
 cleanup_backup, handle_save_failure, handle_config_error.
 """
 
+import json
 import os
 from unittest.mock import MagicMock, patch
 
+from versiontracker import __version__
 from versiontracker.handlers.auto_update_types import BlacklistBackup
 from versiontracker.handlers.backup_handlers import BackupManager
 
@@ -43,6 +45,18 @@ class TestCreateBlacklistBackup:
         assert backup.original_blacklist == ["firefox", "chrome"]
         assert backup.backup_file is not None
         assert os.path.exists(backup.backup_file)
+
+    def test_backup_file_records_real_running_version(self, tmp_path):
+        """Regression: the backup's "version" field must reflect the real,
+        running package version, not a hardcoded historical string."""
+        mgr = _make_manager()
+        with patch("versiontracker.handlers.backup_handlers.tempfile") as mock_tempfile:
+            mock_tempfile.gettempdir.return_value = str(tmp_path)
+            backup = mgr.create_blacklist_backup(["firefox"])
+        with open(backup.backup_file) as f:
+            data = json.load(f)
+        assert data["version"] == __version__
+        assert data["version"] != "0.6.5"
 
     def test_os_error_continues_without_file(self):
         mgr = _make_manager()

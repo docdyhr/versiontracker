@@ -5,16 +5,14 @@ We appreciate responsible disclosure of vulnerabilities.
 
 ## Reporting a Security Vulnerability
 
-If you discover a security issue in VersionTracker, please report it privately and responsibly:
+If you discover a security issue in VersionTracker, please report it privately and responsibly using
+GitHub's private vulnerability reporting:
 
-- Email: <security@versiontracker.dev>  
-- PGP Key (optional):  
+- **[Report a vulnerability](https://github.com/docdyhr/versiontracker/security/advisories/new)**
+  (Security tab → "Report a vulnerability")
 
-  ```text
-  mQINBF/... (PGP key fingerprint here)
-  ```
-
-- Subject line: `VersionTracker Vulnerability Report`
+This creates a private advisory visible only to maintainers until a fix is ready, with no need for a separate
+email address or PGP key.
 
 Include the following information in your report:
 
@@ -45,7 +43,7 @@ Include the following information in your report:
 
 We backport security fixes to the following supported releases:
 
-- **Latest stable minor** (e.g., 2.x)  
+- **Latest stable minor**
 - **Previous minor**, if still within its maintenance window
 
 Please include the version you are using in your report to help us determine support.

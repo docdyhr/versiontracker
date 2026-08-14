@@ -5,7 +5,7 @@ personalized recommendations, and usage pattern analysis to improve the user exp
 
 Note:
     This module requires optional ML dependencies. Install them with:
-        pip install homebrew-versiontracker[ml]
+        pip install macversiontracker[ml]
 
     Or install manually:
         pip install numpy scikit-learn
@@ -70,7 +70,7 @@ def _require_ml_deps() -> None:
     if not _HAS_ML_DEPS:
         raise MLError(
             f"ML features require additional dependencies. "
-            f"Install with: pip install homebrew-versiontracker[ml]\n"
+            f"Install with: pip install macversiontracker[ml]\n"
             f"Import error: {_ML_IMPORT_ERROR}"
         )
 
