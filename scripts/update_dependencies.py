@@ -4,6 +4,8 @@
 import argparse
 import subprocess
 import sys
+import tempfile
+import venv
 from pathlib import Path
 
 
@@ -16,74 +18,51 @@ def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[str, int]:
         return f"Error: {e}", 1
 
 
-def update_production_dependencies(project_root: Path) -> bool:
-    """Update production dependency lock file."""
-    print("Updating production dependencies...")
+def _generate_lock_file(requirements_file: Path, lock_file: Path, project_root: Path, label: str) -> bool:
+    """Generate a lock file from a fresh, isolated virtual environment.
 
-    # Install from pyproject.toml
-    cmd = [sys.executable, "-m", "pip", "install", "-e", "."]
-    output, returncode = run_command(cmd, cwd=project_root)
+    Installs requirements_file into a throwaway venv (instead of whatever happens to
+    already be installed under sys.executable) and freezes it, so the result is
+    structurally correct: it cannot contain anything beyond what requirements_file
+    actually declares, and no post-hoc filtering/blocklist is needed or possible to
+    get wrong.
 
-    if returncode != 0:
-        print(f"Failed to install project dependencies: {output}")
-        return False
+    Args:
+        requirements_file: The requirements file to install (e.g. requirements.txt).
+        lock_file: Where to write the resulting lock file.
+        project_root: Repository root, used as the subprocess working directory.
+        label: Human-readable label for the lock file header (e.g. "Production").
 
-    # Generate lock file
-    cmd = [sys.executable, "-m", "pip", "freeze"]
-    output, returncode = run_command(cmd, cwd=project_root)
+    Returns:
+        bool: True on success.
+    """
+    with tempfile.TemporaryDirectory(prefix="vt-lock-") as tmpdir:
+        venv_dir = Path(tmpdir) / "venv"
+        venv.create(venv_dir, with_pip=True)
+        venv_python = venv_dir / "bin" / "python"
 
-    if returncode != 0:
-        print(f"Failed to freeze dependencies: {output}")
-        return False
+        output, returncode = run_command([str(venv_python), "-m", "pip", "install", "--quiet", "--upgrade", "pip"])
+        if returncode != 0:
+            print(f"Failed to upgrade pip in isolated environment: {output}")
+            return False
 
-    # Filter to only production dependencies
-    production_deps = []
-    for line in output.strip().split("\n"):
-        if line and not line.startswith("#") and "==" in line:
-            # Skip development-only packages
-            package_name = line.split("==")[0].lower()
-            if package_name not in ["pytest", "mypy", "ruff", "bandit", "coverage"]:
-                production_deps.append(line)
+        cmd = [str(venv_python), "-m", "pip", "install", "--quiet", "-r", str(requirements_file)]
+        output, returncode = run_command(cmd, cwd=project_root)
+        if returncode != 0:
+            print(f"Failed to install {requirements_file.name} in isolated environment: {output}")
+            return False
 
-    # Write lock file
-    lock_file = project_root / "requirements-prod.lock"
+        output, returncode = run_command([str(venv_python), "-m", "pip", "freeze"])
+        if returncode != 0:
+            print(f"Failed to freeze isolated environment: {output}")
+            return False
+
     with open(lock_file, "w") as f:
-        f.write("# Production dependency lock file\n")
-        f.write("# Generated automatically - do not edit manually\n")
-        f.write(f"# Python version: {sys.version_info.major}.{sys.version_info.minor}+\n\n")
-
-        for dep in sorted(production_deps):
-            f.write(f"{dep}\n")
-
-    print(f"Updated {lock_file}")
-    return True
-
-
-def update_development_dependencies(project_root: Path) -> bool:
-    """Update development dependency lock file."""
-    print("Updating development dependencies...")
-
-    # Install development dependencies
-    cmd = [sys.executable, "-m", "pip", "install", "-r", "requirements-dev.txt"]
-    output, returncode = run_command(cmd, cwd=project_root)
-
-    if returncode != 0:
-        print(f"Failed to install development dependencies: {output}")
-        return False
-
-    # Generate lock file
-    cmd = [sys.executable, "-m", "pip", "freeze"]
-    output, returncode = run_command(cmd, cwd=project_root)
-
-    if returncode != 0:
-        print(f"Failed to freeze dependencies: {output}")
-        return False
-
-    # Write lock file
-    lock_file = project_root / "requirements-dev.lock"
-    with open(lock_file, "w") as f:
-        f.write("# Development dependency lock file\n")
-        f.write("# Generated automatically - do not edit manually\n")
+        f.write(f"# {label} dependency lock file\n")
+        f.write("# Generated automatically by scripts/update_dependencies.py -- do not edit manually.\n")
+        f.write(f"# Installed {requirements_file.name} into a fresh, isolated virtual environment and froze\n")
+        f.write("# it, so this can only ever contain what that requirements file actually declares --\n")
+        f.write("# never whatever else happens to be installed in the environment running this script.\n")
         f.write(f"# Python version: {sys.version_info.major}.{sys.version_info.minor}+\n\n")
 
         for line in sorted(output.strip().split("\n")):
@@ -94,21 +73,53 @@ def update_development_dependencies(project_root: Path) -> bool:
     return True
 
 
+def update_production_dependencies(project_root: Path) -> bool:
+    """Update production dependency lock file."""
+    print("Updating production dependencies...")
+    return _generate_lock_file(
+        project_root / "requirements.txt",
+        project_root / "requirements-prod.lock",
+        project_root,
+        "Production",
+    )
+
+
+def update_development_dependencies(project_root: Path) -> bool:
+    """Update development dependency lock file."""
+    print("Updating development dependencies...")
+    return _generate_lock_file(
+        project_root / "requirements-dev.txt",
+        project_root / "requirements-dev.lock",
+        project_root,
+        "Development",
+    )
+
+
 def check_security_vulnerabilities(project_root: Path) -> bool:
-    """Check for security vulnerabilities in dependencies."""
-    print("Checking for security vulnerabilities...")
+    """Check the generated lock files for known vulnerabilities via pip-audit.
 
-    # Use safety to check for known vulnerabilities
-    cmd = [sys.executable, "-m", "safety", "check", "--json"]
-    output, returncode = run_command(cmd, cwd=project_root)
+    Targets the lock files directly (not the ambient environment running this
+    script) so this actually verifies the artifacts this script just produced.
+    """
+    print("Checking lock files for security vulnerabilities...")
 
-    if returncode == 0:
-        print("✓ No known security vulnerabilities found")
-        return True
-    else:
-        print("⚠️  Security vulnerabilities found:")
-        print(output)
-        return False
+    all_clean = True
+    for lock_name in ("requirements-prod.lock", "requirements-dev.lock"):
+        lock_file = project_root / lock_name
+        if not lock_file.exists():
+            continue
+
+        cmd = [sys.executable, "-m", "pip_audit", "-r", str(lock_file)]
+        output, returncode = run_command(cmd, cwd=project_root)
+
+        if returncode == 0:
+            print(f"✓ {lock_name}: no known vulnerabilities found")
+        else:
+            print(f"⚠️  {lock_name}: vulnerabilities found:")
+            print(output)
+            all_clean = False
+
+    return all_clean
 
 
 def validate_lock_files(project_root: Path) -> bool:
