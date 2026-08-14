@@ -56,6 +56,7 @@ repos:
           ]
         args:
           [
+            --config-file=pyproject.toml,
             --python-version=3.12,
             --ignore-missing-imports,
             --disable-error-code=import-untyped,
