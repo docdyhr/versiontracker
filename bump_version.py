@@ -12,15 +12,16 @@ from datetime import datetime
 from pathlib import Path
 
 
-def parse_version(version_str):
+def parse_version(version_str: str) -> tuple[int, int, int] | None:
     """Parse version string into components."""
     match = re.match(r"(\d+)\.(\d+)\.(\d+)", version_str)
     if not match:
         return None
-    return tuple(map(int, match.groups()))
+    major, minor, patch = match.groups()
+    return (int(major), int(minor), int(patch))
 
 
-def bump_version(version_tuple, bump_type):
+def bump_version(version_tuple: tuple[int, int, int], bump_type: str) -> tuple[int, int, int]:
     """Bump version based on type."""
     major, minor, patch = version_tuple
     if bump_type == "major":
@@ -32,7 +33,7 @@ def bump_version(version_tuple, bump_type):
     return version_tuple
 
 
-def get_current_version():
+def get_current_version() -> str | None:
     """Get current version from __init__.py file."""
     init_file = Path(__file__).parent / "versiontracker" / "__init__.py"
     with open(init_file, encoding="utf-8") as f:
@@ -43,7 +44,7 @@ def get_current_version():
     return None
 
 
-def update_version_in_file(file_path, pattern, version_str, template=None):
+def update_version_in_file(file_path: Path, pattern: str, version_str: str, template: str | None = None) -> None:
     """Update version in a file."""
     with open(file_path, encoding="utf-8") as f:
         content = f.read()
@@ -59,7 +60,7 @@ def update_version_in_file(file_path, pattern, version_str, template=None):
         f.write(new_content)
 
 
-def update_changelog(version_str):
+def update_changelog(version_str: str) -> bool:
     """Update the CHANGELOG.md file with a new version entry."""
     today = datetime.now().strftime("%Y-%m-%d")
     changelog_path = Path(__file__).parent / "CHANGELOG.md"
@@ -97,7 +98,7 @@ def update_changelog(version_str):
     return True
 
 
-def main():
+def main() -> int:
     """Main function to bump version."""
     parser = argparse.ArgumentParser(description="Bump version numbers")
     parser.add_argument(

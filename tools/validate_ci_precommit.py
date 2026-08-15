@@ -21,7 +21,7 @@ except ImportError:
         import tomli as tomllib  # type: ignore[no-redef]
     except ImportError:
         # Fallback for older Python versions without tomli
-        import toml as tomllib  # type: ignore[import-untyped,no-redef]
+        import toml as tomllib  # type: ignore[no-redef]
 
 
 class ValidationError(Exception):
@@ -270,7 +270,7 @@ class CIPrecommitValidator:
     def _get_precommit_type_stubs(self) -> set[str]:
         """Extract type stub dependencies from pre-commit config."""
         precommit_file = self.project_root / ".pre-commit-config.yaml"
-        precommit_stubs = set()
+        precommit_stubs: set[str] = set()
 
         if not precommit_file.exists():
             return precommit_stubs
@@ -294,7 +294,7 @@ class CIPrecommitValidator:
     def _get_requirements_type_stubs(self) -> set[str]:
         """Extract type stub dependencies from requirements-dev.txt."""
         req_dev_file = self.project_root / "requirements-dev.txt"
-        req_stubs = set()
+        req_stubs: set[str] = set()
 
         if not req_dev_file.exists():
             return req_stubs
