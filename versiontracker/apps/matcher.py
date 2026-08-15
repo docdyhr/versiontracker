@@ -1,6 +1,7 @@
 """Fuzzy matching and Homebrew search functionality."""
 
 import logging
+import sys
 from typing import cast
 
 from versiontracker.cache import read_cache, write_cache
@@ -186,7 +187,7 @@ def filter_out_brews(
         List of application tuples that are not managed by Homebrew
     """
     logging.info("Getting installable casks from Homebrew...")
-    print("Getting installable casks from Homebrew...")
+    print("Getting installable casks from Homebrew...", file=sys.stderr)
 
     candidates = []
     search_list = []

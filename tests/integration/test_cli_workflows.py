@@ -256,14 +256,6 @@ class TestCLIWorkflows:
                 "versiontracker.handlers.outdated_handlers._check_outdated_with_error_handling",
                 return_value=(outdated_info, 0),
             ),
-            # filter_out_brews() itself has an unconditional print() --
-            # apps/matcher.py:189, unrelated to this phase's handler-level
-            # fix -- unmocked it would corrupt stdout regardless of the fix
-            # under test here.
-            mock.patch(
-                "versiontracker.handlers.outdated_handlers.filter_out_brews",
-                side_effect=lambda apps, brews: apps,
-            ),
             mock.patch("sys.argv", ["versiontracker", "--check-outdated", "--export", "json"]),
         ):
             result = versiontracker_main()
@@ -291,10 +283,6 @@ class TestCLIWorkflows:
             mock.patch(
                 "versiontracker.handlers.outdated_handlers._check_outdated_with_error_handling",
                 return_value=(outdated_info, 0),
-            ),
-            mock.patch(
-                "versiontracker.handlers.outdated_handlers.filter_out_brews",
-                side_effect=lambda apps, brews: apps,
             ),
             # Avoid a real system notification (osascript subprocess call)
             # while still exercising _send_notification_if_available()'s
@@ -328,14 +316,6 @@ class TestCLIWorkflows:
             mock.patch(
                 "versiontracker.handlers.brew_handlers.check_brew_install_candidates",
                 return_value=[(name, name.lower(), True) for name, _ in _FAKE_APPS],
-            ),
-            # filter_out_brews() itself has an unconditional print() --
-            # apps/matcher.py:189, unrelated to this phase's handler-level
-            # fix -- unmocked it would corrupt stdout regardless of the fix
-            # under test here.
-            mock.patch(
-                "versiontracker.handlers.brew_handlers.filter_out_brews",
-                side_effect=lambda apps, brews, strict_mode=False: apps,
             ),
             mock.patch("sys.argv", ["versiontracker", "--recom", "--export", "json"]),
         ):
