@@ -35,18 +35,11 @@ class TestMLError:
 class TestUsageAnalyzer:
     """Tests for UsageAnalyzer (no ML deps required)."""
 
-    def setup_method(self, tmp_path_factory=None):
-        self.tmp_path = Path("/tmp/vt_test_usage")
-        self.tmp_path.mkdir(parents=True, exist_ok=True)
+    @pytest.fixture(autouse=True)
+    def _isolated_data_file(self, tmp_path):
+        self.tmp_path = tmp_path
         self.data_file = self.tmp_path / "usage_data.json"
-        # Clean state
-        if self.data_file.exists():
-            self.data_file.unlink()
         self.analyzer = UsageAnalyzer(data_path=self.data_file)
-
-    def teardown_method(self):
-        if self.data_file.exists():
-            self.data_file.unlink()
 
     def test_init_empty(self):
         assert self.analyzer.usage_data == {}
