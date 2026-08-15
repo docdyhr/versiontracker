@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-08-15
+
 ### Security
 - **AppleScript injection in notifications and menubar dialogs**: `MacOSNotifications.send_notification()`
   and `MenubarApp.show_result_dialog()` built AppleScript source via f-string interpolation, escaping only
@@ -287,6 +289,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     the rate limit under its real key `api_rate_limit` (previously used a
     nonexistent `rate_limit` key, so a restored filter never actually
     changed the rate limit).
+- **Test isolation and lint cleanup spotted while closing out the audit remediation**:
+  `TestUsageAnalyzer` and `TestMatchingConfidenceModel` wrote to a shared, hardcoded
+  `/tmp` path instead of pytest's `tmp_path` fixture, risking collisions with other
+  processes and leftover state between runs; both now use `tmp_path`.
+  `filter_out_brews()`'s progress print went to stdout, corrupting piped/exported
+  output the same way the other `--export`-format bugs above did; redirected to
+  stderr. Fixed 9 mypy annotation errors in `bump_version.py` and
+  `validate_ci_precommit.py`, and removed a dead `tomllib`/`toml` import fallback
+  plus an unused `tool_name` parameter from `validate_ci_precommit.py` (both
+  spotted by pyright while fixing the mypy errors).
 
 ## [1.1.0] - 2026-07-29
 
@@ -953,7 +965,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code quality checks with ruff and mypy
 - Multi-platform testing (Ubuntu, macOS)
 
-[Unreleased]: https://github.com/docdyhr/versiontracker/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/docdyhr/versiontracker/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/docdyhr/versiontracker/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/docdyhr/versiontracker/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/docdyhr/versiontracker/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/docdyhr/versiontracker/compare/v0.9.0...v1.0.0
