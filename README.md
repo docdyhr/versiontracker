@@ -80,7 +80,7 @@
 ---
 
 * Name: Versiontracker
-* Version: 1.1.0
+* Version: 1.2.0
 * Programming language: Python 3.12+
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS

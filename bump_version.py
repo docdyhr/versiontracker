@@ -141,7 +141,7 @@ def main() -> int:
     update_version_in_file(
         readme_file,
         r"(\* Version: )[^\n]*",
-        f"\\1{new_version}",
+        f"\\g<1>{new_version}",
     )
     print(f"Updated version in {readme_file}")
 
