@@ -10,18 +10,10 @@ This script ensures that:
 
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import yaml
-
-try:
-    import tomllib  # Python 3.11+
-except ImportError:
-    try:
-        import tomli as tomllib  # type: ignore[no-redef]
-    except ImportError:
-        # Fallback for older Python versions without tomli
-        import toml as tomllib  # type: ignore[no-redef]
 
 
 class ValidationError(Exception):
@@ -83,7 +75,7 @@ class CIPrecommitValidator:
         # Collect versions from all sources
         self._check_constraints_file(tool_name, versions)
         self._check_requirements_dev_file(tool_name, versions)
-        self._check_precommit_config(tool_name, repo_patterns, versions)
+        self._check_precommit_config(repo_patterns, versions)
         self._check_installed_version(tool_name, versions)
 
         if not versions:
@@ -121,7 +113,7 @@ class CIPrecommitValidator:
                     version_part = line.split(">=")[1].split("#")[0].strip()
                     versions["requirements-dev.txt"] = f"{tool_name}>={version_part}"
 
-    def _check_precommit_config(self, tool_name: str, repo_patterns: list[str], versions: dict) -> None:
+    def _check_precommit_config(self, repo_patterns: list[str], versions: dict) -> None:
         """Check tool version in pre-commit config."""
         precommit_file = self.project_root / ".pre-commit-config.yaml"
         if not precommit_file.exists():
