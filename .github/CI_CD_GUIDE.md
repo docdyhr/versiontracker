@@ -8,7 +8,7 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 
 ### 1. Main CI Pipeline (`ci.yml`)
 
-**Triggers**: Push/PR to main/master branches, manual dispatch
+**Triggers**: Push/PR to main branches, manual dispatch
 **Purpose**: Comprehensive testing, linting, security checks, and package building
 
 #### Jobs
@@ -30,7 +30,7 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 
 ### 2. Lint Pipeline (`lint.yml`)
 
-**Triggers**: Push/PR to main/master branches, manual dispatch
+**Triggers**: Push/PR to main branches, manual dispatch
 **Purpose**: Fast linting and formatting checks
 
 #### Checks
@@ -41,7 +41,7 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 
 ### 3. Security Pipeline (`security.yml`)
 
-**Triggers**: Push/PR to main/master branches, manual dispatch, weekly schedule
+**Triggers**: Push/PR to main branches, manual dispatch, weekly schedule
 **Purpose**: Comprehensive security analysis
 
 #### Security Tools
@@ -60,7 +60,7 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 
 ### 4. CodeQL Analysis (`codeql-analysis.yml`)
 
-**Triggers**: Push/PR to main/master branches, manual dispatch, weekly schedule  
+**Triggers**: Push/PR to main branches, manual dispatch, weekly schedule  
 **Purpose**: Deep static analysis using CodeQL  
 
 #### CodeQL Analysis Features
@@ -125,7 +125,7 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 
 ### Type Checking
 
-- **mypy.ini**: Strict type checking configuration
+- **pyproject.toml** (`[tool.mypy]`): Strict type checking configuration
   - Gradual typing adoption
   - Module-specific settings
   - Platform-specific configurations
@@ -170,7 +170,7 @@ The README includes comprehensive badges for:
 
 ### 1. Branch Protection
 
-Configure branch protection rules for main/master:
+Configure branch protection rules for main:
 
 - Require status checks to pass
 - Require branches to be up to date
@@ -274,7 +274,7 @@ ruff check .
 ruff format .
 
 # Run type checking
-mypy --config-file=mypy.ini versiontracker
+mypy --config-file=pyproject.toml versiontracker
 
 # Run tests with coverage
 pytest -c pytest-ci.ini --cov=versiontracker

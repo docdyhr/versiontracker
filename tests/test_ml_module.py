@@ -274,6 +274,22 @@ class TestRequireMLDeps:
         finally:
             ml._HAS_ML_DEPS = original
 
+    def test_require_ml_deps_error_names_real_pypi_package(self):
+        """Regression: the install hint must name the real PyPI distribution
+        (macversiontracker), not homebrew-versiontracker (the Homebrew tap
+        repo name -- not installable via pip)."""
+        from versiontracker import ml
+
+        original = ml._HAS_ML_DEPS
+        try:
+            ml._HAS_ML_DEPS = False
+            with pytest.raises(MLError) as exc_info:
+                ml._require_ml_deps()
+            assert "macversiontracker[ml]" in str(exc_info.value)
+            assert "homebrew-versiontracker" not in str(exc_info.value)
+        finally:
+            ml._HAS_ML_DEPS = original
+
     def test_feature_extractor_raises_without_deps(self):
         from versiontracker import ml
 

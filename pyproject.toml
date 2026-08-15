@@ -76,7 +76,7 @@ Homepage = "https://github.com/docdyhr/versiontracker"
 "Bug Tracker" = "https://github.com/docdyhr/versiontracker/issues"
 Documentation = "https://github.com/docdyhr/versiontracker"
 "Source Code" = "https://github.com/docdyhr/versiontracker"
-Changelog = "https://github.com/docdyhr/versiontracker/blob/master/CHANGELOG.md"
+Changelog = "https://github.com/docdyhr/versiontracker/blob/main/CHANGELOG.md"
 PyPI = "https://pypi.org/project/macversiontracker/"
 
 [project.scripts]

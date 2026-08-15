@@ -6,7 +6,7 @@ import unittest
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
-from versiontracker.__main__ import _emit_deprecation_warnings, versiontracker_main
+from versiontracker.__main__ import _check_ml_availability, _emit_deprecation_warnings, versiontracker_main
 from versiontracker.deprecation import reset_deprecation_registry
 from versiontracker.handlers.export_handlers import handle_export
 from versiontracker.handlers.setup_handlers import handle_setup_logging
@@ -187,6 +187,25 @@ class TestEmitDeprecationWarnings(unittest.TestCase):
         _emit_deprecation_warnings(options)
 
         self.assertEqual(mock_stdout.getvalue(), "")
+
+
+class TestCheckMlAvailability(unittest.TestCase):
+    """_check_ml_availability's install hint must name a real, installable package.
+
+    Regression coverage: the message previously said `pip install
+    homebrew-versiontracker[ml]` -- homebrew-versiontracker is the Homebrew
+    tap repository name, not a PyPI package (the real distribution is
+    macversiontracker, per pyproject.toml).
+    """
+
+    @patch("versiontracker.ml.is_ml_available", return_value=False)
+    def test_message_names_real_pypi_package(self, _mock_available):
+        with self.assertLogs(level="INFO") as log_ctx:
+            _check_ml_availability()
+
+        messages = "\n".join(log_ctx.output)
+        self.assertIn("macversiontracker[ml]", messages)
+        self.assertNotIn("homebrew-versiontracker", messages)
 
 
 class TestVersiontrackerMainConfigPropagation(unittest.TestCase):

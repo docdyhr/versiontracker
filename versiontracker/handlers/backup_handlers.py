@@ -10,6 +10,7 @@ import os
 import tempfile
 import time
 
+from versiontracker import __version__
 from versiontracker.config import Config
 from versiontracker.handlers.auto_update_types import BlacklistBackup
 from versiontracker.ui import create_progress_bar
@@ -48,7 +49,7 @@ class BackupManager:
             backup_data = {
                 "blacklist": current_blacklist,
                 "timestamp": backup.timestamp,
-                "version": "0.6.5",
+                "version": __version__,
             }
 
             with open(backup_file, "w") as f:

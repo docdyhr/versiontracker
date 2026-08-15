@@ -97,7 +97,7 @@ For testing or special releases:
 1. Go to: <https://github.com/docdyhr/versiontracker/actions/workflows/publish-pypi.yml>
 2. Click "Run workflow"
 3. Select:
-   - **Branch**: `master` (or your target branch)
+   - **Branch**: `main` (or your target branch)
    - **Environment**: `testpypi` or `pypi`
 4. Click "Run workflow"
 
@@ -249,9 +249,3 @@ After publishing:
 - [GitHub Actions PyPI Publish Action](https://github.com/pypa/gh-action-pypi-publish)
 - [Python Packaging User Guide](https://packaging.python.org/)
 - [Semantic Versioning](https://semver.org/)
-
----
-
-**Last Updated**: 2026-01-09
-**Current Version**: 0.8.1
-**Status**: Ready for first publication

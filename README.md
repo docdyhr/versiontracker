@@ -26,28 +26,26 @@
 
 ### 🏗️ Build & CI/CD Pipeline
 
-[![CI Pipeline](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&label=CI%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
-[![Lint](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/lint.yml?branch=master&label=Lint&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/security.yml?branch=master&label=Security&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/codeql-analysis.yml?branch=master&label=CodeQL&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/codeql-analysis.yml)
-[![Coverage](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/coverage.yml?branch=master&label=Coverage&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/coverage.yml)
-[![Performance](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/performance.yml?branch=master&label=Performance&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/performance.yml)
+[![CI Pipeline](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=main&label=CI%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Lint](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/lint.yml?branch=main&label=Lint&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/lint.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/security.yml?branch=main&label=Security&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/codeql-analysis.yml?branch=main&label=CodeQL&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/codeql-analysis.yml)
+[![Coverage](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/coverage.yml?branch=main&label=Coverage&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/coverage.yml)
+[![Performance](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/performance.yml?branch=main&label=Performance&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/performance.yml)
 [![Release Workflow](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/release.yml?label=Release%20Pipeline&logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/docdyhr/versiontracker?logo=github&logoColor=white&label=Latest%20Release)](https://github.com/docdyhr/versiontracker/releases/latest)
 [![PyPI](https://img.shields.io/pypi/v/macversiontracker?logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/macversiontracker/)
 
 #### 🧪 Test Matrix
 
-| Platform | Python 3.12 | Python 3.13 |
-|----------|:-----------:|:-----------:|
-| **Ubuntu 22.04** | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=ubuntu&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=ubuntu&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) |
-| **macOS Latest** | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=apple&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=master&logo=apple&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) |
+| Platform         | Python 3.12                                                                                                                                                                                                     | Python 3.13                                                                                                                                                                                                     |
+|----------        |:-----------:                                                                                                                                                                                                    |:-----------:                                                                                                                                                                                                    |
+| **Ubuntu 22.04** | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=main&logo=ubuntu&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=main&logo=ubuntu&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml) |
+| **macOS Latest** | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=main&logo=apple&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)  | [![CI](https://img.shields.io/github/actions/workflow/status/docdyhr/versiontracker/ci.yml?branch=main&logo=apple&logoColor=white&label=)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)  |
 
 ### 🔒 Security & Quality
 
-[![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/master?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
-[![Test Coverage](https://img.shields.io/badge/Coverage-86%25-brightgreen?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker)
-[![Tests Passing](https://img.shields.io/badge/Tests-2%2C477%20Passing-success?logo=pytest&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/ci.yml)
+[![Code Coverage](https://img.shields.io/codecov/c/github/docdyhr/versiontracker/main?logo=codecov&logoColor=white&label=Codecov)](https://codecov.io/gh/docdyhr/versiontracker)
 [![Security: Bandit](https://img.shields.io/badge/Bandit-Passing-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: pip-audit](https://img.shields.io/badge/pip--audit-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
 [![Security: Safety](https://img.shields.io/badge/Safety-No%20Vulnerabilities-success?logo=python&logoColor=white)](https://github.com/docdyhr/versiontracker/actions/workflows/security.yml)
@@ -66,7 +64,7 @@
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/pulls)
 [![GitHub forks](https://img.shields.io/github/forks/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/network)
 [![GitHub stars](https://img.shields.io/github/stars/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/stargazers)
-[![Last Commit](https://img.shields.io/github/last-commit/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/commits/master)
+[![Last Commit](https://img.shields.io/github/last-commit/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/commits/main)
 [![Contributors](https://img.shields.io/github/contributors/docdyhr/versiontracker?logo=github&logoColor=white)](https://github.com/docdyhr/versiontracker/graphs/contributors)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
 
@@ -82,12 +80,13 @@
 ---
 
 * Name: Versiontracker
-* Version: 1.0.0
+* Version: 1.1.0
 * Programming language: Python 3.12+
 * Author: thomas
 * Purpose: CLI versiontracker and update tool for macOS
-* Release date: 21. Feb 2022 (Updated: April 2026)
-* Code Quality: **86% overall test coverage with 2,477 passing tests**,
+* Release date: 21. Feb 2022
+* Code Quality: **comprehensive automated test suite with high branch coverage**, enforced in CI
+  (see the CI Pipeline and Codecov badges above),
   **all previously identified high & medium complexity issues resolved**
 
 ## Quick Start
@@ -120,9 +119,8 @@ versiontracker --help
 
 ## Overview
 
-Versiontracker is a command-line tool for macOS that helps you manage applications
-installed outside of the App Store. v1.0.0 is the first production-stable release —
-core CLI, config, and Homebrew integration are fully operational.
+Versiontracker is a production-stable command-line tool for macOS that helps you manage applications
+installed outside of the App Store — core CLI, config, and Homebrew integration are fully operational.
 
 It identifies applications that aren't managed through Apple's official channels and suggests which ones can be managed
 using Homebrew casks, making it easier to keep your applications up to date.
@@ -736,11 +734,11 @@ VersionTracker intentionally uses a heavy mocking approach to:
 2. Deterministically simulate Homebrew and filesystem behaviors
 3. Keep test execution fast and CI-friendly
 
-Current Coverage Profile:
+Current Coverage Profile (see the Codecov badge above for the live, up-to-date number):
 
-* Reported line coverage: ≈86% overall
-* Core modules (matcher, finder, config) have 78–98% coverage
-* High mock call volume for platform/network code paths ensures behavioral correctness without requiring macOS-specific execution
+* Core modules (matcher, finder, config) carry the highest coverage
+* High mock call volume for platform/network code paths ensures behavioral correctness without
+  requiring macOS-specific execution
 
 Why Some Coverage Is Lower:
 
@@ -791,12 +789,12 @@ be managed through Homebrew.
 
 ## Project Status
 
-VersionTracker v1.0.0 is production-stable. All critical technical debt has been resolved
+VersionTracker is production-stable. All critical technical debt has been resolved
 and the tool is fully operational on macOS. Key highlights:
 
-* **v1.0.0 released** — available on PyPI (`pip install macversiontracker`) and Homebrew
-* **86% test coverage** with 2,477 passing tests and 0 failing tests
-* **Zero high-severity security vulnerabilities**
+* **Actively maintained** — available on PyPI (`pip install macversiontracker`) and Homebrew
+* **Comprehensive automated test suite** with high branch coverage, enforced in CI (see badges above)
+* **Zero high-severity security vulnerabilities** — enforced by the required Security Analysis CI check
 * **Complete complexity resolution**: all high & medium-priority complex functions refactored
 * **Async Homebrew API**: install and update candidate checks use async operations by default
 * **Modular architecture**: dedicated `handlers/`, `version/`, and `apps/` subpackages
@@ -819,8 +817,8 @@ and the tool is fully operational on macOS. Key highlights:
 * **Experimental modules are unstable** — `versiontracker.experimental.analytics` and
   `versiontracker.experimental.benchmarks` are not wired to any CLI command and their APIs
   may change without notice between minor versions.
-* **16 tests skipped in default runs** — 13 ML-dep tests skip without the `[ml]` extras;
-  2 platform-guard tests skip on macOS; 1 colour test skips in non-TTY environments. All expected.
+* **A small number of tests are skipped in default runs** — ML-dep tests skip without the `[ml]`
+  extras; platform-guard tests skip on macOS; a colour test skips in non-TTY environments. All expected.
 
 ## Recent Major Achievements (v1.0.0)
 
@@ -840,7 +838,7 @@ and the tool is fully operational on macOS. Key highlights:
 
 ## License
 
-[MIT](https://github.com/docdyhr/versiontracker/blob/master/LICENSE)
+[MIT](https://github.com/docdyhr/versiontracker/blob/main/LICENSE)
 
 ### Blocklist Terminology Migration
 

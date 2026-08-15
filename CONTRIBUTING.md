@@ -324,7 +324,7 @@ async def process_casks_batch(cask_names: List[str]) -> List[Dict[str, Any]]:
 
 ### Before Submitting
 
-1. **Create feature branch** from `master`
+1. **Create feature branch** from `main`
 2. **Make atomic commits** with clear messages
 3. **Add/update tests** for your changes
 4. **Run full test suite** and ensure it passes
