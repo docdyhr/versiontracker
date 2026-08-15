@@ -6,8 +6,6 @@ Other tests are skipped if numpy/scikit-learn are not installed.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from versiontracker.ml import MLError, UsageAnalyzer, is_ml_available
@@ -200,16 +198,16 @@ class TestFeatureExtractor:
 class TestMatchingConfidenceModel:
     """Tests for MatchingConfidenceModel (requires ML deps)."""
 
-    def test_init(self):
+    def test_init(self, tmp_path):
         from versiontracker.ml import MatchingConfidenceModel
 
-        model = MatchingConfidenceModel(model_path=Path("/tmp/vt_test_models"))
+        model = MatchingConfidenceModel(model_path=tmp_path)
         assert model.trained is False
 
-    def test_train_empty_raises(self):
+    def test_train_empty_raises(self, tmp_path):
         from versiontracker.ml import MatchingConfidenceModel
 
-        model = MatchingConfidenceModel(model_path=Path("/tmp/vt_test_models"))
+        model = MatchingConfidenceModel(model_path=tmp_path)
         with pytest.raises(MLError, match="No training data"):
             model.train([])
 
