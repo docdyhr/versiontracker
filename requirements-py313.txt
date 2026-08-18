@@ -23,7 +23,7 @@ pytest-mock>=3.14.0
 
 # Type checking and linting - Python 3.13 compatible
 mypy>=1.10.0
-ruff==0.16.2
+ruff==0.16.3
 bandit[toml]>=1.8.0
 
 # Build and packaging
