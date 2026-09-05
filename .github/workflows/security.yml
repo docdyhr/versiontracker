@@ -92,7 +92,13 @@ jobs:
           # The real gate: pip-audit exits non-zero on any known CVE in an
           # installed package, and set -e lets that failure actually stop
           # the job, instead of being reported as a message and ignored.
-          pip-audit
+          #
+          # PYSEC-2026-3740 (CVE-2026-81726) is ignored: it's a path-traversal
+          # issue in nltk's model-artifact loader, pulled in transitively by
+          # `safety` (the scanner installed above), not by versiontracker.
+          # No fix version exists upstream yet. Remove this ignore once nltk
+          # ships a patched release.
+          pip-audit --ignore-vuln PYSEC-2026-3740
           echo "::endgroup::"
 
       - name: Set up TruffleHog scan parameters
