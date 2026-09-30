@@ -120,8 +120,7 @@ jobs:
         # success(), not always(): a run that fails the regression check must
         # not become the next baseline, or each regression lowers the bar for
         # the run after it. To accept a slowdown deliberately, delete the
-        # perf-baseline-macOS-* caches (`gh cache list --key perf-baseline-`,
-        # then `gh cache delete <key>`); the next run has no baseline, passes,
+        # perf-baseline-macOS-* caches (`gh cache list --limit 100 --json key --jq '.[] | select(.key | startswith("perf-baseline-macOS-")) | .key' | while read -r key; do gh cache delete "$key"; done`); the next run has no baseline, passes,
         # and becomes the new one.
         if: success() && (github.event.inputs.benchmark_target == 'all' || github.event.inputs.benchmark_target == '')
         run: cp performance_results.json performance_baseline.json
