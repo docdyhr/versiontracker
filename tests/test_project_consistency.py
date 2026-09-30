@@ -181,6 +181,26 @@ class TestProjectConsistency:
         # Validate all supported versions are tested
         self._validate_ci_versions(supported_versions, ci_versions)
 
+    def test_performance_baseline_promoted_only_on_success(self):
+        """Test that a run failing the regression check never becomes the next baseline.
+
+        With ``always()``, each failing run's slower numbers were cached as the
+        next baseline, so every regression lowered the bar for the following run.
+        """
+        perf_path = get_project_root() / ".github" / "workflows" / "performance.yml"
+        with open(perf_path, encoding="utf-8") as f:
+            perf_config = yaml.safe_load(f)
+
+        step_names = [step.get("name") for step in perf_config["jobs"]["performance-test"]["steps"]]
+        steps = dict(zip(step_names, perf_config["jobs"]["performance-test"]["steps"], strict=True))
+        compare_index = step_names.index("Compare with baseline (fail on >20% regression)")
+
+        for name in ("Save new baseline", "Cache updated baseline for next run"):
+            condition = steps[name]["if"]
+            assert step_names.index(name) > compare_index, f"'{name}' must run after the regression check"
+            assert "always()" not in condition, f"'{name}' must not run when the regression check fails"
+            assert condition.startswith("success()"), f"'{name}' should be gated on success()"
+
     def _assert_version_in_ci(self, version: str, ci_versions: list[str]) -> None:
         """Assert that a specific version is tested in CI."""
         error_msg = f"Python {version} is supported but not tested in CI"
