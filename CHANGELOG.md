@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Weekly performance benchmark promoted failing runs to baseline**: the `Save new baseline` and
+  `Cache updated baseline for next run` steps in `.github/workflows/performance.yml` ran under `always()`, so a
+  run that failed the >20% regression check still cached its slower numbers as the next run's baseline — each
+  regression lowered the bar for the following week (e.g. the 2026-09-13 run compared `apps` against 2.732s,
+  the exact figure from the failed 2026-09-06 run). Both steps are now gated on `success()`; to accept a
+  slowdown deliberately, delete the `perf-baseline-macOS-*` caches and the next run re-baselines. Guarded by
+  `test_performance_baseline_promoted_only_on_success`.
+
 ## [1.2.0] - 2026-08-15
 
 ### Security
