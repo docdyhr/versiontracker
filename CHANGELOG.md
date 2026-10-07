@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **CI and Coverage Analysis reported green while tests failed**: the test steps in `ci.yml` and `coverage.yml` ran
+  `pytest ... | tee pytest_output.log` under `set +e` and then exited with `$?` — which is `tee`'s exit code, always
+  0. Both ubuntu test jobs and the Coverage job had reported `2 failed` on every run since 2026-08-13 while
+  concluding `success`. Both steps now `set -o pipefail`; guarded by `test_steps_piping_into_tee_keep_exit_code`.
+  The masked failure surfaced only in `release.yml` (which doesn't pipe), where it blocked the v1.2.0 PyPI publish.
+- **Two rate-limit tests depended on Homebrew being installed**: `test_zero_rate_limit_raises` and
+  `test_invalid_rate_limit_attribute_raises` didn't mock `is_homebrew_available()`, and
+  `check_brew_install_candidates` returns early when Homebrew is missing — before validating `rate_limit` — so on
+  brew-less ubuntu runners no `ValueError` was raised. They now patch Homebrew as available. Test-only change; the
+  validation itself was always correct.
 - **Weekly performance benchmark promoted failing runs to baseline**: the `Save new baseline` and
   `Cache updated baseline for next run` steps in `.github/workflows/performance.yml` ran under `always()`, so a
   run that failed the >20% regression check still cached its slower numbers as the next run's baseline — each
