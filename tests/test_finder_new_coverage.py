@@ -315,7 +315,10 @@ class TestCheckBrewInstallCandidates:
                 result = check_brew_install_candidates([("App1", "1.0")], rate_limit=1)
         assert isinstance(result, list)
 
-    def test_zero_rate_limit_raises(self):
+    # Homebrew must look available: without it, check_brew_install_candidates returns before validating
+    # rate_limit, so on a brew-less host (ubuntu CI) these tests would see no ValueError.
+    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    def test_zero_rate_limit_raises(self, _mock_brew):
         """rate_limit=0 is rejected before ever reaching the async/sync branches."""
         with pytest.raises(ValueError, match="rate_limit"):
             check_brew_install_candidates([("App1", "1.0")], rate_limit=0)
@@ -330,7 +333,8 @@ class TestCheckBrewInstallCandidates:
                 result = check_brew_install_candidates([("App1", "1.0")], rate_limit=mock_rl)
         assert isinstance(result, list)
 
-    def test_invalid_rate_limit_attribute_raises(self):
+    @patch("versiontracker.apps.finder.is_homebrew_available", return_value=True)
+    def test_invalid_rate_limit_attribute_raises(self, _mock_brew):
         """An unwrapped .api_rate_limit of 0 is rejected, not silently accepted."""
         mock_rl = MagicMock()
         mock_rl.api_rate_limit = 0

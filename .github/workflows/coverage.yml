@@ -40,6 +40,8 @@ jobs:
         run: |
           echo "::group::Full Test Suite with Coverage"
           set +e
+          # Without pipefail, EC below is tee's exit code (always 0) and test failures pass silently
+          set -o pipefail
 
           # Use longer timeout for coverage analysis (Ubuntu tends to be slower)
           TIMEOUT=600

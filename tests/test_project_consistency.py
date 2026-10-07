@@ -201,6 +201,24 @@ class TestProjectConsistency:
             assert "always()" not in condition, f"'{name}' must not run when the regression check fails"
             assert condition.startswith("success()"), f"'{name}' should be gated on success()"
 
+    def test_steps_piping_into_tee_keep_exit_code(self):
+        """Test that workflow steps piping into ``tee`` enable pipefail.
+
+        ``pytest ... | tee log; EC=$?`` captures tee's exit code (always 0), so
+        failing tests left CI and Coverage Analysis green until pipefail was set.
+        """
+        workflows_dir = get_project_root() / ".github" / "workflows"
+        offenders = []
+        for workflow_path in sorted(workflows_dir.glob("*.yml")):
+            with open(workflow_path, encoding="utf-8") as f:
+                workflow = yaml.safe_load(f)
+            for job_name, job in workflow.get("jobs", {}).items():
+                for step in job.get("steps", []):
+                    script = step.get("run", "")
+                    if re.search(r"\|\s*tee\b", script) and "pipefail" not in script:
+                        offenders.append(f"{workflow_path.name}: {job_name} / {step.get('name', '<unnamed>')}")
+        assert not offenders, f"Steps pipe into tee without pipefail, masking failures: {offenders}"
+
     def _assert_version_in_ci(self, version: str, ci_versions: list[str]) -> None:
         """Assert that a specific version is tested in CI."""
         error_msg = f"Python {version} is supported but not tested in CI"
