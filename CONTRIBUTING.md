@@ -92,7 +92,7 @@ pytest -m "not slow"          # Skip slow tests
 
 # Security and quality
 bandit -r versiontracker/      # Security analysis
-safety check                   # Dependency vulnerability scan
+pip-audit                      # Dependency vulnerability scan
 ```
 
 ## Project Architecture

@@ -65,7 +65,7 @@ with any applicable laws or regulations.
 We continuously improve our security posture by:
 
 - Running static analysis (Bandit, CodeQL).  
-- Checking dependencies for vulnerabilities (Safety, pip-audit).  
+- Checking dependencies for vulnerabilities (pip-audit).  
 - Performing secret scanning (TruffleHog).  
 - Keeping dependencies up to date via Dependabot.
 

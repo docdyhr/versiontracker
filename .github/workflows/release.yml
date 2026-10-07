@@ -117,7 +117,7 @@ jobs:
         uses: ./.github/actions/setup-python-deps
 
       - name: Ensure security tools
-        run: pip install --upgrade bandit pip-audit safety || true
+        run: pip install --upgrade bandit pip-audit || true
 
       - name: Run essential tests
         run: |
@@ -145,9 +145,6 @@ jobs:
         continue-on-error: true
         run: |
           bandit -r versiontracker/ || true
-          if command -v safety >/dev/null 2>&1; then
-            safety check || true
-          fi
           pip-audit || true
 
       - name: Check package metadata

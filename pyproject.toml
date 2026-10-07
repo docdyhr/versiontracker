@@ -61,7 +61,6 @@ test = [
 security = [
     "bandit[toml]>=1.8",
     "pip-audit>=2.9",
-    "safety>=3.0",
 ]
 fuzzy = [
     "rapidfuzz>=3.0",

@@ -15,6 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the exact figure from the failed 2026-09-06 run). Both steps are now gated on `success()`; to accept a
   slowdown deliberately, delete the `perf-baseline-macOS-*` caches and the next run re-baselines. Guarded by
   `test_performance_baseline_promoted_only_on_success`.
+- **Required `Security Analysis` check failing on `main` with no code change, blocking every merge**: since
+  2026-10-04 the `safety check` step flagged `nltk 3.10.3` (CVE-2026-81726, Safety ID `SFTY-20260902-58666`,
+  no fix released). `nltk` was never a versiontracker dependency — it was pulled in by `safety` itself. The
+  same CVE had already been ignored for pip-audit (`PYSEC-2026-3740`, 2026-09-05), but each scanner uses its own
+  ID scheme, so that ignore never applied to Safety, whose database picked up the advisory a month later.
+  Fixed by dropping Safety rather than adding a second ignore: its `check` command is deprecated, pip-audit
+  already covers the same ground, and with Safety gone `nltk` is no longer installed — so the pip-audit
+  `--ignore-vuln PYSEC-2026-3740` is removed too, and pip-audit now gates with no ignores. Verified in a fresh
+  environment replicating the job's install steps: `nltk` absent, `pip-audit` reports no known vulnerabilities.
+- **Security job summary always reported 0 pip-audit vulnerabilities**: the step read a top-level
+  `.vulnerabilities` key that pip-audit's JSON doesn't have. It now counts `.dependencies[].vulns[]?` (null-safe,
+  since skipped packages such as the editable `macversiontracker` install carry no `vulns` key).
+
+### Removed
+- **Safety dependency scanner**: removed from `security.yml`, `release.yml`, the `security` optional-dependency
+  extra, `constraints.txt`, the Dependabot `dev-tools` group, the README badge, and the contributor/hook docs.
+  The `.claude/hooks.json` dependency-scan hook now runs `python -m pip_audit --format json` instead.
 
 ## [1.2.0] - 2026-08-15
 
