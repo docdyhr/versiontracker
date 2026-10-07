@@ -186,7 +186,7 @@ tests/
 - **Quality Gates**: All tests must pass before merge
 
 ### Pre-commit Hooks
-- Code formatting (ruff, black)
+- Linting and formatting (ruff)
 - Type checking (mypy)
 - Security scanning (bandit)
 - Documentation linting (markdownlint)
