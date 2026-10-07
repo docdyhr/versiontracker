@@ -45,12 +45,11 @@ jobs:
 
       - name: Install additional security tools
         run: |
-          # Install security tools that may have compatibility issues
-          # Try to install safety with fallback
+          # pip-audit is the sole dependency scanner. Safety was dropped: its
+          # `check` command is deprecated, it duplicated pip-audit's coverage,
+          # and its own dependency tree (nltk) carried an unfixable CVE that
+          # failed this job -- see CHANGELOG.
           pip install pip-audit bandit[toml] || true
-          echo "Attempting to install safety..."
-          pip install safety || \
-            echo "Safety installation failed, will skip safety checks"
 
       - name: Run Bandit security linter
         run: |
@@ -65,24 +64,6 @@ jobs:
           bandit -c .bandit -r versiontracker/ -ll
           echo "::endgroup::"
 
-      - name: Run Safety to check dependencies
-        if: always()
-        run: |
-          set -e
-          echo "::group::Safety Dependency Check"
-          # The `if` condition itself is exempt from set -e (POSIX), so the
-          # "not installed" fallback below still works. The real gate is the
-          # bare `safety check`: it exits non-zero on a real finding, and
-          # set -e lets that failure actually stop the job.
-          if command -v safety >/dev/null 2>&1; then
-            safety check --json > safety-report.json || true
-            safety check
-          else
-            echo "::warning::Safety not available, skipping dependency safety check"
-            echo "{\"vulnerabilities\": []}" > safety-report.json
-          fi
-          echo "::endgroup::"
-
       - name: Run pip-audit for dependency vulnerabilities
         if: always()
         run: |
@@ -92,13 +73,7 @@ jobs:
           # The real gate: pip-audit exits non-zero on any known CVE in an
           # installed package, and set -e lets that failure actually stop
           # the job, instead of being reported as a message and ignored.
-          #
-          # PYSEC-2026-3740 (CVE-2026-81726) is ignored: it's a path-traversal
-          # issue in nltk's model-artifact loader, pulled in transitively by
-          # `safety` (the scanner installed above), not by versiontracker.
-          # No fix version exists upstream yet. Remove this ignore once nltk
-          # ships a patched release.
-          pip-audit --ignore-vuln PYSEC-2026-3740
+          pip-audit
           echo "::endgroup::"
 
       - name: Set up TruffleHog scan parameters
@@ -148,7 +123,6 @@ jobs:
           name: security-reports
           path: |
             bandit-report.json
-            safety-report.json
             pip-audit-report.json
             security-summary.md
           retention-days: 30
@@ -165,16 +139,6 @@ jobs:
           echo "## Bandit Security Scan" >> security-summary.md
           echo '```' >> security-summary.md
           bandit -r versiontracker/ -f txt >> security-summary.md || true
-          echo '```' >> security-summary.md
-          echo "" >> security-summary.md
-
-          echo "## Safety Check Results" >> security-summary.md
-          echo '```' >> security-summary.md
-          if command -v safety >/dev/null 2>&1; then
-            safety check --short-report >> security-summary.md || true
-          else
-            echo "Safety not available." >> security-summary.md
-          fi
           echo '```' >> security-summary.md
           echo "" >> security-summary.md
 
@@ -196,15 +160,10 @@ jobs:
             echo "- **Bandit Issues**: $BANDIT_ISSUES" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [ -f safety-report.json ]; then
-            SAFETY_ISSUES=$(jq '.vulnerabilities | length' \
-              safety-report.json 2>/dev/null || echo "0")
-            echo "- **Safety Vulnerabilities**: $SAFETY_ISSUES" \
-              >> $GITHUB_STEP_SUMMARY
-          fi
-
           if [ -f pip-audit-report.json ]; then
-            AUDIT_ISSUES=$(jq '.vulnerabilities | length' \
+            # pip-audit's JSON nests findings per package (no top-level
+            # `vulnerabilities` key); skipped packages have no `vulns` at all.
+            AUDIT_ISSUES=$(jq '[.dependencies[].vulns[]?] | length' \
               pip-audit-report.json 2>/dev/null || echo "0")
             echo "- **Pip-Audit Vulnerabilities**: $AUDIT_ISSUES" \
               >> $GITHUB_STEP_SUMMARY

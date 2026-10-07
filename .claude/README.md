@@ -1,10 +1,12 @@
 # Claude Code Hooks Configuration
 
-This directory contains Claude Code hooks configuration for the VersionTracker project, designed to improve development workflow and code quality.
+This directory contains Claude Code hooks configuration for the VersionTracker project, designed to improve
+development workflow and code quality.
 
 ## Overview
 
-The hooks system provides automated quality checks, formatting, and validation during Claude Code sessions. These hooks follow best practices for Python development and are specifically tailored for this project.
+The hooks system provides automated quality checks, formatting, and validation during Claude Code sessions.
+These hooks follow best practices for Python development and are specifically tailored for this project.
 
 ## Configured Hooks
 
@@ -46,7 +48,7 @@ The hooks system provides automated quality checks, formatting, and validation d
 ### 6. Security Scan on Dependencies
 
 - **Trigger**: After editing requirements files (`requirements*.txt`)
-- **Action**: Runs `safety check` for security vulnerabilities
+- **Action**: Runs `pip-audit` for security vulnerabilities
 - **Purpose**: Identifies security issues in dependencies
 - **Behavior**: Continues on error (informational)
 
@@ -86,7 +88,7 @@ The hooks require these development tools to be installed:
 
 ```bash
 # Install via pip
-pip install ruff pytest mypy safety pre-commit
+pip install ruff pytest mypy pip-audit pre-commit
 
 # Or install from requirements-dev.txt
 pip install -r requirements-dev.txt
@@ -174,14 +176,14 @@ These hooks integrate with existing project infrastructure:
 - **Ruff**: Uses project's `pyproject.toml` configuration
 - **Pytest**: Runs with project's test configuration
 - **MyPy**: Uses project's type checking setup
-- **Safety**: Scans current requirements files
+- **pip-audit**: Scans the installed environment
 
 ## Security Considerations
 
 - Hooks run with user permissions
 - Commands are executed in the project directory
 - Environment variables are available to hook commands
-- No external network access is required (except for safety checks)
+- No external network access is required (except for pip-audit checks)
 
 ## Contributing
 

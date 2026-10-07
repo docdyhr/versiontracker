@@ -52,7 +52,7 @@ I've implemented a comprehensive Claude Code hooks system that follows best prac
 
 - **Event**: `PostToolUse`
 - **Trigger**: After editing requirements files (`requirements*.txt`)
-- **Command**: `safety check --json`
+- **Command**: `python -m pip_audit --format json`
 - **Purpose**: Identifies security vulnerabilities in dependencies
 - **Blocking**: No (informational)
 
@@ -110,7 +110,7 @@ All hooks use tools already specified in the project's development dependencies:
 - **ruff** - Fast Python linter and formatter
 - **pytest** - Testing framework  
 - **mypy** - Static type checker
-- **safety** - Security vulnerability scanner
+- **pip-audit** - Dependency vulnerability scanner
 - **pre-commit** - Git hooks manager
 
 ## 🎨 Design Principles
@@ -201,7 +201,7 @@ Add new hook objects to the `hooks` array in `.claude/hooks.json`:
 ## 🛡️ Security Considerations
 
 - Hooks run with user permissions
-- No external network access required (except safety checks)
+- No external network access required (except pip-audit checks)
 - Commands execute in project directory
 - Environment variables available to hook commands
 - All scripts are readable and auditable

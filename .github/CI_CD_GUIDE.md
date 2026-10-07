@@ -15,7 +15,7 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 
 - **Test**: Multi-platform testing (macOS, Ubuntu) across Python 3.8-3.12
 - **Lint**: Code linting and formatting with Ruff, type checking with MyPy
-- **Security**: Security analysis with Bandit, Safety, and pip-audit
+- **Security**: Security analysis with Bandit and pip-audit
 - **Quality**: Code quality analysis with pydocstyle, radon, and vulture
 - **Build**: Package building and verification
 - **CI Summary**: Consolidated status reporting
@@ -47,7 +47,6 @@ VersionTracker uses GitHub Actions for continuous integration and deployment wit
 #### Security Tools
 
 - **Bandit**: Python security linter
-- **Safety**: Dependency vulnerability scanning
 - **pip-audit**: Package vulnerability detection
 - **TruffleHog**: Secret detection
 - **Scheduled scans**: Weekly security audits
@@ -219,7 +218,7 @@ Required repository secrets:
 
 1. Review Bandit report for false positives
 2. Update `bandit.yaml` skip rules if needed
-3. Check Safety/pip-audit for dependency vulnerabilities
+3. Check pip-audit for dependency vulnerabilities
 4. Update requirements.txt for security patches
 
 #### Release Failures
