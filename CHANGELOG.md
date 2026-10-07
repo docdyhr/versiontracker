@@ -52,6 +52,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README's CI section, which claimed linting via "flake8, black, and isort", now describes the actual
   Ruff + mypy checks.
 
+### Security
+- **`requirements-prod.lock` pinned a vulnerable `multidict`**: the lock still had `multidict==6.7.1`
+  (CVE-2026-104874, fixed in 6.9.1), an `aiohttp` dependency, which also made
+  `scripts/update_dependencies.py` exit 1 on its own pip-audit check. Regenerated with
+  `scripts/update_dependencies.py --production-only`: `multidict` 6.9.1, plus patch/minor refreshes of
+  `aiohttp` 3.14.4, `idna` 3.20, `propcache` 0.5.4, `tqdm` 4.70.1 and `yarl` 1.25.1. pip-audit now reports
+  both lock files clean. The prod lock is a reference snapshot — no workflow, packaging step or the Homebrew
+  formula installs from it — so this changes no installed behavior; the full test suite was run in a fresh
+  environment pinned to the regenerated lock.
+
 ## [1.2.0] - 2026-08-15
 
 ### Security
