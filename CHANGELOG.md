@@ -32,6 +32,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Safety dependency scanner**: removed from `security.yml`, `release.yml`, the `security` optional-dependency
   extra, `constraints.txt`, the Dependabot `dev-tools` group, the README badge, and the contributor/hook docs.
   The `.claude/hooks.json` dependency-scan hook now runs `python -m pip_audit --format json` instead.
+- **`black` dev dependency**: formatting has been enforced solely by `ruff format` (CI `lint.yml`/`ci.yml`
+  and the `ruff-format` pre-commit hook), and nothing ran black. Black 26.10 also disagrees with `ruff format`
+  on 7 files (e.g. where to wrap long `assert` messages), so formatting with it would fail `ruff format --check`
+  in CI. Removed from the `dev` extra, `requirements-dev.txt`, `constraints.txt`, the Dependabot `dev-tools`
+  group, and `[tool.black]` in `pyproject.toml`. `requirements-dev.lock` was regenerated with
+  `scripts/update_dependencies.py`, which drops black and its black-only dependencies (`click`, `pytokens`)
+  and refreshes the lock's stale pins (e.g. it still had `ruff==0.16.2` against the `0.16.10` pin). The
+  README's CI section, which claimed linting via "flake8, black, and isort", now describes the actual
+  Ruff + mypy checks.
 
 ## [1.2.0] - 2026-08-15
 

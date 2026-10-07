@@ -771,7 +771,7 @@ This strategy favors maintainability, determinism, and clear behavioral guarante
 VersionTracker uses GitHub Actions for continuous integration and deployment:
 
 * **Testing**: Automatically runs the test suite on multiple Python versions
-* **Linting**: Ensures code quality with flake8, black, and isort
+* **Linting**: Enforces linting and formatting with Ruff, plus type checking with mypy
 * **Releases**: Automatically publishes new versions to PyPI when a release is created
 
 The CI/CD pipeline helps maintain code quality and ensures that the application is always in a deployable state.
