@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Manual release runs left the GitHub release without signed assets, and `target=testpypi` could never pass**:
+  `release.yml`'s `sign-and-attach` job only ran on `release` events, so re-publishing 1.2.0 to PyPI via
+  `workflow_dispatch` (after its tag-triggered run failed the test gate) attached nothing — v1.1.0 carries its
+  distributions, source archives and a Sigstore bundle for each; v1.2.0 had zero assets. The job now also runs for
+  manual PyPI publishes, uploads to the release's tag instead of `github.ref_name` (the branch on dispatch), and signs
+  the distributions the index actually serves — fetched from its JSON API and checked against its sha256 digests —
+  rather than this run's build, which `skip-existing` may not have uploaded. Source archives are now downloaded and
+  signed explicitly (the Sigstore action only did so on release events), and a manual PyPI run fails before
+  publishing if its GitHub release doesn't exist. The availability poll and post-publish smoke test hard-coded PyPI,
+  so a `target=testpypi` run failed after a successful TestPyPI upload; both now query the index the release went
+  to, with the smoke test taking only the package from TestPyPI and its runtime requirements from PyPI. Guarded by
+  `test_release_signs_published_files_and_follows_the_published_index`.
 - **Homebrew formula shipped a stale, partly missing dependency set**: `release-homebrew.yml` only bumped the
   formula's `url`/`sha256`, never its Python `resource` blocks, which hadn't changed since the v0.9.0 formula. A
   `brew install`/`upgrade` of 1.2.0 therefore built a venv without `termcolor`, `idna`, `propcache` and
