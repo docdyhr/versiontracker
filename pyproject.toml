@@ -131,9 +131,7 @@ select = [
     "C90", # mccabe complexity
     "G",  # flake8-logging-format (prevents f-strings in logging calls)
 ]
-ignore = [
-    "E501",  # Line too long (handled by line-length setting)
-]
+ignore = []
 fixable = ["ALL"]
 unfixable = []
 

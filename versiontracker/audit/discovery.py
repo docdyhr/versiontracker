@@ -204,7 +204,10 @@ def resolve_app_store_evidence(bundle_path: Path, obtained_from: str | None) -> 
     if reports_app_store and has_receipt:
         return AppStoreEvidence(
             status=AppStoreStatus.APP_STORE,
-            reason=f"system_profiler reported obtained_from='{normalized_obtained_from}', corroborated by a Mac App Store receipt",
+            reason=(
+                f"system_profiler reported obtained_from='{normalized_obtained_from}', "
+                "corroborated by a Mac App Store receipt"
+            ),
             source=EvidenceSource.SYSTEM_PROFILER,
             matched_identifier=normalized_obtained_from,
             confidence=EvidenceConfidence.HIGH,

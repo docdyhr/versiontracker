@@ -55,8 +55,8 @@ Include detailed descriptions in the commit body, not separate markdown files.
 
 - **Maximum**: 120 characters per line (`line-length = 120`)
 - **Rationale**: Provides good readability while being AI-friendly for code generation
-- **Enforcement**: `ruff format` wraps code to 120. `E501` is in ruff's `ignore` list, so lines the formatter
-  cannot wrap (long strings, comments, URLs) are not flagged by `ruff check` — keep those under 120 by hand
+- **Enforcement**: `ruff format` wraps code to 120, and ruff's `E501` rule flags any line it cannot wrap (long
+  strings, comments, URLs) — split those by hand
 
 ### AI Code Assistant Best Practices
 
@@ -64,9 +64,9 @@ When working with AI code assistants, the following linting configurations have 
 
 **Ruff Lint Configuration (pyproject.toml):**
 
-- **Selected rules**: `E`, `W`, `F`, `I`, `B`, `C4`, `UP`, `C90`, `G` — only `E501` is ignored
+- **Selected rules**: `E`, `W`, `F`, `I`, `B`, `C4`, `UP`, `C90`, `G` — nothing is ignored
 - `E402`, `F401`, `F811`, `F821`, `F841` are enforced (not relaxed); the codebase passes all of them
-- **Line Length**: 120 via the formatter; see Line Length Policy above for what `ruff check` does not catch
+- **Line Length**: 120, enforced by `E501` (see Line Length Policy above)
 
 **MyPy Configuration:**
 
@@ -105,7 +105,7 @@ When working with AI code assistants, the following linting configurations have 
 
 - Latest release: 1.2.0 — on PyPI as `macversiontracker`, in the Homebrew tap, and as a GitHub release with
   Sigstore-signed assets
-- Test suite: 2,831 passing, 17 skipped (13 need the optional ML extras); coverage 88.19%
+- Test suite: 2,833 passing, 16 skipped (13 need the optional ML extras); coverage 88.20%
 - Code quality: ruff, ruff format, and mypy all clean
 - Focus: Feature development and user experience improvements
 
