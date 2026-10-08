@@ -3,7 +3,8 @@ name: Release
 
 "on":
   release:
-    types: [created, published]
+    # Not `created`: a non-draft release fires both, which ran the whole pipeline twice
+    types: [published]
   workflow_dispatch:
     inputs:
       version:

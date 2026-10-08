@@ -248,6 +248,20 @@ class TestProjectConsistency:
         )
         assert "--no-index" in install_script, "Install test must resolve the declared dependencies from the venv alone"
 
+    def test_release_workflow_runs_once_per_release(self):
+        """Test that publishing a release starts one Release run, not two.
+
+        ``types: [created, published]`` fires twice for a non-draft release, so every
+        release since v0.8.0 ran the whole pipeline twice; on v1.0.1 the second run's
+        asset upload failed until ``--clobber`` was added to hide it.
+        """
+        workflow_path = get_project_root() / ".github" / "workflows" / "release.yml"
+        with open(workflow_path, encoding="utf-8") as f:
+            workflow = yaml.safe_load(f)
+        assert workflow["on"]["release"]["types"] == ["published"], (
+            "'published' alone covers stable releases, pre-releases and drafts being published"
+        )
+
     def test_release_signs_published_files_and_follows_the_published_index(self):
         """Test that manual PyPI publishes attach signed assets and post-publish steps query the right index.
 
