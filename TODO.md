@@ -1,12 +1,12 @@
 # VersionTracker TODO
 
-## Current Status (June 2026)
+## Current Status (October 2026)
 
 ### Project Health
 
-- **Version**: 1.0.1 (stable)
-- **Tests**: 2,477 passing, 16 skipped
-- **Coverage**: 86% overall (target: 85%) ✅
+- **Version**: 1.2.0 (stable) — PyPI, Homebrew tap, and GitHub release with Sigstore-signed assets
+- **Tests**: 2,831 passing, 17 skipped (13 ML-dep, 2 platform-guard, 1 TTY, 1 missing `mypy.ini`)
+- **Coverage**: 88.19% overall (floor: 85%) ✅
 - **CI/CD**: All workflows passing on main (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
 - **Security**: 0 dependabot alerts, 0 secret scanning alerts, 0 CodeQL findings
