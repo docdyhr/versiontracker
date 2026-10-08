@@ -19,7 +19,9 @@ env:
   TAP_REPO: docdyhr/homebrew-tap
   FORMULA_PATH: Formula/macversiontracker.rb
   # Homebrew strips the "homebrew-" prefix from tap repo names, so the installable
-  # reference is "docdyhr/tap", not "docdyhr/homebrew-tap" (TAP_REPO above).
+  # reference is "docdyhr/tap", not "docdyhr/homebrew-tap" (TAP_REPO above). Every
+  # brew command that loads the formula must use this exact form — Homebrew's
+  # tap-trust check requires it to match the installed tap's name literally.
   TAP_FORMULA: docdyhr/tap/macversiontracker
 
 jobs:
@@ -49,53 +51,80 @@ jobs:
           echo "SHA256=${SHA256}" >> $GITHUB_ENV
           echo "Tarball SHA256: ${SHA256}"
 
-      - name: Clone tap repository
+      - name: Tap formula repository
         env:
           TAP_PAT: ${{ secrets.TAP_PAT }}
         run: |
+          set -euo pipefail
           if [ -z "${TAP_PAT}" ]; then
             echo "::error::TAP_PAT secret is not set. Add a GitHub PAT with 'repo' write access to ${TAP_REPO} as the TAP_PAT repository secret."
             exit 1
           fi
-          git clone "https://x-access-token:${TAP_PAT}@github.com/${TAP_REPO}.git" homebrew-tap
-          cd homebrew-tap
+          # Edit the formula where Homebrew reads it. Tapping a separate local clone
+          # copies only its committed state, so the install test used to build the
+          # previous release's formula instead of the one being pushed.
+          brew tap "${TAP_REPO}"
+          TAP_DIR="$(brew --repository "${TAP_REPO}")"
+          echo "TAP_DIR=${TAP_DIR}" >> "$GITHUB_ENV"
           echo "Current formula:"
-          head -10 "${FORMULA_PATH}"
+          head -10 "${TAP_DIR}/${FORMULA_PATH}"
 
-      - name: Update formula version and checksum
+      - name: Update formula version, checksum and Python resources
         run: |
           set -euo pipefail
-          cd homebrew-tap
-          awk -v ver="${VERSION}" -v sha="${SHA256}" '
+          cd "${TAP_DIR}"
+          if grep -qF "archive/refs/tags/${VERSION}.tar.gz" "${FORMULA_PATH}"; then
+            NEW_RELEASE=false
+          else
+            NEW_RELEASE=true
+          fi
+          awk -v ver="${VERSION}" -v sha="${SHA256}" -v new_release="${NEW_RELEASE}" '
             /archive\/refs\/tags\/v[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz/ {
               sub(/v[0-9]+\.[0-9]+\.[0-9]+/, ver)
             }
             /^  sha256 "/ {
               sub(/"[0-9a-f]+"/, "\"" sha "\"")
             }
+            # A revision belongs to the release it was added for.
+            new_release == "true" && /^  revision [0-9]+$/ { next }
             { print }
           ' "${FORMULA_PATH}" > formula.tmp
           mv formula.tmp "${FORMULA_PATH}"
-          echo "Updated formula:"
-          head -10 "${FORMULA_PATH}"
+          # Bumping url/sha256 alone leaves the resource blocks pinned to whatever an
+          # older release needed (missing deps, versions below CVE floors), so
+          # re-resolve them from this release's own dependency metadata.
+          brew update-python-resources --install-dependencies "${TAP_FORMULA}"
+          if [ "${NEW_RELEASE}" = false ] && ! git diff --quiet "${FORMULA_PATH}"; then
+            # Re-run for an already-published release that changed its resources:
+            # bump the revision so existing installs pick it up on `brew upgrade`.
+            brew bump-revision --write-only "${TAP_FORMULA}"
+          fi
+          echo "Formula changes:"
+          git --no-pager diff "${FORMULA_PATH}"
 
       - name: Test formula installation
         run: |
-          # Register the local clone as a tap before installing —
-          # Homebrew rejects formulae that aren't referenced via a tap.
-          brew tap docdyhr/homebrew-tap "$(pwd)/homebrew-tap"
-          # Must use the stripped "docdyhr/tap" form (TAP_FORMULA) — Homebrew's
-          # tap-trust check requires it to match the installed tap's name literally.
+          set -euo pipefail
           brew install --build-from-source "${TAP_FORMULA}"
+          brew test "${TAP_FORMULA}"
           versiontracker --help
-          versiontracker --version
+          # Fail if Homebrew built anything other than the release being pushed.
+          versiontracker --version | grep -Fx "versiontracker ${VERSION_NUMBER}"
+          # --help/--version never import aiohttp, so also resolve the declared
+          # dependency tree against the installed venv alone: a missing or too-old
+          # resource fails here instead of degrading silently at runtime. (Plain
+          # `pip check` can't be used: Homebrew's python ships `wheel` without its
+          # `packaging` dependency, which every --system-site-packages venv sees.)
+          "$(brew --prefix)/opt/macversiontracker/libexec/bin/python" -m pip install \
+            --dry-run --no-index --quiet --disable-pip-version-check macversiontracker
           brew uninstall "${TAP_FORMULA}" || true
 
       - name: Push updated formula to tap
         env:
           TAP_PAT: ${{ secrets.TAP_PAT }}
         run: |
-          cd homebrew-tap
+          set -euo pipefail
+          cd "${TAP_DIR}"
           if git diff --quiet "${FORMULA_PATH}"; then
             echo "Formula already up to date"
             exit 0
@@ -103,8 +132,9 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git config --global credential.helper ""
-          git remote set-url origin "https://x-access-token:${TAP_PAT}@github.com/${TAP_REPO}.git"
           git add "${FORMULA_PATH}"
           git commit -m "Update macversiontracker to ${VERSION}"
-          git push origin main
+          # Use the token only for the push itself — it is never written to disk
+          # while the earlier steps run third-party build backends from PyPI.
+          git push "https://x-access-token:${TAP_PAT}@github.com/${TAP_REPO}.git" HEAD:main
           echo "Tap updated to ${VERSION}"

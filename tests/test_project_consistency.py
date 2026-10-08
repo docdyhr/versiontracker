@@ -219,6 +219,35 @@ class TestProjectConsistency:
                         offenders.append(f"{workflow_path.name}: {job_name} / {step.get('name', '<unnamed>')}")
         assert not offenders, f"Steps pipe into tee without pipefail, masking failures: {offenders}"
 
+    def test_homebrew_release_regenerates_and_verifies_formula_resources(self):
+        """Test that the Homebrew release re-resolves the formula's resources and tests what it pushes.
+
+        Only url/sha256 were bumped, so the resource blocks stayed at v0.9.0's
+        dependency set (no termcolor/idna/propcache, aiohttp below its CVE floor).
+        The install test tapped a local clone, which copies committed state only,
+        so it built the previous release — and ``--help``/``--version`` never import
+        aiohttp, so a broken dependency tree passed anyway.
+        """
+        workflow_path = get_project_root() / ".github" / "workflows" / "release-homebrew.yml"
+        with open(workflow_path, encoding="utf-8") as f:
+            workflow = yaml.safe_load(f)
+        scripts = [step.get("run", "") for step in workflow["jobs"]["update-homebrew"]["steps"]]
+
+        def step_running(command: str) -> int:
+            matches = [i for i, script in enumerate(scripts) if command in script]
+            assert matches, f"No step runs '{command}'"
+            return matches[0]
+
+        install = step_running("brew install")
+        assert step_running("brew update-python-resources") < install, (
+            "Resources must be re-resolved before the install test"
+        )
+        install_script = scripts[install]
+        assert "versiontracker --version" in install_script and "VERSION_NUMBER" in install_script, (
+            "Install test must check that it built the release being pushed"
+        )
+        assert "--no-index" in install_script, "Install test must resolve the declared dependencies from the venv alone"
+
     def _assert_version_in_ci(self, version: str, ci_versions: list[str]) -> None:
         """Assert that a specific version is tested in CI."""
         error_msg = f"Python {version} is supported but not tested in CI"
