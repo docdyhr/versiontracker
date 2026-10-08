@@ -44,8 +44,8 @@ Include detailed descriptions in the commit body, not separate markdown files.
 
 ### Testing and Quality Standards
 
-- Maintain test coverage above 70% (target: 85%)
-- All complex functions should have cyclomatic complexity < 15
+- Maintain test coverage of at least 85% (enforced by `--cov-fail-under=85` in the Coverage Analysis workflow)
+- Cyclomatic complexity must stay at or below 12 per function (ruff `C901`, `max-complexity = 12`)
 - Run full test suite before major commits
 - Use pre-commit hooks for code formatting and quality
 
@@ -53,9 +53,10 @@ Include detailed descriptions in the commit body, not separate markdown files.
 
 **Line Length Policy**:
 
-- **Maximum**: 120 characters per line (enforced via ruff)
+- **Maximum**: 120 characters per line (`line-length = 120`)
 - **Rationale**: Provides good readability while being AI-friendly for code generation
-- **Enforcement**: Automatic via ruff E501 rule (enabled by default)
+- **Enforcement**: `ruff format` wraps code to 120. `E501` is in ruff's `ignore` list, so lines the formatter
+  cannot wrap (long strings, comments, URLs) are not flagged by `ruff check` — keep those under 120 by hand
 
 ### AI Code Assistant Best Practices
 
@@ -63,16 +64,16 @@ When working with AI code assistants, the following linting configurations have 
 
 **Ruff Lint Configuration (pyproject.toml):**
 
-- **Line Length**: Enforced at 120 characters maximum (AI-friendly but maintains readability)
-- `E402`: Module import not at top - Ignored for AI-generated code patterns  
-- `F401`, `F811`, `F821`, `F841`: Import and variable warnings - Relaxed for iterative development
-- **E501**: Line length violations are enforced via `line-length = 120` setting
+- **Selected rules**: `E`, `W`, `F`, `I`, `B`, `C4`, `UP`, `C90`, `G` — only `E501` is ignored
+- `E402`, `F401`, `F811`, `F821`, `F841` are enforced (not relaxed); the codebase passes all of them
+- **Line Length**: 120 via the formatter; see Line Length Policy above for what `ruff check` does not catch
 
 **MyPy Configuration:**
 
 - Test files have relaxed type checking with `ignore_errors = true`
 - Additional error codes disabled for tests: `type-arg`, `attr-defined`, `no-untyped-def`, `misc`
-- `ignore_missing_imports = true` for external dependencies
+- `ignore_missing_imports = true` for the listed third-party modules (fuzzywuzzy, rapidfuzz, yaml, aiohttp, ...)
+- `versiontracker.ai.*`, `versiontracker.ml.*` and `versiontracker.experimental.*` have `ignore_errors = true`
 
 **Pre-commit Hooks:**
 
@@ -87,7 +88,9 @@ When working with AI code assistants, the following linting configurations have 
 3. **Implementation**: Make changes with clear commit messages
 4. **Documentation**: Update CHANGELOG.md and README.md as needed
 5. **Cleanup**: Remove any temporary files created during development
-6. **Commit**: Stage, commit, and push changes
+6. **Commit**: Commit on a feature branch, push it, and open a PR — `main` is protected by a repository ruleset
+   (required status checks, which in practice rejects direct pushes; no force-pushes or deletion). By convention
+   PRs are squash-merged
 
 ### File Organization Principles
 
@@ -98,16 +101,17 @@ When working with AI code assistants, the following linting configurations have 
 
 ## Project-Specific Context
 
-### Current Status (June 2025)
+### Current Status (October 2026)
 
-- All major technical debt has been resolved
-- Test coverage: 70.88% (962 passing tests)
-- Code quality: Excellent (all complexity issues resolved)
+- Latest release: 1.2.0 — on PyPI as `macversiontracker`, in the Homebrew tap, and as a GitHub release with
+  Sigstore-signed assets
+- Test suite: 2,831 passing, 17 skipped (13 need the optional ML extras); coverage 88.19%
+- Code quality: ruff, ruff format, and mypy all clean
 - Focus: Feature development and user experience improvements
 
 ### Key Technical Details
 
-- Python 3.10-3.12 compatibility
+- Python 3.12+ (`requires-python = ">=3.12"`; CI tests 3.12 and 3.13)
 - Uses pytest for testing with coverage reporting
 - Pre-commit hooks configured for code quality
 - Async/await patterns for network operations

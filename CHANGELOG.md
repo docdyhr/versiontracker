@@ -95,6 +95,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   formula installs from it — so this changes no installed behavior; the full test suite was run in a fresh
   environment pinned to the regenerated lock.
 
+### Documentation
+- **`CLAUDE.md` described lint rules and limits the config doesn't have**: it said
+  `E402`/`F401`/`F811`/`F821`/`F841` were relaxed (all are enforced), that `E501` enforces the 120-column limit
+  (`E501` is in ruff's `ignore` list; only `ruff format` applies it), a complexity cap of 15 (ruff's
+  `max-complexity` is 12), a 70% coverage floor (CI enforces 85%), Python 3.10–3.12 support
+  (`requires-python = ">=3.12"`, CI tests 3.12 and 3.13), and a push-to-`main` workflow that the branch ruleset
+  rejects. Its June 2025 status block (962 tests, 70.88%) and
+  `TODO.md`'s June 2026 one (1.0.1, 2,477 tests) are refreshed to 1.2.0, 2,831 passing / 17 skipped, 88.19%.
+
 ## [1.2.0] - 2026-08-15
 
 ### Security
