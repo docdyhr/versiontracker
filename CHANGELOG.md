@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Homebrew formula shipped a stale, partly missing dependency set**: `release-homebrew.yml` only bumped the
+  formula's `url`/`sha256`, never its Python `resource` blocks, which hadn't changed since the v0.9.0 formula. A
+  `brew install`/`upgrade` of 1.2.0 therefore built a venv without `termcolor`, `idna`, `propcache` and
+  `typing-extensions`, with `aiohttp` 3.13.3 (below the `>=3.14.0` floor) and `multidict` 6.7.1 — 25 known
+  advisories per `pip-audit`. The CLI still ran because `--help`/`--version` never import aiohttp: `import aiohttp`
+  failed on the missing `idna`, so async Homebrew lookups silently fell back to the sync path and output lost its
+  colours. The workflow's install test couldn't catch it: it tapped a local clone, which copies only committed
+  state, so it built the previous release (the v1.2.0 run built and printed `versiontracker 1.1.0`). The workflow
+  now edits the formula inside the tapped repository, re-resolves resources with `brew update-python-resources`
+  (dropping `revision` on a new release, bumping it when a re-run changes an already-published one), requires the
+  build to report the version being released, and resolves the declared dependency tree against the installed venv
+  with `pip install --dry-run --no-index` (plain `pip check` trips over Homebrew python's own `wheel`). The tap token
+  is now used only by the final `git push` rather than sitting in `.git/config` while PyPI build backends run.
+  Guarded by `test_homebrew_release_regenerates_and_verifies_formula_resources`. The companion
+  `docdyhr/homebrew-tap` change regenerates the 1.2.0 formula as `1.2.0_1` (plus `depends_on "libyaml"` and an
+  import check in `brew test`), so `brew upgrade macversiontracker` picks up the fix.
 - **CI and Coverage Analysis reported green while tests failed**: the test steps in `ci.yml` and `coverage.yml` ran
   `pytest ... | tee pytest_output.log` under `set +e` and then exited with `$?` — which is `tee`'s exit code, always
   0. Both ubuntu test jobs and the Coverage job had reported `2 failed` on every run since 2026-08-13 while

@@ -126,6 +126,8 @@ All skip decorators already carry a `reason=` string; no additional inline comme
 - [x] `brew install docdyhr/tap/macversiontracker` tested and working
 - [x] Legacy root `versiontracker.rb` removed (superseded by tap formula)
 - [x] `release-homebrew.yml` workflow updated to push to tap repo
+- [x] `release-homebrew.yml` re-resolves the formula's Python resources each release and tests the formula it
+  pushes (2026-10-08; formula regenerated as `1.2.0_1`)
 
 ---
 
