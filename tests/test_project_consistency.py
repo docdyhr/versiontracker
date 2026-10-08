@@ -34,19 +34,13 @@ def extract_min_python_version() -> str:
 
 
 def check_mypy_version() -> str:
-    """Check Python version in mypy.ini."""
-    project_root = get_project_root()
-    mypy_ini_path = project_root / "mypy.ini"
-    if not mypy_ini_path.exists():
-        pytest.skip(f"mypy.ini not found at {mypy_ini_path}")
-
-    with open(mypy_ini_path, encoding="utf-8") as f:
-        content = f.read()
-
-    mypy_version_match = re.search(r"python_version\s*=\s*(\d+\.\d+)", content)
-    if not mypy_version_match:
-        pytest.fail("python_version not found in mypy.ini")
-    return mypy_version_match.group(1)
+    """Check mypy's Python version in pyproject.toml (CI and pre-commit pass it via --config-file)."""
+    pyproject = load_pyproject_toml()
+    mypy_config = pyproject.get("tool", {}).get("mypy", {})
+    mypy_version = mypy_config.get("python_version")
+    if not mypy_version:
+        pytest.fail("python_version not found in [tool.mypy] in pyproject.toml")
+    return str(mypy_version)
 
 
 def check_setup_cfg_version() -> str | None:
@@ -126,11 +120,28 @@ class TestProjectConsistency:
     """Test project configuration consistency."""
 
     def test_mypy_python_version_consistency(self):
-        """Test that mypy.ini Python version matches pyproject.toml."""
+        """Test that the [tool.mypy] Python version matches requires-python."""
         min_version = extract_min_python_version()
         mypy_version = check_mypy_version()
-        error_msg = f"mypy.ini has {mypy_version}, expected {min_version}"
+        error_msg = f"[tool.mypy] has python_version {mypy_version}, expected {min_version}"
         assert mypy_version == min_version, error_msg
+
+    def test_mypy_version_check_reads_pyproject_and_never_skips(self, monkeypatch):
+        """The mypy check reads [tool.mypy] (what CI passes via --config-file) and fails, not skips, without it.
+
+        It used to read only mypy.ini, which this repo has never had, so the consistency test always skipped.
+        """
+        module = sys.modules[__name__]
+        monkeypatch.setattr(module, "load_pyproject_toml", lambda: {"tool": {"mypy": {"python_version": "3.11"}}})
+        try:
+            mypy_version = check_mypy_version()
+        except pytest.skip.Exception as exc:
+            pytest.fail(f"check_mypy_version() skipped instead of reading [tool.mypy]: {exc}")
+        assert mypy_version == "3.11"
+
+        monkeypatch.setattr(module, "load_pyproject_toml", lambda: {"tool": {}})
+        with pytest.raises(pytest.fail.Exception, match=r"\[tool\.mypy\]"):
+            check_mypy_version()
 
     def _assert_setup_cfg_version(self, setup_version: str | None, min_version: str) -> None:
         """Assert setup.cfg version matches expected if it exists."""
