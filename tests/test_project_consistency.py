@@ -248,6 +248,55 @@ class TestProjectConsistency:
         )
         assert "--no-index" in install_script, "Install test must resolve the declared dependencies from the venv alone"
 
+    def test_release_workflow_runs_once_per_release(self):
+        """Test that publishing a release starts one Release run, not two.
+
+        ``types: [created, published]`` fires twice for a non-draft release, so every
+        release since v0.8.0 ran the whole pipeline twice; on v1.0.1 the second run's
+        asset upload failed until ``--clobber`` was added to hide it.
+        """
+        workflow_path = get_project_root() / ".github" / "workflows" / "release.yml"
+        with open(workflow_path, encoding="utf-8") as f:
+            workflow = yaml.safe_load(f)
+        assert workflow["on"]["release"]["types"] == ["published"], (
+            "'published' alone covers stable releases, pre-releases and drafts being published"
+        )
+
+    def test_release_signs_published_files_and_follows_the_published_index(self):
+        """Test that manual PyPI publishes attach signed assets and post-publish steps query the right index.
+
+        Sign-and-attach only ran on release events, so re-publishing 1.2.0 via
+        workflow_dispatch (after its tag-triggered run failed the test gate) left the
+        GitHub release with no assets. The availability poll and the smoke test always
+        queried PyPI, so a ``target=testpypi`` run failed after a successful upload.
+        """
+        workflow_path = get_project_root() / ".github" / "workflows" / "release.yml"
+        with open(workflow_path, encoding="utf-8") as f:
+            workflow = yaml.safe_load(f)
+        jobs = workflow["jobs"]
+
+        sign = jobs["sign-and-attach"]
+        assert "index_host == 'pypi.org'" in sign["if"], "Manual PyPI publishes must sign and attach too"
+        assert not any("download-artifact" in step.get("uses", "") for step in sign["steps"]), (
+            "Sign the files the index serves, not this run's possibly non-identical rebuild"
+        )
+        assert any("sha256sum --check" in step.get("run", "") for step in sign["steps"]), (
+            "Downloaded distributions must be checked against the index's digests"
+        )
+        sigstore = next(step for step in sign["steps"] if "gh-action-sigstore-python" in step.get("uses", ""))
+        assert sigstore["with"]["release-signing-artifacts"] is False, (
+            "The action attaches only on release events; the upload step must handle every event type"
+        )
+        upload = next(step for step in sign["steps"] if "gh release upload" in step.get("run", ""))
+        assert "github.ref_name" not in upload["run"], "On workflow_dispatch, ref_name is the branch, not the tag"
+
+        wait = next(
+            step for step in jobs["publish-package"]["steps"] if step.get("name") == "Wait for package availability"
+        )
+        verify = next(step for step in jobs["verify-release"]["steps"] if "pip install" in step.get("run", ""))
+        for step in (wait, verify):
+            assert "index_host" in step["run"], f"'{step['name']}' must query the index the release was published to"
+
     def _assert_version_in_ci(self, version: str, ci_versions: list[str]) -> None:
         """Assert that a specific version is tested in CI."""
         error_msg = f"Python {version} is supported but not tested in CI"

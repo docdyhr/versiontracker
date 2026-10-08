@@ -3,7 +3,8 @@ name: Release
 
 "on":
   release:
-    types: [created, published]
+    # Not `created`: a non-draft release fires both, which ran the whole pipeline twice
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -48,6 +49,8 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
       publish_target: ${{ steps.version.outputs.publish_target }}
+      index_host: ${{ steps.version.outputs.index_host }}
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -61,10 +64,12 @@ jobs:
             VERSION="${{ github.event.inputs.version }}"
             IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
             PUBLISH_TARGET="${{ github.event.inputs.target }}"
+            TAG="v${VERSION#v}"
           else
             VERSION="${{ github.event.release.tag_name }}"
             IS_PRERELEASE="${{ github.event.release.prerelease }}"
             PUBLISH_TARGET="pypi"
+            TAG="$VERSION"
           fi
 
           # Remove 'v' prefix if present
@@ -76,9 +81,27 @@ jobs:
             exit 1
           fi
 
+          # Same rule as the publish steps: pre-releases and testpypi runs go to TestPyPI
+          if [ "$IS_PRERELEASE" == "true" ] || [ "$PUBLISH_TARGET" == "testpypi" ]; then
+            INDEX_HOST="test.pypi.org"
+          else
+            INDEX_HOST="pypi.org"
+          fi
+
           echo "version=$VERSION_NUMBER" >> $GITHUB_OUTPUT
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "publish_target=$PUBLISH_TARGET" >> $GITHUB_OUTPUT
+          echo "index_host=$INDEX_HOST" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Check GitHub release exists
+        if: github.event_name == 'workflow_dispatch' && steps.version.outputs.index_host == 'pypi.org'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # sign-and-attach uploads to this release after the PyPI publish; fail before publishing, not after
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null
 
       - name: Check changelog entry
         run: |
@@ -263,19 +286,21 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ needs.validate-release.outputs.version }}"
+          INDEX_HOST="${{ needs.validate-release.outputs.index_host }}"
           PACKAGE="macversiontracker==${VERSION}"
-          echo "Polling PyPI for ${PACKAGE}..."
+          echo "Polling ${INDEX_HOST} for ${PACKAGE}..."
 
           for attempt in $(seq 1 8); do
-            if pip install --no-deps --no-build-isolation --no-cache-dir "$PACKAGE" >/dev/null 2>&1; then
-              echo "Package ${PACKAGE} is available on PyPI"
+            if pip install --no-deps --no-build-isolation --no-cache-dir \
+                --index-url "https://${INDEX_HOST}/simple/" "$PACKAGE" >/dev/null 2>&1; then
+              echo "Package ${PACKAGE} is available on ${INDEX_HOST}"
               exit 0
             fi
             sleep_seconds=$((2 ** attempt))
             echo "Attempt $attempt failed, retrying in ${sleep_seconds}s..."
             sleep "$sleep_seconds"
           done
-          echo "::error::Package ${PACKAGE} not available after polling"
+          echo "::error::Package ${PACKAGE} not available on ${INDEX_HOST} after polling"
           exit 1
 
   # ---------------------------------------------------------------------------
@@ -283,18 +308,39 @@ jobs:
   # ---------------------------------------------------------------------------
   sign-and-attach:
     name: Sign and Attach to GitHub Release
-    if: github.event_name == 'release'
-    needs: publish-package
+    # Manual PyPI publishes attach too, e.g. re-publishing a release whose tag-triggered run failed
+    if: github.event_name == 'release' || needs.validate-release.outputs.index_host == 'pypi.org'
+    needs: [validate-release, publish-package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
     steps:
-      - name: Download distributions
-        uses: actions/download-artifact@v8
-        with:
-          name: dist-packages
-          path: dist/
+      - name: Download published distributions
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+          INDEX_HOST: ${{ needs.validate-release.outputs.index_host }}
+        run: |
+          set -euo pipefail
+          # Sign what users install: with skip-existing, this run's build may not be the uploaded one
+          mkdir -p dist
+          curl -fsSL "https://${INDEX_HOST}/pypi/macversiontracker/${VERSION}/json" -o "$RUNNER_TEMP/release.json"
+          jq -r '.urls[] | [.filename, .url, .digests.sha256] | @tsv' "$RUNNER_TEMP/release.json" |
+            while IFS=$'\t' read -r filename url sha256; do
+              curl -fsSL "$url" -o "dist/$filename"
+              echo "$sha256  dist/$filename" | sha256sum --check --strict
+            done
+          ls dist/*.whl dist/*.tar.gz
+
+      - name: Download source archives
+        env:
+          TAG: ${{ needs.validate-release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # The sigstore action signs these itself, but only on release events
+          for ext in tar.gz zip; do
+            curl -fsSL "https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${TAG}.${ext}" -o "dist/${TAG}.${ext}"
+          done
 
       - name: Sign distributions with Sigstore
         uses: sigstore/gh-action-sigstore-python@v3.5.0
@@ -302,13 +348,17 @@ jobs:
           inputs: >-
             ./dist/*.tar.gz
             ./dist/*.whl
+            ./dist/*.zip
+          # Uploaded by the next step for every event type; the action would attach on release events only
+          release-signing-artifacts: false
 
       - name: Upload signatures to GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate-release.outputs.tag }}
         run: >-
           gh release upload
-          '${{ github.ref_name }}' dist/**
+          "$TAG" dist/**
           --repo '${{ github.repository }}'
           --clobber
 
@@ -332,10 +382,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install from PyPI
+      - name: Install published package
         run: |
           VERSION="${{ needs.validate-release.outputs.version }}"
-          pip install --no-cache-dir "macversiontracker==$VERSION"
+          if [ "${{ needs.validate-release.outputs.index_host }}" == "pypi.org" ]; then
+            pip install --no-cache-dir "macversiontracker==$VERSION"
+          else
+            # TestPyPI doesn't mirror our dependencies: take only the package from it and its
+            # runtime requirements from PyPI, so no TestPyPI upload can stand in for a dependency
+            pip install --no-cache-dir --no-deps --index-url https://test.pypi.org/simple/ "macversiontracker==$VERSION"
+            python -c "
+          from importlib.metadata import requires
+          print('\n'.join(r for r in requires('macversiontracker') or [] if 'extra ==' not in r))
+          " > runtime-requirements.txt
+            pip install --no-cache-dir -r runtime-requirements.txt
+          fi
 
       - name: Verify version
         run: |
