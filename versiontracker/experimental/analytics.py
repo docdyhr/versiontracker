@@ -898,9 +898,8 @@ class AnalyticsReport:
             lines.append("## Usage Statistics")
             overall = usage_stats.get("overall_statistics", {})
             lines.append(f"- Total Events: {overall.get('total_events', 0)}")
-            lines.append(
-                f"- Success Rate: {overall.get('successful_events', 0) / max(overall.get('total_events', 1), 1) * 100:.1f}%"
-            )
+            success_rate = overall.get("successful_events", 0) / max(overall.get("total_events", 1), 1) * 100
+            lines.append(f"- Success Rate: {success_rate:.1f}%")
             lines.append(f"- Average Duration: {overall.get('avg_duration', 0):.1f}ms")
             lines.append("")
 

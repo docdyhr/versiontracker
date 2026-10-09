@@ -70,6 +70,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security job summary always reported 0 pip-audit vulnerabilities**: the step read a top-level
   `.vulnerabilities` key that pip-audit's JSON doesn't have. It now counts `.dependencies[].vulns[]?` (null-safe,
   since skipped packages such as the editable `macversiontracker` install carry no `vulns` key).
+- **The mypy/`requires-python` consistency test never ran**: `check_mypy_version()` only read `mypy.ini`, which
+  this repo has never had — mypy is configured in `pyproject.toml`'s `[tool.mypy]`, which CI and pre-commit pass
+  via `--config-file` — so `test_mypy_python_version_consistency` skipped on every run. It now reads
+  `[tool.mypy].python_version` and fails rather than skips when it is missing. Guarded by
+  `test_mypy_version_check_reads_pyproject_and_never_skips`.
+- **The 120-column line limit wasn't linted**: `E501` sat in ruff's `ignore` list on the belief that
+  `line-length = 120` enforced it, but `line-length` only steers `ruff format`, so lines the formatter can't wrap
+  passed `ruff check`. `E501` is now enabled; the two lines over 120 (`audit/discovery.py`,
+  `experimental/analytics.py`) are rewrapped with no change in behavior.
 
 ### Removed
 - **Safety dependency scanner**: removed from `security.yml`, `release.yml`, the `security` optional-dependency
@@ -98,11 +107,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 - **`CLAUDE.md` described lint rules and limits the config doesn't have**: it said
   `E402`/`F401`/`F811`/`F821`/`F841` were relaxed (all are enforced), that `E501` enforces the 120-column limit
-  (`E501` is in ruff's `ignore` list; only `ruff format` applies it), a complexity cap of 15 (ruff's
-  `max-complexity` is 12), a 70% coverage floor (CI enforces 85%), Python 3.10–3.12 support
-  (`requires-python = ">=3.12"`, CI tests 3.12 and 3.13), and a push-to-`main` workflow that the branch ruleset
-  rejects. Its June 2025 status block (962 tests, 70.88%) and
-  `TODO.md`'s June 2026 one (1.0.1, 2,477 tests) are refreshed to 1.2.0, 2,831 passing / 17 skipped, 88.19%.
+  (`E501` was in ruff's `ignore` list — now enabled, see Fixed), a complexity cap of 15 (ruff's `max-complexity`
+  is 12), a 70% coverage floor (CI enforces 85%), Python 3.10–3.12 support (`requires-python = ">=3.12"`, CI
+  tests 3.12 and 3.13), and a push-to-`main` workflow that the branch ruleset rejects. Its June 2025 status block
+  (962 tests, 70.88%) and `TODO.md`'s June 2026 one (1.0.1, 2,477 tests) are refreshed to 1.2.0 and current test
+  and coverage numbers.
 
 ## [1.2.0] - 2026-08-15
 
