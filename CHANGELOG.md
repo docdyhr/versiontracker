@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **The Claude Dependabot Auto-Merge workflow could only ever dry-run**: `dependabot-auto-merge.yml` is
+  dispatch-only, but it passed no `merge_mode` to the reusable `docdyhr/.github` merger, whose default is `dry-run`,
+  so a manual run reported decisions and never merged. Its header also claimed the cross-repo orchestrator schedules
+  it; the orchestrator never dispatched it and has been disabled since August. The workflow now takes the same
+  dispatch inputs as the org caller template (`merge_mode`, `scope`, `max_budget_usd`, `pr_numbers`; `merge_mode`
+  still defaults to `dry-run`) and grants the read permissions the reusable workflow documents (`issues`, `checks`,
+  `statuses`).
 - **Manual release runs left the GitHub release without signed assets, and `target=testpypi` could never pass**:
   `release.yml`'s `sign-and-attach` job only ran on `release` events, so re-publishing 1.2.0 to PyPI via
   `workflow_dispatch` (after its tag-triggered run failed the test gate) attached nothing — v1.1.0 carries its
