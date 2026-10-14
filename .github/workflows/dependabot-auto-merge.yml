@@ -1,16 +1,46 @@
 name: Claude Dependabot Auto-Merge
-# Migrated from inline blob (dependabot/fetch-metadata@v3) to reusable caller.
-# Schedule is owned by the cross-repo orchestrator in docdyhr/.github.
-# Claude Code reviews and merges eligible Dependabot PRs on schedule.
+# Thin caller for the reusable Claude merger in docdyhr/.github; the inputs mirror
+# that repo's workflow-templates/caller-claude-dependabot-merge.yml.
+# Dispatch-only — nothing schedules it. The reusable workflow defaults to dry-run,
+# so PRs are merged only when a run is dispatched with merge_mode=live:
+#   gh workflow run dependabot-auto-merge.yml -f merge_mode=live
 on:
   workflow_dispatch:
+    inputs:
+      merge_mode:
+        description: "dry-run = report only; live = actually merge passing PRs"
+        type: choice
+        options: [dry-run, live]
+        default: dry-run
+        required: true
+      scope:
+        description: "all | minor (skip patch bumps) | patch | security"
+        type: choice
+        options: [all, minor, patch, security]
+        default: all
+        required: false
+      max_budget_usd:
+        description: "Maximum Claude API spend in USD for this run"
+        type: string
+        default: "0.30"
+        required: false
+      pr_numbers:
+        description: "Comma-separated PR numbers (blank = all open Dependabot PRs)"
+        type: string
+        default: ""
+        required: false
 jobs:
   call:
     permissions:
       contents: write
       pull-requests: write
+      issues: read
+      checks: read
+      statuses: read
     uses: docdyhr/.github/.github/workflows/claude-dependabot-merge.yml@v1
     secrets: inherit # pragma: allowlist secret
     with:
-      max_budget_usd: "0.30"
-      scope: all
+      merge_mode: ${{ inputs.merge_mode }}
+      scope: ${{ inputs.scope }}
+      max_budget_usd: ${{ inputs.max_budget_usd }}
+      pr_numbers: ${{ inputs.pr_numbers }}
