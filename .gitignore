@@ -416,7 +416,9 @@ CLAUDE.md
 .cursor-tutor
 .aider*
 .anthropic/
-.claude/
+.claude/*
+# Shared agent skills are versioned
+!.claude/skills/
 .openai/
 assistant-*
 claude-*
