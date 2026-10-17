@@ -86,6 +86,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `line-length = 120` enforced it, but `line-length` only steers `ruff format`, so lines the formatter can't wrap
   passed `ruff check`. `E501` is now enabled; the two lines over 120 (`audit/discovery.py`,
   `experimental/analytics.py`) are rewrapped with no change in behavior.
+- **The pre-commit ruff hook lagged the pinned ruff**: `.pre-commit-config.yaml` ran `ruff-pre-commit` `v0.16.2`
+  while the dev dependencies pin `ruff==0.17.0` (Dependabot bumps the pin but not pre-commit revs), so local hooks
+  and CI could lint with different rule sets. The hook now runs `v0.17.0`; `ruff` and `ruff-format` pass on all
+  files with no changes.
 
 ### Removed
 - **Safety dependency scanner**: removed from `security.yml`, `release.yml`, the `security` optional-dependency

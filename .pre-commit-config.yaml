@@ -32,7 +32,7 @@ repos:
 
   # Python code formatting and linting with Ruff (includes import sorting)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.2
+    rev: v0.17.0
     hooks:
       # Linter (includes isort functionality)
       - id: ruff
