@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 """Compare current performance results against a stored baseline.
 
+Wall-clock time on shared CI runners is not a regression signal: with no runtime change, `apps` (system_profiler)
+measured +8% and +104% best-of-3 in two runs three days apart, and the Homebrew-API benchmarks swing more. So
+relative time changes are reported as warnings only. The gate fails on what runner noise cannot produce: a memory
+regression beyond REGRESSION_THRESHOLD, or a benchmark whose best iteration exceeds TIME_ABSOLUTE_LIMIT (a hang or
+a gross slowdown).
+
 Exit codes:
-  0 — no gated regression detected (or no baseline to compare against)
-  1 — one or more gated metrics degraded by more than REGRESSION_THRESHOLD
+  0 — no gated regression (or no baseline to compare against)
+  1 — a memory regression, or a best-of-N time above TIME_ABSOLUTE_LIMIT
 """
 
 import json
 import sys
 from pathlib import Path
 
-REGRESSION_THRESHOLD = 0.20  # 20%
-TIME_ABSOLUTE_LIMIT = 30.0  # seconds
+REGRESSION_THRESHOLD = 0.20  # 20%; gates memory, reports time
+TIME_ABSOLUTE_LIMIT = 30.0  # seconds; a best-of-N time above this fails
 MEMORY_ABSOLUTE_LIMIT = 500.0  # MB
 MIN_BASELINE_TIME = 0.05  # seconds; below this, relative deltas are just timing noise
 MIN_BASELINE_MEMORY = 1.0  # MB; ditto for memory
-
-# Benchmarks whose wall-clock time is dominated by live Homebrew API calls: their time measures network
-# latency, not this code (best-of-3 still moved +26%/+61% between two weekly runs with no runtime change),
-# so a time regression there is reported but does not fail the gate. Their memory stays gated.
-NETWORK_BOUND = frozenset({"recommend", "outdated"})
 
 
 def _load_json(path: Path) -> "dict | None":
@@ -30,15 +31,19 @@ def _load_json(path: Path) -> "dict | None":
         return data
 
 
-def _check_absolute_limits(name: str, result: dict) -> list[str]:
-    warnings = []
-    if result.get("avg_time", 0) > TIME_ABSOLUTE_LIMIT:
-        warnings.append(f"  WARNING: {name} avg_time {result['avg_time']:.2f}s exceeds {TIME_ABSOLUTE_LIMIT}s limit")
+def _check_absolute_limits(name: str, result: dict) -> tuple[list[str], list[str]]:
+    """Return ``(failures, warnings)``; the time ceiling uses best-of-N so one slow iteration cannot trip it."""
+    failures: list[str] = []
+    warnings: list[str] = []
+    metric = "min_time" if "min_time" in result else "avg_time"
+    best = result.get(metric, 0)
+    if best > TIME_ABSOLUTE_LIMIT:
+        failures.append(f"  REGRESSION: {name} {metric} {best:.2f}s exceeds the {TIME_ABSOLUTE_LIMIT:.0f}s ceiling")
     if result.get("avg_memory_mb", 0) > MEMORY_ABSOLUTE_LIMIT:
         warnings.append(
             f"  WARNING: {name} avg_memory_mb {result['avg_memory_mb']:.2f}MB exceeds {MEMORY_ABSOLUTE_LIMIT}MB limit"
         )
-    return warnings
+    return failures, warnings
 
 
 def _time_metric(current: dict, baseline: dict) -> str:
@@ -70,8 +75,8 @@ def _check_regression(name: str, current: dict, baseline: dict) -> tuple[list[st
             f"{name} {label} ({metric}) degraded {delta * 100:.1f}% "
             f"({base:.3f} → {cur:.3f}, threshold {REGRESSION_THRESHOLD * 100:.0f}%)"
         )
-        if label == "time" and name in NETWORK_BOUND:
-            warnings.append(f"  WARNING: {detail}; network-bound, not gated")
+        if label == "time":
+            warnings.append(f"  WARNING: {detail}; time is advisory (shared-runner noise)")
         else:
             failures.append(f"  REGRESSION: {detail}")
     return failures, warnings
@@ -104,7 +109,9 @@ def compare_results(baseline_path: Path) -> int:
         avg_mem = result.get("avg_memory_mb", 0)
         print(f"{name:<20} {avg_time:>10.3f} {avg_mem:>12.1f}")
 
-        warnings.extend(_check_absolute_limits(name, result))
+        failed, warned = _check_absolute_limits(name, result)
+        regressions.extend(failed)
+        warnings.extend(warned)
 
         if name in baseline_results:
             failed, warned = _check_regression(name, result, baseline_results[name])
@@ -128,7 +135,10 @@ def compare_results(baseline_path: Path) -> int:
         return 1
 
     if baseline_data is not None:
-        print(f"\nAll metrics within {REGRESSION_THRESHOLD * 100:.0f}% regression threshold.")
+        print(
+            f"\nGated metrics OK: memory within {REGRESSION_THRESHOLD * 100:.0f}% of baseline, "
+            f"best times under {TIME_ABSOLUTE_LIMIT:.0f}s."
+        )
 
     return 0
 
