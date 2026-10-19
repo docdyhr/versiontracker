@@ -23,9 +23,9 @@ registered entry point.
 
 ## Testing Guidelines
 
-`pytest.ini` enables branch coverage and exports to `htmlcov/` and `coverage.xml`; sustain coverage near the present 70%
-baseline. Add unit tests next to the code they exercise (e.g., `tests/test_cache.py`) and gate heavier flows behind
-`slow`, `integration`, `network`, or `asyncio` markers. Stub Homebrew access with fixtures or helpers from
+`pyproject.toml` (`[tool.pytest.ini_options]`) enables branch coverage and exports to `htmlcov/` and `coverage.xml`; CI
+enforces an 85% floor. Add unit tests next to the code they exercise (e.g., `tests/test_cache.py`) and gate heavier
+flows behind `slow`, `integration`, `network`, or `asyncio` markers. Stub Homebrew access with fixtures or helpers from
 `tests/test_apps*.py` instead of hitting the network.
 
 ## Commit & Pull Request Guidelines
@@ -40,3 +40,8 @@ blockers and link to tracking issues in the description.
 For security-sensitive work, add `bandit -r versiontracker`, `pip-audit`, and `check-security-status.sh` to your local
 checklist. Never commit secrets—use `sample_config.yaml` as a template and store live credentials in environment
 variables or the macOS keychain.
+
+## Agent Skills
+
+`.claude/skills/` holds vendored third-party skills. This file and `CLAUDE.md` ("Vendored Agent Skills") take
+precedence over them: never merge, approve or enable auto-merge on PRs, and treat the 85% coverage floor as the target.

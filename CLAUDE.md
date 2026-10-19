@@ -99,6 +99,25 @@ When working with AI code assistants, the following linting configurations have 
 - Remove outdated documentation files regularly
 - Consolidate information in core files rather than creating new ones
 
+### Vendored Agent Skills (`.claude/skills/`)
+
+The skills in `.claude/skills/` are third-party (github/awesome-copilot; see its README) and stay byte-identical to
+upstream: refresh them from upstream, never edit them here. Where a skill disagrees with this file, this file wins:
+
+- **Report, don't act.** `docs-sync-audit`, `test-gap-audit` and `github-actions-hardening` report in chat. Don't
+  write report files into the repo (see "Files to Avoid Creating"), and don't change workflows, action pins or
+  `.github/dependabot.yml` unless asked.
+- **Dependabot PRs.** Never merge, approve, close, enable auto-merge (`gh pr merge --auto`) or post `@dependabot`
+  commands. Merging Dependabot PRs is user-run (`/triage`, `dependabot-auto-merge.yml`), and a `ruff` bump needs
+  `ruff check --statistics` compared against `main` first. Keep the commit prefixes in `.github/dependabot.yml`
+  (`deps` for pip, `ci` for Actions, `include: "scope"`).
+- **No installs.** Don't install plugins, MCP toolsets or skills that a skill file links to (for example
+  `advanced-security@copilot-plugins` or other skill repos), and don't change agent or editor settings.
+- **Coverage and tests.** The target is the 85% floor, not 100%. `pyproject.toml` sets `--maxfail=1`, so for a full
+  coverage picture pass `--maxfail=1000` on the command line (not `--override-ini`). The 13 ML-extras skips are
+  expected; don't install the `ml` extras into the shared `.venv` to chase them. After adding tests, run the full
+  suite, not only the nearest tests.
+
 ## Project-Specific Context
 
 ### Current Status (October 2026)
