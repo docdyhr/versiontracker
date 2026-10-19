@@ -2,19 +2,24 @@
 """Compare current performance results against a stored baseline.
 
 Exit codes:
-  0 — no regression detected (or no baseline to compare against)
-  1 — one or more metrics degraded by more than REGRESSION_THRESHOLD
+  0 — no gated regression detected (or no baseline to compare against)
+  1 — one or more gated metrics degraded by more than REGRESSION_THRESHOLD
 """
 
 import json
 import sys
 from pathlib import Path
 
-REGRESSION_THRESHOLD = 0.20  # 20%; benchmarks hit live Homebrew API calls, which vary run to run
+REGRESSION_THRESHOLD = 0.20  # 20%
 TIME_ABSOLUTE_LIMIT = 30.0  # seconds
 MEMORY_ABSOLUTE_LIMIT = 500.0  # MB
 MIN_BASELINE_TIME = 0.05  # seconds; below this, relative deltas are just timing noise
 MIN_BASELINE_MEMORY = 1.0  # MB; ditto for memory
+
+# Benchmarks whose wall-clock time is dominated by live Homebrew API calls: their time measures network
+# latency, not this code (best-of-3 still moved +26%/+61% between two weekly runs with no runtime change),
+# so a time regression there is reported but does not fail the gate. Their memory stays gated.
+NETWORK_BOUND = frozenset({"recommend", "outdated"})
 
 
 def _load_json(path: Path) -> "dict | None":
@@ -36,21 +41,40 @@ def _check_absolute_limits(name: str, result: dict) -> list[str]:
     return warnings
 
 
-def _check_regression(name: str, current: dict, baseline: dict) -> list[str]:
-    failures = []
-    min_baseline = {"avg_time": MIN_BASELINE_TIME, "avg_memory_mb": MIN_BASELINE_MEMORY}
-    for metric, label in [("avg_time", "time"), ("avg_memory_mb", "memory")]:
+def _time_metric(current: dict, baseline: dict) -> str:
+    """Pick the time metric to compare.
+
+    Best-of-N (``min_time``) when both runs recorded it, because runner and network noise only ever add
+    time; older result files only carry ``avg_time``.
+    """
+    return "min_time" if "min_time" in current and "min_time" in baseline else "avg_time"
+
+
+def _check_regression(name: str, current: dict, baseline: dict) -> tuple[list[str], list[str]]:
+    """Return ``(failures, warnings)`` for one benchmark compared with its baseline."""
+    failures: list[str] = []
+    warnings: list[str] = []
+    checks = [
+        (_time_metric(current, baseline), "time", MIN_BASELINE_TIME),
+        ("avg_memory_mb", "memory", MIN_BASELINE_MEMORY),
+    ]
+    for metric, label, floor in checks:
         cur = current.get(metric, 0)
         base = baseline.get(metric, 0)
-        if base < min_baseline[metric]:
+        if base < floor:
             continue
         delta = (cur - base) / base
-        if delta > REGRESSION_THRESHOLD:
-            failures.append(
-                f"  REGRESSION: {name} {label} degraded {delta * 100:.1f}% "
-                f"({base:.3f} → {cur:.3f}, threshold {REGRESSION_THRESHOLD * 100:.0f}%)"
-            )
-    return failures
+        if delta <= REGRESSION_THRESHOLD:
+            continue
+        detail = (
+            f"{name} {label} ({metric}) degraded {delta * 100:.1f}% "
+            f"({base:.3f} → {cur:.3f}, threshold {REGRESSION_THRESHOLD * 100:.0f}%)"
+        )
+        if label == "time" and name in NETWORK_BOUND:
+            warnings.append(f"  WARNING: {detail}; network-bound, not gated")
+        else:
+            failures.append(f"  REGRESSION: {detail}")
+    return failures, warnings
 
 
 def compare_results(baseline_path: Path) -> int:
@@ -83,7 +107,9 @@ def compare_results(baseline_path: Path) -> int:
         warnings.extend(_check_absolute_limits(name, result))
 
         if name in baseline_results:
-            regressions.extend(_check_regression(name, result, baseline_results[name]))
+            failed, warned = _check_regression(name, result, baseline_results[name])
+            regressions.extend(failed)
+            warnings.extend(warned)
 
     if baseline_data is None:
         print("\nNo baseline found — this run will become the baseline for future comparisons.")
