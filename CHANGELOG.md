@@ -16,13 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   except the root `.claude/skills/`.
 
 ### Fixed
-- **The weekly performance gate failed on runner and network noise**: `scripts/compare_performance.py` compared the
-  3-iteration mean, which one slow iteration inflates, and gated `recommend`/`outdated`, whose time is dominated by
-  live Homebrew API calls. The scheduled run failed 3 of 6 weeks with no runtime change (2026-10-18: `apps` +30%,
-  `recommend` +24%, `outdated` +90% against the 2026-10-11 baseline). It now gates on best-of-N (`min_time`, falling
-  back to `avg_time` for older files) and reports `recommend`/`outdated` time regressions as warnings; their memory
-  and `apps` time stay gated. Replaying the 2026-10-18 numbers passes with two warnings
-  (`tests/test_compare_performance.py`).
+- **The weekly performance gate failed on runner and network noise**: `scripts/compare_performance.py` failed on
+  any >20% wall-clock change, and the scheduled run failed 3 of 6 weeks with no runtime change. Even best-of-3 is not
+  stable on shared macOS runners: `apps` (`system_profiler`) measured +8% on 2026-10-18 and +104% on 2026-10-19
+  against the 2026-10-11 baseline, and the Homebrew-API benchmarks `recommend`/`outdated` swing more. Relative time
+  changes are now warnings only. The gate fails on what runner noise cannot produce: a memory regression beyond 20%,
+  or a benchmark whose best iteration (`min_time`, falling back to `avg_time`) exceeds 30 s. Both real runs replay
+  as passing in `tests/test_compare_performance.py`.
 - **The Claude Dependabot Auto-Merge workflow could only ever dry-run**: `dependabot-auto-merge.yml` is
   dispatch-only, but it passed no `merge_mode` to the reusable `docdyhr/.github` merger, whose default is `dry-run`,
   so a manual run reported decisions and never merged. Its header also claimed the cross-repo orchestrator schedules

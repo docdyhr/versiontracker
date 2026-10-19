@@ -202,9 +202,14 @@ class TestProjectConsistency:
         with open(perf_path, encoding="utf-8") as f:
             perf_config = yaml.safe_load(f)
 
-        step_names = [step.get("name") for step in perf_config["jobs"]["performance-test"]["steps"]]
-        steps = dict(zip(step_names, perf_config["jobs"]["performance-test"]["steps"], strict=True))
-        compare_index = step_names.index("Compare with baseline (fail on >20% regression)")
+        job_steps = perf_config["jobs"]["performance-test"]["steps"]
+        step_names = [step.get("name") for step in job_steps]
+        steps = dict(zip(step_names, job_steps, strict=True))
+        # Locate the regression check by what it runs, not by its display name
+        invocation = "python scripts/compare_performance.py"
+        compare_indexes = [i for i, step in enumerate(job_steps) if invocation in step.get("run", "")]
+        assert len(compare_indexes) == 1, f"expected exactly one step running `{invocation}`"
+        compare_index = compare_indexes[0]
 
         for name in ("Save new baseline", "Cache updated baseline for next run"):
             condition = steps[name]["if"]

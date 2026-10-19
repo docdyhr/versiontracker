@@ -107,7 +107,7 @@ jobs:
           path: performance_results.json
           retention-days: 30
 
-      - name: Compare with baseline (fail on >20% regression)
+      - name: Compare with baseline (fails on memory regression or a best time over 30s; time deltas advisory)
         run: |
           python scripts/compare_performance.py --baseline performance_baseline.json
 
