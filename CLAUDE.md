@@ -108,8 +108,9 @@ upstream: refresh them from upstream, never edit them here. Where a skill disagr
   write report files into the repo (see "Files to Avoid Creating"), and don't change workflows, action pins or
   `.github/dependabot.yml` unless asked.
 - **Dependabot PRs.** Never merge, approve, close, enable auto-merge (`gh pr merge --auto`) or post `@dependabot`
-  commands. Merging Dependabot PRs is user-run (`/triage`, `dependabot-auto-merge.yml`), and a `ruff` bump needs
-  `ruff check --statistics` compared against `main` first. Keep the commit prefixes in `.github/dependabot.yml`
+  commands. Patch bumps merge natively through `dependabot-auto-merge.yml`, which skips any PR touching `ruff`.
+  Merging everything else is user-run (`/triage`), and a `ruff` bump needs `ruff check --statistics` compared against
+  `main` first. Keep the commit prefixes in `.github/dependabot.yml`
   (`deps` for pip, `ci` for Actions, `include: "scope"`).
 - **No installs.** Don't install plugins, MCP toolsets or skills that a skill file links to (for example
   `advanced-security@copilot-plugins` or other skill repos), and don't change agent or editor settings.
