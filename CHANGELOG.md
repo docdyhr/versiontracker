@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   excludes them so its hooks cannot rewrite the verbatim copy, and `.gitignore` now ignores `.claude/` at any depth
   except the root `.claude/skills/`.
 
+### Changed
+- **Dependabot patch bumps now merge natively**: `dependabot-auto-merge.yml` was a dispatch-only caller of the Claude
+  merger in `docdyhr/.github`, which the org retired on 2026-10-21. It is now the native workflow httpcheck and
+  malwarespotter use: a Dependabot patch bump is approved and set to auto-merge, so it merges once the required checks
+  pass. Two differences from those repos: any PR that touches `ruff` is skipped, because `CLAUDE.md` requires a
+  `ruff check --statistics` comparison first, and minor and major bumps still need review. The `ANTHROPIC_API_KEY`
+  repo secret has no other user here and can be deleted.
+
 ### Fixed
 - **The weekly performance gate failed on runner and network noise**: `scripts/compare_performance.py` failed on
   any >20% wall-clock change, and the scheduled run failed 3 of 6 weeks with no runtime change. Even best-of-3 is not

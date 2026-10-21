@@ -1,46 +1,68 @@
-name: Claude Dependabot Auto-Merge
-# Thin caller for the reusable Claude merger in docdyhr/.github; the inputs mirror
-# that repo's workflow-templates/caller-claude-dependabot-merge.yml.
-# Dispatch-only — nothing schedules it. The reusable workflow defaults to dry-run,
-# so PRs are merged only when a run is dispatched with merge_mode=live:
-#   gh workflow run dependabot-auto-merge.yml -f merge_mode=live
+# .github/workflows/dependabot-auto-merge.yml
+#
+# Native patch-bump auto-merge for Dependabot PRs — no AI required.
+# The same workflow as httpcheck's and malwarespotter's, plus a ruff exclusion.
+#
+# Replaces the dispatch-only caller of the Claude merger in docdyhr/.github,
+# which the org retired on 2026-10-21. Minor and major bumps still need review.
+#
+# Prerequisites:
+#   - "Allow auto-merge" must be enabled in Settings → General → Pull Requests.
+#   - Required CI checks must pass before the PR can merge (the main ruleset).
+#
+# Behaviour:
+#   - patch bump        → approve + enable auto-merge (merges when CI passes)
+#   - touches ruff      → skipped: compare `ruff check --statistics` with main
+#                         first (CLAUDE.md), since a ruff patch release can
+#                         change its default rules
+#   - minor/major bump  → skipped here; requires review
+
+name: Dependabot Patch Auto-merge
+
 on:
-  workflow_dispatch:
-    inputs:
-      merge_mode:
-        description: "dry-run = report only; live = actually merge passing PRs"
-        type: choice
-        options: [dry-run, live]
-        default: dry-run
-        required: true
-      scope:
-        description: "all | minor (skip patch bumps) | patch | security"
-        type: choice
-        options: [all, minor, patch, security]
-        default: all
-        required: false
-      max_budget_usd:
-        description: "Maximum Claude API spend in USD for this run"
-        type: string
-        default: "0.30"
-        required: false
-      pr_numbers:
-        description: "Comma-separated PR numbers (blank = all open Dependabot PRs)"
-        type: string
-        default: ""
-        required: false
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  call:
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: read
-      checks: read
-      statuses: read
-    uses: docdyhr/.github/.github/workflows/claude-dependabot-merge.yml@v1
-    secrets: inherit # pragma: allowlist secret
-    with:
-      merge_mode: ${{ inputs.merge_mode }}
-      scope: ${{ inputs.scope }}
-      max_budget_usd: ${{ inputs.max_budget_usd }}
-      pr_numbers: ${{ inputs.pr_numbers }}
+  auto-merge:
+    name: Auto-merge patch bump
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Approve patch bump
+        if: steps.meta.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
+        run: gh pr review --approve "$PR_URL"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        continue-on-error: true
+
+      - name: Enable auto-merge for patch bump
+        if: steps.meta.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
+        run: |
+          gh pr merge --auto --squash "$PR_URL"
+          echo "Auto-merge enabled for: $PR_NUMBER ($UPDATE_TYPE)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+
+      - name: Report skipped PR
+        if: steps.meta.outputs.update-type != 'version-update:semver-patch' || contains(steps.meta.outputs.dependency-names, 'ruff')
+        run: |
+          echo "Skipping (type=$UPDATE_TYPE, deps=$DEPS) — requires review."
+        env:
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          DEPS: ${{ steps.meta.outputs.dependency-names }}
