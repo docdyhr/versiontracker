@@ -16,6 +16,14 @@
 #                         first (CLAUDE.md), since a ruff patch release can
 #                         change its default rules
 #   - minor/major bump  → skipped here; requires review
+#
+# Requirement-range updates (constraints.txt `>=a,<b`): fetch-metadata reads
+# previous-version from the range string (`10.0.0,>=9.1.0`) and reports
+# semver-major even for a patch, so the level is derived from the PR title's
+# old and new ranges instead. A changed upper bound counts as major. The
+# required checks install with `-c constraints.txt` (setup-python-deps), and
+# the required lint job resolves the whole file (lint.yml), so a range that
+# doesn't resolve fails them and auto-merge never lands it.
 
 name: Dependabot Patch Auto-merge
 
@@ -40,8 +48,45 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Derive bump level
+        id: level
+        run: |
+          level="$META_TYPE"
+          if ! printf '%s' "$PREV" | grep -Eq '^[0-9]+(\.[0-9A-Za-z]+)*$'; then
+            # Range update: compare the bounds in "update X requirement from <old> to <new>"
+            level=""
+            old=$(printf '%s' "$TITLE" | sed -nE 's/.* requirement from ([^ ]+) to ([^ ]+)( in .*)?$/\1/p')
+            new=$(printf '%s' "$TITLE" | sed -nE 's/.* requirement from ([^ ]+) to ([^ ]+)( in .*)?$/\2/p')
+            old_lo=$(printf '%s\n' "$old" | tr ',' '\n' | sed -n 's/^>=//p')
+            new_lo=$(printf '%s\n' "$new" | tr ',' '\n' | sed -n 's/^>=//p')
+            old_hi=$(printf '%s\n' "$old" | tr ',' '\n' | grep '^<' || true)
+            new_hi=$(printf '%s\n' "$new" | tr ',' '\n' | grep '^<' || true)
+            if [ -z "$old" ] || [ -z "$new" ]; then
+              level=""
+            elif [ "$old_hi" != "$new_hi" ]; then
+              level="version-update:semver-major"
+            elif [ -n "$old_lo" ] && [ -n "$new_lo" ] && [ "$old_lo" != "$new_lo" ]; then
+              IFS=. read -r -a a <<< "$old_lo"
+              IFS=. read -r -a b <<< "$new_lo"
+              i=0
+              while [ "$i" -lt 10 ] && [ "${a[$i]:-}" = "${b[$i]:-}" ]; do i=$((i + 1)); done
+              case $i in
+                0) level="version-update:semver-major" ;;
+                1) level="version-update:semver-minor" ;;
+                10) level="" ;;
+                *) level="version-update:semver-patch" ;;
+              esac
+            fi
+          fi
+          echo "Bump level: ${level:-unknown} (fetch-metadata: $META_TYPE, previous: $PREV)"
+          echo "update-type=$level" >> "$GITHUB_OUTPUT"
+        env:
+          META_TYPE: ${{ steps.meta.outputs.update-type }}
+          PREV: ${{ steps.meta.outputs.previous-version }}
+          TITLE: ${{ github.event.pull_request.title }}
+
       - name: Approve patch bump
-        if: steps.meta.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
+        if: steps.level.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
         run: gh pr review --approve "$PR_URL"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,7 +94,7 @@ jobs:
         continue-on-error: true
 
       - name: Enable auto-merge for patch bump
-        if: steps.meta.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
+        if: steps.level.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
         run: |
           gh pr merge --auto --squash "$PR_URL"
           echo "Auto-merge enabled for: $PR_NUMBER ($UPDATE_TYPE)"
@@ -57,12 +102,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          UPDATE_TYPE: ${{ steps.level.outputs.update-type }}
 
       - name: Report skipped PR
-        if: steps.meta.outputs.update-type != 'version-update:semver-patch' || contains(steps.meta.outputs.dependency-names, 'ruff')
+        if: steps.level.outputs.update-type != 'version-update:semver-patch' || contains(steps.meta.outputs.dependency-names, 'ruff')
         run: |
-          echo "Skipping (type=$UPDATE_TYPE, deps=$DEPS) — requires review."
+          echo "Skipping (type=${UPDATE_TYPE:-unknown}, deps=$DEPS) — requires review."
         env:
-          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+          UPDATE_TYPE: ${{ steps.level.outputs.update-type }}
           DEPS: ${{ steps.meta.outputs.dependency-names }}

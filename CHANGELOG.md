@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repo secret has no other user here and can be deleted.
 
 ### Fixed
+- **Patch auto-merge never fired on `constraints.txt` range bumps, and CI never resolved those ranges**:
+  `dependabot/fetch-metadata` reads `previous-version` from a requirement range (`10.0.0,>=9.1.0`) and reports
+  `semver-major` even for a patch, so every pip range PR (sphinx 9.1.0 → 9.1.1, virtualenv 21.14.6 → 21.14.13, ...)
+  skipped the patch merge while its run showed green. A new `level` step derives the bump from the PR title's old
+  and new bounds: a changed upper bound counts as major, and a title it can't read counts as "skip". Merging these PRs
+  unattended needed CI to test them, and it didn't: `setup-python-deps` never passed `-c constraints.txt`, although
+  its README said it did, and pip ignores a constraint for any package an install doesn't pull in (sphinx, tox,
+  virtualenv, pre-commit). The action now installs with `-c constraints.txt`. The required "Code Linting and
+  Formatting" job also resolves the whole file (`pip install --dry-run -r constraints.txt`, about 5 s), so a floor
+  that doesn't exist or conflicts fails a required check before auto-merge can land it.
+  `tests/test_dependabot_auto_merge_workflow.py` runs the workflow's and the action's own scripts against the
+  metadata of the real runs.
 - **The weekly performance gate failed on runner and network noise**: `scripts/compare_performance.py` failed on
   any >20% wall-clock change, and the scheduled run failed 3 of 6 weeks with no runtime change. Even best-of-3 is not
   stable on shared macOS runners: `apps` (`system_profiler`) measured +8% on 2026-10-18 and +104% on 2026-10-19

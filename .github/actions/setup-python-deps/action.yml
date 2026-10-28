@@ -12,16 +12,24 @@ runs:
     - name: Install project dependencies
       shell: bash
       run: |
+        # Apply constraints.txt so Dependabot's constraints-only PRs are actually
+        # resolved by CI (and fail the required checks when they don't resolve)
+        c=()
+        if [ -f constraints.txt ]; then
+          echo "📌 Applying constraints.txt"
+          c=(-c constraints.txt)
+        fi
+
         # Install base requirements if they exist
         if [ -f requirements.txt ]; then
           echo "📦 Installing requirements.txt..."
-          pip install -r requirements.txt
+          pip install -r requirements.txt "${c[@]}"
         fi
 
         # Install development requirements if they exist
         if [ -f requirements-dev.txt ]; then
           echo "📦 Installing requirements-dev.txt..."
-          pip install -r requirements-dev.txt
+          pip install -r requirements-dev.txt "${c[@]}"
         elif [ -f requirements/dev.txt ]; then
           echo "📦 Installing requirements/dev.txt..."
           pip install -r requirements/dev.txt
@@ -44,9 +52,13 @@ runs:
       shell: bash
       run: |
         # Install the package in editable mode for testing
+        c=()
+        if [ -f constraints.txt ]; then
+          c=(-c constraints.txt)
+        fi
         if [ -f pyproject.toml ]; then
           echo "📦 Installing package from pyproject.toml in editable mode..."
-          pip install -e ".[dev,test]" 2>/dev/null || pip install -e . || true
+          pip install -e ".[dev,test]" "${c[@]}" 2>/dev/null || pip install -e . || true
         elif [ -f setup.py ]; then
           echo "📦 Installing package from setup.py in editable mode..."
           pip install -e ".[dev,test]" 2>/dev/null || pip install -e . || true
