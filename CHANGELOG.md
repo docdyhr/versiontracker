@@ -10,9 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Vendored agent skills**: `.claude/skills/` carries four skills from github/awesome-copilot at commit `cb64ad1`
   (`dependabot`, `docs-sync-audit`, `github-actions-hardening`, `test-gap-audit`), byte-identical to upstream with its
-  MIT license, for Claude Code and GitHub Copilot. `CLAUDE.md` ("Vendored Agent Skills") and `AGENTS.md` take
+  MIT license except two corrected lines in `dependabot` (`[dependabot skip]` discards extra commits rather than
+  rebasing over them), for Claude Code and GitHub Copilot. `CLAUDE.md` ("Vendored Agent Skills") and `AGENTS.md` take
   precedence over them (no PR merges or auto-merge, no installs, report-only audits, the 85% coverage floor). Pre-commit
-  excludes them so its hooks cannot rewrite the verbatim copy, and `.gitignore` now ignores `.claude/` at any depth
+  excludes them so its hooks cannot rewrite the vendored copy, and `.gitignore` now ignores `.claude/` at any depth
   except the root `.claude/skills/`.
 
 ### Changed

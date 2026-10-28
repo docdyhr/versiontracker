@@ -102,7 +102,8 @@ When working with AI code assistants, the following linting configurations have 
 ### Vendored Agent Skills (`.claude/skills/`)
 
 The skills in `.claude/skills/` are third-party (github/awesome-copilot; see its README) and stay byte-identical to
-upstream: refresh them from upstream, never edit them here. Where a skill disagrees with this file, this file wins:
+upstream, except two corrected lines in `dependabot` (see the README): refresh them from upstream, never edit them
+here otherwise. Where a skill disagrees with this file, this file wins:
 
 - **Report, don't act.** `docs-sync-audit`, `test-gap-audit` and `github-actions-hardening` report in chat. Don't
   write report files into the repo (see "Files to Avoid Creating"), and don't change workflows, action pins or

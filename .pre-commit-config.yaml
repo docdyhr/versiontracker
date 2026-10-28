@@ -5,7 +5,7 @@
 default_language_version:
   python: python3.12
 
-# Vendored third-party agent skills stay byte-identical to upstream (see .claude/skills/README.md)
+# Vendored third-party agent skills: hooks must not rewrite them (upstream copy plus the corrections listed in .claude/skills/README.md)
 exclude: '^\.claude/skills/(?!README\.md$)'
 
 repos:
