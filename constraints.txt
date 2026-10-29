@@ -60,7 +60,7 @@ twine>=4.0.2,<8.0.0
 wheel>=0.40.0,<1.0.0
 
 # Documentation
-sphinx>=9.1.0,<10.0.0
+sphinx>=9.1.1,<10.0.0
 sphinx-rtd-theme>=3.1.0,<4.0.0
 
 # Development utilities
