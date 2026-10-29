@@ -38,6 +38,18 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup-python-deps
 
+      # pip ignores a constraint for any package the install above doesn't pull in (sphinx, tox,
+      # virtualenv, pre-commit), so resolve the whole file on its own, for the declared floor
+      # (requires-python >=3.12) and the newest CI Python. This required check is what keeps
+      # dependabot-auto-merge.yml from landing a floor that doesn't exist, conflicts, or drops 3.12.
+      - name: Check constraints.txt resolves
+        run: |
+          for py in 3.12 3.13; do
+            echo "Resolving constraints.txt for Python $py"
+            python -m pip install --dry-run --quiet --ignore-installed \
+              --python-version "$py" --only-binary=:all: -r constraints.txt
+          done
+
       - name: Run Ruff linting
         run: |
           echo "::group::Ruff Check"
