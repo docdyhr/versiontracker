@@ -2,11 +2,19 @@
 
 This composite action ensures consistent dependency installation across all workflows in the versiontracker project.
 
-## Features
+## What it does
 
-- Installs dependencies using `constraints.txt` to ensure version consistency
-- Configurable options for different workflow needs
-- Reduces duplication across workflow files
+1. Upgrades `pip`, `setuptools` and `wheel`.
+2. When `constraints.txt` exists, exports `PIP_CONSTRAINT` so every following `pip` call in the action is constrained
+   by it.
+3. Installs `requirements.txt` and `requirements-dev.txt` (or `requirements/dev.txt`), and `requirements-test.txt`
+   (or `requirements/test.txt`) when present, then the essential test tools.
+4. Installs the package in editable mode with its `dev` and `test` extras. With a `pyproject.toml` this step fails
+   when the extras don't install, so a constraints conflict fails the job instead of being hidden by a fallback.
+
+pip ignores a constraint for any package an install doesn't pull in, so this action alone does not validate the
+whole of `constraints.txt`. The required "Code Linting and Formatting" job (`lint.yml`) resolves the whole file for
+Python 3.12 and 3.13.
 
 ## Usage
 
@@ -15,38 +23,4 @@ This composite action ensures consistent dependency installation across all work
   uses: ./.github/actions/setup-python-deps
 ```
 
-## Inputs
-
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `requirements` | Install base requirements.txt | No | `true` |
-| `dev-requirements` | Install requirements-dev.txt | No | `true` |
-| `install-package` | Install package in editable mode | No | `true` |
-
-## Examples
-
-### Full installation (default)
-
-```yaml
-- uses: ./.github/actions/setup-python-deps
-```
-
-### Only dev requirements
-
-```yaml
-- uses: ./.github/actions/setup-python-deps
-  with:
-    requirements: 'false'
-    dev-requirements: 'true'
-    install-package: 'false'
-```
-
-### Only base requirements without package
-
-```yaml
-- uses: ./.github/actions/setup-python-deps
-  with:
-    requirements: 'true'
-    dev-requirements: 'false'
-    install-package: 'false'
-```
+The action takes no inputs.

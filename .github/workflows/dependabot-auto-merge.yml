@@ -53,15 +53,20 @@ jobs:
         run: |
           level="$META_TYPE"
           if ! printf '%s' "$PREV" | grep -Eq '^[0-9]+(\.[0-9A-Za-z]+)*$'; then
-            # Range update: compare the bounds in "update X requirement from <old> to <new>"
+            # Range update: compare the bounds in "update X requirement from <old> to <new>". The
+            # title shows one manifest's range, so it is trusted only for a single-file PR.
             level=""
+            nfiles=$(gh pr diff "$PR_URL" --name-only | grep -c . || true)
             old=$(printf '%s' "$TITLE" | sed -nE 's/.* requirement from ([^ ]+) to ([^ ]+)( in .*)?$/\1/p')
             new=$(printf '%s' "$TITLE" | sed -nE 's/.* requirement from ([^ ]+) to ([^ ]+)( in .*)?$/\2/p')
             old_lo=$(printf '%s\n' "$old" | tr ',' '\n' | sed -n 's/^>=//p')
             new_lo=$(printf '%s\n' "$new" | tr ',' '\n' | sed -n 's/^>=//p')
             old_hi=$(printf '%s\n' "$old" | tr ',' '\n' | grep '^<' || true)
             new_hi=$(printf '%s\n' "$new" | tr ',' '\n' | grep '^<' || true)
-            if [ -z "$old" ] || [ -z "$new" ]; then
+            # 9.1 and 9.1.0 are the same version: drop trailing .0 components before comparing
+            while case $old_lo in *.0) true ;; *) false ;; esac; do old_lo=${old_lo%.0}; done
+            while case $new_lo in *.0) true ;; *) false ;; esac; do new_lo=${new_lo%.0}; done
+            if [ "$nfiles" != 1 ] || [ -z "$old" ] || [ -z "$new" ]; then
               level=""
             elif [ "$old_hi" != "$new_hi" ]; then
               level="version-update:semver-major"
@@ -78,9 +83,11 @@ jobs:
               esac
             fi
           fi
-          echo "Bump level: ${level:-unknown} (fetch-metadata: $META_TYPE, previous: $PREV)"
+          echo "Bump level: ${level:-unknown} (fetch-metadata: $META_TYPE, previous: $PREV, files: ${nfiles:-n/a})"
           echo "update-type=$level" >> "$GITHUB_OUTPUT"
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
           META_TYPE: ${{ steps.meta.outputs.update-type }}
           PREV: ${{ steps.meta.outputs.previous-version }}
           TITLE: ${{ github.event.pull_request.title }}

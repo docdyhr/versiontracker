@@ -41,14 +41,27 @@ def _level_script() -> str:
     pytest.fail("dependabot-auto-merge.yml has no step with id 'level'")
 
 
-def _derive(meta_type: str, prev: str, title: str, tmp_path: Path) -> str:
-    """Run the level step as GitHub does for a default-shell step (bash -e) and read its output."""
+def _derive(
+    meta_type: str, prev: str, title: str, tmp_path: Path, files: tuple[str, ...] = ("constraints.txt",)
+) -> str:
+    """Run the level step as GitHub does for a default-shell step (bash -e) and read its output.
+
+    A fake ``gh`` on PATH answers ``gh pr diff --name-only`` with ``files``.
+    """
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    listing = tmp_path / "files.txt"
+    listing.write_text("".join(f"{f}\n" for f in files))
+    fake_gh = bindir / "gh"
+    fake_gh.write_text(f'#!/bin/sh\ncat "{listing}"\n')
+    fake_gh.chmod(fake_gh.stat().st_mode | stat.S_IEXEC)
     script = tmp_path / "level.sh"
     script.write_text(_level_script())
     out = tmp_path / "github_output"
     out.write_text("")
     env = {
-        "PATH": os.environ["PATH"],
+        "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}",
+        "PR_URL": "https://github.com/docdyhr/versiontracker/pull/0",
         "META_TYPE": meta_type,
         "PREV": prev,
         "TITLE": title,
@@ -167,6 +180,34 @@ def test_unclassifiable_range_update_is_skipped(title, tmp_path):
     assert _derive(MAJOR, "10.0.0,>=9.1.0", title, tmp_path) == ""
 
 
+@pytest.mark.parametrize(
+    "files",
+    [("constraints.txt", "requirements.txt"), ("constraints.txt", "requirements-py313.txt"), ()],
+)
+def test_title_trusted_only_for_a_single_file_pr(files, tmp_path):
+    """The title shows one manifest's range; with more files (or none readable) the PR is skipped."""
+    title = "deps(deps): update sphinx requirement from <10.0.0,>=9.1.0 to >=9.1.1,<10.0.0"
+    assert _derive(MAJOR, "10.0.0,>=9.1.0", title, tmp_path, files) == ""
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [(">=9.1,<10", ">=9.1.0,<10"), (">=9,<10", ">=9.0.0,<10"), (">=9.1.0,<10", ">=9.1,<10")],
+)
+def test_trailing_zero_normalisation_is_no_change(old, new, tmp_path):
+    """9.1 and 9.1.0 are the same version, so a normalisation-only title is not a patch."""
+    title = f"deps(deps): update x requirement from {old} to {new}"
+    assert _derive(MAJOR, "10,>=9.1", title, tmp_path) == ""
+
+
+def test_trailing_zero_does_not_hide_a_real_bump(tmp_path):
+    """Normalising must still leave 9.1.0 -> 9.1.1 a patch and 9.0 -> 9.10 a minor."""
+    title = "deps(deps): update x requirement from <10.0.0,>=9.1.0 to >=9.1.1,<10.0.0"
+    assert _derive(MAJOR, "10.0.0,>=9.1.0", title, tmp_path) == PATCH
+    title = "deps(deps): update x requirement from <11,>=9.0 to >=9.10,<11"
+    assert _derive(MAJOR, "11,>=9.0", title, tmp_path) == MINOR
+
+
 def test_title_is_data_not_code(tmp_path):
     """The PR title reaches the script through env, so shell syntax in it never executes."""
     title = 'deps(deps): update x requirement from $(touch pwned) to `touch pwned2`; touch "pwned3"'
@@ -191,7 +232,7 @@ def _run_action_steps(tmp_path: Path, with_constraints: bool) -> list[str]:
     bindir.mkdir()
     log = tmp_path / "pip.log"
     fake = bindir / "pip"
-    fake.write_text(f'#!/bin/sh\necho "$*" >> "{log}"\n')
+    fake.write_text(f'#!/bin/sh\necho "$* [PIP_CONSTRAINT=$PIP_CONSTRAINT]" >> "{log}"\n')
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
     work = tmp_path / "repo"
     work.mkdir()
@@ -218,14 +259,22 @@ def _run_action_steps(tmp_path: Path, with_constraints: bool) -> list[str]:
 
 
 def test_action_installs_requirements_with_constraints(tmp_path):
-    """Every requirements and package install is constrained, so CI resolves constraints.txt."""
+    """Every pip call in the install steps runs under PIP_CONSTRAINT, so CI resolves constraints.txt."""
     calls = _run_action_steps(tmp_path, with_constraints=True)
-    constrained = [
-        c for c in calls if c.startswith("install -r requirements") or c.startswith("install -e .[dev,test]")
-    ]
-    assert [c.split()[2] for c in constrained] == ["requirements.txt", "requirements-dev.txt", ".[dev,test]"]
-    for call in constrained:
-        assert call.endswith("-c constraints.txt"), call
+    assert [c.split()[2] for c in calls] == ["requirements.txt", "requirements-dev.txt", "pytest-cov", ".[dev,test]"]
+    expected = f"[PIP_CONSTRAINT={tmp_path / 'repo' / 'constraints.txt'}]"
+    for call in calls:
+        assert call.endswith(expected), call
+
+
+def test_action_editable_install_failure_fails_the_step():
+    """With a pyproject.toml the constrained extras install has no silent fallback."""
+    steps = yaml.safe_load(ACTION.read_text())["runs"]["steps"]
+    editable = next(s["run"] for s in steps if s["name"] == "Install package in editable mode")
+    pyproject_branch = editable.split("if [ -f pyproject.toml ]")[1].split("elif")[0]
+    assert 'pip install -e ".[dev,test]"' in pyproject_branch
+    assert "|| " not in pyproject_branch
+    assert "2>/dev/null" not in pyproject_branch
 
 
 def test_required_lint_check_resolves_the_whole_constraints_file():
@@ -240,7 +289,12 @@ def test_required_lint_check_resolves_the_whole_constraints_file():
     names = [s.get("name", "") for s in job["steps"]]
     check = [i for i, r in enumerate(runs) if "--dry-run" in r and "-r constraints.txt" in r]
     assert len(check) == 1, runs
-    assert "--ignore-installed" in runs[check[0]]
+    script = runs[check[0]]
+    assert "--ignore-installed" in script
+    # the declared floor (requires-python >=3.12) and the newest CI Python, wheels only
+    assert "for py in 3.12 3.13" in script
+    assert '--python-version "$py"' in script
+    assert "--only-binary=:all:" in script
     assert check[0] > names.index("Install dependencies")
     assert "continue-on-error" not in job["steps"][check[0]]
 
@@ -248,6 +302,6 @@ def test_required_lint_check_resolves_the_whole_constraints_file():
 def test_action_without_constraints_file_still_installs(tmp_path):
     """A checkout without constraints.txt (the action is generic) installs unconstrained."""
     calls = _run_action_steps(tmp_path, with_constraints=False)
-    assert "install -r requirements.txt" in calls
-    assert "install -r requirements-dev.txt" in calls
+    assert "install -r requirements.txt [PIP_CONSTRAINT=]" in calls
+    assert "install -r requirements-dev.txt [PIP_CONSTRAINT=]" in calls
     assert not any("constraints.txt" in c for c in calls)

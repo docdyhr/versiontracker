@@ -28,12 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dependabot/fetch-metadata` reads `previous-version` from a requirement range (`10.0.0,>=9.1.0`) and reports
   `semver-major` even for a patch, so every pip range PR (sphinx 9.1.0 → 9.1.1, virtualenv 21.14.6 → 21.14.13, ...)
   skipped the patch merge while its run showed green. A new `level` step derives the bump from the PR title's old
-  and new bounds: a changed upper bound counts as major, and a title it can't read counts as "skip". Merging these PRs
-  unattended needed CI to test them, and it didn't: `setup-python-deps` never passed `-c constraints.txt`, although
-  its README said it did, and pip ignores a constraint for any package an install doesn't pull in (sphinx, tox,
-  virtualenv, pre-commit). The action now installs with `-c constraints.txt`. The required "Code Linting and
-  Formatting" job also resolves the whole file (`pip install --dry-run -r constraints.txt`, about 5 s), so a floor
-  that doesn't exist or conflicts fails a required check before auto-merge can land it.
+  and new bounds, for a PR that changes exactly one file (the title shows one manifest's range): a changed upper
+  bound counts as major, trailing `.0` components are normalised (`9.1` = `9.1.0`), and anything it can't read counts
+  as "skip". Merging these PRs unattended needed CI to test them, and it didn't: `setup-python-deps` never applied
+  `constraints.txt`, although its README said it did, and pip ignores a constraint for any package an install
+  doesn't pull in (sphinx, tox, virtualenv, pre-commit). The action now exports `PIP_CONSTRAINT` for every pip call,
+  and its editable install no longer falls back silently. The required "Code Linting and Formatting" job also
+  resolves the whole file for Python 3.12 and 3.13 (`pip install --dry-run --python-version … -r constraints.txt`),
+  so a floor that doesn't exist, conflicts, or drops the 3.12 floor fails a required check before auto-merge can land
+  it. The action README now describes what the action does; it documented inputs the action never had.
   `tests/test_dependabot_auto_merge_workflow.py` runs the workflow's and the action's own scripts against the
   metadata of the real runs.
 - **The weekly performance gate failed on runner and network noise**: `scripts/compare_performance.py` failed on
