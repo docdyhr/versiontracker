@@ -47,6 +47,11 @@ def _generate_lock_file(requirements_file: Path, lock_file: Path, project_root: 
             return False
 
         cmd = [str(venv_python), "-m", "pip", "install", "--quiet", "-r", str(requirements_file)]
+        # Resolve under the same constraints CI installs with, so the lock can't pin a version
+        # constraints.txt excludes (e.g. one below a security floor)
+        constraints = project_root / "constraints.txt"
+        if constraints.exists():
+            cmd += ["-c", str(constraints)]
         output, returncode = run_command(cmd, cwd=project_root)
         if returncode != 0:
             print(f"Failed to install {requirements_file.name} in isolated environment: {output}")

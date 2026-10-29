@@ -139,14 +139,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   environment pinned to the regenerated lock.
 - **`requirements-dev.lock` pinned a critical `certifi` and a vulnerable `filelock`**: the lock (last regenerated
   2026-10-07) had `certifi==2026.7.22` (GHSA-6q48-6c7w-9gw2, critical: bundled emSign roots with compromised
-  intermediate CA keys, fixed in 2026.10.18) and `filelock==4.0.12` (GHSA-v4x8-3wr5-3wq8, high, plus
-  GHSA-567q-5qvw-pf92 and GHSA-9vhv-jxww-xfm5, low; fixed in 4.2.1). Dependabot never flagged them: GitHub's
-  dependency graph doesn't index `*.lock` files. Regenerated with `scripts/update_dependencies.py
-  --development-only`: `certifi` 2026.10.23, `filelock` 4.2.4, and refreshes of 13 other pins, including `ruff`
-  0.17.0 (matching the `requirements-dev.txt` pin), `multidict` 7.2.1 (within `aiohttp` 3.14.5's `<8.0` bound),
-  `pytest` 9.2.0 and `coverage` 7.17.0. pip-audit and OSV now report both lock files clean. Nothing installs from
-  the dev lock, so this changes no installed behavior; the full test suite passes in a fresh environment pinned
-  to the regenerated lock (2,841 passed, 16 skipped).
+  intermediate CA keys, fixed in 2026.10.18) and `filelock==4.0.12` (13 advisories, among them GHSA-v4x8-3wr5-3wq8,
+  high; all fixed in 4.2.1). Dependabot never flagged them: GitHub's dependency graph doesn't index `*.lock` files.
+  `constraints.txt` now sets `certifi>=2026.10.18`, so an environment installed with it can't keep the bad bundle,
+  and `scripts/update_dependencies.py` resolves the locks under `-c constraints.txt`, as CI installs. Both locks were
+  regenerated with it: `certifi` 2026.10.23 and `filelock` 4.2.4 in the dev lock, and the prod lock moves to the
+  dev lock's `aiohttp` 3.14.5 / `multidict` 7.2.1 (within aiohttp's `<8.0`), so every prod pin now equals its dev
+  pin. On this tree pip-audit and OSV report both locks clean (OSV: 73 queried, 0 vulnerable), and the full suite
+  passes in a fresh Python 3.13 environment pinned to the regenerated dev lock (2,843 passed, 16 skipped). The
+  locks are reference snapshots that nothing installs, so this changes no installed behavior.
 
 ### Documentation
 - **`CLAUDE.md` described lint rules and limits the config doesn't have**: it said

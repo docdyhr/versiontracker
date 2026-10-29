@@ -38,7 +38,7 @@ mdurl==0.1.2
 more-itertools==11.2.1
 msgpack==1.2.4
 multidict==7.2.1
-mypy==2.4.0
+mypy==2.4.1
 mypy_extensions==1.1.0
 nh3==0.3.7
 packageurl-python==0.17.6
@@ -47,7 +47,7 @@ pathspec==1.1.1
 pip-requirements-parser==32.0.1
 pip_api==0.0.35
 pip_audit==2.10.1
-platformdirs==4.13.6
+platformdirs==4.14.0
 pluggy==1.7.0
 propcache==0.5.4
 psutil==7.2.2
