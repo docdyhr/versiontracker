@@ -24,8 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   commits linted with an older ruff than CI, as they did until PR #335. `tests/test_tool_pin_parity.py` now fails
   when a site pins a different version from `pyproject.toml` (compared as PEP 440 versions), has no ruff pin, or
   holds a ruff entry that is not one exact version, and the required "Code Linting and Formatting" job runs it, so a
-  ruff bump cannot merge until every site moves. `requirements-dev.lock` is left as it is: it is a snapshot that
-  `scripts/update_dependencies.py` regenerates, and nothing installs from it.
+  ruff bump cannot merge until every site moves. Its self-test runs on small synthetic copies of the four sites,
+  never the live files, so a drifted tree fails only the gate test. `requirements-dev.lock` is left as it is: it is
+  a snapshot that `scripts/update_dependencies.py` regenerates, and nothing installs from it.
 - **Dependabot patch bumps now merge natively**: `dependabot-auto-merge.yml` was a dispatch-only caller of the Claude
   merger in `docdyhr/.github`, which the org retired on 2026-10-21. It is now the native workflow httpcheck and
   malwarespotter use: a Dependabot patch bump is approved and set to auto-merge, so it merges once the required checks
