@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   except the root `.claude/skills/`.
 
 ### Changed
+- **ruff 0.17.2 at all four pin sites, and a test that keeps them together**: `pyproject.toml`,
+  `requirements-dev.txt`, `requirements-py313.txt` and the `ruff-pre-commit` hook `rev` move from 0.17.0 to 0.17.2
+  (on `main` at `fd1dc01`, `ruff check --statistics` and `ruff format --check` give identical, clean results under
+  both versions). Dependabot's dev-tools group (#339) bumps the three requirement pins but never the hook, so local
+  commits linted with an older ruff than CI, as they did until PR #335. `tests/test_tool_pin_parity.py` now fails
+  when a site pins a different version from `pyproject.toml` (compared as PEP 440 versions), has no ruff pin, or
+  holds a ruff entry that is not one exact version, and the required "Code Linting and Formatting" job runs it, so a
+  ruff bump cannot merge until every site moves. `requirements-dev.lock` is left as it is: it is a snapshot that
+  `scripts/update_dependencies.py` regenerates, and nothing installs from it.
 - **Dependabot patch bumps now merge natively**: `dependabot-auto-merge.yml` was a dispatch-only caller of the Claude
   merger in `docdyhr/.github`, which the org retired on 2026-10-21. It is now the native workflow httpcheck and
   malwarespotter use: a Dependabot patch bump is approved and set to auto-merge, so it merges once the required checks

@@ -50,6 +50,11 @@ jobs:
               --python-version "$py" --only-binary=:all: -r constraints.txt
           done
 
+      # Dependabot bumps ruff's requirement pins but never the pre-commit hook's rev. Running the
+      # parity test in this required check keeps a ruff bump PR from merging until every pin moves.
+      - name: Check ruff pins agree
+        run: python -m pytest tests/test_tool_pin_parity.py --no-cov -p no:cacheprovider
+
       - name: Run Ruff linting
         run: |
           echo "::group::Ruff Check"

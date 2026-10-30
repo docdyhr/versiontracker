@@ -9,7 +9,7 @@ pytest-mock>=3.14
 pytest-asyncio>=1.0
 
 # Code quality
-ruff==0.17.0
+ruff==0.17.2
 mypy>=1.10
 types-PyYAML>=6.0.12
 
