@@ -19,7 +19,24 @@ from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 
 PROJECT_ROOT = Path(__file__).parent.parent
-SITES = ("pyproject.toml", "requirements-dev.txt", "requirements-py313.txt", ".pre-commit-config.yaml")
+# The drift self-test runs on these, never on the live files, so a drifted tree fails only the gate test.
+# They also use layouts the live files don't (dependency groups, a second hook repo, a .git URL, -c).
+FIXTURE_SITES = {
+    "pyproject.toml": (
+        '[project]\nname = "example"\nversion = "0"\n\n'
+        '[project.optional-dependencies]\ndev = ["pytest>=8", "ruff==1.0.0"]\n\n'
+        '[dependency-groups]\nstyle = [{include-group = "docs"}, "ruff==1.0.0"]\ndocs = ["sphinx>=8"]\n'
+    ),
+    "requirements-dev.txt": "-r requirements.txt\n-c constraints.txt\npytest>=8\nruff==1.0.0  # exact pin\n",
+    "requirements-py313.txt": "mypy>=1.10\nruff==1.0.0\n",
+    ".pre-commit-config.yaml": (
+        "repos:\n"
+        "  - repo: https://github.com/pre-commit/pre-commit-hooks\n    rev: v5.0.0\n"
+        "    hooks:\n      - id: trailing-whitespace\n"
+        "  - repo: https://github.com/astral-sh/ruff-pre-commit.git\n    rev: v1.0.0\n"
+        "    hooks:\n      - id: ruff\n"
+    ),
+}
 
 
 def as_version(text: str) -> Version | None:
@@ -34,8 +51,10 @@ def ruff_versions(lines: list[str]) -> list[Version | None]:
     """Return the pinned version of every ruff requirement in ``lines`` (None for one that is not ``==X``)."""
     versions: list[Version | None] = []
     for line in lines:
+        # Drop an inline comment, per-requirement pip options (--hash=...) and a trailing continuation backslash
+        text = re.split(r"(?:^|\s)(?:#|--)", line, maxsplit=1)[0].strip().rstrip("\\").strip()
         try:
-            requirement = Requirement(re.split(r"(?:^|\s)#", line, maxsplit=1)[0].strip())
+            requirement = Requirement(text)
         except InvalidRequirement:
             continue  # blank lines, comments and pip options such as -r and -c
         if canonicalize_name(requirement.name) == "ruff":
@@ -95,39 +114,52 @@ def test_ruff_pin_check_reports_drift(tmp_path):
     """The check reports a stale site on either side, an extra or non-exact requirement, and a removed pin."""
 
     def problems_after(name: str, edit: Callable[[str], str]) -> list[str]:
-        for site in SITES:
-            (tmp_path / site).write_text((PROJECT_ROOT / site).read_text(encoding="utf-8"), encoding="utf-8")
-        path = tmp_path / name
-        path.write_text(edit(path.read_text(encoding="utf-8")), encoding="utf-8")
+        for site, text in FIXTURE_SITES.items():
+            (tmp_path / site).write_text(edit(text) if site == name else text, encoding="utf-8")
         return find_ruff_pin_problems(collect_ruff_pins(tmp_path))
 
     assert problems_after("requirements-dev.txt", lambda text: text) == []
 
-    stale_hook = problems_after(
-        ".pre-commit-config.yaml", lambda text: re.sub(r"(ruff-pre-commit\n\s+rev: )v\S+", r"\g<1>v0.0.1", text)
+    stale_hook = problems_after(".pre-commit-config.yaml", lambda text: text.replace("rev: v1.0.0", "rev: v0.0.1"))
+    assert stale_hook == [".pre-commit-config.yaml: pins 0.0.1, pyproject.toml pins 1.0.0"], stale_hook
+
+    manifest_moved = problems_after("pyproject.toml", lambda text: text.replace("ruff==1.0.0", "ruff==0.0.1"))
+    for site in FIXTURE_SITES.keys() - {"pyproject.toml"}:
+        assert f"{site}: pins 1.0.0, pyproject.toml pins 0.0.1" in manifest_moved, manifest_moved
+
+    stale_group = problems_after(
+        "pyproject.toml", lambda text: text.replace('"docs"}, "ruff==1.0.0"', '"docs"}, "ruff==0.0.1"')
     )
-    assert any(problem.startswith(".pre-commit-config.yaml: pins 0.0.1,") for problem in stale_hook), stale_hook
+    assert any("several versions" in problem for problem in stale_group), stale_group
 
-    manifest_moved = problems_after("pyproject.toml", lambda text: re.sub(r'"ruff==[^"]+"', '"ruff==0.0.1"', text))
-    for site in SITES[1:]:
-        assert any(p.startswith(f"{site}: pins ") and p.endswith(" pins 0.0.1") for p in manifest_moved), manifest_moved
-
-    second_group = problems_after(
+    second_extra = problems_after(
         "pyproject.toml",
         lambda text: text.replace(
-            "[project.optional-dependencies]\n", '[project.optional-dependencies]\nlint = ["ruff==0.0.1"]\n', 1
+            "[project.optional-dependencies]\n", '[project.optional-dependencies]\nlint = ["ruff==0.0.1"]\n'
         ),
     )
-    assert any("several versions" in problem for problem in second_group), second_group
+    assert any("several versions" in problem for problem in second_extra), second_extra
 
-    tab_comment = problems_after("requirements-dev.txt", lambda text: text + "\nruff==0.0.1\t# a second, stale pin\n")
-    assert any(problem.startswith("requirements-dev.txt: pins 0.0.1,") for problem in tab_comment), tab_comment
+    tab_comment = problems_after("requirements-dev.txt", lambda text: text + "ruff==0.0.1\t# a second, stale pin\n")
+    assert tab_comment == ["requirements-dev.txt: pins 0.0.1, pyproject.toml pins 1.0.0"], tab_comment
 
-    extra = problems_after("requirements-dev.txt", lambda text: text + "\nruff>=0.0.1\n")
-    assert "requirements-dev.txt: a ruff entry is not an exact version" in extra, extra
+    extra = problems_after("requirements-dev.txt", lambda text: text + "ruff>=0.0.1\n")
+    assert extra == ["requirements-dev.txt: a ruff entry is not an exact version"], extra
 
-    removed = problems_after("requirements-py313.txt", lambda text: re.sub(r"(?m)^ruff\b.*$", "", text))
-    assert "requirements-py313.txt: no ruff pin" in removed, removed
+    removed = problems_after("requirements-py313.txt", lambda text: text.replace("ruff==1.0.0\n", ""))
+    assert removed == ["requirements-py313.txt: no ruff pin"], removed
+
+
+def test_requirement_lines_with_comments_options_and_continuations():
+    """Inline comments, per-requirement pip options and hash continuation lines do not hide a pin."""
+    lines = [
+        "ruff==1.0.0 \\",
+        "    --hash=sha256:00",
+        "ruff==1.0.0 --hash=sha256:00",
+        "ruff==1.0.0\t# note",
+        "-c c.txt",
+    ]
+    assert ruff_versions(lines) == [Version("1.0.0")] * 3
 
 
 def test_pep440_equal_spellings_agree():
