@@ -8,6 +8,9 @@ from typing import Any
 
 import pytest
 import yaml
+from packaging.specifiers import SpecifierSet
+from packaging.utils import canonicalize_name
+from packaging.version import Version
 
 
 def get_project_root() -> Path:
@@ -105,6 +108,30 @@ def validate_coverage_config(content: str) -> None:
         low_msg = f"Coverage fail_under is {fail_under}%, consider raising"
         assert fail_under <= 70, high_msg
         assert fail_under >= 50, low_msg
+
+
+def sphinx_ignore_problems(python_floor: str, dependabot_config: dict[str, Any]) -> list[str]:
+    """Check the pip ecosystem's sphinx ignore rule against the Python floor and return the problems found.
+
+    sphinx 9.2 requires Python >=3.13. With a lower floor, Dependabot's updater filters 9.2.0 out, falls back to
+    9.1.1 (already the constraints.txt floor) and fails the whole weekly pip run, so 9.2+ must be ignored while
+    9.1.x stays open. From a 3.13 floor on, the rule would only hide real updates.
+    """
+    pip_updates = [u for u in dependabot_config.get("updates", []) if u.get("package-ecosystem") == "pip"]
+    if len(pip_updates) != 1:
+        return [f"expected exactly one pip entry in dependabot.yml, found {len(pip_updates)}"]
+    rules = [
+        rule
+        for rule in pip_updates[0].get("ignore", [])
+        if canonicalize_name(str(rule.get("dependency-name", ""))) == "sphinx"
+    ]
+    ignored = [SpecifierSet(spec) for rule in rules for spec in rule.get("versions", [])]
+    holds_9_1 = any(Version("9.2.0") in s for s in ignored) and not any(Version("9.1.1") in s for s in ignored)
+    if Version(python_floor) < Version("3.13"):
+        if holds_9_1:
+            return []
+        return ["dependabot.yml must ignore sphinx >=9.2.0 (it needs Python >=3.13), and only that"]
+    return ["requires-python is >=3.13 now: drop the sphinx ignore rule from dependabot.yml"] if rules else []
 
 
 def validate_constraints_content(content: str) -> None:
@@ -364,6 +391,27 @@ class TestProjectConsistency:
         self._check_coveragerc_file(project_root)
         self._check_pytest_ini_file(project_root)
         self._check_pytest_ci_file(project_root)
+
+    def test_dependabot_ignores_sphinx_9_2_while_python_3_12_is_supported(self):
+        """Test that Dependabot skips sphinx 9.2+ exactly while requires-python admits a Python it does not support.
+
+        Without the rule, the weekly pip runs of 2026-11-03 and 2026-11-10 failed on sphinx ("Expected content to
+        change!") after opening their other PRs. The checker also runs on synthetic configs, so a checker that
+        accepts anything cannot pass the live file by accident.
+        """
+        live_config = yaml.safe_load((get_project_root() / ".github" / "dependabot.yml").read_text(encoding="utf-8"))
+        assert sphinx_ignore_problems(extract_min_python_version(), live_config) == []
+
+        def config(*ignore: dict[str, Any]) -> dict[str, Any]:
+            return {"updates": [{"package-ecosystem": "pip", "ignore": list(ignore)}]}
+
+        rule = {"dependency-name": "Sphinx", "versions": [">=9.2.0"]}
+        assert sphinx_ignore_problems("3.12", config(rule)) == []
+        assert sphinx_ignore_problems("3.12", config()) != [], "a missing rule must fail below a 3.13 floor"
+        too_wide = {"dependency-name": "sphinx", "versions": [">=9.1"]}
+        assert sphinx_ignore_problems("3.12", config(too_wide)) != [], "a rule that also blocks 9.1.x must fail"
+        assert sphinx_ignore_problems("3.13", config(rule)) != [], "a leftover rule must fail from a 3.13 floor"
+        assert sphinx_ignore_problems("3.13", config()) == []
 
     def test_dependency_constraints(self):
         """Test that constraints.txt exists and is valid."""
