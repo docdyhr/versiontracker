@@ -58,9 +58,9 @@ updates:
       - dependency-name: "tabulate"
         update-types: ["version-update:semver-major"]
       # sphinx 9.2 requires Python >=3.13, and requires-python here is >=3.12. Dependabot's updater
-      # filters 9.2.0 out, falls back to 9.1.1 (already the constraints.txt floor) and fails the whole
-      # weekly pip run with "Expected content to change!". Drop this once requires-python is >=3.13;
-      # tests/test_project_consistency.py fails until it is.
+      # filters 9.2.0 out, falls back to 9.1.1 (already the constraints.txt floor), fails that update
+      # with "Expected content to change!" and marks the weekly pip run failed. Drop this rule once
+      # requires-python is >=3.13: from then on tests/test_project_consistency.py fails until it is gone.
       - dependency-name: "sphinx"
         versions: [">=9.2.0"]
     pull-request-branch-name:
