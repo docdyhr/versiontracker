@@ -122,11 +122,11 @@ here otherwise. Where a skill disagrees with this file, this file wins:
 
 ## Project-Specific Context
 
-### Current Status (October 2026)
+### Current Status (November 2026)
 
 - Latest release: 1.2.0 — on PyPI as `macversiontracker`, in the Homebrew tap, and as a GitHub release with
   Sigstore-signed assets
-- Test suite: 2,878 passing, 16 skipped (13 need the optional ML extras); coverage 88.21%
+- Test suite: 2,892 passing, 16 skipped (13 need the optional ML extras); coverage 88.21%
 - Code quality: ruff, ruff format, and mypy all clean
 - Focus: Feature development and user experience improvements
 

@@ -35,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repo secret has no other user here and can be deleted.
 
 ### Fixed
+- **The weekly Dependabot pip run failed on sphinx**: sphinx 9.2.0 requires Python 3.13, and `requires-python` is
+  `>=3.12`, so Dependabot's updater dropped 9.2.0, fell back to 9.1.1 (already the `constraints.txt` floor) and
+  failed that update with `Expected content to change!`. The runs of 2026-11-03 and 2026-11-10 carried on with the
+  other updates and opened their PRs, but ended red. `.github/dependabot.yml` now ignores sphinx `>=9.2.0`, keeping
+  the 9.1 line that Python 3.12 can install. `tests/test_project_consistency.py` checks that the rules ignore every
+  release from 9.2.0 on and no 9.1.x release, and it fails once `requires-python` reaches 3.13, when the rule would
+  only hide real updates.
 - **Patch auto-merge never fired on `constraints.txt` range bumps, and CI never resolved those ranges**:
   `dependabot/fetch-metadata` reads `previous-version` from a requirement range (`10.0.0,>=9.1.0`) and reports
   `semver-major` even for a patch, so every pip range PR (sphinx 9.1.0 → 9.1.1, virtualenv 21.14.6 → 21.14.13, ...)

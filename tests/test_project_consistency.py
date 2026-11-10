@@ -8,6 +8,9 @@ from typing import Any
 
 import pytest
 import yaml
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.utils import canonicalize_name
+from packaging.version import Version
 
 
 def get_project_root() -> Path:
@@ -105,6 +108,55 @@ def validate_coverage_config(content: str) -> None:
         low_msg = f"Coverage fail_under is {fail_under}%, consider raising"
         assert fail_under <= 70, high_msg
         assert fail_under >= 50, low_msg
+
+
+# sphinx 9.2+ requires Python >=3.13; the 9.1 line still installs on Python 3.12.
+SPHINX_MUST_IGNORE = ("9.2.0", "9.2.1", "9.3.0", "10.0.0", "99.0")
+SPHINX_MUST_ALLOW = ("9.1.1", "9.1.2", "9.1.99")
+
+
+def sphinx_ignore_problems(python_floor: str, dependabot_config: dict[str, Any]) -> list[str]:
+    """Check the root pip entry's sphinx ignore rules against the Python floor and return the problems found.
+
+    sphinx 9.2 requires Python >=3.13. With a lower floor, Dependabot's updater filters 9.2.0 out, falls back to
+    9.1.1 (already the constraints.txt floor) and marks the weekly pip run failed, so the rules must ignore every
+    release from 9.2.0 on and no 9.1.x release. From a 3.13 floor on, any sphinx rule only hides real updates.
+    """
+    root = [
+        update
+        for update in dependabot_config.get("updates", [])
+        if update.get("package-ecosystem") == "pip" and update.get("directory") == "/"
+    ]
+    if len(root) != 1:
+        return [f"expected one pip entry for directory '/' in dependabot.yml, found {len(root)}"]
+    rules = [
+        rule
+        for rule in root[0].get("ignore") or []
+        if canonicalize_name(str(rule.get("dependency-name", ""))) == "sphinx"
+    ]
+    if Version(python_floor) >= Version("3.13"):
+        return ["requires-python is >=3.13 now: drop the sphinx ignore rules from dependabot.yml"] if rules else []
+
+    problems: list[str] = []
+    specifiers: list[SpecifierSet] = []
+    for rule in rules:
+        versions = rule.get("versions")
+        if "update-types" in rule or not versions:
+            problems.append(f"sphinx rule {rule} must list versions only (update-types or no versions block 9.1.x)")
+            continue
+        for spec in [versions] if isinstance(versions, str) else versions:
+            try:
+                specifiers.append(SpecifierSet(str(spec)))
+            except InvalidSpecifier:
+                problems.append(f"sphinx rule version {spec!r} is not a PEP 440 specifier; write it as >=9.2.0")
+    ignored = {v for v in SPHINX_MUST_IGNORE + SPHINX_MUST_ALLOW if any(Version(v) in s for s in specifiers)}
+    missed = [v for v in SPHINX_MUST_IGNORE if v not in ignored]
+    if missed:
+        problems.append(f"dependabot.yml must ignore sphinx >=9.2.0 (it needs Python >=3.13); not ignored: {missed}")
+    blocked = [v for v in SPHINX_MUST_ALLOW if v in ignored]
+    if blocked:
+        problems.append(f"the sphinx rules also ignore 9.1.x releases that Python 3.12 can install: {blocked}")
+    return problems
 
 
 def validate_constraints_content(content: str) -> None:
@@ -364,6 +416,69 @@ class TestProjectConsistency:
         self._check_coveragerc_file(project_root)
         self._check_pytest_ini_file(project_root)
         self._check_pytest_ci_file(project_root)
+
+    def test_dependabot_ignores_sphinx_9_2_while_python_3_12_is_supported(self):
+        """Test that Dependabot skips sphinx 9.2+, and no 9.1.x release, while requires-python admits Python 3.12.
+
+        Without the rule, the weekly pip runs of 2026-11-03 and 2026-11-10 ended red: Dependabot failed the sphinx
+        update with "Expected content to change!" and carried on with the other updates.
+        """
+        live_config = yaml.safe_load((get_project_root() / ".github" / "dependabot.yml").read_text(encoding="utf-8"))
+        assert sphinx_ignore_problems(extract_min_python_version(), live_config) == []
+
+    @pytest.mark.parametrize(
+        ("floor", "rules", "accepted"),
+        [
+            pytest.param("3.12", [{"dependency-name": "Sphinx", "versions": [">=9.2.0"]}], True, id="rule"),
+            pytest.param("3.12", [{"dependency-name": "sphinx", "versions": ">=9.2.0"}], True, id="string-versions"),
+            pytest.param("3.12", [], False, id="missing"),
+            pytest.param(
+                "3.12",
+                [{"dependency-name": "sphinx", "versions": [">=9.2.0"]}, {"dependency-name": "sphinx"}],
+                False,
+                id="bare-rule-ignores-everything",
+            ),
+            pytest.param(
+                "3.12",
+                [
+                    {
+                        "dependency-name": "sphinx",
+                        "versions": [">=9.2.0"],
+                        "update-types": ["version-update:semver-patch"],
+                    }
+                ],
+                False,
+                id="update-types-block-9.1-patches",
+            ),
+            pytest.param("3.12", [{"dependency-name": "sphinx", "versions": [">9.1.1"]}], False, id="blocks-9.1.2"),
+            pytest.param("3.12", [{"dependency-name": "sphinx", "versions": [">=9.1"]}], False, id="blocks-9.1"),
+            pytest.param("3.12", [{"dependency-name": "sphinx", "versions": ["==9.2.0"]}], False, id="misses-9.2.1"),
+            pytest.param("3.12", [{"dependency-name": "sphinx", "versions": [">=9.2.0,<9.3"]}], False, id="misses-9.3"),
+            pytest.param("3.12", [{"dependency-name": "sphinx", "versions": ["^9.2"]}], False, id="not-pep440"),
+            pytest.param("3.13", [{"dependency-name": "sphinx", "versions": [">=9.2.0"]}], False, id="leftover"),
+            pytest.param("3.13", [], True, id="floor-3.13-no-rule"),
+        ],
+    )
+    def test_sphinx_ignore_checker_on_synthetic_configs(
+        self, floor: str, rules: list[dict[str, Any]], accepted: bool
+    ) -> None:
+        """Test the checker itself, so a checker that accepts anything cannot pass the live file by accident.
+
+        A second pip entry is present in every case: only the root entry, which reads constraints.txt, is checked.
+        """
+        config = {
+            "updates": [
+                {"package-ecosystem": "pip", "directory": "/", "ignore": rules},
+                {"package-ecosystem": "pip", "directory": "/docs"},
+            ]
+        }
+        problems = sphinx_ignore_problems(floor, config)
+        assert (problems == []) is accepted, problems
+
+    def test_sphinx_ignore_checker_needs_the_root_pip_entry(self):
+        """Test that a config without a pip entry for '/' is reported, not silently accepted."""
+        problems = sphinx_ignore_problems("3.12", {"updates": [{"package-ecosystem": "pip", "directory": "/docs"}]})
+        assert problems and "directory '/'" in problems[0]
 
     def test_dependency_constraints(self):
         """Test that constraints.txt exists and is valid."""
