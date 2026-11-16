@@ -206,6 +206,8 @@ htmlcov/
 nosetests.xml
 coverage.xml
 coverage.json
+mypy-report.xml
+benchmark_results*.json
 *.cover
 *.py,cover
 .hypothesis/
