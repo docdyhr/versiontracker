@@ -96,6 +96,10 @@ repos:
     hooks:
       - id: prettier
         types: [yaml]
+        # Pin a concrete Node LTS: nodeenv otherwise resolves "latest", which
+        # currently returns an alpha (27.0.0-alpha.x) whose version string
+        # crashes nodeenv's parser and breaks hook installation.
+        language_version: 24.15.0
         exclude: ^(.github/workflows/|docker-compose)
 
   # Shell script linting
@@ -110,6 +114,7 @@ repos:
     hooks:
       - id: markdownlint
         args: [--fix]
+        language_version: 24.15.0 # node LTS (>=22.13 required by markdownlint-cli); unpinned nodeenv resolves to an unparseable alpha
         exclude: ^(CHANGELOG.md|.*_STATUS\.md|.*_FIXES\.md|.*_IMPROVEMENTS\.md|.*_SUMMARY\.md|TESTING\.md|CODE_REVIEW_SUMMARY\.md|FINAL_BADGE_STATUS\.md|docs/.*\.md)$
 
   # Check for secrets
