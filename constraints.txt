@@ -5,7 +5,8 @@
 
 # Core dependencies
 # aiohttp: CVE-2026-34993, CVE-2026-47265 - fixed in 3.14.0
-aiohttp>=3.14.0,<4.0.0
+# aiohttp: 28 advisories in 3.14.0-3.14.3 (12 high, e.g. GHSA-cq5v-8q36-5273, GHSA-h4cc-hm5h-fmm9) - fixed in 3.14.4
+aiohttp>=3.14.4,<4.0.0
 
 # Security-critical indirect dependencies
 # filelock: GHSA-qmgc-5h2g-mvrw (TOCTOU) - fixed in 3.20.3
