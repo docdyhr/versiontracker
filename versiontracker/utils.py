@@ -350,6 +350,7 @@ def run_command_secure(command_parts: list[str], timeout: int | None = None) -> 
         FileNotFoundError: If the command executable cannot be found
         NetworkError: If a network-related error occurs during execution
         subprocess.SubprocessError: For other subprocess-related errors
+        RuntimeError: For any other unexpected execution failure
     """
     process = None
     try:
@@ -417,7 +418,7 @@ def run_command_secure(command_parts: list[str], timeout: int | None = None) -> 
         ):
             raise NetworkError(f"Network error running command: {' '.join(command_parts)}") from e
         # Re-raise with more context
-        raise Exception(f"Error executing command {' '.join(command_parts)}: {e}") from e
+        raise RuntimeError(f"Error executing command {' '.join(command_parts)}: {e}") from e
 
 
 def shell_command_to_args(cmd: str) -> list[str]:
@@ -532,11 +533,11 @@ def _handle_network_error_check(e: Exception, cmd: str) -> None:
 def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
     """Run a command and return the output.
 
-    ⚠️  SECURITY WARNING: This function uses shell=True which can be vulnerable
-    to command injection if user input is not properly sanitized. Consider using
-    run_command_secure() instead for better security.
+    The command string is parsed with shlex.split() into an argument list and
+    executed without a shell, so shell injection is not possible. Prefer
+    run_command_secure() when the arguments are already available as a list.
 
-    Executes a shell command and captures its output and return code.
+    Executes the command and captures its output and return code.
     Handles various error conditions including timeouts, permission issues,
     and network-related problems.
 
@@ -553,6 +554,7 @@ def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
         FileNotFoundError: If the command executable cannot be found
         NetworkError: If a network-related error occurs during execution
         subprocess.SubprocessError: For other subprocess-related errors
+        RuntimeError: For any other unexpected execution failure
     """
     process = None
     try:
@@ -588,78 +590,7 @@ def run_command(cmd: str, timeout: int | None = None) -> tuple[str, int]:
         # Check for network-related errors in the exception message
         _handle_network_error_check(e, cmd)
         # Re-raise with more context
-        raise Exception(f"Error executing command '{cmd}': {e}") from e
-
-
-def run_command_original(command: str, timeout: int = 30) -> list[str]:
-    """Execute a command and return the output as a list of lines.
-
-    ⚠️  SECURITY WARNING: This function uses shell=True which can be vulnerable
-    to command injection if user input is not properly sanitized. Consider using
-    run_command_secure() instead for better security.
-
-    Args:
-        command (str): The command to execute
-        timeout (int, optional): Timeout in seconds for the command. Defaults to 30.
-
-    Returns:
-        List[str]: The output as a list of lines
-
-    Raises:
-        PermissionError: If the command fails due to permission issues
-        TimeoutError: If the command times out
-        FileNotFoundError: If the command is not found
-        NetworkError: For network-related command failures
-        RuntimeError: For other command execution failures
-    """
-    try:
-        result = subprocess.run(
-            command,
-            shell=True,  # nosec B602 - Intentionally using shell=True for legacy compatibility
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=timeout,
-        )
-        return [line for line in result.stdout.splitlines() if line]
-    except subprocess.TimeoutExpired as e:
-        error_msg = f"Command '{command}' timed out after {timeout} seconds"
-        logging.error(error_msg)
-        raise TimeoutError(error_msg) from e
-    except subprocess.CalledProcessError as e:
-        error_msg = f"Command '{command}' failed with error code {e.returncode}"
-        stderr = e.stderr or ""
-        # Check for common error patterns to provide better messages
-        if e.returncode == 13 or "permission denied" in stderr.lower():
-            logging.error("%s: Permission denied. Try running with sudo or check file permissions.", error_msg)
-            raise PermissionError(f"Permission denied while executing '{command}'") from e
-        elif "command not found" in stderr.lower():
-            logging.error("%s: Command not found. Check if the required program is installed.", error_msg)
-            raise FileNotFoundError(f"Command not found: '{command}'") from e
-        elif "no such file or directory" in stderr.lower():
-            logging.error("%s: File or directory not found. Check if the path exists.", error_msg)
-            raise FileNotFoundError(f"File or directory not found in command: '{command}'") from e
-        elif any(
-            network_err in stderr.lower()
-            for network_err in [
-                "network is unreachable",
-                "no route to host",
-                "connection refused",
-                "temporary failure in name resolution",
-                "could not resolve host",
-                "connection timed out",
-                "timed out",
-            ]
-        ):
-            logging.error("%s: Network error: %s", error_msg, stderr)
-            raise NetworkError(f"Network error while executing '{command}': {stderr}") from e
-        else:
-            detailed_error = stderr.strip() if stderr else "Unknown error"
-            logging.error("%s: %s", error_msg, detailed_error)
-            raise RuntimeError(f"Command '{command}' failed: {detailed_error}") from e
-    except Exception as e:
-        logging.error("Failed to execute command '%s': %s", command, e)
-        raise RuntimeError(f"Failed to execute command '{command}': {e}") from e
+        raise RuntimeError(f"Error executing command '{cmd}': {e}") from e
 
 
 def get_user_agent() -> str:
