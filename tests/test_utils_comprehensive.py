@@ -29,6 +29,7 @@ from versiontracker.utils import (
     get_user_agent,
     normalise_name,
     run_command,
+    run_command_secure,
     setup_logging,
 )
 
@@ -546,6 +547,14 @@ class TestRunCommand:
 
         with pytest.raises(Exception, match="Error executing command"):
             run_command("error_command")
+
+    @patch("subprocess.Popen")
+    def test_run_command_secure_generic_exception(self, mock_popen):
+        """Test secure command execution with generic exception."""
+        mock_popen.side_effect = Exception("Generic error")
+
+        with pytest.raises(RuntimeError, match="Error executing command"):
+            run_command_secure(["error_command"])
 
 
 class TestGetUserAgent:
