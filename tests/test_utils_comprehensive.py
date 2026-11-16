@@ -29,7 +29,7 @@ from versiontracker.utils import (
     get_user_agent,
     normalise_name,
     run_command,
-    run_command_original,
+    run_command_secure,
     setup_logging,
 )
 
@@ -548,113 +548,13 @@ class TestRunCommand:
         with pytest.raises(Exception, match="Error executing command"):
             run_command("error_command")
 
+    @patch("subprocess.Popen")
+    def test_run_command_secure_generic_exception(self, mock_popen):
+        """Test secure command execution with generic exception."""
+        mock_popen.side_effect = Exception("Generic error")
 
-class TestRunCommandOriginal:
-    """Test run_command_original function."""
-
-    @patch("subprocess.run")
-    def test_run_command_original_success(self, mock_run):
-        """Test successful command execution."""
-        mock_result = Mock()
-        mock_result.stdout = "line1\nline2\n\nline3\n"
-        mock_run.return_value = mock_result
-
-        result = run_command_original("test command")
-
-        assert result == ["line1", "line2", "line3"]
-        mock_run.assert_called_once_with(
-            "test command",
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=30,
-        )
-
-    @patch("subprocess.run")
-    def test_run_command_original_with_timeout(self, mock_run):
-        """Test command execution with custom timeout."""
-        mock_result = Mock()
-        mock_result.stdout = "output\n"
-        mock_run.return_value = mock_result
-
-        result = run_command_original("test command", timeout=60)
-
-        assert result == ["output"]
-        mock_run.assert_called_once_with(
-            "test command",
-            shell=True,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=60,
-        )
-
-    @patch("subprocess.run")
-    def test_run_command_original_timeout_expired(self, mock_run):
-        """Test command execution with timeout expired."""
-        mock_run.side_effect = subprocess.TimeoutExpired("cmd", 30)
-
-        with pytest.raises(TimeoutError):
-            run_command_original("slow command")
-
-    @patch("subprocess.run")
-    def test_run_command_original_permission_denied(self, mock_run):
-        """Test command execution with permission denied."""
-        error = subprocess.CalledProcessError(13, "cmd")
-        error.stderr = "permission denied"
-        mock_run.side_effect = error
-
-        with pytest.raises(PermissionError):
-            run_command_original("restricted command")
-
-    @patch("subprocess.run")
-    def test_run_command_original_command_not_found(self, mock_run):
-        """Test command execution with command not found."""
-        error = subprocess.CalledProcessError(127, "cmd")
-        error.stderr = "command not found"
-        mock_run.side_effect = error
-
-        with pytest.raises(FileNotFoundError):
-            run_command_original("nonexistent command")
-
-    @patch("subprocess.run")
-    def test_run_command_original_file_not_found(self, mock_run):
-        """Test command execution with file not found."""
-        error = subprocess.CalledProcessError(2, "cmd")
-        error.stderr = "no such file or directory"
-        mock_run.side_effect = error
-
-        with pytest.raises(FileNotFoundError):
-            run_command_original("missing file command")
-
-    @patch("subprocess.run")
-    def test_run_command_original_network_error(self, mock_run):
-        """Test command execution with network error."""
-        error = subprocess.CalledProcessError(1, "cmd")
-        error.stderr = "network is unreachable"
-        mock_run.side_effect = error
-
-        with pytest.raises(NetworkError):
-            run_command_original("network command")
-
-    @patch("subprocess.run")
-    def test_run_command_original_generic_error(self, mock_run):
-        """Test command execution with generic error."""
-        error = subprocess.CalledProcessError(1, "cmd")
-        error.stderr = "generic error"
-        mock_run.side_effect = error
-
-        with pytest.raises(RuntimeError):
-            run_command_original("error command")
-
-    @patch("subprocess.run")
-    def test_run_command_original_exception(self, mock_run):
-        """Test command execution with generic exception."""
-        mock_run.side_effect = Exception("Unexpected error")
-
-        with pytest.raises(RuntimeError):
-            run_command_original("error command")
+        with pytest.raises(RuntimeError, match="Error executing command"):
+            run_command_secure(["error_command"])
 
 
 class TestGetUserAgent:

@@ -58,11 +58,6 @@ except ImportError:
 # Logging, configuration, and filter management functions have been moved to handlers modules
 
 
-def setup_logging(*args: Any, **kwargs: Any) -> None:
-    """Stub for setup_logging to satisfy test patching in test_integration.py."""
-    pass
-
-
 def _handle_plugin_actions(options: Any) -> int | None:
     """Handle plugin management CLI actions.
 
