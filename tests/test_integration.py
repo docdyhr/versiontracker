@@ -30,7 +30,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.handlers.brew_handlers.filter_out_brews")
     @patch("versiontracker.handlers.brew_handlers.check_brew_install_candidates")
     @patch("versiontracker.handlers.brew_handlers.get_json_data")
-    @patch("versiontracker.__main__.setup_logging")
+    @patch("versiontracker.__main__.handle_setup_logging")
     @patch("versiontracker.config.Config")
     def test_main_recommend_workflow(
         self,
@@ -91,7 +91,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.handlers.brew_handlers.filter_out_brews")
     @patch("versiontracker.handlers.brew_handlers.check_brew_install_candidates")
     @patch("versiontracker.handlers.brew_handlers.get_json_data")
-    @patch("versiontracker.__main__.setup_logging")
+    @patch("versiontracker.__main__.handle_setup_logging")
     @patch("versiontracker.handlers.brew_handlers.get_config")
     def test_main_strict_recommend_workflow(
         self,
@@ -166,7 +166,7 @@ class TestIntegration(unittest.TestCase):
     @patch("versiontracker.handlers.app_handlers.get_applications")
     @patch("versiontracker.handlers.app_handlers.get_json_data")
     @patch("versiontracker.handlers.app_handlers.create_progress_bar")
-    @patch("versiontracker.__main__.setup_logging")
+    @patch("versiontracker.__main__.handle_setup_logging")
     @patch("versiontracker.handlers.app_handlers.get_config")
     def test_main_list_apps_workflow(
         self,
@@ -201,7 +201,7 @@ class TestIntegration(unittest.TestCase):
 
     @patch("versiontracker.config.check_dependencies", return_value=True)
     @patch("versiontracker.handlers.brew_handlers.get_homebrew_casks")
-    @patch("versiontracker.__main__.setup_logging")
+    @patch("versiontracker.__main__.handle_setup_logging")
     @patch("versiontracker.config.Config")
     def test_main_brews_workflow(
         self,
