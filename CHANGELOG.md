@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repo secret has no other user here and can be deleted.
 
 ### Fixed
+- **Patch auto-merge held back every trufflehog bump as a ruff bump**: the ruff exclusion in
+  `dependabot-auto-merge.yml` was `contains(steps.meta.outputs.dependency-names, 'ruff')`, and `contains()` on a
+  string is a substring test, so `trufflesecurity/trufflehog` matched it. All three trufflehog patch bumps the native
+  workflow has seen (#345, #361, #371) were skipped and merged by hand. The `level` step now compares whole package
+  names (case-insensitive) and writes a `touches-ruff` output; approve and auto-merge need it to read `false`, so a
+  missing output or an empty dependency list skips the PR. `tests/test_dependabot_auto_merge_workflow.py` runs the
+  step against the logged dependency names of real runs (`ruff`, `trufflesecurity/trufflehog`) and compares the
+  three step conditions whole, so none can read `dependency-names` or change an operator unnoticed.
 - **The weekly Dependabot pip run failed on sphinx**: sphinx 9.2.0 requires Python 3.13, and `requires-python` is
   `>=3.12`, so Dependabot's updater dropped 9.2.0, fell back to 9.1.1 (already the `constraints.txt` floor) and
   failed that update with `Expected content to change!`. The runs of 2026-11-03 and 2026-11-10 carried on with the

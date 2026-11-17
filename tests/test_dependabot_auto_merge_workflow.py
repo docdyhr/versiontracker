@@ -5,7 +5,8 @@ because it reads previous-version from the range string (``10.0.0,>=9.1.0``). Th
 ``level`` step derives the real bump level from the PR title instead. The required checks install
 with ``-c constraints.txt``, and the required lint job resolves the whole file, so a range that
 doesn't resolve fails them before auto-merge can land it. The fixtures
-marked "run" are the fetch-metadata outputs and titles of real runs on this repo (2026-10-26/27).
+marked "run" are the fetch-metadata outputs and titles of real runs on this repo (2026-10-26 to
+2026-11-16).
 """
 
 import os
@@ -41,12 +42,18 @@ def _level_script() -> str:
     pytest.fail("dependabot-auto-merge.yml has no step with id 'level'")
 
 
-def _derive(
-    meta_type: str, prev: str, title: str, tmp_path: Path, files: tuple[str, ...] = ("constraints.txt",)
-) -> str:
-    """Run the level step as GitHub does for a default-shell step (bash -e) and read its output.
+def _run_level(
+    meta_type: str,
+    prev: str,
+    title: str,
+    tmp_path: Path,
+    files: tuple[str, ...] = ("constraints.txt",),
+    deps: str = "example",
+) -> dict[str, str]:
+    """Run the level step as GitHub does for a default-shell step (bash -e) and read its outputs.
 
-    A fake ``gh`` on PATH answers ``gh pr diff --name-only`` with ``files``.
+    A fake ``gh`` on PATH answers ``gh pr diff --name-only`` with ``files``; ``deps`` is
+    fetch-metadata's comma-joined ``dependency-names``.
     """
     bindir = tmp_path / "bin"
     bindir.mkdir(exist_ok=True)
@@ -65,6 +72,7 @@ def _derive(
         "META_TYPE": meta_type,
         "PREV": prev,
         "TITLE": title,
+        "DEPS": deps,
         "GITHUB_OUTPUT": str(out),
     }
     subprocess.run(
@@ -76,9 +84,20 @@ def _derive(
         text=True,
         timeout=10,
     )
-    lines = [line for line in out.read_text().splitlines() if line.startswith("update-type=")]
-    assert len(lines) == 1, lines
-    return lines[0].split("=", 1)[1]
+    outputs: dict[str, str] = {}
+    for line in out.read_text().splitlines():
+        key, sep, value = line.partition("=")
+        assert sep and key not in outputs, line
+        outputs[key] = value
+    assert set(outputs) == {"update-type", "touches-ruff"}, outputs
+    return outputs
+
+
+def _derive(
+    meta_type: str, prev: str, title: str, tmp_path: Path, files: tuple[str, ...] = ("constraints.txt",)
+) -> str:
+    """The bump level the step derives (its ``update-type`` output)."""
+    return _run_level(meta_type, prev, title, tmp_path, files)["update-type"]
 
 
 @pytest.mark.parametrize(
@@ -216,14 +235,60 @@ def test_title_is_data_not_code(tmp_path):
     assert "${{" not in _level_script()
 
 
+@pytest.mark.parametrize(
+    ("deps", "expected"),
+    [
+        # run 40478271548 (#339's group): a dev-tools group update of ruff alone
+        ("ruff", "true"),
+        ("mypy, ruff", "true"),
+        ("ruff,mypy", "true"),
+        ("Ruff", "true"),
+        # runs 40297274855 (#345), 42591008918 (#361) and 43837002694 (#371): 'trufflehog'
+        # contains 'ruff', so the old contains() test held back every trufflehog patch bump
+        ("trufflesecurity/trufflehog", "false"),
+        ("ruff-lsp", "false"),
+        # no names: neither true nor false, so the merge steps (which need 'false') skip the PR
+        ("", "unknown"),
+        (" ", "unknown"),
+        (",", "unknown"),
+    ],
+)
+def test_ruff_is_matched_by_whole_package_name(deps, expected, tmp_path):
+    """Only a PR that updates the ruff package itself is held back, not one whose name contains 'ruff'."""
+    title = "ci(deps): bump trufflesecurity/trufflehog from 3.99.8 to 3.99.9"
+    assert _run_level(PATCH, "3.99.8", title, tmp_path, deps=deps)["touches-ruff"] == expected
+
+
+def test_dependency_names_are_data_not_code(tmp_path):
+    """dependency-names reaches the script through env, so shell syntax in it never executes."""
+    deps = '$(touch pwned), `touch pwned2`, ruff; touch "pwned3"'
+    outputs = _run_level(PATCH, "1.0.0", "ci(deps): bump x from 1.0.0 to 1.0.1", tmp_path, deps=deps)
+    assert outputs["touches-ruff"] == "false"
+    assert not list(tmp_path.glob("pwned*"))
+
+
 def test_merge_steps_gate_on_the_derived_level():
-    """Approve, auto-merge and the skip report all read the derived level, not fetch-metadata's."""
+    """Approve, auto-merge and the skip report read the level step's outputs, not fetch-metadata's.
+
+    The conditions are compared whole, so an operator change cannot pass. Approve and auto-merge need
+    an explicit 'false' (a missing output skips the PR), the skip report is their exact complement, and
+    none reads dependency-names: contains() on the comma-joined names is a substring test, and
+    'trufflehog' contains 'ruff'.
+    """
     gated = {s["name"]: s["if"] for s in _workflow_steps() if "if" in s}
-    assert set(gated) == {"Approve patch bump", "Enable auto-merge for patch bump", "Report skipped PR"}
-    for name, condition in gated.items():
-        assert "steps.level.outputs.update-type" in condition, name
-        assert "steps.meta.outputs.update-type" not in condition, name
-        assert "contains(steps.meta.outputs.dependency-names, 'ruff')" in condition, name
+    proceed = (
+        "steps.level.outputs.update-type == 'version-update:semver-patch'"
+        " && steps.level.outputs.touches-ruff == 'false'"
+    )
+    skip = (
+        "steps.level.outputs.update-type != 'version-update:semver-patch'"
+        " || steps.level.outputs.touches-ruff != 'false'"
+    )
+    assert gated == {
+        "Approve patch bump": proceed,
+        "Enable auto-merge for patch bump": proceed,
+        "Report skipped PR": skip,
+    }
 
 
 def _run_action_steps(tmp_path: Path, with_constraints: bool) -> list[str]:

@@ -14,7 +14,9 @@
 #   - patch bump        → approve + enable auto-merge (merges when CI passes)
 #   - touches ruff      → skipped: compare `ruff check --statistics` with main
 #                         first (CLAUDE.md), since a ruff patch release can
-#                         change its default rules
+#                         change its default rules. Matched by whole package
+#                         name: a substring test on dependency-names also
+#                         matched trufflesecurity/trufflehog
 #   - minor/major bump  → skipped here; requires review
 #
 # Requirement-range updates (constraints.txt `>=a,<b`): fetch-metadata reads
@@ -83,17 +85,30 @@ jobs:
               esac
             fi
           fi
+          # A PR that updates ruff waits for review. Compare whole package names: contains() on the
+          # comma-joined dependency-names is a substring test, and "trufflesecurity/trufflehog"
+          # contains "ruff". With no names at all the PR is left for review too.
+          touches_ruff=false
+          if [ -z "${DEPS//[[:space:],]/}" ]; then touches_ruff=unknown; fi
+          IFS=',' read -r -a names <<< "$DEPS"
+          for name in "${names[@]}"; do
+            name=$(printf '%s' "$name" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+            if [ "$name" = ruff ]; then touches_ruff=true; fi
+          done
           echo "Bump level: ${level:-unknown} (fetch-metadata: $META_TYPE, previous: $PREV, files: ${nfiles:-n/a})"
+          echo "Touches ruff: $touches_ruff (deps: $DEPS)"
           echo "update-type=$level" >> "$GITHUB_OUTPUT"
+          echo "touches-ruff=$touches_ruff" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           META_TYPE: ${{ steps.meta.outputs.update-type }}
           PREV: ${{ steps.meta.outputs.previous-version }}
           TITLE: ${{ github.event.pull_request.title }}
+          DEPS: ${{ steps.meta.outputs.dependency-names }}
 
       - name: Approve patch bump
-        if: steps.level.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
+        if: steps.level.outputs.update-type == 'version-update:semver-patch' && steps.level.outputs.touches-ruff == 'false'
         run: gh pr review --approve "$PR_URL"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,7 +116,7 @@ jobs:
         continue-on-error: true
 
       - name: Enable auto-merge for patch bump
-        if: steps.level.outputs.update-type == 'version-update:semver-patch' && !contains(steps.meta.outputs.dependency-names, 'ruff')
+        if: steps.level.outputs.update-type == 'version-update:semver-patch' && steps.level.outputs.touches-ruff == 'false'
         run: |
           gh pr merge --auto --squash "$PR_URL"
           echo "Auto-merge enabled for: $PR_NUMBER ($UPDATE_TYPE)"
@@ -112,7 +127,7 @@ jobs:
           UPDATE_TYPE: ${{ steps.level.outputs.update-type }}
 
       - name: Report skipped PR
-        if: steps.level.outputs.update-type != 'version-update:semver-patch' || contains(steps.meta.outputs.dependency-names, 'ruff')
+        if: steps.level.outputs.update-type != 'version-update:semver-patch' || steps.level.outputs.touches-ruff != 'false'
         run: |
           echo "Skipping (type=${UPDATE_TYPE:-unknown}, deps=$DEPS) — requires review."
         env:
