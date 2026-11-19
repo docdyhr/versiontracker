@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-11-19
+
 ### Added
 - **Vendored agent skills**: `.claude/skills/` carries four skills from github/awesome-copilot at commit `cb64ad1`
   (`dependabot`, `docs-sync-audit`, `github-actions-hardening`, `test-gap-audit`), byte-identical to upstream with its
@@ -1182,7 +1184,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Code quality checks with ruff and mypy
 - Multi-platform testing (Ubuntu, macOS)
 
-[Unreleased]: https://github.com/docdyhr/versiontracker/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/docdyhr/versiontracker/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/docdyhr/versiontracker/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/docdyhr/versiontracker/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/docdyhr/versiontracker/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/docdyhr/versiontracker/compare/v1.0.0...v1.0.1
