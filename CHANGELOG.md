@@ -181,6 +181,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pin. On this tree pip-audit and OSV report both locks clean (OSV: 73 queried, 0 vulnerable), and the full suite
   passes in a fresh Python 3.13 environment pinned to the regenerated dev lock (2,843 passed, 16 skipped). The
   locks are reference snapshots that nothing installs, so this changes no installed behavior.
+- **The `aiohttp` floor admitted 3.14.0–3.14.3, which carry up to 28 advisories**: `aiohttp>=3.14.0` in
+  `pyproject.toml`, `requirements.txt` and `requirements-py313.txt` (`>=3.14.0,<4.0.0` in `constraints.txt`) is now
+  `>=3.14.4`. As of 2026-11-17 OSV lists 28 GitHub advisories against 3.14.0, 12 of them high. 17 of them (11 high)
+  are first fixed in 3.14.4, nine of those published on 2026-11-16. Most of the high ones are in server, WebSocket and
+  multipart code this CLI does not use: it only opens `aiohttp.ClientSession`s. Those it can reach include
+  GHSA-h4cc-hm5h-fmm9 (high: a response made of many concatenated compressed members costs quadratic CPU time to
+  decode), GHSA-6cjc-53gc-5rqm (connector pool exhaustion via a `Max-Age` overflow), GHSA-5pv8-vvhc-h7jv (unbounded
+  cookie storage in the client `CookieJar`) and, first fixed in 3.14.3, GHSA-cq5v-8q36-5273 (high: an out-of-bounds
+  heap read in the C HTTP response parser's error path). A fresh install resolves 3.14.5, the Homebrew formula pins
+  3.14.4, and OSV lists no advisory against either. So the floor matters when `macversiontracker` is installed into an
+  environment that already holds an older `aiohttp`, and it reaches users with the next release's metadata.
+  `scripts/test_python313.py --create-requirements`, which rewrites `requirements-py313.txt` from a template, wrote
+  `aiohttp>=3.8.0` and would have undone the floor there; its template now matches, and
+  `tests/test_project_consistency.py` fails when any of the four sites or that template declares a different floor.
 
 ### Documentation
 - **`CLAUDE.md` described lint rules and limits the config doesn't have**: it said

@@ -152,7 +152,7 @@ All major dependencies are Python 3.13 ready:
 | termcolor | ✅ Compatible | 2.3.0+ |
 | tabulate | ✅ Compatible | 0.9.0+ |
 | psutil | ✅ Compatible | 5.9.5+ |
-| aiohttp | ✅ Compatible | 3.8.0+ |
+| aiohttp | ✅ Compatible | 3.14.4+ |
 | rapidfuzz | ✅ Compatible | 3.0.0+ |
 
 ## Known Issues

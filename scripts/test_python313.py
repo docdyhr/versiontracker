@@ -332,7 +332,7 @@ PyYAML>=6.0
 termcolor>=2.3.0
 tabulate>=0.9.0
 psutil>=5.9.5
-aiohttp>=3.8.0
+aiohttp>=3.14.4  # keep equal to pyproject.toml (tests/test_project_consistency.py)
 
 # Development dependencies - Python 3.13 compatible
 pytest>=8.0.0
