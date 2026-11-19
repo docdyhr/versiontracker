@@ -4,7 +4,7 @@
 
 ### Project Health
 
-- **Version**: 1.2.0 (stable) — PyPI, Homebrew tap, and GitHub release with Sigstore-signed assets
+- **Version**: 1.2.1 (stable) — PyPI, Homebrew tap, and GitHub release with Sigstore-signed assets
 - **Tests**: 2,912 passing, 16 skipped (13 ML-dep, 2 platform-guard, 1 TTY)
 - **Coverage**: 88.28% overall (floor: 85%) ✅
 - **CI/CD**: All workflows passing on main (all green)
