@@ -327,7 +327,7 @@ def create_python313_requirements() -> None:
 # Core dependencies - verified Python 3.13 compatible
 fuzzywuzzy>=0.18.0
 rapidfuzz>=3.0.0  # Better performance than python-Levenshtein
-tqdm>=4.66.0
+tqdm>=4.66.3  # keep equal to pyproject.toml (tests/test_project_consistency.py)
 PyYAML>=6.0
 termcolor>=2.3.0
 tabulate>=0.9.0

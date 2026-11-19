@@ -203,6 +203,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scripts/test_python313.py --create-requirements`, which rewrites `requirements-py313.txt` from a template, wrote
   `aiohttp>=3.8.0` and would have undone the floor there; its template now matches, and
   `tests/test_project_consistency.py` fails when any of the four sites or that template declares a different floor.
+- **The `tqdm` floor admitted 4.65.x–4.66.2, which carry CVE-2024-34062**: `tqdm>=4.65` in `pyproject.toml` and
+  `requirements.txt`, `>=4.66.0` in `requirements-py313.txt` and the `scripts/test_python313.py` template, and
+  `>=4.64.0,<5.0.0` in `constraints.txt` are now all `>=4.66.3` (`<5.0.0` kept in `constraints.txt`).
+  CVE-2024-34062 (GHSA-g7vv-2v7x-gj9p, low) lets crafted arguments to tqdm's own command-line tool (the `tqdm`
+  command or `python -m tqdm`) run code through an `eval`; it affects 4.4.0 to 4.66.2 and is fixed in 4.66.3.
+  versiontracker imports tqdm only as a library for progress bars and never runs that tool, so it cannot reach the
+  bug. A fresh install, both locks and the Homebrew formula already have 4.70.1. Like the `aiohttp` floor, this
+  matters when `macversiontracker` is installed into an environment that already holds an older `tqdm`, and it
+  reaches users with the next release's metadata. The floor check in `tests/test_project_consistency.py` now covers
+  every package in its `SAFE_FLOORS` table (`aiohttp` and `tqdm`) at the same four sites, reads the generator's whole
+  template so a name matches in any case, and also rejects a floor line that carries an environment marker.
 
 ### Documentation
 - **`CLAUDE.md` described lint rules and limits the config doesn't have**: it said

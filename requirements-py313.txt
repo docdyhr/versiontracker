@@ -2,7 +2,7 @@
 # Updated: 2026-05-04
 
 # Core dependencies - verified Python 3.13 compatible
-tqdm>=4.66.0
+tqdm>=4.66.3
 PyYAML>=6.0.2
 termcolor>=3.3.0
 tabulate>=0.9.0
