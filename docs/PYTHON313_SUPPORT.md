@@ -142,12 +142,13 @@ Python 3.13 provides several performance benefits for VersionTracker:
 
 ## Dependency Compatibility
 
-All major dependencies are Python 3.13 ready:
+All major dependencies are Python 3.13 ready. The Version column is the floor the project declares, not a version
+tested on 3.13: CI installs and tests the newest releases.
 
 | Dependency | Python 3.13 Status | Version |
 |-----------|-------------------|---------|
 | fuzzywuzzy | ✅ Compatible | 0.18.0+ |
-| tqdm | ✅ Compatible | 4.66.0+ |
+| tqdm | ✅ Compatible | 4.66.3+ |
 | PyYAML | ✅ Compatible | 6.0+ |
 | termcolor | ✅ Compatible | 2.3.0+ |
 | tabulate | ✅ Compatible | 0.9.0+ |

@@ -160,38 +160,65 @@ def sphinx_ignore_problems(python_floor: str, dependabot_config: dict[str, Any])
     return problems
 
 
+# Runtime floors that must not admit a version with a known advisory. pyproject.toml holds the floor, and
+# FLOOR_SITES plus the py313 generator's requirements template repeat it.
 # aiohttp 3.14.0-3.14.3 carry 28 advisories (OSV, 2026-11-17), all fixed by 3.14.4.
-AIOHTTP_SAFE_FLOOR = Version("3.14.4")
-AIOHTTP_FLOOR_SITES = ("requirements.txt", "requirements-py313.txt", "constraints.txt")
+# tqdm 4.4.0-4.66.2 carry CVE-2024-34062 (GHSA-g7vv-2v7x-gj9p, CLI argument injection), fixed in 4.66.3.
+SAFE_FLOORS = {"aiohttp": Version("3.14.4"), "tqdm": Version("4.66.3")}
+FLOOR_SITES = ("requirements.txt", "requirements-py313.txt", "constraints.txt")
 PY313_GENERATOR = "scripts/test_python313.py"
 
 
-def aiohttp_lower_bounds(text: str) -> list[Version]:
-    """Return the ``>=`` bounds of every aiohttp requirement line in a requirements-style text."""
-    bounds: list[Version] = []
+def package_requirements(text: str, package: str) -> list[Requirement]:
+    """Return every requirement for ``package`` in a requirements-style text, matched by canonical name."""
+    found: list[Requirement] = []
     for raw in text.splitlines():
         line = raw.split("#", 1)[0].strip()
         if not line or line.startswith("-"):
             continue
         requirement = Requirement(line)
-        if canonicalize_name(requirement.name) == "aiohttp":
-            bounds += [Version(spec.version) for spec in requirement.specifier if spec.operator == ">="]
-    return bounds
+        if canonicalize_name(requirement.name) == canonicalize_name(package):
+            found.append(requirement)
+    return found
 
 
-def aiohttp_floor_problems(floor: Version, sites: dict[str, str]) -> list[str]:
-    """Return how pyproject.toml's aiohttp floor and the sites that repeat it disagree.
+def lower_bounds(text: str, package: str) -> list[Version]:
+    """Return the ``>=`` bounds of every ``package`` requirement line in a requirements-style text."""
+    return [
+        Version(spec.version)
+        for requirement in package_requirements(text, package)
+        for spec in requirement.specifier
+        if spec.operator == ">="
+    ]
 
-    Each site must declare exactly one aiohttp lower bound, equal to the floor, and the floor must not admit
-    the vulnerable 3.14.0-3.14.3.
+
+def py313_template(text: str) -> str:
+    """Return the requirements template that ``scripts/test_python313.py --create-requirements`` writes."""
+    templates = re.findall(r'requirements_313 = """(.*?)"""', text, re.DOTALL)
+    assert len(templates) == 1, f"{PY313_GENERATOR}: expected one requirements_313 template, found {len(templates)}"
+    return templates[0]
+
+
+def floor_problems(package: str, floor: Version, sites: dict[str, str]) -> list[str]:
+    """Return how pyproject.toml's floor for ``package`` and the sites that repeat it disagree.
+
+    Each site must declare exactly one lower bound for ``package``, equal to the floor and without an environment
+    marker (a marker would limit the floor to some platforms), and the floor must be at least
+    ``SAFE_FLOORS[package]``, so it cannot admit the versions the advisories name.
     """
     problems: list[str] = []
-    if floor < AIOHTTP_SAFE_FLOOR:
-        problems.append(f"pyproject.toml's aiohttp floor {floor} is below {AIOHTTP_SAFE_FLOOR}")
+    safe_floor = SAFE_FLOORS[package]
+    if floor < safe_floor:
+        problems.append(f"pyproject.toml's {package} floor {floor} is below {safe_floor}")
     for site, text in sites.items():
-        bounds = aiohttp_lower_bounds(text)
+        bounds = lower_bounds(text, package)
         if bounds != [floor]:
-            problems.append(f"{site}: aiohttp lower bounds {[str(b) for b in bounds]}, expected ['{floor}']")
+            problems.append(f"{site}: {package} lower bounds {[str(b) for b in bounds]}, expected ['{floor}']")
+        problems += [
+            f"{site}: '{requirement}' has an environment marker, so its floor does not hold on every platform"
+            for requirement in package_requirements(text, package)
+            if requirement.marker is not None
+        ]
     return problems
 
 
@@ -528,44 +555,62 @@ class TestProjectConsistency:
             content = f.read()
             validate_constraints_content(content)
 
-    def test_aiohttp_floor_is_the_same_at_every_declaration_site(self):
-        """Test that every site declaring aiohttp repeats pyproject.toml's floor, and the floor is 3.14.4 or above.
+    @pytest.mark.parametrize("package", sorted(SAFE_FLOORS))
+    def test_runtime_floor_is_the_same_at_every_declaration_site(self, package):
+        """Test that every site repeats pyproject.toml's floor for a guarded package, and the floor is safe.
 
         requirements.txt, requirements-py313.txt and constraints.txt repeat the floor, and
         ``scripts/test_python313.py --create-requirements`` rewrites requirements-py313.txt from a template, so a
-        site left behind silently admits the vulnerable 3.14.0-3.14.3.
+        site left behind silently admits a vulnerable version (aiohttp 3.14.0-3.14.3, tqdm 4.4.0-4.66.2).
         """
         root = get_project_root()
-        bounds = aiohttp_lower_bounds("\n".join(load_pyproject_toml()["project"]["dependencies"]))
-        assert len(bounds) == 1, f"pyproject.toml should declare one aiohttp floor, found {bounds}"
-        sites = {name: (root / name).read_text(encoding="utf-8") for name in AIOHTTP_FLOOR_SITES}
+        dependencies = "\n".join(load_pyproject_toml()["project"]["dependencies"])
+        bounds = lower_bounds(dependencies, package)
+        assert len(bounds) == 1, f"pyproject.toml should declare one {package} floor, found {bounds}"
+        sites = {"pyproject.toml [project].dependencies": dependencies}
+        sites |= {name: (root / name).read_text(encoding="utf-8") for name in FLOOR_SITES}
         generator = root / PY313_GENERATOR
         if generator.exists():
-            template_lines = re.findall(r"^aiohttp\b.*$", generator.read_text(encoding="utf-8"), re.MULTILINE)
-            sites[f"{PY313_GENERATOR} (requirements template)"] = "\n".join(template_lines)
-        assert aiohttp_floor_problems(bounds[0], sites) == []
+            sites[f"{PY313_GENERATOR} (requirements template)"] = py313_template(generator.read_text(encoding="utf-8"))
+        assert floor_problems(package, bounds[0], sites) == []
 
     @pytest.mark.parametrize(
-        ("site_text", "accepted"),
+        ("package", "floor", "site_text", "accepted"),
         [
-            ("aiohttp>=3.14.4", True),
-            ("aiohttp>=3.14.4,<4.0.0  # comment", True),
-            ("pyyaml>=6.0\naiohttp>=3.14.4", True),
-            ("aiohttp>=3.8.0", False),
-            ("aiohttp>=3.15.0", False),
-            ("pyyaml>=6.0", False),
-            ("aiohttp>=3.14.4\naiohttp>=3.8.0", False),
+            ("aiohttp", "3.14.4", "aiohttp>=3.14.4", True),
+            ("aiohttp", "3.14.4", "aiohttp>=3.14.4,<4.0.0  # comment", True),
+            ("aiohttp", "3.14.4", "pyyaml>=6.0\naiohttp>=3.14.4", True),
+            ("aiohttp", "3.14.4", "aiohttp>=3.8.0", False),
+            ("aiohttp", "3.14.4", "aiohttp>=3.15.0", False),
+            ("aiohttp", "3.14.4", "pyyaml>=6.0", False),
+            ("aiohttp", "3.14.4", "aiohttp>=3.14.4\naiohttp>=3.8.0", False),
+            ("tqdm", "4.66.3", "tqdm>=4.66.3,<5.0.0", True),
+            ("tqdm", "4.66.3", "TQDM>=4.66.3", True),
+            ("tqdm", "4.66.3", "tqdm>=4.66.3,<5.0.0\ntypes-tqdm>=4.70.0.20261106,<5.0.0", True),
+            ("tqdm", "4.66.3", "types-tqdm>=4.66.3", False),
+            ("tqdm", "4.66.3", "tqdm>=4.66.3; sys_platform == 'win32'", False),
+            ("tqdm", "4.66.3", "tqdm>=4.65", False),
         ],
     )
-    def test_aiohttp_floor_checker(self, site_text, accepted):
-        """Test that the checker accepts only a site whose single aiohttp floor equals pyproject.toml's."""
-        problems = aiohttp_floor_problems(Version("3.14.4"), {"site": site_text})
+    def test_floor_checker(self, package, floor, site_text, accepted):
+        """Test that the checker accepts only a site whose single floor for the package equals pyproject.toml's."""
+        problems = floor_problems(package, Version(floor), {"site": site_text})
         assert (problems == []) is accepted, problems
 
-    def test_aiohttp_floor_checker_rejects_a_vulnerable_floor(self):
-        """Test that a floor admitting 3.14.0-3.14.3 is reported even when every site agrees with it."""
-        problems = aiohttp_floor_problems(Version("3.14.3"), {"site": "aiohttp>=3.14.3"})
-        assert len(problems) == 1 and "below 3.14.4" in problems[0], problems
+    @pytest.mark.parametrize(("package", "vulnerable"), [("aiohttp", "3.14.3"), ("tqdm", "4.66.2")])
+    def test_floor_checker_rejects_a_vulnerable_floor(self, package, vulnerable):
+        """Test that a floor admitting a vulnerable version is reported even when every site agrees with it."""
+        problems = floor_problems(package, Version(vulnerable), {"site": f"{package}>={vulnerable}"})
+        assert len(problems) == 1 and f"below {SAFE_FLOORS[package]}" in problems[0], problems
+
+    def test_py313_template_is_read_whole(self):
+        """Test that the generator's template is read as one block, so a name matches in any case (PyYAML, TQDM)."""
+        text = 'x = 1\n    requirements_313 = """# header\nPyYAML>=6.0\nTQDM>=4.66.3  # note\n"""\n'
+        template = py313_template(text)
+        assert lower_bounds(template, "pyyaml") == [Version("6.0")]
+        assert lower_bounds(template, "tqdm") == [Version("4.66.3")]
+        with pytest.raises(AssertionError, match="expected one requirements_313 template"):
+            py313_template("no template here")
 
     def test_current_python_version(self):
         """Test that tests are running on a supported Python version."""
