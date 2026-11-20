@@ -124,9 +124,9 @@ here otherwise. Where a skill disagrees with this file, this file wins:
 
 ### Current Status (November 2026)
 
-- Latest release: 1.2.0 — on PyPI as `macversiontracker`, in the Homebrew tap, and as a GitHub release with
+- Latest release: 1.2.1 — on PyPI as `macversiontracker`, in the Homebrew tap, and as a GitHub release with
   Sigstore-signed assets
-- Test suite: 2,912 passing, 16 skipped (13 need the optional ML extras); coverage 88.28%
+- Test suite: 2,914 passing, 16 skipped (13 need the optional ML extras); coverage 88.23%
 - Code quality: ruff, ruff format, and mypy all clean
 - Focus: Feature development and user experience improvements
 

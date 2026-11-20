@@ -241,12 +241,13 @@ add ≥ 60% test coverage, and move it out of `experimental/`.
 ### Option 1: Homebrew (Recommended for macOS users)
 
 ```bash
-# Tap and install
-brew tap docdyhr/tap
-brew install macversiontracker
-
-# Or install directly (one command)
+# Install directly (one command; naming the tap lets Homebrew trust the formula)
 brew install docdyhr/tap/macversiontracker
+
+# Or tap first; Homebrew 7 then needs the formula trusted before a short-name install
+brew tap docdyhr/tap
+brew trust --formula docdyhr/tap/macversiontracker
+brew install macversiontracker
 ```
 
 ### Option 2: PyPI
