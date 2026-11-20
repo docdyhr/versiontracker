@@ -379,6 +379,40 @@ class TestProjectConsistency:
         )
         assert "--no-index" in install_script, "Install test must resolve the declared dependencies from the venv alone"
 
+    def test_homebrew_release_trusts_the_tap_formula_before_loading_it(self):
+        """Test that the Homebrew release trusts the tap formula before any brew command loads it.
+
+        Homebrew 7 refuses to load a formula from a third-party tap missing from its
+        trust store ("Refusing to load formula docdyhr/tap/macversiontracker from
+        untrusted tap docdyhr/tap"), the store starts empty on a hosted runner, and
+        naming the formula verbatim no longer counts as trust (#223's fix), so the
+        v1.2.1 formula never reached the tap.
+        """
+        workflow_path = get_project_root() / ".github" / "workflows" / "release-homebrew.yml"
+        with open(workflow_path, encoding="utf-8") as f:
+            workflow = yaml.safe_load(f)
+        assert workflow["env"]["TAP_FORMULA"] == "docdyhr/tap/macversiontracker", (
+            "Homebrew registers docdyhr/homebrew-tap as docdyhr/tap, and trust is keyed on that name"
+        )
+        # Steps run in order and these scripts run top to bottom, so text order is execution order.
+        script = "\n".join(step.get("run", "") for step in workflow["jobs"]["update-homebrew"]["steps"])
+        trust = 'brew trust --formula "${TAP_FORMULA}"'
+        assert trust in script, f"No step runs '{trust}'"
+        for loader in ("brew update-python-resources", "brew bump-revision", "brew install", "brew test"):
+            assert loader in script, f"No step runs '{loader}'"
+            assert script.index(trust) < script.index(loader), f"'{loader}' runs before the formula is trusted"
+
+    def test_homebrew_release_pushes_only_from_release_tags_and_main(self):
+        """Test that only a release tag or main pushes the formula, so a branch dispatch is a dry run."""
+        workflow_path = get_project_root() / ".github" / "workflows" / "release-homebrew.yml"
+        with open(workflow_path, encoding="utf-8") as f:
+            workflow = yaml.safe_load(f)
+        pushing = [step for step in workflow["jobs"]["update-homebrew"]["steps"] if "git push" in step.get("run", "")]
+        assert len(pushing) == 1, "Exactly one step pushes to the tap"
+        assert pushing[0].get("if") == "startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'", (
+            "The tap push must be limited to release tags and main"
+        )
+
     def test_release_workflow_runs_once_per_release(self):
         """Test that publishing a release starts one Release run, not two.
 

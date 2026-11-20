@@ -5,8 +5,8 @@
 ### Project Health
 
 - **Version**: 1.2.1 (stable) — PyPI, Homebrew tap, and GitHub release with Sigstore-signed assets
-- **Tests**: 2,912 passing, 16 skipped (13 ML-dep, 2 platform-guard, 1 TTY)
-- **Coverage**: 88.28% overall (floor: 85%) ✅
+- **Tests**: 2,914 passing, 16 skipped (13 ML-dep, 2 platform-guard, 1 TTY)
+- **Coverage**: 88.23% overall (floor: 85%) ✅
 - **CI/CD**: All workflows passing on main (all green)
 - **Python Support**: 3.12+ (with 3.13 compatibility)
 - **Security**: 0 dependabot alerts, 0 secret scanning alerts, 0 CodeQL findings
@@ -128,6 +128,8 @@ All skip decorators already carry a `reason=` string; no additional inline comme
 - [x] `release-homebrew.yml` workflow updated to push to tap repo
 - [x] `release-homebrew.yml` re-resolves the formula's Python resources each release and tests the formula it
   pushes (2026-10-08; formula regenerated as `1.2.0_1`)
+- [x] `release-homebrew.yml` trusts the tap formula before loading it (Homebrew 7's tap-trust store), and a dispatch
+  from a branch other than `main` is a dry run that never pushes (2026-11-20)
 
 ---
 
