@@ -10,11 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **The Homebrew tap never received 1.2.1**: `release-homebrew.yml` failed on the release event and again on a manual
   dispatch with "Refusing to load formula docdyhr/tap/macversiontracker from untrusted tap docdyhr/tap". The workflow
-  was unchanged since its last green run (2026-10-08); the macOS runner's Homebrew had moved to 7.x, which keeps a
-  trust store for third-party taps that starts empty on a hosted runner, and no longer counts a formula named verbatim
-  on the command line as trusted, the behaviour #223's fix relied on. The tap step now runs
-  `brew trust --formula docdyhr/tap/macversiontracker` before any brew command loads the formula, and
-  `tests/test_project_consistency.py` checks that order.
+  was unchanged since its last green run (2026-10-08), but the macOS runner image's Homebrew had moved on: like
+  Homebrew 7.0.15, it refuses formulae from a third-party tap missing from its trust store, which on a fresh runner
+  does not list this tap, and it no longer counts a formula named verbatim on the command line as trusted, the
+  behaviour #223's fix relied on. The tap step now runs `brew trust --formula docdyhr/tap/macversiontracker` before
+  any brew command loads the formula, `tests/test_project_consistency.py` checks that order, and a dry-run dispatch of
+  the fixed workflow passed on `macos-26-arm64`.
 
 ### Changed
 - **Only a release tag or `main` publishes the Homebrew formula**: a `workflow_dispatch` from any other branch is now a
