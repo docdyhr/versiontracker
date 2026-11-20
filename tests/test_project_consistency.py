@@ -399,16 +399,20 @@ class TestProjectConsistency:
 
         def commands(step: dict[str, Any]) -> list[str]:
             # A commented-out command must not count as one that runs.
-            return [line for line in step.get("run", "").splitlines() if not line.lstrip().startswith("#")]
+            lines = (line.strip() for line in step.get("run", "").splitlines())
+            return [line for line in lines if line and not line.startswith("#")]
 
-        trusting = [step for step in steps if any(trust in line for line in commands(step))]
+        # Only a line that starts with the command runs it; an echo or a string that mentions it does not.
+        trusting = [step for step in steps if any(line.startswith(trust) for line in commands(step))]
         assert trusting, f"No step runs '{trust}'"
         assert "if" not in trusting[0], "The trust must run on every event, not under a step condition"
-        # Steps run in order and these scripts run top to bottom, so text order is execution order.
-        script = "\n".join(line for step in steps for line in commands(step))
+        # Steps run in order and these scripts run top to bottom, so line order is execution order.
+        lines = [line for step in steps for line in commands(step)]
+        trusted_at = next(i for i, line in enumerate(lines) if line.startswith(trust))
         for loader in ("brew update-python-resources", "brew bump-revision", "brew install", "brew test"):
-            assert loader in script, f"No step runs '{loader}'"
-            assert script.index(trust) < script.index(loader), f"'{loader}' runs before the formula is trusted"
+            loading = [i for i, line in enumerate(lines) if line.startswith(loader)]
+            assert loading, f"No step runs '{loader}'"
+            assert trusted_at < loading[0], f"'{loader}' runs before the formula is trusted"
 
     def test_homebrew_release_pushes_only_from_release_tags_and_main(self):
         """Test that only a release tag or main pushes the formula, so a branch dispatch is a dry run."""

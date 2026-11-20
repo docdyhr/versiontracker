@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behaviour #223's fix relied on. The tap step now runs `brew trust --formula docdyhr/tap/macversiontracker` before
   any brew command loads the formula, `tests/test_project_consistency.py` checks that order, and a dry-run dispatch of
   the fixed workflow passed on `macos-26-arm64`.
+- **README's two-step Homebrew install failed on Homebrew 7**: `brew tap docdyhr/tap` followed by
+  `brew install macversiontracker` is refused with the same untrusted-tap error on a fresh trust store, while
+  `brew install docdyhr/tap/macversiontracker` trusts the formula it names and installs. The README now leads with the
+  one-command form and adds `brew trust --formula docdyhr/tap/macversiontracker` to the two-step form.
 
 ### Changed
 - **Only a release tag or `main` publishes the Homebrew formula**: a `workflow_dispatch` from any other branch is now a
