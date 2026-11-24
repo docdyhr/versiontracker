@@ -66,4 +66,4 @@ sphinx>=9.1.1,<10.0.0
 sphinx-rtd-theme>=3.1.0,<4.0.0
 
 # Development utilities
-tox>=4.67.13,<5.0.0
+tox>=4.67.15,<5.0.0
