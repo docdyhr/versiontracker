@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Ruff 0.17.6 pin parity**: align the `ruff-pre-commit` hook with the three requirement pins in Dependabot PR #384,
+  so the existing pin-parity gate no longer blocks lint, coverage, and unit-test jobs.
 - **The Homebrew tap never received 1.2.1**: `release-homebrew.yml` failed on the release event and again on a manual
   dispatch with "Refusing to load formula docdyhr/tap/macversiontracker from untrusted tap docdyhr/tap". The workflow
   was unchanged since its last green run (2026-10-08), but the macOS runner image's Homebrew had moved on: like
